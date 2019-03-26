@@ -78,12 +78,9 @@ Section channel.
     {{{ c γ, RET c; is_chan γ c [] [] R }}}.
   Proof. 
     iIntros (Φ) "HR HΦ". rewrite -wp_fupd /newlock /new_list /=.
-    repeat wp_lam. 
-    wp_alloc lk as "Hlk".
-    repeat wp_lam. 
-    wp_alloc r as "Hr".
-    repeat wp_lam. 
-    wp_alloc l as "Hl".
+    repeat wp_lam. wp_alloc lk as "Hlk".
+    repeat wp_lam. wp_alloc r as "Hr".
+    repeat wp_lam. wp_alloc l as "Hl".
     wp_pures.
     iMod (own_alloc (Excl ())) as (γ) "Hγ"; first done.
     iMod (inv_alloc N _ (lock_inv γ lk R) with "[-Hl Hr HΦ]") as "#?".
@@ -94,19 +91,18 @@ Section channel.
     iSplit=> //.
     iSplitR.
     - unfold is_lock. iExists _. iSplit=> //.
-    - iSplitL "Hl".
-      + iExists l. iSplit=> //. iExists (InjLV #()). iSplit => //.
-      + iExists r. iSplit=> //. iExists (InjLV #()). iSplit => //.
+    - iSplitL "Hl"; iExists _; iSplit=> //; iExists (InjLV #()); iSplit => //.
   Qed.
 
+  (* Insert a value 'v' in the buffer of a given channel 'c', based on the given side 's' *)
   Definition send_upd γ c ls rs R s v : iProp Σ :=
     match s with
-    | #true  => is_chan γ c (ls ++ [v]) rs R
-    | #false => is_chan γ c ls (rs ++ [v]) R
+    | left  => is_chan γ c (ls ++ [v]) rs R
+    | right => is_chan γ c ls (rs ++ [v]) R
     | _ => ⌜False⌝%I
     end.
 
-  Lemma send_spec (γ : gname) (c v : val) (ls rs : list val) (s : val) (R : iProp Σ) :
+  Lemma send_spec (γ : gname) (c v s : val) (ls rs : list val) (R : iProp Σ) :
     {{{ is_chan γ c ls rs R ∗ ⌜is_side s⌝%I }}}
       send c s v
     {{{ RET #(); send_upd γ c ls rs R s v }}}.
@@ -126,77 +122,33 @@ Section channel.
     iIntros "[Hlocked HR]".
     wp_seq.
     wp_pures.
-    inversion Hs. 
-    - iDestruct "Hl" as (ll Hl lhd) "[Hl #Hlhd]".
-      subst.
-      wp_pures.
-      wp_bind (lsnoc (Load #ll) v).
-      wp_load.
-      iApply lsnoc_spec=> //.
-      iIntros (hd' Hhd').
-      iNext.
-      wp_store.
-      wp_pures.
-      iApply (release_spec N γ lk R with "[Hlocked HR]") => //.
-      iFrame. eauto. 
-      iModIntro.
-      iIntros (_).
-      iModIntro.
-      iApply "HΦ".
-      iExists _, _, _.
-      iSplitR.
+    inversion Hs; 
+      [iDestruct "Hl" as (lb Hb bhd) "[Hl #Hbhd]" |
+       iDestruct "Hr" as (lb Hb bhd) "[Hr #Hbhd]"];
+      subst;
+      wp_pures;
+      wp_bind (lsnoc (Load #lb) v);
+      wp_load;
+      iApply lsnoc_spec=> //;
+      iIntros (hd' Hhd');
+      iNext;
+      wp_store;
+      wp_pures;
+      iApply (release_spec N γ lk R with "[Hlocked HR]") => //;
+      iFrame; eauto;
+      iModIntro;
+      iIntros (_);
+      iModIntro;
+      iApply "HΦ";
+      iExists _, _, _;
+      iSplitR;
+      eauto;
+      iSplitL "Hlk"=> //;
+      iSplitL "Hl"=> //;
+      iExists _;
+      iSplitR;
       eauto.
-      iSplitL "Hlk"=> //.
-      iSplitL "Hl"=> //.
-      iExists _.
-      iSplitR.
-      eauto.
-      iExists _.
-      iSplitL=>//.      
-    - iDestruct "Hr" as (rl Hr rhd) "[Hr #Hrhd]".
-      subst.
-      wp_pures. 
-      wp_bind (lsnoc (Load #rl) v).
-      wp_load.
-      iApply lsnoc_spec=> //.
-      iIntros (hd' Hhd').
-      iNext.
-      wp_store.
-      wp_pures.
-      iApply (release_spec N γ lk R with "[Hlocked HR]") => //.
-      iFrame. eauto. 
-      iModIntro.
-      iIntros (_).
-      iModIntro.
-      iApply "HΦ".
-      iExists _, _, _.
-      iSplitR.
-      eauto.
-      iSplitL "Hlk"=> //.
-      iSplitL "Hl"=> //.
-      iExists _.
-      iSplitR.
-      eauto.
-      iExists _.
-      iSplitL=>//.
   Qed.
-
-  (* Definition try_recv_upd γ c ls rs R s v : iProp Σ := *)
-  (*   match s with *)
-  (*   | left   => is_chan γ c ls rs R ∧ (∃ w rs', v = SOMEV w ∧ rs' = w::rs) ∨ (v = NONE ∧ rs = []) *)
-  (*   | right  => is_chan γ c ls rs R ∧ (∃ w ls', v = SOMEV w ∧ ls' = w::ls) ∨ (v = NONE ∧ ls = []) *)
-  (*   . *)
-
-  (*                         match v with *)
-  (*               | NONE => is_chan γ c ls rs R *)
-  (*               | SOMEV w => ∃ ls', ls = w::ls' ∧ is_chan γ c ls rs R *)
-  (*               end *)
-  (*   | right => match rs with *)
-  (*               | [] => is_chan γ c ls rs R *)
-  (*               | r::rs => is_chan γ c ls rs R *)
-  (*               end *)
-  (*   | _ => ⌜False⌝%I *)
-  (*   end. *)
 
   Definition try_recv_upd γ c ls rs R s v : iProp Σ :=
     match s with
@@ -312,26 +264,6 @@ Section channel.
         iSplit=>//.
         iExists _.
         iSplit=> //.
-  Qed.
-
-  (* Lemma recv_spec (γ : gname) (c v s : val) (ls rs : list val) (R : iProp Σ) : *)
-  (*   {{{ is_chan γ c ls rs R ∗ ⌜is_side s⌝%I }}} *)
-  (*     recv c s *)
-  (*   {{{ v, RET v; *)
-  (*       match s with *)
-  (*       | left => match v with *)
-  (*                 | NONEV => is_chan γ c ls rs R ∧ ⌜rs = []⌝%I *)
-  (*                 | SOMEV w => ∃ rs', is_chan γ c ls rs' R ∧ ⌜rs = w::rs'⌝%I *)
-  (*                 | _ => False *)
-  (*                 end  *)
-  (*       | right => match v with *)
-  (*                 | NONEV => is_chan γ c ls rs R ∧ ⌜ls = []⌝%I *)
-  (*                 | SOMEV w => ∃ ls', is_chan γ c ls' rs R ∧ ⌜ls = w::ls'⌝%I *)
-  (*                 | _ => False *)
-  (*                 end  *)
-  (*       | _ => False *)
-  (*       end }}}. *)
-  (* Proof. *)
-  
+  Qed.  
 
 End channel.
