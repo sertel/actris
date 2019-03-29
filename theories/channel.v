@@ -7,9 +7,8 @@ From iris.base_logic.lib Require Import auth.
 From iris.heap_lang.lib Require Import lock.
 From iris.heap_lang.lib Require Import spin_lock.
 From osiris Require Import list.
-From osiris Require Import buffer.
+From osiris Require Import auth_excl.
 Set Default Proof Using "Type".
-
 
 Definition new_list : val :=
   λ: <>, lnil #().
@@ -61,7 +60,7 @@ Definition recv : val :=
     end.
 
 Section channel.
-  Context `{!heapG Σ, !lockG Σ, !buffG Σ} (N : namespace).
+  Context `{!heapG Σ, !lockG Σ, !auth_exclG (list val) Σ} (N : namespace).
 
   Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
     (∃ l':loc, ∃ hd : val, ⌜l = #l'⌝ ∧ l' ↦ hd ∗ ⌜is_list hd xs⌝)%I.
@@ -69,275 +68,208 @@ Section channel.
   Definition is_side (s : val) : Prop :=
     s = left ∨ s = right.
   
-  Definition is_chan (lkγ lsγ rsγ : gname) (c : val) (ls rs : list val) : iProp Σ :=
-    (∃ l r lk : val, ⌜c = ((l, r), lk)%V⌝ ∧
-                     own lsγ (◯  to_buff ls) ∗ own rsγ (◯  to_buff rs) ∗
-                     is_lock N lkγ lk
-                       (∃ ls rs, 
-                           is_list_ref l ls ∗ own lsγ (● to_buff ls) ∗
-                           is_list_ref r rs ∗ own rsγ (● to_buff rs)))%I.
+  Record chan_name := Chan_name {
+    chan_lock_name : gname;
+    chan_l_name : gname;
+    chan_r_name : gname
+  }.
+
+  Definition chan_ctx (γ : chan_name) (c : val) : iProp Σ :=
+    (∃ l r lk : val,
+      ⌜c = ((l, r), lk)%V⌝ ∧
+      is_lock N (chan_lock_name γ) lk (∃ ls rs, 
+        is_list_ref l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
+        is_list_ref r rs ∗ own (chan_r_name γ) (● to_auth_excl rs)))%I.
+
+  Definition is_chan (γ : chan_name) (c : val) (ls rs : list val) : iProp Σ :=
+    (∃ l r lk : val,
+      ⌜c = ((l, r), lk)%V⌝ ∧
+      own (chan_l_name γ) (◯ to_auth_excl ls) ∗ own (chan_r_name γ) (◯ to_auth_excl rs))%I.
 
   Lemma new_chan_spec :
     {{{ True }}}
       new_chan #()
-    {{{ c lkγ lsγ rsγ, RET c; is_chan lkγ lsγ rsγ c [] [] }}}.
+    {{{ c γ, RET c; is_chan γ c [] [] ∗ chan_ctx γ c }}}.
   Proof. 
-    iIntros (Φ) "_ HΦ". rewrite -wp_fupd /newlock /new_list /=.
+    iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_ctx /is_lock.
     repeat wp_lam. wp_alloc lk as "Hlk".
-    repeat wp_lam. wp_alloc r as "Hr".
-    repeat wp_lam. wp_alloc l as "Hl".
-    wp_pures.
     iMod (own_alloc (Excl ())) as (lkγ) "Hγlk"; first done.
-    iMod (own_alloc (Auth (Excl' (to_buff [])) (to_buff []))) as (lsγ) "Hls"; first done.
-    iMod (own_alloc (Auth (Excl' (to_buff [])) (to_buff []))) as (rsγ) "Hrs"; first done.
-    rewrite auth_both_op.
-    rewrite own_op. rewrite own_op.
+    repeat wp_lam. wp_alloc r as "Hr".
+    iMod (own_alloc (Auth (Excl' (to_auth_excl [])) (to_auth_excl []))) as (lsγ) "Hls"; first done.
+    repeat wp_lam. wp_alloc l as "Hl".
+    iMod (own_alloc (Auth (Excl' (to_auth_excl [])) (to_auth_excl []))) as (rsγ) "Hrs"; first done.
+    rewrite auth_both_op own_op own_op.
+    pose (Chan_name lkγ lsγ rsγ). 
     iDestruct "Hls" as "[Hlsa Hlsf]".
     iDestruct "Hrs" as "[Hrsa Hrsf]".
-    iMod (inv_alloc N _ (lock_inv lkγ lk (∃ (ls rs : list val), is_list_ref #l ls ∗ own lsγ (● to_buff ls) ∗ is_list_ref #r rs ∗ own rsγ (● to_buff rs)))%I with "[Hlk Hγlk Hr Hl Hlsa Hrsa]") as "Hlk".
-    {
-      iNext. iExists _. iFrame. iFrame.
-      iExists [], []. iFrame.
+    iMod (inv_alloc N _ (lock_inv lkγ lk (∃ (ls rs : list val), is_list_ref #l ls ∗ own lsγ (● to_auth_excl ls) ∗ is_list_ref #r rs ∗ own rsγ (● to_auth_excl rs)))%I with "[Hlk Hγlk Hr Hl Hlsa Hrsa]") as "Hlk".
+    { 
+      rewrite /is_list_ref /is_list /lock_inv.
+      iNext. iExists _.
+      iSplitL "Hlk"=> //=.
+      iSplitL "Hγlk"=> //=.
+      iExists _, _. iFrame.      
       iSplitL "Hl"=> //; iExists _, _; iSplit=> //; iFrame=> //. 
     }
-    iModIntro.
-    iApply "HΦ".
-    iExists _, _, _.
-    iFrame "Hlsf Hrsf".
-    iSplit=> //.
-    unfold is_lock. iExists _. iSplit=> //.
+    wp_pures.
+    iSpecialize ("HΦ" $!(#l, #r, #lk)%V c).
+    iApply ("HΦ"). 
+    iSplitL "Hlsf Hrsf"=> //;
+    eauto 10 with iFrame.
   Qed.
 
-  Definition send_upd lkγ lsγ rsγ c ls rs s v : iProp Σ :=
+  Definition send_upd γ c ls rs s v : iProp Σ :=
     match s with
-    | left  => is_chan lkγ lsγ rsγ c (ls ++ [v]) rs
-    | right => is_chan lkγ lsγ rsγ c ls (rs ++ [v])
+    | left  => is_chan γ c (ls ++ [v]) rs
+    | right => is_chan γ c ls (rs ++ [v])
     | _ => ⌜False⌝%I
     end.
 
-  Lemma send_spec (lkγ lsγ rsγ : gname) (c v s : val) (ls rs : list val) :
-    {{{ is_chan lkγ lsγ rsγ c ls rs ∗ ⌜is_side s⌝%I }}}
-      send c s v
-    {{{ RET #(); send_upd lkγ lsγ rsγ c ls rs s v }}}.
+  Lemma send_spec Φ E γ (c v s : val) :
+    is_side s →
+    chan_ctx γ c -∗
+    (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+      (send_upd γ c ls rs s v ={E,⊤}=∗ Φ #())
+    ) -∗
+    WP send c s v {{ Φ }}.
   Proof.
-    iIntros (Φ) "[Hc #Hs] HΦ". 
-    iRevert "Hs". iIntros (Hs).
-    rewrite -wp_fupd /send /=.
-    iDestruct "Hc" as (l r lk Hc) "[Hlsf [Hrsf #Hlk]]".
-    wp_lam.
-    wp_pures.
-    subst.
-    wp_bind (Snd _). 
-    wp_pures.
-    wp_bind (acquire lk).
-    iApply acquire_spec=> //.
-    iNext.
-    iIntros "[Hlocked Hl]".
-    iDestruct "Hl" as (ls' rs') "[Hls [Hlsa [Hrs Hrsa]]]".    
-    iDestruct (excl_eq with "Hlsa Hlsf") as %Heqls. rewrite -(Heqls).
-    iDestruct (excl_eq with "Hrsa Hrsf") as %Heqrs. rewrite -(Heqrs).
-    wp_seq.
-    wp_pures.    
-    inversion Hs.
-    - iDestruct "Hls" as (lb Hb bhd) "[Hl #Hbhd]".
-      iDestruct (excl_update _ _ _ (ls ++ [v]) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
-      subst.
-      wp_pures.
-      wp_bind (lsnoc (Load #lb) v).
-      wp_load.
-      iApply lsnoc_spec=> //.
-      iIntros (hd' Hhd').
-      iNext.
-      wp_store.
-      wp_pures.
-      eauto.
-      iApply (release_spec N lkγ lk with "[Hlocked Hl Hlsa Hrsa Hrs]") => //.
-      {
-        iFrame; eauto.
-        iSplitR. iApply "Hlk".
-        iFrame. iExists _, _. iFrame.
-        iExists _, _. iSplit=> //. iFrame. iPureIntro => //.
-      }
+    iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
+    iDestruct "Hc" as (l r lk ->) "#Hlock"; wp_pures.
+    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
+    iDestruct "Hinv" as (ls rs) "(Hl & Hls & Hr & Hrs)".
+    destruct Hside as [-> | ->].
+    - wp_pures. iDestruct "Hl" as (ll lhd ->) "(Hl & Hll)".
+      wp_load. wp_apply (lsnoc_spec with "Hll").
+      iIntros (hd') "Hll". wp_store. wp_pures.
+      iApply fupd_wp. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
+      iDestruct (excl_eq with "Hls Hls'") as %->.
+      iMod (excl_update _ _ _ (ls ++ [v]) with "Hls Hls'") as "[Hls Hls']".
+      iMod ("HΦ" with "[Hls' Hrs']") as "HΦ".
+      { rewrite /= /is_chan. eauto with iFrame. }
       iModIntro.
-      iIntros (_).
+      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]").
+      { rewrite /is_list_ref. eauto 10 with iFrame. }
+      iIntros "_ //".
+    - wp_pures. iDestruct "Hr" as (lr rhd ->) "(Hr & Hlr)".
+      wp_load. wp_apply (lsnoc_spec with "Hlr").
+      iIntros (hd') "Hlr". wp_store. wp_pures.
+      iApply fupd_wp. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
+      iDestruct (excl_eq with "Hrs Hrs'") as %->.
+      iMod (excl_update _ _ _ (rs ++ [v]) with "Hrs Hrs'") as "[Hrs Hrs']".
+      iMod ("HΦ" with "[Hls' Hrs']") as "HΦ".
+      { rewrite /= /is_chan. eauto with iFrame. }
       iModIntro.
-      iApply "HΦ".
-      iExists _, _, _.
-      iSplitR=> //.
-      iSplitL "Hlsf"=> //.
-      iSplitL "Hrsf"=> //.
-    - iDestruct "Hrs" as (lb Hb bhd) "[Hr #Hbhd]".
-      iDestruct (excl_update _ _ _ (rs ++ [v]) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
-      subst.
-      wp_pures.
-      wp_bind (lsnoc (Load #lb) v).
-      wp_load.
-      iApply lsnoc_spec=> //.
-      iIntros (hd' Hhd').
-      iNext.
-      wp_store.
-      wp_pures.
-      eauto.
-      iApply (release_spec N lkγ lk with "[Hlocked Hr Hlsa Hrsa Hls]") => //.
-      {
-        iFrame; eauto.
-        iSplitR. iApply "Hlk".
-        iFrame. iExists _, _. iFrame.
-        iExists _, _. iSplit=> //. iFrame. iPureIntro => //.
-      } 
-      iModIntro.
-      iIntros (_).
-      iModIntro.
-      iApply "HΦ".
-      iExists _, _, _.
-      iSplitR=> //.
-      iSplitL "Hlsf"=> //.
-      iSplitL "Hrsf"=> //.
+      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]").
+      { rewrite /is_list_ref. eauto 10 with iFrame. }
+      iIntros "_ //".
   Qed.
 
-  Definition try_recv_upd  lkγ lsγ rsγ c ls rs s v : iProp Σ :=
+  Definition try_recv_upd  γ c ls rs s v : iProp Σ :=
     match s with
     | left => match v with
-              | NONEV => (is_chan lkγ lsγ rsγ c ls rs ∧ ⌜rs = []⌝)%I
-              | SOMEV w => (∃ rs', is_chan  lkγ lsγ rsγ c ls rs' ∧ ⌜rs = w::rs'⌝)%I
+              | NONEV => (is_chan γ c ls rs ∧ ⌜rs = []⌝)%I
+              | SOMEV w => (∃ rs', is_chan γ c ls rs' ∧ ⌜rs = w::rs'⌝)%I
               | _ => ⌜False⌝%I
               end
     | right => match v with
-               | NONEV => (is_chan  lkγ lsγ rsγ c ls rs ∧ ⌜ls = []⌝)%I
-               | SOMEV w => (∃ ls', is_chan  lkγ lsγ rsγ c ls' rs ∧ ⌜ls = w::ls'⌝)%I
+               | NONEV => (is_chan γ c ls rs ∧ ⌜ls = []⌝)%I
+               | SOMEV w => (∃ ls', is_chan γ c ls' rs ∧ ⌜ls = w::ls'⌝)%I
                | _ => ⌜False⌝%I
                end 
     | _ => ⌜False⌝%I
     end.
-
-  Lemma try_recv_spec ( lkγ lsγ rsγ : gname) (c v s : val) (ls rs : list val) :
-    {{{ is_chan lkγ lsγ rsγ c ls rs ∗ ⌜is_side s⌝%I }}}
-      try_recv c s
-    {{{ v, RET v;  try_recv_upd  lkγ lsγ rsγ c ls rs s v }}}.
+  
+  Lemma try_recv_spec Φ E γ (c v s : val) :
+    is_side s →
+    chan_ctx γ c -∗
+    (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+      (∀ v, try_recv_upd γ c ls rs s v ={E,⊤}=∗ Φ v)
+    ) -∗
+    WP try_recv c s {{ Φ }}.
   Proof.
-    iIntros (Φ) "[Hc #Hs] HΦ". 
-    iRevert "Hs". iIntros (Hs).
-    rewrite -wp_fupd /send /=.
-    iDestruct "Hc" as (l r lk Hc) "[Hlsf [Hrsf #Hlk]]".
-    subst.
-    wp_lam.
-    wp_pures.
-    wp_bind (acquire _).
-    iApply acquire_spec=> //.
-    iNext.
-    iIntros "[Hlocked Hl]".
-    iDestruct "Hl" as (ls' rs') "[Hls [Hlsa [Hrs Hrsa]]]".
-    iDestruct (excl_eq with "Hlsa Hlsf") as %Heqls. rewrite -(Heqls).
-    iDestruct (excl_eq with "Hrsa Hrsf") as %Heqrs. rewrite -(Heqrs).
-    wp_seq.
-    wp_pures.
-    inversion Hs; subst.
-    - wp_pures.
-      iDestruct "Hrs" as (rl Hr rhd) "[Hrs #Hrhd]".
-      wp_pures.
-      subst.
+    iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
+    iDestruct "Hc" as (l r lk ->) "#Hlock"; wp_pures.
+    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
+    iDestruct "Hinv" as (ls rs) "(Hls & Hlsa & Hrs & Hrsa)".
+    destruct Hside as [-> | ->].
+    - iDestruct "Hrs" as (rl rhd ->) "[Hrs #Hrhd]".
       wp_load.
-      iRevert "Hrhd". iIntros (Hrhd).
-      unfold is_list in Hrhd.
-      destruct rs'.
-      + subst.
+      destruct rs.
+      + iRevert "Hrhd". rewrite /is_list. iIntros (->).
         wp_pures.
-        wp_bind (release _).
-        wp_pures.
-        iApply (release_spec N lkγ lk with "[Hlocked Hls Hrs Hlsa Hrsa]") => //.
-        {
-          iFrame; eauto.
-          iSplitR. iApply "Hlk".
-          iFrame. iExists _, _. iFrame.
-          iExists _, _. iFrame=> //.
-        }
-        iNext. iIntros (_).
-        wp_pures.
+        iApply fupd_wp.
+        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+        iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
+        iDestruct (excl_eq with "Hlsa Hlsf") as %->.
+        iDestruct (excl_eq with "Hrsa Hrsf") as %->.
+        iSpecialize ("HΦ" $!(InjLV #())).
+        iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
+        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. } 
         iModIntro.
-        iApply "HΦ".
-        iSplit=> //.
-        iExists _, _, _.
-        iSplit=> //.
-        iFrame.
-        iApply "Hlk".
-      + subst.
-        destruct Hrhd as [hd' [Hrhd Hrhd']].
-        subst.
+        wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
+        { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
+        iIntros (_).
         wp_pures.
-        wp_store. wp_pures. 
-        iDestruct (excl_update _ _ _ (rs') with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
-        wp_bind (release _).
+        by iApply "HΦ".
+      + iRevert "Hrhd". rewrite /is_list. iIntros ([hd' [-> Hrhd']]).
         wp_pures.
-        iApply (release_spec N lkγ lk with "[Hlocked Hls Hrs Hlsa Hrsa]") => //.
-        {
-          iFrame; eauto.
-          iSplitR. iApply "Hlk".
-          iFrame. iExists _, _. iFrame.
-          iExists _, _. iFrame=> //.
-        }
-        iNext. iIntros (_).
-        wp_pures.
-        iApply "HΦ".
-        iExists _.
+        iApply fupd_wp.
+        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+        iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
+        iDestruct (excl_eq with "Hlsa Hlsf") as %->.
+        iDestruct (excl_eq with "Hrsa Hrsf") as %->.
+        iDestruct (excl_update _ _ _ (rs) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
+        iSpecialize ("HΦ" $!(InjRV (v0))).
+        iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
+        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
         iModIntro.
-        iSplit=> //.
-        iExists _, _, _.
-        iSplit=> //.
-        iFrame.
-        iApply "Hlk".
-    - wp_pures.
-      iDestruct "Hls" as (ls Hl lhd) "[Hls #Hlhd]".
-      wp_pures.
-      subst.
+        wp_store.
+        wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
+        { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
+        iIntros (_).
+        wp_pures.
+        by iApply "HΦ".
+    - iDestruct "Hls" as (ll lhd ->) "[Hls #Hlhd]".
       wp_load.
-      iRevert "Hlhd". iIntros (Hlhd).
-      unfold is_list in Hlhd.
-      destruct ls'.
-      + subst.
-        wp_pures.        
-        wp_bind (release _).
+      destruct ls.
+      + iRevert "Hlhd". rewrite /is_list. iIntros (->).
         wp_pures.
-        iApply (release_spec N lkγ lk with "[Hlocked Hls Hrs Hlsa Hrsa]") => //.
-        {
-          iFrame; eauto.
-          iSplitR. iApply "Hlk".
-          iFrame. iExists _, _. iFrame.
-          iExists _, _. iFrame=> //.
-        }
-        iNext. iIntros (_).
-        wp_pures.
+        iApply fupd_wp.
+        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+        iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
+        iDestruct (excl_eq with "Hlsa Hlsf") as %->.
+        iDestruct (excl_eq with "Hrsa Hrsf") as %->.
+        iSpecialize ("HΦ" $!(InjLV #())).
+        iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
+        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. } 
         iModIntro.
-        iApply "HΦ".
-        iSplit=> //.
-        iExists _, _, _.
-        iSplit=> //.
-        iFrame.
-        iApply "Hlk".
-      + subst.
-        destruct Hlhd as [hd' [Hlhd Hlhd']].
-        subst.
+        wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
+        { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
+        iIntros (_).
         wp_pures.
-        wp_store. wp_pures. 
-        iDestruct (excl_update _ _ _ (ls') with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
-        wp_bind (release _).
+        by iApply "HΦ".
+      + iRevert "Hlhd". rewrite /is_list. iIntros ([hd' [-> Hlhd']]).
         wp_pures.
-        iApply (release_spec N lkγ lk with "[Hlocked Hls Hrs Hlsa Hrsa]") => //.
-        {
-          iFrame; eauto.
-          iSplitR. iApply "Hlk".
-          iFrame. iExists _, _. iFrame.
-          iExists _, _. iFrame=> //.
-        }
-        iNext. iIntros (_).
-        wp_pures.
-        iApply "HΦ".
-        iExists _.
+        iApply fupd_wp.
+        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+        iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
+        iDestruct (excl_eq with "Hlsa Hlsf") as %->.
+        iDestruct (excl_eq with "Hrsa Hrsf") as %->.
+        iDestruct (excl_update _ _ _ (ls) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
+        iSpecialize ("HΦ" $!(InjRV (v0))).
+        iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
+        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
         iModIntro.
-        iSplit=> //.
-        iExists _, _, _.
-        iSplit=> //.
-        iFrame.
-        iApply "Hlk".
-  Qed. 
+        wp_store.
+        wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
+        { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
+        iIntros (_).
+        wp_pures.
+        by iApply "HΦ".
+  Qed.
 
 End channel.
