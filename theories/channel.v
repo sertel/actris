@@ -9,6 +9,7 @@ From iris.heap_lang.lib Require Import spin_lock.
 From osiris Require Import list.
 From osiris Require Import auth_excl.
 Set Default Proof Using "Type".
+Import uPred.
 
 Definition new_list : val :=
   λ: <>, lnil #().
@@ -182,7 +183,7 @@ Section channel.
     | _ => ⌜False⌝%I
     end.
   
-  Lemma try_recv_spec Φ E γ (c v s : val) :
+  Lemma try_recv_spec Φ E γ (c s : val) :
     is_side s →
     chan_ctx γ c -∗
     (|={⊤,E}=> ∃ ls rs,
@@ -223,7 +224,7 @@ Section channel.
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iDestruct (excl_update _ _ _ (rs) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
-        iSpecialize ("HΦ" $!(InjRV (v0))).
+        iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
         { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
         iModIntro.
@@ -260,7 +261,7 @@ Section channel.
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iDestruct (excl_update _ _ _ (ls) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
-        iSpecialize ("HΦ" $!(InjRV (v0))).
+        iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
         { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
         iModIntro.
@@ -270,6 +271,98 @@ Section channel.
         iIntros (_).
         wp_pures.
         by iApply "HΦ".
+  Qed.
+
+  Definition recv_upd_fail γ c ls rs s : iProp Σ :=
+    match s with
+    | left  => (is_chan γ c ls rs ∧ ⌜rs = []⌝)%I
+    | right => (is_chan γ c ls rs ∧ ⌜ls = []⌝)%I
+    | _ => ⌜False⌝%I
+    end.
+
+  Definition recv_upd_succ γ c ls rs s v : iProp Σ :=
+    match s with
+    | left =>  (∃ rs', is_chan γ c ls  rs' ∧ ⌜rs = v::rs'⌝)%I
+    | right => (∃ ls', is_chan γ c ls' rs  ∧ ⌜ls = v::ls'⌝)%I
+    | _ => ⌜False⌝%I
+    end.
+
+  Definition recv_vs_rec E γ c s Φ vs :=
+    (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+        ((recv_upd_fail γ c ls rs s ={E,⊤}=∗ ▷ vs) ∗
+         (∀ v, recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))%I.
+
+  Global Instance recv_vs_rec_contractive E γ c s Φ :
+    Contractive (recv_vs_rec E γ c s Φ).
+  Proof.
+    intros n P Q Heq.
+    rewrite /recv_vs_rec.
+    do 9 f_equiv.
+    by apply later_contractive.
+  Qed.
+
+  Program Definition recv_vs E γ c s Φ :=
+    fixpoint (recv_vs_rec E γ c s Φ).
+
+  Lemma recv_spec Φ E γ c s :
+    is_side s →
+    chan_ctx γ c -∗
+    recv_vs E γ c s Φ -∗
+    WP recv c s {{ Φ }}.
+  Proof.
+    iIntros (Hside) "#Hc HΦ".
+    rewrite /recv.
+    rewrite /recv_vs.
+    iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
+    iLöb as "IH".
+    wp_lam; wp_pures.
+    wp_apply (try_recv_spec with "Hc")=> //.
+    iMod "HΦ" as (ls' rs') "[Hchan [HΦfail HΦsucc]]".
+    iModIntro.
+    iExists ls', rs'.
+    iFrame.
+    iIntros (v).
+    iIntros "Hupd".
+    destruct Hside as [-> | ->].
+    - simpl.
+      destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+      + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+        destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+        iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
+        iDestruct ("HΦ" with "Hupd") as "HΦ".
+        iMod "HΦ".
+        iModIntro.
+        wp_match.
+        iApply "IH".
+        rewrite /recv_vs.
+        iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
+        eauto 10 with iFrame.
+      + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
+        iSpecialize("HΦ" $!v).
+        iDestruct ("HΦ" with "Hupd") as "HΦ".
+        iMod "HΦ".
+        iModIntro.
+        wp_pures. iApply "HΦ".
+    - simpl.
+      destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+      + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+        destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
+        iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
+        iDestruct ("HΦ" with "Hupd") as "HΦ".
+        iMod "HΦ".
+        iModIntro.
+        wp_match.
+        iApply "IH".
+        rewrite /recv_vs.
+        iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
+        eauto 10 with iFrame.
+      + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
+        iSpecialize("HΦ" $!v).
+        iDestruct ("HΦ" with "Hupd") as "HΦ".
+        iMod "HΦ".
+        iModIntro.
+        wp_pures. iApply "HΦ".
   Qed.
 
 End channel.
