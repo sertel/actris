@@ -1,7 +1,6 @@
 -Q theories osiris
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
 theories/list.v
-theories/buffer.v
 theories/auth_excl.v
 theories/channel.v
 
