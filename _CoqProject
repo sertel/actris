@@ -3,4 +3,5 @@
 theories/list.v
 theories/auth_excl.v
 theories/channel.v
-
+theories/typing.v
+theories/logrel.v

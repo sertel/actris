@@ -4,6 +4,28 @@ From iris.algebra Require Import excl auth.
 From iris.base_logic.lib Require Import auth.
 Set Default Proof Using "Type".
 
+(* Definition exclUR (A : Type) : ucmraT := *)
+(*   optionUR (exclR (leibnizC A)). *)
+
+(* Definition to_auth_excl {A : Type} (a : A) : exclUR A := *)
+(*   Excl' (a: leibnizC A). *)
+
+(* Section auth_excl. *)
+
+(* Class auth_exclG (A : Type) (Σ :gFunctors) := *)
+(*   AuthExclG { *)
+(*       exclG_authG :> authG Σ (exclUR A); *)
+(*     }. *)
+
+(* Definition auth_exclΣ (A : Type) : gFunctors := *)
+(*   #[GFunctor (authR (exclUR A))]. *)
+
+(* Instance subG_auth_exclG {Σ} (A : Type) : *)
+(*   subG (auth_exclΣ) Σ → (auth_exclG) Σ. *)
+(* Proof. solve_inG. Qed. *)
+
+(* End auth_excl. *)
+
 Definition exclUR (A : Type) : ucmraT :=
   optionUR (exclR (leibnizC A)).
 
@@ -21,6 +43,7 @@ Proof. solve_inG. Qed.
 
 Definition to_auth_excl {A : Type} (a : A) : exclUR A :=
   Excl' (a: leibnizC A).
+
 
 Section auth_excl.
   Context `{!auth_exclG A Σ} (N : namespace).
