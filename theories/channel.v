@@ -104,7 +104,7 @@ Section channel.
     iDestruct "Hls" as "[Hlsa Hlsf]".
     iDestruct "Hrs" as "[Hrsa Hrsf]".
     iMod (inv_alloc N _ (lock_inv lkγ lk (∃ (ls rs : list val), is_list_ref #l ls ∗ own lsγ (● to_auth_excl ls) ∗ is_list_ref #r rs ∗ own rsγ (● to_auth_excl rs)))%I with "[Hlk Hγlk Hr Hl Hlsa Hrsa]") as "Hlk".
-    { 
+    {
       rewrite /is_list_ref /is_list /lock_inv.
       iNext. iExists _.
       iSplitL "Hlk"=> //=.
@@ -306,18 +306,18 @@ Section channel.
     iFrame.
     iIntros (v) "Hupd".
     destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
-    + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
+    - destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
       destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
       iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
       iMod ("HΦ" with "Hupd") as "HΦ".
       iModIntro.
       wp_match.
-        by iApply ("IH").
-    + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
+      by iApply ("IH").
+    - iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
       iSpecialize("HΦ" $!v).
       iMod ("HΦ" with "Hupd") as "HΦ".
       iModIntro.
-        by wp_pures.
+      by wp_pures.
   Qed.
 
 End channel.
