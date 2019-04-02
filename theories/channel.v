@@ -284,23 +284,11 @@ Section channel.
         by iApply "HΦ".
   Qed.
 
-  Definition recv_vs_rec E γ c s Φ vs :=
-    (|={⊤,E}=> ∃ ls rs,
-      is_chan γ c ls rs ∗
-        ((try_recv_upd_fail γ c ls rs s ={E,⊤}=∗ ▷ vs) ∗
-         (∀ v, try_recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))%I.
-
-  Global Instance recv_vs_rec_contractive E γ c s Φ :
-    Contractive (recv_vs_rec E γ c s Φ).
-  Proof.
-    intros n P Q Heq.
-    rewrite /recv_vs_rec.
-    do 9 f_equiv.
-    by apply later_contractive.
-  Qed.
-
   Definition recv_vs E γ c s Φ :=
-    fixpoint (recv_vs_rec E γ c s Φ).
+    (□ (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+        ((try_recv_upd_fail γ c ls rs s ={E,⊤}=∗ True) ∗
+         (∀ v, try_recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v))))%I.
 
   Lemma recv_spec Φ E γ c s :
     is_side s →
@@ -308,10 +296,9 @@ Section channel.
     recv_vs E γ c s Φ -∗
     WP recv c s {{ Φ }}.
   Proof.
-    iIntros (Hside) "#Hc HΦ".
+    iIntros (Hside) "#Hc #HΦ".
     rewrite /recv.
     iLöb as "IH".
-    iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
     wp_apply (try_recv_spec with "Hc")=> //.
     iMod "HΦ" as (ls rs) "[Hchan [HΦfail HΦsucc]]".
     iModIntro.
