@@ -126,13 +126,15 @@ Section channel.
     | _ => ⌜False⌝%I
     end.
 
+  Definition send_vs E γ c s Φ v :=
+    (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+      (send_upd γ c ls rs s v ={E,⊤}=∗ Φ #()))%I.
+
   Lemma send_spec Φ E γ (c v s : val) :
     is_side s →
     chan_ctx γ c -∗
-    (|={⊤,E}=> ∃ ls rs,
-      is_chan γ c ls rs ∗
-      (send_upd γ c ls rs s v ={E,⊤}=∗ Φ #())
-    ) -∗
+    send_vs E γ c s Φ v -∗
     WP send c s v {{ Φ }}.
   Proof.
     iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
@@ -168,28 +170,37 @@ Section channel.
       iIntros "_ //".
   Qed.
 
-  Definition try_recv_upd  γ c ls rs s v : iProp Σ :=
+
+  Definition try_recv_upd_fail γ c ls rs s : iProp Σ :=
     match s with
-    | left => match v with
-              | NONEV => (is_chan γ c ls rs ∧ ⌜rs = []⌝)%I
-              | SOMEV w => (∃ rs', is_chan γ c ls rs' ∧ ⌜rs = w::rs'⌝)%I
-              | _ => ⌜False⌝%I
-              end
-    | right => match v with
-               | NONEV => (is_chan γ c ls rs ∧ ⌜ls = []⌝)%I
-               | SOMEV w => (∃ ls', is_chan γ c ls' rs ∧ ⌜ls = w::ls'⌝)%I
-               | _ => ⌜False⌝%I
-               end 
+    | left  => (is_chan γ c ls rs ∧ ⌜rs = []⌝)%I
+    | right => (is_chan γ c ls rs ∧ ⌜ls = []⌝)%I
     | _ => ⌜False⌝%I
     end.
-  
+
+  Definition try_recv_upd_succ γ c ls rs s v : iProp Σ :=
+    match s with
+    | left =>  (∃ rs', is_chan γ c ls  rs' ∧ ⌜rs = v::rs'⌝)%I
+    | right => (∃ ls', is_chan γ c ls' rs  ∧ ⌜ls = v::ls'⌝)%I
+    | _ => ⌜False⌝%I
+    end.
+
+  Definition try_recv_upd γ c ls rs s v : iProp Σ :=
+    match v with
+    | NONEV => try_recv_upd_fail γ c ls rs s
+    | SOMEV w => try_recv_upd_succ γ c ls rs s w
+    | _ => ⌜False⌝%I
+    end.
+
+  Definition try_recv_vs E γ c s Φ :=
+    (|={⊤,E}=> ∃ ls rs,
+      is_chan γ c ls rs ∗
+      (∀ v, try_recv_upd γ c ls rs s v ={E,⊤}=∗ Φ v))%I.
+
   Lemma try_recv_spec Φ E γ (c s : val) :
     is_side s →
     chan_ctx γ c -∗
-    (|={⊤,E}=> ∃ ls rs,
-      is_chan γ c ls rs ∗
-      (∀ v, try_recv_upd γ c ls rs s v ={E,⊤}=∗ Φ v)
-    ) -∗
+    try_recv_vs E γ c s Φ -∗
     WP try_recv c s {{ Φ }}.
   Proof.
     iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
@@ -209,7 +220,7 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. } 
+        { rewrite /try_recv_upd /try_recv_upd_fail /is_chan. eauto 10 with iFrame. } 
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
         { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
@@ -226,7 +237,7 @@ Section channel.
         iDestruct (excl_update _ _ _ (rs) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
+        { rewrite /try_recv_upd /try_recv_upd_succ /is_chan. eauto 10 with iFrame. }
         iModIntro.
         wp_store.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
@@ -246,7 +257,7 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. } 
+        { rewrite /try_recv_upd /try_recv_upd_fail /is_chan. eauto 10 with iFrame. } 
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
         { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
@@ -263,7 +274,7 @@ Section channel.
         iDestruct (excl_update _ _ _ (ls) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /is_chan. eauto 10 with iFrame. }
+        { rewrite /try_recv_upd /try_recv_upd_succ /is_chan. eauto 10 with iFrame. }
         iModIntro.
         wp_store.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
@@ -273,25 +284,11 @@ Section channel.
         by iApply "HΦ".
   Qed.
 
-  Definition recv_upd_fail γ c ls rs s : iProp Σ :=
-    match s with
-    | left  => (is_chan γ c ls rs ∧ ⌜rs = []⌝)%I
-    | right => (is_chan γ c ls rs ∧ ⌜ls = []⌝)%I
-    | _ => ⌜False⌝%I
-    end.
-
-  Definition recv_upd_succ γ c ls rs s v : iProp Σ :=
-    match s with
-    | left =>  (∃ rs', is_chan γ c ls  rs' ∧ ⌜rs = v::rs'⌝)%I
-    | right => (∃ ls', is_chan γ c ls' rs  ∧ ⌜ls = v::ls'⌝)%I
-    | _ => ⌜False⌝%I
-    end.
-
   Definition recv_vs_rec E γ c s Φ vs :=
     (|={⊤,E}=> ∃ ls rs,
       is_chan γ c ls rs ∗
-        ((recv_upd_fail γ c ls rs s ={E,⊤}=∗ ▷ vs) ∗
-         (∀ v, recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))%I.
+        ((try_recv_upd_fail γ c ls rs s ={E,⊤}=∗ ▷ vs) ∗
+         (∀ v, try_recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))%I.
 
   Global Instance recv_vs_rec_contractive E γ c s Φ :
     Contractive (recv_vs_rec E γ c s Φ).
@@ -302,7 +299,7 @@ Section channel.
     by apply later_contractive.
   Qed.
 
-  Program Definition recv_vs E γ c s Φ :=
+  Definition recv_vs E γ c s Φ :=
     fixpoint (recv_vs_rec E γ c s Φ).
 
   Lemma recv_spec Φ E γ c s :
@@ -313,56 +310,27 @@ Section channel.
   Proof.
     iIntros (Hside) "#Hc HΦ".
     rewrite /recv.
-    rewrite /recv_vs.
-    iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
     iLöb as "IH".
-    wp_lam; wp_pures.
+    iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
     wp_apply (try_recv_spec with "Hc")=> //.
-    iMod "HΦ" as (ls' rs') "[Hchan [HΦfail HΦsucc]]".
+    iMod "HΦ" as (ls rs) "[Hchan [HΦfail HΦsucc]]".
     iModIntro.
-    iExists ls', rs'.
+    iExists _, _.
     iFrame.
-    iIntros (v).
-    iIntros "Hupd".
-    destruct Hside as [-> | ->].
-    - simpl.
-      destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-      + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-        destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-        iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
-        iDestruct ("HΦ" with "Hupd") as "HΦ".
-        iMod "HΦ".
-        iModIntro.
-        wp_match.
-        iApply "IH".
-        rewrite /recv_vs.
-        iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
-        eauto 10 with iFrame.
-      + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
-        iSpecialize("HΦ" $!v).
-        iDestruct ("HΦ" with "Hupd") as "HΦ".
-        iMod "HΦ".
-        iModIntro.
-        wp_pures. iApply "HΦ".
-    - simpl.
-      destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-      + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-        destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd). (* Todo: Improve *)
-        iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
-        iDestruct ("HΦ" with "Hupd") as "HΦ".
-        iMod "HΦ".
-        iModIntro.
-        wp_match.
-        iApply "IH".
-        rewrite /recv_vs.
-        iDestruct (fixpoint_unfold with "HΦ") as "HΦ".
-        eauto 10 with iFrame.
-      + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
-        iSpecialize("HΦ" $!v).
-        iDestruct ("HΦ" with "Hupd") as "HΦ".
-        iMod "HΦ".
-        iModIntro.
-        wp_pures. iApply "HΦ".
+    iIntros (v) "Hupd".
+    destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
+    + destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
+      destruct l; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
+      iClear "HΦsucc". iDestruct ("HΦfail") as "HΦ".
+      iMod ("HΦ" with "Hupd") as "HΦ".
+      iModIntro.
+      wp_match.
+        by iApply ("IH").
+    + iClear "HΦfail". iDestruct ("HΦsucc") as "HΦ".
+      iSpecialize("HΦ" $!v).
+      iMod ("HΦ" with "Hupd") as "HΦ".
+      iModIntro.
+        by wp_pures.
   Qed.
 
 End channel.
