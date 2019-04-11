@@ -82,10 +82,16 @@ Section channel.
         is_list_ref l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
         is_list_ref r rs ∗ own (chan_r_name γ) (● to_auth_excl rs)))%I.
 
+  Global Instance chan_ctx_persistent : Persistent (chan_ctx γ c).
+  Proof. by apply _. Qed.
+
   Definition chan_frag (γ : chan_name) (c : val) (ls rs : list val) : iProp Σ :=
     (∃ l r lk : val,
       ⌜c = ((l, r), lk)%V⌝ ∧
       own (chan_l_name γ) (◯ to_auth_excl ls) ∗ own (chan_r_name γ) (◯ to_auth_excl rs))%I.
+
+  Global Instance chan_frag_timeless : Timeless (chan_frag γ c ls rs).
+  Proof. by apply _. Qed.
 
   Definition is_chan (γ : chan_name) (c : val) (ls rs : list val) : iProp Σ :=
     (chan_ctx γ c ∗ chan_frag γ c ls rs)%I.
@@ -122,22 +128,19 @@ Section channel.
     eauto 10 with iFrame.
   Qed.
 
-  Definition send_upd γ c ls rs s v : iProp Σ :=
+  Definition chan_frag_snoc γ c ls rs s v : iProp Σ :=
     match s with
     | left  => chan_frag γ c (ls ++ [v]) rs
     | right => chan_frag γ c ls (rs ++ [v])
     | _ => ⌜False⌝%I
     end.
 
-  Definition send_vs E γ c s Φ v :=
-    (|={⊤,E}=> ∃ ls rs,
-      chan_frag γ c ls rs ∗
-      (send_upd γ c ls rs s v ={E,⊤}=∗ Φ #()))%I.
-
   Lemma send_spec Φ E γ (c v s : val) :
     is_side s →
     chan_ctx γ c -∗
-    send_vs E γ c s Φ v -∗
+    (|={⊤,E}=> ∃ ls rs,
+      chan_frag γ c ls rs ∗
+      ▷ (chan_frag_snoc γ c ls rs s v ={E,⊤}=∗ Φ #())) -∗
     WP send c s v {{ Φ }}.
   Proof.
     iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
@@ -147,8 +150,9 @@ Section channel.
     destruct Hside as [-> | ->].
     - wp_pures. iDestruct "Hl" as (ll lhd ->) "(Hl & Hll)".
       wp_load. wp_apply (lsnoc_spec with "Hll").
-      iIntros (hd') "Hll". wp_store. wp_pures.
-      iApply fupd_wp. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      iIntros (hd') "Hll". wp_pures.
+      wp_bind (_ <- _)%E. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      wp_store.
       iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
       iDestruct (excl_eq with "Hls Hls'") as %->.
       iMod (excl_update _ _ _ (ls ++ [v]) with "Hls Hls'") as "[Hls Hls']".
@@ -160,8 +164,9 @@ Section channel.
       iIntros "_ //".
     - wp_pures. iDestruct "Hr" as (lr rhd ->) "(Hr & Hlr)".
       wp_load. wp_apply (lsnoc_spec with "Hlr").
-      iIntros (hd') "Hlr". wp_store. wp_pures.
-      iApply fupd_wp. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      iIntros (hd') "Hlr". wp_pures.
+      wp_bind (_ <- _)%E. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
+      wp_store.
       iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
       iDestruct (excl_eq with "Hrs Hrs'") as %->.
       iMod (excl_update _ _ _ (rs ++ [v]) with "Hrs Hrs'") as "[Hrs Hrs']".
