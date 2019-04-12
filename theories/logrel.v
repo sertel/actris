@@ -215,7 +215,8 @@ Section logrel.
 
   Lemma try_recv_vs c γ s (P : val → Prop) st E :
     ↑N ⊆ E →
-    ⟦ c @ s : TRecv P st ⟧{γ} ={E,E∖↑N}=∗
+    ⟦ c @ s : TRecv P st ⟧{γ}
+    ={E,E∖↑N}=∗
       ∃ l r, chan_frag (st_c_name γ) c l r ∗
       (▷ ((try_recv_fail (st_c_name γ) c l r (to_side s) ={E∖↑N,E}=∗
            ⟦ c @ s : TRecv P st ⟧{γ}) ∧
@@ -297,6 +298,27 @@ Section logrel.
       iDestruct "H" as "[_ H]".
       iMod ("H" with "Hupd") as "H".
       iModIntro. iExists _. iSplit=> //.
+  Qed.
+
+  Lemma recv_st_spec st γ c s (P : val → Prop) :
+    {{{ ⟦ c @ s : TRecv P st ⟧{γ} }}}
+      recv c (to_side s)
+    {{{ v, RET v; ⟦ c @ s : st v ⟧{γ} ∗ ⌜P v⌝}}}.
+  Proof.
+    iIntros (Φ) "Hrecv HΦ".
+    iLöb as "IH". wp_rec.
+    wp_apply (try_recv_st_spec with "Hrecv").
+    iIntros (v) "H".
+    iDestruct "H" as "[H | H]".
+    - iDestruct "H" as "[Hv H]".
+      iDestruct "Hv" as %->.
+      wp_pures.
+      iApply ("IH" with "[H]")=> //.
+    - iDestruct "H" as (w) "[Hv H]".
+      iDestruct "Hv" as %->.
+      wp_pures.
+      iApply "HΦ".
+      iFrame.
   Qed.
 
 End logrel.
