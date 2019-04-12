@@ -131,12 +131,6 @@ Section logrel.
     iFrame.
   Qed.
 
-  (* Definition to_side (s : side) : chan:= *)
-  (*   match s with *)
-  (*   | Left  => true *)
-  (*   | Right => false *)
-  (*   end. *)
-
   Coercion side_to_side (s : side) : channel.side :=
     match s with Left => channel.Left | Right => channel.Right end.
 
