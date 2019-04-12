@@ -271,4 +271,32 @@ Section logrel.
         by iFrame (HP) "Hcctx Hinv".
   Qed.
 
+  Lemma try_recv_st_spec st γ c s (P : val → Prop) :
+    {{{ ⟦ c @ s : TRecv P st ⟧{γ} }}}
+      try_recv c (to_side s)
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : TRecv P st ⟧{γ}) ∨
+                  (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : st w ⟧{γ} ∗ ⌜P w⌝)}}}.
+  Proof.
+    iIntros (Φ) "Hrecv HΦ".
+    iApply (try_recv_spec with "[#]").
+    { destruct s. by left. by right. }
+    { iDestruct "Hrecv" as "[? [$ ?]]". }
+    iMod (try_recv_vs with "Hrecv") as (ls lr) "[Hch H]"; first done.
+    iModIntro. iExists ls, lr. iFrame "Hch".
+    iIntros "!>". iIntros (v) "Hupd". iApply "HΦ".
+    destruct v; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
+    - destruct v; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
+      destruct l; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
+      simpl.
+      iLeft.
+      iDestruct "H" as "[H _]".
+      iMod ("H" with "Hupd") as "H".
+      iModIntro. iSplit=> //.
+    - simpl.
+      iRight.
+      iDestruct "H" as "[_ H]".
+      iMod ("H" with "Hupd") as "H".
+      iModIntro. iExists _. iSplit=> //.
+  Qed.
+
 End logrel.
