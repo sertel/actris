@@ -34,14 +34,14 @@ Section logrel.
         end in
     own γ (● to_auth_excl st)%I.
 
-    Fixpoint st_eval (vs : list val) (st1 st2 : stype) : Prop :=
-      match vs with
-      | [] => st1 = dual_stype st2
-      | v::vs => match st2 with
-                 | TRecv P st2 => P v ∧ st_eval vs st1 (st2 v)
-                 | _ => False
-                 end
-      end.
+  Fixpoint st_eval (vs : list val) (st1 st2 : stype) : Prop :=
+    match vs with
+    | [] => st1 = dual_stype st2
+    | v::vs => match st2 with
+               | TRecv P st2 => P v ∧ st_eval vs st1 (st2 v)
+               | _ => False
+               end
+    end.
 
   Lemma st_eval_send (P : val -> Prop) st l str v :
       P v → st_eval l (TSend P st) str → st_eval (l ++ [v]) (st v) str.
@@ -55,6 +55,17 @@ Section logrel.
       destruct str; inversion H.
       split=> //.
       apply IHl=> //.
+  Qed.
+
+  Lemma st_eval_recv (P : val → Prop) st1 l st2 v :
+     st_eval (v :: l) st1 (TRecv P st2)  → st_eval l st1 (st2 v) ∧ P v.
+  Proof.
+    intros Heval.
+    generalize dependent st1.
+    induction l; intros.
+    - inversion Heval; subst. split=> //.
+     - inversion Heval; subst. simpl.
+      constructor=> //.
   Qed.
 
   Definition inv_st (γ :st_name) (c : val) : iProp Σ :=
@@ -200,6 +211,64 @@ Section logrel.
     iModIntro. iExists ls, lr. iFrame "Hch".
     iIntros "!> Hupd". iApply "HΦ".
     iApply ("H" $! v HP with "[Hupd]"). by destruct s.
+  Qed.
+
+  Lemma try_recv_vs c γ s (P : val → Prop) st E :
+    ↑N ⊆ E →
+    ⟦ c @ s : TRecv P st ⟧{γ} ={E,E∖↑N}=∗
+      ∃ l r, chan_frag (st_c_name γ) c l r ∗
+      (▷ ((try_recv_fail (st_c_name γ) c l r (to_side s) ={E∖↑N,E}=∗
+           ⟦ c @ s : TRecv P st ⟧{γ}) ∧
+         (∀ v, try_recv_succ (st_c_name γ) c l r (to_side s) v ={E∖↑N,E}=∗
+               ⟦ c @ s : (st v) ⟧{γ} ∗ ⌜P v⌝))).
+  Proof.
+    iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
+    iMod (inv_open with "Hinv") as "Hinv'"=> //.
+    iDestruct "Hinv'" as "[Hinv' Hinvstep]".
+    iDestruct "Hinv'" as (l r stl str) "(>Hcf & Hstla & Hstra & Hinv')".
+    iModIntro.
+    rewrite /stmapsto_frag /stmapsto_full.
+    iExists l, r.
+    iIntros "{$Hcf} !>".
+    destruct s.
+    - iRename "Hstf" into "Hstlf".
+      iDestruct (excl_eq with "Hstla Hstlf") as %<-.
+      iSplit=> //.
+      + iIntros "[Hfail Hemp]".
+        iMod ("Hinvstep" with "[-Hstlf]") as "_".
+        { iNext. iExists l,r,_,_. iFrame. }
+        iModIntro. iFrame "Hcctx ∗ Hinv".
+      + simpl. iIntros (v) "Hsucc".
+        rewrite /try_recv_succ. simpl.
+        iDestruct "Hsucc" as (r') "[Hsucc Hr]".
+        iDestruct "Hr" as %Hr.
+        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; first inversion Hr.
+        iMod (excl_update _ _ _ (st v) with "Hstla Hstlf") as "[Hstla Hstlf]".
+        subst.
+        iDestruct "Heval" as %Heval.
+        apply st_eval_recv in Heval as [Heval HP].
+        iMod ("Hinvstep" with "[-Hstlf]") as "_".
+        { iExists _,_,_,_. iFrame. iRight=> //. }
+        by iFrame (HP) "Hcctx Hinv".
+    - iRename "Hstf" into "Hstrf".
+      iDestruct (excl_eq with "Hstra Hstrf") as %<-.
+      iSplit=> //.
+      + iIntros "[Hfail Hemp]".
+        iMod ("Hinvstep" with "[-Hstrf]") as "_".
+        { iNext. iExists l,r,_,_. iFrame. }
+        iModIntro. iFrame "Hcctx ∗ Hinv".
+      +  simpl. iIntros (v) "Hsucc".
+        rewrite /try_recv_succ. simpl.
+        iDestruct "Hsucc" as (r') "[Hsucc Hr]".
+        iDestruct "Hr" as %Hl.
+        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; last inversion Hl.
+        iMod (excl_update _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
+        subst.
+        iDestruct "Heval" as %Heval.
+        apply st_eval_recv in Heval as [Heval HP].
+        iMod ("Hinvstep" with "[-Hstrf]") as "_".
+        { iExists _,_,_,_. iFrame. iLeft=> //. }
+        by iFrame (HP) "Hcctx Hinv".
   Qed.
 
 End logrel.
