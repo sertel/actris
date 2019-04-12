@@ -120,15 +120,19 @@ Section logrel.
     iFrame.
   Qed.
 
+  Definition to_side s :=
+    match s with
+    | Left  => #true
+    | Right => #false
+    end.
+
   Lemma send_vs c γ s (P : val → Prop) st E :
     ↑N ⊆ E →
     ⟦ c @ s : TSend P st ⟧{γ} ={E,E∖↑N}=∗
       ∃ l r, chan_frag (st_c_name γ) c l r ∗
       ▷ (∀ v, ⌜P v⌝ -∗
-              match s with
-              | Left  => chan_frag (st_c_name γ) c (l ++ [v]) r
-              | Right => chan_frag (st_c_name γ) c l (r ++ [v])
-              end ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
+               chan_frag_snoc (st_c_name γ) c l r (to_side s) v
+              ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
     iMod (inv_open with "Hinv") as "Hinv'"=> //.
@@ -181,12 +185,6 @@ Section logrel.
           by eapply st_eval_send. }
       iModIntro. iFrame "Hcctx ∗ Hinv".
   Qed.
-
-  Definition to_side s :=
-    match s with
-    | Left  => #true
-    | Right => #false
-    end.
 
   Lemma send_st_spec st γ c s (P : val → Prop) v :
     P v →
