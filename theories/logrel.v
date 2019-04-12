@@ -131,18 +131,21 @@ Section logrel.
     iFrame.
   Qed.
 
-  Definition to_side s :=
-    match s with
-    | Left  => #true
-    | Right => #false
-    end.
+  (* Definition to_side (s : side) : chan:= *)
+  (*   match s with *)
+  (*   | Left  => true *)
+  (*   | Right => false *)
+  (*   end. *)
+
+  Coercion side_to_side (s : side) : channel.side :=
+    match s with Left => channel.Left | Right => channel.Right end.
 
   Lemma send_vs c γ s (P : val → Prop) st E :
     ↑N ⊆ E →
     ⟦ c @ s : TSend P st ⟧{γ} ={E,E∖↑N}=∗
       ∃ l r, chan_frag (st_c_name γ) c l r ∗
       ▷ (∀ v, ⌜P v⌝ -∗
-               chan_frag_snoc (st_c_name γ) c l r (to_side s) v
+               chan_frag_snoc (st_c_name γ) c l r s v
               ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
@@ -200,12 +203,11 @@ Section logrel.
   Lemma send_st_spec st γ c s (P : val → Prop) v :
     P v →
     {{{ ⟦ c @ s : TSend P st ⟧{γ} }}}
-      send c (to_side s) v
+      send c #s v
     {{{ RET #(); ⟦ c @ s : st v ⟧{γ} }}}.
   Proof.
     iIntros (HP Φ) "Hsend HΦ".
     iApply (send_spec with "[#]").
-    { destruct s. by left. by right. }
     { iDestruct "Hsend" as "[? [$ ?]]". }
     iMod (send_vs with "Hsend") as (ls lr) "[Hch H]"; first done.
     iModIntro. iExists ls, lr. iFrame "Hch".
@@ -218,9 +220,9 @@ Section logrel.
     ⟦ c @ s : TRecv P st ⟧{γ}
     ={E,E∖↑N}=∗
       ∃ l r, chan_frag (st_c_name γ) c l r ∗
-      (▷ ((try_recv_fail (st_c_name γ) c l r (to_side s) ={E∖↑N,E}=∗
+      (▷ ((try_recv_fail (st_c_name γ) c l r s ={E∖↑N,E}=∗
            ⟦ c @ s : TRecv P st ⟧{γ}) ∧
-         (∀ v, try_recv_succ (st_c_name γ) c l r (to_side s) v ={E∖↑N,E}=∗
+         (∀ v, try_recv_succ (st_c_name γ) c l r s v ={E∖↑N,E}=∗
                ⟦ c @ s : (st v) ⟧{γ} ∗ ⌜P v⌝))).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
@@ -274,35 +276,34 @@ Section logrel.
 
   Lemma try_recv_st_spec st γ c s (P : val → Prop) :
     {{{ ⟦ c @ s : TRecv P st ⟧{γ} }}}
-      try_recv c (to_side s)
+      try_recv c #s
     {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : TRecv P st ⟧{γ}) ∨
                   (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : st w ⟧{γ} ∗ ⌜P w⌝)}}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (try_recv_spec with "[#]").
-    { destruct s. by left. by right. }
     { iDestruct "Hrecv" as "[? [$ ?]]". }
     iMod (try_recv_vs with "Hrecv") as (ls lr) "[Hch H]"; first done.
     iModIntro. iExists ls, lr. iFrame "Hch".
-    iIntros "!>". iIntros (v) "Hupd". iApply "HΦ".
-    destruct v; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
-    - destruct v; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
-      destruct l; try by iDestruct "Hupd" as %Hupd; inversion Hupd.
-      simpl.
-      iLeft.
+    iIntros "!>".
+    iSplit.
+    - iIntros "Hupd".
       iDestruct "H" as "[H _]".
       iMod ("H" with "Hupd") as "H".
-      iModIntro. iSplit=> //.
-    - simpl.
-      iRight.
+      iModIntro.
+      iApply "HΦ"=> //.
+      eauto with iFrame.
+    - iIntros (v) "Hupd".
       iDestruct "H" as "[_ H]".
       iMod ("H" with "Hupd") as "H".
-      iModIntro. iExists _. iSplit=> //.
+      iModIntro.
+      iApply "HΦ"=> //.
+      eauto with iFrame.
   Qed.
 
   Lemma recv_st_spec st γ c s (P : val → Prop) :
     {{{ ⟦ c @ s : TRecv P st ⟧{γ} }}}
-      recv c (to_side s)
+      recv c #s
     {{{ v, RET v; ⟦ c @ s : st v ⟧{γ} ∗ ⌜P v⌝}}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
