@@ -142,12 +142,12 @@ Section channel.
     destruct Hside as [-> | ->].
     - wp_pures. iDestruct "Hl" as (ll lhd ->) "(Hl & Hll)".
       wp_load. wp_apply (lsnoc_spec with "Hll").
-      iIntros (hd' Hll). wp_pures.
+      iIntros (hd' Hll).
       wp_bind (_ <- _)%E. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
-      wp_store.
       iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
       iDestruct (excl_eq with "Hls Hls'") as %->.
       iMod (excl_update _ _ _ (ls ++ [v]) with "Hls Hls'") as "[Hls Hls']".
+      wp_store.
       iMod ("HΦ" with "[Hls' Hrs']") as "HΦ".
       { rewrite /= /chan_frag. eauto with iFrame. }
       iModIntro.
@@ -194,7 +194,7 @@ Section channel.
     chan_ctx γ c -∗
     (|={⊤,E}=> ∃ ls rs,
       chan_frag γ c ls rs ∗
-      (∀ v, try_recv_get γ c ls rs s v ={E,⊤}=∗ Φ v)) -∗
+      ▷ (∀ v, try_recv_get γ c ls rs s v ={E,⊤}=∗ Φ v)) -∗
     WP try_recv c s {{ Φ }}.
   Proof.
     iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
@@ -203,12 +203,12 @@ Section channel.
     iDestruct "Hinv" as (ls rs) "(Hls & Hlsa & Hrs & Hrsa)".
     destruct Hside as [-> | ->].
     - iDestruct "Hrs" as (rl rhd ->) "[Hrs #Hrhd]".
+      wp_pures.
+      wp_bind (Load _).
+      iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
       wp_load.
       destruct rs.
       + iRevert "Hrhd". rewrite /is_list. iIntros (->).
-        wp_pures.
-        iApply fupd_wp.
-        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
         iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
@@ -223,9 +223,6 @@ Section channel.
         wp_pures.
         by iApply "HΦ".
       + iRevert "Hrhd". rewrite /is_list. iIntros ([hd' [-> Hrhd']]).
-        wp_pures.
-        iApply fupd_wp.
-        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
         iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
@@ -242,12 +239,12 @@ Section channel.
         wp_pures.
         by iApply "HΦ".
     - iDestruct "Hls" as (ll lhd ->) "[Hls #Hlhd]".
+      wp_pures.
+      wp_bind (Load _).
+      iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
       wp_load.
       destruct ls.
       + iRevert "Hlhd". rewrite /is_list. iIntros (->).
-        wp_pures.
-        iApply fupd_wp.
-        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
         iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
@@ -262,9 +259,6 @@ Section channel.
         wp_pures.
         by iApply "HΦ".
       + iRevert "Hlhd". rewrite /is_list. iIntros ([hd' [-> Hlhd']]).
-        wp_pures.
-        iApply fupd_wp.
-        iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
         iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hlsf Hrsf]".
         iDestruct (excl_eq with "Hlsa Hlsf") as %->.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
@@ -287,8 +281,8 @@ Section channel.
     chan_ctx γ c -∗
     (□ (|={⊤,E}=> ∃ ls rs,
       chan_frag γ c ls rs ∗
-        ((try_recv_fail γ c ls rs s ={E,⊤}=∗ True) ∗
-         (∀ v, try_recv_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))) -∗
+        ▷ ((try_recv_fail γ c ls rs s ={E,⊤}=∗ True) ∗
+          (∀ v, try_recv_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))) -∗
     WP recv c s {{ Φ }}.
   Proof.
     iIntros (Hside) "#Hc #HΦ".
@@ -299,6 +293,7 @@ Section channel.
     iModIntro.
     iExists _, _.
     iFrame.
+    iNext.
     iIntros (v) "Hupd".
     destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
     - destruct v; try (by iRevert "Hupd"; iIntros (Hupd); inversion Hupd).
