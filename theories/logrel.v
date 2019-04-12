@@ -34,21 +34,26 @@ Section logrel.
         end in
     own γ (● to_auth_excl st)%I.
 
-  Inductive st_eval : list val -> stype -> stype -> Prop :=
-    | st_eval_nil st : st_eval [] st (dual_stype st)
-    | st_eval_cons (P:val -> Prop) v vs st1 st2 :
-        P v -> st_eval vs st1 (st2 v) ->
-        st_eval (v::vs) st1 (TRecv P st2).
-  Hint Constructors st_eval.
+    Fixpoint st_eval (vs : list val) (st1 st2 : stype) : Prop :=
+      match vs with
+      | [] => st1 = dual_stype st2
+      | v::vs => match st2 with
+                 | TRecv P st2 => P v ∧ st_eval vs st1 (st2 v)
+                 | _ => False
+                 end
+      end.
 
   Lemma st_eval_send (P : val -> Prop) st l str v :
       P v → st_eval l (TSend P st) str → st_eval (l ++ [v]) (st v) str.
   Proof.
+    intro HP.
     revert str.
     induction l; intros str.
-    - inversion 2; by constructor.
-    - inversion 2; subst. simpl.
-      constructor=> //.
+    - inversion 1. simpl.
+      destruct str; inversion H1; subst. eauto.
+    - intros. simpl.
+      destruct str; inversion H.
+      split=> //.
       apply IHl=> //.
   Qed.
 
@@ -146,33 +151,31 @@ Section logrel.
         - iSplit=> //.
           iPureIntro.
           by eapply st_eval_send.
-        - inversion Heval; subst.
+        - destruct r; inversion Heval; subst.
           iSplit=> //.
           iPureIntro.
-          destruct str; inversion H2.
-          apply st_eval_cons=> //. subst.
-          rewrite (involutive (st0 v)).
-          rewrite -(involutive (dual_stype (st0 v))).
-          constructor. }
+          simpl.
+          rewrite (involutive (st v)).
+          rewrite -(involutive (dual_stype (st v))).
+          split=> //.
+      }
       iModIntro. iFrame "Hcctx ∗ Hinv".
     - iRename "Hstf" into "Hstrf".
       iDestruct (excl_eq with "Hstra Hstrf") as %<-.
       iMod (excl_update _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
       iMod ("Hinvstep" with "[-Hstrf]") as "_".
       { iNext.
-        iExists _,_. iFrame.
-        iExists _,_. iFrame.
+        iExists _,_, _, _. iFrame.
         iRight.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]";
           iDestruct "Heval" as %Heval.
-        - inversion Heval; subst.
+        - destruct l; inversion Heval; subst.
           iSplit=> //.
           iPureIntro.
-          destruct stl; inversion H2.
-          apply st_eval_cons=> //. subst.
-          rewrite (involutive (st0 v)).
-          rewrite -(involutive (dual_stype (st0 v))).
-          constructor.
+          simpl.
+          rewrite (involutive (st v)).
+          rewrite -(involutive (dual_stype (st v))).
+          split=> //.
         - iSplit=> //.
           iPureIntro.
           by eapply st_eval_send. }
