@@ -22,7 +22,6 @@ Proof. solve_inG. Qed.
 Definition to_auth_excl {A : Type} (a : A) : exclUR A :=
   Excl' (a: leibnizC A).
 
-
 Section auth_excl.
   Context `{!auth_exclG A Σ}.
 
@@ -39,7 +38,7 @@ Section auth_excl.
     iFrame.
     eauto.
   Qed.
-  
+
   Lemma excl_update γ x y z :
     own γ (● to_auth_excl y) -∗ own γ (◯  to_auth_excl x) ==∗
     own γ (● to_auth_excl z) ∗ own γ (◯  to_auth_excl z).

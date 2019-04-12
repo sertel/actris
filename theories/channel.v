@@ -4,22 +4,18 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import excl auth.
 From iris.base_logic.lib Require Import auth.
-From iris.heap_lang.lib Require Import lock.
 From iris.heap_lang.lib Require Import spin_lock.
 From osiris Require Import list.
 From osiris Require Import auth_excl.
 Set Default Proof Using "Type".
 Import uPred.
 
-Definition new_list : val :=
-  λ: <>, lnil #().
-
-Definition new_chan : val := 
+Definition new_chan : val :=
   λ: <>,
-     let l := ref new_list #() in
-     let r := ref new_list #() in
-     let lk := newlock #() in
-     ((l,r),lk).
+     let: "l" := ref lnil #() in
+     let: "r" := ref lnil #() in
+     let: "lk" := newlock #() in
+     (("l","r"),"lk").
 
 Notation left := (#true) (only parsing).
 Notation right := (#false) (only parsing).
@@ -68,7 +64,7 @@ Section channel.
 
   Definition is_side (s : val) : Prop :=
     s = left ∨ s = right.
-  
+
   Record chan_name := Chan_name {
     chan_lock_name : gname;
     chan_l_name : gname;
@@ -78,7 +74,7 @@ Section channel.
   Definition chan_ctx (γ : chan_name) (c : val) : iProp Σ :=
     (∃ l r lk : val,
       ⌜c = ((l, r), lk)%V⌝ ∧
-      is_lock N (chan_lock_name γ) lk (∃ ls rs, 
+      is_lock N (chan_lock_name γ) lk (∃ ls rs,
         is_list_ref l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
         is_list_ref r rs ∗ own (chan_r_name γ) (● to_auth_excl rs)))%I.
 
@@ -88,7 +84,8 @@ Section channel.
   Definition chan_frag (γ : chan_name) (c : val) (ls rs : list val) : iProp Σ :=
     (∃ l r lk : val,
       ⌜c = ((l, r), lk)%V⌝ ∧
-      own (chan_l_name γ) (◯ to_auth_excl ls) ∗ own (chan_r_name γ) (◯ to_auth_excl rs))%I.
+      own (chan_l_name γ) (◯ to_auth_excl ls) ∗
+      own (chan_r_name γ) (◯ to_auth_excl rs))%I.
 
   Global Instance chan_frag_timeless : Timeless (chan_frag γ c ls rs).
   Proof. by apply _. Qed.
@@ -100,32 +97,27 @@ Section channel.
     {{{ True }}}
       new_chan #()
     {{{ c γ, RET c; is_chan γ c [] [] }}}.
-  Proof. 
-    iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_ctx /chan_frag /is_lock.
-    repeat wp_lam. wp_alloc lk as "Hlk".
-    iMod (own_alloc (Excl ())) as (lkγ) "Hγlk"; first done.
-    repeat wp_lam. wp_alloc r as "Hr".
-    iMod (own_alloc (Auth (Excl' (to_auth_excl [])) (to_auth_excl []))) as (lsγ) "Hls"; first done.
-    repeat wp_lam. wp_alloc l as "Hl".
-    iMod (own_alloc (Auth (Excl' (to_auth_excl [])) (to_auth_excl []))) as (rsγ) "Hrs"; first done.
-    rewrite auth_both_op own_op own_op.
-    pose (Chan_name lkγ lsγ rsγ). 
-    iDestruct "Hls" as "[Hlsa Hlsf]".
-    iDestruct "Hrs" as "[Hrsa Hrsf]".
-    iMod (inv_alloc N _ (lock_inv lkγ lk (∃ (ls rs : list val), is_list_ref #l ls ∗ own lsγ (● to_auth_excl ls) ∗ is_list_ref #r rs ∗ own rsγ (● to_auth_excl rs)))%I with "[Hlk Hγlk Hr Hl Hlsa Hrsa]") as "Hlk".
-    {
-      rewrite /is_list_ref /is_list /lock_inv.
-      iNext. iExists _.
-      iSplitL "Hlk"=> //=.
-      iSplitL "Hγlk"=> //=.
-      iExists _, _. iFrame.      
-      iSplitL "Hl"=> //; iExists _, _; iSplit=> //; iFrame=> //. 
-    }
-    wp_pures.
-    iSpecialize ("HΦ" $!(#l, #r, #lk)%V c).
-    iApply ("HΦ").
-    iSplitR "Hlsf Hrsf"=> //;
-    eauto 10 with iFrame.
+  Proof.
+    iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_ctx /chan_frag.
+    wp_lam.
+    wp_apply (lnil_spec with "[//]"); iIntros (ls Hls). wp_alloc l as "Hl".
+    wp_apply (lnil_spec with "[//]"); iIntros (rs Hrs). wp_alloc r as "Hr".
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
+      as (lsγ) "[Hls Hls']"; first done.
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
+      as (rsγ) "[Hrs Hrs']"; first done.
+    iAssert (is_list_ref #l []) with "[Hl]" as "Hl".
+    { rewrite /is_list_ref; eauto. }
+    iAssert (is_list_ref #r []) with "[Hr]" as "Hr".
+    { rewrite /is_list_ref; eauto. }
+    wp_apply (newlock_spec N (∃ ls rs,
+      is_list_ref #l ls ∗ own lsγ (● to_auth_excl ls) ∗
+      is_list_ref #r rs ∗ own rsγ (● to_auth_excl rs))%I
+                with "[Hl Hr Hls Hrs]").
+    { eauto 10 with iFrame. }
+    iIntros (lk γlk) "#Hlk". wp_pures.
+    iApply ("HΦ" $! _ (Chan_name γlk lsγ rsγ)).
+    eauto 20 with iFrame.
   Qed.
 
   Definition chan_frag_snoc γ c ls rs s v : iProp Σ :=
@@ -227,7 +219,8 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag. eauto 10 with iFrame. } 
+        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag.
+          eauto 10 with iFrame. }
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
         { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
@@ -244,7 +237,8 @@ Section channel.
         iDestruct (excl_update _ _ _ (rs) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag. eauto 10 with iFrame. }
+        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag.
+          eauto 10 with iFrame. }
         iModIntro.
         wp_store.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
@@ -264,7 +258,8 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag. eauto 10 with iFrame. } 
+        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag.
+          eauto 10 with iFrame. }
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
         { rewrite /is_list_ref /is_list. eauto 10 with iFrame. }
@@ -281,7 +276,8 @@ Section channel.
         iDestruct (excl_update _ _ _ (ls) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag. eauto 10 with iFrame. }
+        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag.
+          eauto 10 with iFrame. }
         iModIntro.
         wp_store.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").

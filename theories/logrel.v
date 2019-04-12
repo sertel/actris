@@ -2,18 +2,16 @@ From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
-From iris.heap_lang.lib Require Import lock.
 From iris.heap_lang.lib Require Import spin_lock.
 From osiris Require Import typing auth_excl channel.
 From iris.algebra Require Import list auth excl.
-From iris.base_logic Require Import invariants auth saved_prop.
-Require Import FunctionalExtensionality.
+From iris.base_logic Require Import invariants.
 
 Section logrel.
   Context `{!heapG Σ, !lockG Σ} (N : namespace).
   Context `{!auth_exclG (list val) Σ}.
   Context `{!auth_exclG stype Σ}.
-  
+
   Record st_name := SessionType_name {
     st_c_name : chan_name;
     st_l_name : gname;
@@ -43,15 +41,13 @@ Section logrel.
         st_eval (v::vs) st1 (TRecv P st2).
   Hint Constructors st_eval.
 
-  Lemma st_eval_send :
-    ∀ (P : val → Prop) (st : val → stype) (l : list val) (str : stype) (v : val),
+  Lemma st_eval_send (P : val -> Prop) st l str v :
       P v → st_eval l (TSend P st) str → st_eval (l ++ [v]) (st v) str.
   Proof.
-    intros P st l str v HP Heval.
-    generalize dependent str.
-    induction l; intros.
-    - inversion Heval; by constructor.
-    - inversion Heval; subst. simpl.
+    revert str.
+    induction l; intros str.
+    - inversion 2; by constructor.
+    - inversion 2; subst. simpl.
       constructor=> //.
       apply IHl=> //.
   Qed.
@@ -61,7 +57,7 @@ Section logrel.
       chan_frag (st_c_name γ) c l r ∗
       stmapsto_full γ stl Left  ∗
       stmapsto_full γ str Right ∗
-      ((⌜r = []⌝ ∗ ⌜st_eval l stl str⌝) ∨ 
+      ((⌜r = []⌝ ∗ ⌜st_eval l stl str⌝) ∨
        (⌜l = []⌝ ∗ ⌜st_eval r str stl⌝)))%I.
 
   Definition st_ctx (γ : st_name) (st : stype) (c : val) : iProp Σ :=
@@ -70,14 +66,14 @@ Section logrel.
   Definition st_frag  (γ : st_name) (st : stype) (s : side) : iProp Σ :=
     stmapsto_frag γ st s.
 
-  Definition interp_st (γ : st_name) (st : stype) (c : val) (s : side) : iProp Σ :=
+  Definition interp_st (γ : st_name) (st : stype)
+      (c : val) (s : side) : iProp Σ :=
     (st_frag γ st s ∗ st_ctx γ st c)%I.
 
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
-  
   Lemma new_chan_vs st E c cγ :
     is_chan N cγ c [] [] ={E}=∗
       ∃ lγ rγ,
@@ -85,13 +81,12 @@ Section logrel.
         ⟦ c @ Left : st ⟧{γ} ∗ ⟦ c @ Right : dual_stype st ⟧{γ}.
   Proof.
     iIntros "[#Hcctx Hcf]".
-    iMod (own_alloc (Auth (Excl' (to_auth_excl st)) (to_auth_excl st))) as (lγ) "Hlst"; first done.
-    iMod (own_alloc (Auth (Excl' (to_auth_excl (dual_stype st))) (to_auth_excl (dual_stype st)))) as (rγ) "Hrst"; first done.
-    rewrite (auth_both_op (to_auth_excl st)). 
-    rewrite (auth_both_op (to_auth_excl (dual_stype st))). 
-    rewrite own_op own_op.
-    iDestruct "Hlst" as "[Hlsta Hlstf]".
-    iDestruct "Hrst" as "[Hrsta Hrstf]".
+    iMod (own_alloc (● (to_auth_excl st) ⋅
+                     ◯ (to_auth_excl st)))
+      as (lγ) "[Hlsta Hlstf]"; first done.
+    iMod (own_alloc (● (to_auth_excl (dual_stype st)) ⋅
+                     ◯ (to_auth_excl (dual_stype st))))
+      as (rγ) "[Hrsta Hrstf]"; first done.
     pose (SessionType_name cγ lγ rγ) as stγ.
     iMod (inv_alloc N _ (inv_st stγ c) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
     { iNext. rewrite /inv_st. eauto 10 with iFrame. }
@@ -100,11 +95,12 @@ Section logrel.
     iFrame. simpl.
     repeat iSplitL=> //.
   Qed.
-  
+
   Lemma new_chan_st_spec st :
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c;  ⟦ c @ Left : st ⟧{γ} ∗ ⟦ c @ Right : dual_stype st ⟧{γ} }}}.
+    {{{ c γ, RET c;  ⟦ c @ Left : st ⟧{γ} ∗
+                     ⟦ c @ Right : dual_stype st ⟧{γ} }}}.
   Proof.
     iIntros (Φ _) "HΦ".
     iApply (wp_fupd).
@@ -119,12 +115,12 @@ Section logrel.
     iFrame.
   Qed.
 
-Lemma send_vs c γ s (P : val → Prop) st E :
+  Lemma send_vs c γ s (P : val → Prop) st E :
     ↑N ⊆ E →
     ⟦ c @ s : TSend P st ⟧{γ} ={E,E∖↑N}=∗
       ∃ l r, chan_frag (st_c_name γ) c l r ∗
-      ▷ (∀ v, ⌜P v⌝ -∗ 
-              match s with 
+      ▷ (∀ v, ⌜P v⌝ -∗
+              match s with
               | Left  => chan_frag (st_c_name γ) c (l ++ [v]) r
               | Right => chan_frag (st_c_name γ) c l (r ++ [v])
               end ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
