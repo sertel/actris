@@ -33,20 +33,20 @@ Definition get_side c s :=
 
 Definition send : val :=
   λ: "c" "s" "v",
-    let lk := get_lock "c" in
-    acquire lk;;
-    let l := get_side "c" "s" in
-    l <- lsnoc !l "v";;
-    release lk.
+    let: "lk" := get_lock "c" in
+    acquire "lk";;
+    let: "l" := get_side "c" "s" in
+    "l" <- lsnoc !"l" "v";;
+    release "lk".
 
 Definition try_recv : val :=
   λ: "c" "s",
-    let lk := get_lock "c" in
-    acquire lk;;
-    let l := (get_side "c" (dual_side "s")) in
-    match: !l with
-      SOME "p" => l <- Snd "p";; release lk;; SOME (Fst "p")
-    | NONE => release lk;; NONE
+    let: "lk" := get_lock "c" in
+    acquire "lk";;
+    let: "l" := (get_side "c" (dual_side "s")) in
+    match: !"l" with
+      SOME "p" => "l" <- Snd "p";; release "lk";; SOME (Fst "p")
+    | NONE => release "lk";; NONE
     end.
 
 Definition recv : val :=
@@ -142,7 +142,7 @@ Section channel.
     destruct Hside as [-> | ->].
     - wp_pures. iDestruct "Hl" as (ll lhd ->) "(Hl & Hll)".
       wp_load. wp_apply (lsnoc_spec with "Hll").
-      iIntros (hd') "Hll". wp_pures.
+      iIntros (hd' Hll). wp_pures.
       wp_bind (_ <- _)%E. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
       wp_store.
       iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
@@ -151,12 +151,11 @@ Section channel.
       iMod ("HΦ" with "[Hls' Hrs']") as "HΦ".
       { rewrite /= /chan_frag. eauto with iFrame. }
       iModIntro.
-      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]").
+      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]"); last eauto.
       { rewrite /is_list_ref. eauto 10 with iFrame. }
-      iIntros "_ //".
     - wp_pures. iDestruct "Hr" as (lr rhd ->) "(Hr & Hlr)".
       wp_load. wp_apply (lsnoc_spec with "Hlr").
-      iIntros (hd') "Hlr". wp_pures.
+      iIntros (hd' Hlr). wp_pures.
       wp_bind (_ <- _)%E. iMod "HΦ" as (ls' rs') "[Hchan HΦ]".
       wp_store.
       iDestruct "Hchan" as (l' r' lk' [= <- <- <-]) "[Hls' Hrs']".
@@ -165,41 +164,37 @@ Section channel.
       iMod ("HΦ" with "[Hls' Hrs']") as "HΦ".
       { rewrite /= /chan_frag. eauto with iFrame. }
       iModIntro.
-      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]").
+      wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]"); last eauto.
       { rewrite /is_list_ref. eauto 10 with iFrame. }
-      iIntros "_ //".
   Qed.
 
-  Definition try_recv_upd_fail γ c ls rs s : iProp Σ :=
+  Definition try_recv_fail γ c ls rs s : iProp Σ :=
     match s with
     | left  => (chan_frag γ c ls rs ∧ ⌜rs = []⌝)%I
     | right => (chan_frag γ c ls rs ∧ ⌜ls = []⌝)%I
     | _ => ⌜False⌝%I
     end.
 
-  Definition try_recv_upd_succ γ c ls rs s v : iProp Σ :=
+  Definition try_recv_succ γ c ls rs s v : iProp Σ :=
     match s with
     | left =>  (∃ rs', chan_frag γ c ls  rs' ∧ ⌜rs = v::rs'⌝)%I
     | right => (∃ ls', chan_frag γ c ls' rs  ∧ ⌜ls = v::ls'⌝)%I
     | _ => ⌜False⌝%I
     end.
 
-  Definition try_recv_upd γ c ls rs s v : iProp Σ :=
+  Definition try_recv_get γ c ls rs s v : iProp Σ :=
     match v with
-    | NONEV => try_recv_upd_fail γ c ls rs s
-    | SOMEV w => try_recv_upd_succ γ c ls rs s w
+    | NONEV => try_recv_fail γ c ls rs s
+    | SOMEV w => try_recv_succ γ c ls rs s w
     | _ => ⌜False⌝%I
     end.
-
-  Definition try_recv_vs E γ c s Φ :=
-    (|={⊤,E}=> ∃ ls rs,
-      chan_frag γ c ls rs ∗
-      (∀ v, try_recv_upd γ c ls rs s v ={E,⊤}=∗ Φ v))%I.
 
   Lemma try_recv_spec Φ E γ (c s : val) :
     is_side s →
     chan_ctx γ c -∗
-    try_recv_vs E γ c s Φ -∗
+    (|={⊤,E}=> ∃ ls rs,
+      chan_frag γ c ls rs ∗
+      (∀ v, try_recv_get γ c ls rs s v ={E,⊤}=∗ Φ v)) -∗
     WP try_recv c s {{ Φ }}.
   Proof.
     iIntros (Hside) "Hc HΦ". wp_lam; wp_pures.
@@ -219,7 +214,7 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag.
+        { rewrite /try_recv_get /try_recv_fail /chan_frag.
           eauto 10 with iFrame. }
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
@@ -237,7 +232,7 @@ Section channel.
         iDestruct (excl_update _ _ _ (rs) with "Hrsa Hrsf") as ">[Hrsa Hrsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag.
+        { rewrite /try_recv_get /try_recv_succ /chan_frag.
           eauto 10 with iFrame. }
         iModIntro.
         wp_store.
@@ -258,7 +253,7 @@ Section channel.
         iDestruct (excl_eq with "Hrsa Hrsf") as %->.
         iSpecialize ("HΦ" $!(InjLV #())).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_fail /chan_frag.
+        { rewrite /try_recv_get /try_recv_fail /chan_frag.
           eauto 10 with iFrame. }
         iModIntro.
         wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
@@ -276,7 +271,7 @@ Section channel.
         iDestruct (excl_update _ _ _ (ls) with "Hlsa Hlsf") as ">[Hlsa Hlsf]".
         iSpecialize ("HΦ" $!(InjRV (v))).
         iMod ("HΦ" with "[Hlsf Hrsf]") as "HΦ".
-        { rewrite /try_recv_upd /try_recv_upd_succ /chan_frag.
+        { rewrite /try_recv_get /try_recv_succ /chan_frag.
           eauto 10 with iFrame. }
         iModIntro.
         wp_store.
@@ -287,16 +282,13 @@ Section channel.
         by iApply "HΦ".
   Qed.
 
-  Definition recv_vs E γ c s Φ :=
-    (□ (|={⊤,E}=> ∃ ls rs,
-      chan_frag γ c ls rs ∗
-        ((try_recv_upd_fail γ c ls rs s ={E,⊤}=∗ True) ∗
-         (∀ v, try_recv_upd_succ γ c ls rs s v ={E,⊤}=∗ Φ v))))%I.
-
   Lemma recv_spec Φ E γ c s :
     is_side s →
     chan_ctx γ c -∗
-    recv_vs E γ c s Φ -∗
+    (□ (|={⊤,E}=> ∃ ls rs,
+      chan_frag γ c ls rs ∗
+        ((try_recv_fail γ c ls rs s ={E,⊤}=∗ True) ∗
+         (∀ v, try_recv_succ γ c ls rs s v ={E,⊤}=∗ Φ v)))) -∗
     WP recv c s {{ Φ }}.
   Proof.
     iIntros (Hside) "#Hc #HΦ".
