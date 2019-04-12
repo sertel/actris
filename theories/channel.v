@@ -12,8 +12,8 @@ Import uPred.
 
 Definition new_chan : val :=
   λ: <>,
-     let: "l" := ref lnil #() in
-     let: "r" := ref lnil #() in
+     let: "l" := ref (lnil #()) in
+     let: "r" := ref (lnil #()) in
      let: "lk" := newlock #() in
      (("l","r"),"lk").
 
