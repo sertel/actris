@@ -2,6 +2,6 @@
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
 theories/list.v
 theories/auth_excl.v
-theories/channel.v
 theories/typing.v
+theories/channel.v
 theories/logrel.v

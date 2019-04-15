@@ -18,21 +18,11 @@ Section logrel.
     st_r_name : gname
   }.
 
-  Definition stmapsto_frag γ (st : stype) s : iProp Σ :=
-    let γ :=
-        match s with
-        | Left  => st_l_name γ
-        | Right => st_r_name γ
-        end in
-    own γ (◯  to_auth_excl st)%I.
+  Definition st_own (γ : st_name) (s : side) (st : stype) : iProp Σ :=
+    own (side_elim s st_l_name st_r_name γ) (◯ to_auth_excl st)%I.
 
-  Definition stmapsto_full γ (st : stype) s : iProp Σ :=
-    let γ :=
-        match s with
-        | Left  => st_l_name γ
-        | Right => st_r_name γ
-        end in
-    own γ (● to_auth_excl st)%I.
+  Definition st_ctx (γ : st_name) (s : side) (st : stype) : iProp Σ :=
+    own (side_elim s st_l_name st_r_name γ) (● to_auth_excl st)%I.
 
   Fixpoint st_eval (vs : list val) (st1 st2 : stype) : Prop :=
     match vs with
@@ -70,33 +60,34 @@ Section logrel.
 
   Definition inv_st (γ :st_name) (c : val) : iProp Σ :=
     (∃ l r stl str,
-      chan_frag (st_c_name γ) c l r ∗
-      stmapsto_full γ stl Left  ∗
-      stmapsto_full γ str Right ∗
+      chan_own (st_c_name γ) Left l ∗
+      chan_own (st_c_name γ) Right r ∗
+      st_ctx γ Left stl  ∗
+      st_ctx γ Right str ∗
       ((⌜r = []⌝ ∗ ⌜st_eval l stl str⌝) ∨
        (⌜l = []⌝ ∗ ⌜st_eval r str stl⌝)))%I.
 
-  Definition st_ctx (γ : st_name) (st : stype) (c : val) : iProp Σ :=
-    (chan_ctx N (st_c_name γ) c ∗ inv N (inv_st γ c))%I.
-
-  Definition st_frag  (γ : st_name) (st : stype) (s : side) : iProp Σ :=
-    stmapsto_frag γ st s.
+  Definition is_st (γ : st_name) (st : stype) (c : val) : iProp Σ :=
+    (is_chan N (st_c_name γ) c ∗ inv N (inv_st γ c))%I.
 
   Definition interp_st (γ : st_name) (st : stype)
       (c : val) (s : side) : iProp Σ :=
-    (st_frag γ st s ∗ st_ctx γ st c)%I.
+    (st_own γ s st ∗ is_st γ st c)%I.
 
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
   Lemma new_chan_vs st E c cγ :
-    is_chan N cγ c [] [] ={E}=∗
+    is_chan N cγ c ∗
+    chan_own cγ Left [] ∗
+    chan_own cγ Right []
+    ={E}=∗
       ∃ lγ rγ,
         let γ := SessionType_name cγ lγ rγ in
         ⟦ c @ Left : st ⟧{γ} ∗ ⟦ c @ Right : dual_stype st ⟧{γ}.
   Proof.
-    iIntros "[#Hcctx Hcf]".
+    iIntros "[#Hcctx [Hcol Hcor]]".
     iMod (own_alloc (● (to_auth_excl st) ⋅
                      ◯ (to_auth_excl st)))
       as (lγ) "[Hlsta Hlstf]"; first done.
@@ -108,8 +99,7 @@ Section logrel.
     { iNext. rewrite /inv_st. eauto 10 with iFrame. }
     iModIntro.
     iExists _, _.
-    iFrame. simpl.
-    repeat iSplitL=> //.
+    iFrame "Hlstf Hrstf Hcctx Hinv".
   Qed.
 
   Lemma new_chan_st_spec st :
@@ -127,35 +117,32 @@ Section logrel.
     { rewrite /is_chan. eauto with iFrame. }
     iDestruct "H" as (lγ rγ) "[Hl Hr]".
     iApply "HΦ".
-    iModIntro.
-    iFrame.
+    by iFrame.
   Qed.
-
-  Coercion side_to_side (s : side) : channel.side :=
-    match s with Left => channel.Left | Right => channel.Right end.
 
   Lemma send_vs c γ s (P : val → Prop) st E :
     ↑N ⊆ E →
     ⟦ c @ s : TSend P st ⟧{γ} ={E,E∖↑N}=∗
-      ∃ l r, chan_frag (st_c_name γ) c l r ∗
+      ∃ vs, chan_own (st_c_name γ) s vs ∗
       ▷ (∀ v, ⌜P v⌝ -∗
-               chan_frag_snoc (st_c_name γ) c l r s v
-              ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
+               chan_own (st_c_name γ) s (vs ++ [v])
+               ={E∖ ↑N,E}=∗ ⟦ c @ s : st v ⟧{γ}).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
     iMod (inv_open with "Hinv") as "Hinv'"=> //.
     iDestruct "Hinv'" as "[Hinv' Hinvstep]".
-    iDestruct "Hinv'" as (l r stl str) "(>Hcf & Hstla & Hstra & Hinv')".
+    iDestruct "Hinv'" as
+        (l r stl str) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')".
     iModIntro.
-    rewrite /stmapsto_frag /stmapsto_full.
-    iExists l, r.
-    iIntros "{$Hcf} !>" (v HP) "Hcf".
     destruct s.
-    - iRename "Hstf" into "Hstlf".
+    - iExists _.
+      iIntros "{$Hclf} !>" (v HP) "Hclf".
+      iRename "Hstf" into "Hstlf".
       iDestruct (excl_eq with "Hstla Hstlf") as %<-.
       iMod (excl_update _ _ _ (st v) with "Hstla Hstlf") as "[Hstla Hstlf]".
       iMod ("Hinvstep" with "[-Hstlf]") as "_".
-      { iNext.
+      {
+        iNext.
         iExists _,_,_,_. iFrame.
         iLeft.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]";
@@ -172,11 +159,14 @@ Section logrel.
           split=> //.
       }
       iModIntro. iFrame "Hcctx ∗ Hinv".
-    - iRename "Hstf" into "Hstrf".
+    - iExists _.
+      iIntros "{$Hcrf} !>" (v HP) "Hcrf".
+      iRename "Hstf" into "Hstrf".
       iDestruct (excl_eq with "Hstra Hstrf") as %<-.
       iMod (excl_update _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
       iMod ("Hinvstep" with "[-Hstrf]") as "_".
-      { iNext.
+      {
+        iNext.
         iExists _,_, _, _. iFrame.
         iRight.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]";
@@ -190,7 +180,8 @@ Section logrel.
           split=> //.
         - iSplit=> //.
           iPureIntro.
-          by eapply st_eval_send. }
+          by eapply st_eval_send.
+      }
       iModIntro. iFrame "Hcctx ∗ Hinv".
   Qed.
 
@@ -203,8 +194,8 @@ Section logrel.
     iIntros (HP Φ) "Hsend HΦ".
     iApply (send_spec with "[#]").
     { iDestruct "Hsend" as "[? [$ ?]]". }
-    iMod (send_vs with "Hsend") as (ls lr) "[Hch H]"; first done.
-    iModIntro. iExists ls, lr. iFrame "Hch".
+    iMod (send_vs with "Hsend") as (vs) "[Hch H]"; first done.
+    iModIntro. iExists vs. iFrame "Hch".
     iIntros "!> Hupd". iApply "HΦ".
     iApply ("H" $! v HP with "[Hupd]"). by destruct s.
   Qed.
@@ -213,33 +204,32 @@ Section logrel.
     ↑N ⊆ E →
     ⟦ c @ s : TRecv P st ⟧{γ}
     ={E,E∖↑N}=∗
-      ∃ l r, chan_frag (st_c_name γ) c l r ∗
-      (▷ ((try_recv_fail (st_c_name γ) c l r s ={E∖↑N,E}=∗
+      ∃ vs, chan_own (st_c_name γ) (dual_side s) vs ∗
+      (▷ ((⌜vs = []⌝ -∗ chan_own (st_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
            ⟦ c @ s : TRecv P st ⟧{γ}) ∧
-         (∀ v, try_recv_succ (st_c_name γ) c l r s v ={E∖↑N,E}=∗
+         (∀ v vs', ⌜vs = v :: vs'⌝ -∗
+               chan_own (st_c_name γ) (dual_side s) vs' ={E∖↑N,E}=∗
                ⟦ c @ s : (st v) ⟧{γ} ∗ ⌜P v⌝))).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
     iMod (inv_open with "Hinv") as "Hinv'"=> //.
     iDestruct "Hinv'" as "[Hinv' Hinvstep]".
-    iDestruct "Hinv'" as (l r stl str) "(>Hcf & Hstla & Hstra & Hinv')".
+    iDestruct "Hinv'" as
+        (l r stl str) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')".
     iModIntro.
-    rewrite /stmapsto_frag /stmapsto_full.
-    iExists l, r.
-    iIntros "{$Hcf} !>".
     destruct s.
-    - iRename "Hstf" into "Hstlf".
+    - iExists _.
+      iIntros "{$Hcrf} !>".
+      iRename "Hstf" into "Hstlf".
+      rewrite /st_own /st_ctx. simpl.
       iDestruct (excl_eq with "Hstla Hstlf") as %<-.
       iSplit=> //.
-      + iIntros "[Hfail Hemp]".
+      + iIntros "Hvs Hown".
         iMod ("Hinvstep" with "[-Hstlf]") as "_".
         { iNext. iExists l,r,_,_. iFrame. }
         iModIntro. iFrame "Hcctx ∗ Hinv".
-      + simpl. iIntros (v) "Hsucc".
-        rewrite /try_recv_succ. simpl.
-        iDestruct "Hsucc" as (r') "[Hsucc Hr]".
-        iDestruct "Hr" as %Hr.
-        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; first inversion Hr.
+      + iIntros (v vs Hvs) "Hown".
+        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; first inversion Hvs.
         iMod (excl_update _ _ _ (st v) with "Hstla Hstlf") as "[Hstla Hstlf]".
         subst.
         iDestruct "Heval" as %Heval.
@@ -247,18 +237,17 @@ Section logrel.
         iMod ("Hinvstep" with "[-Hstlf]") as "_".
         { iExists _,_,_,_. iFrame. iRight=> //. }
         by iFrame (HP) "Hcctx Hinv".
-    - iRename "Hstf" into "Hstrf".
+    - iExists _.
+      iIntros "{$Hclf} !>".
+      iRename "Hstf" into "Hstrf".
       iDestruct (excl_eq with "Hstra Hstrf") as %<-.
       iSplit=> //.
-      + iIntros "[Hfail Hemp]".
+      + iIntros "Hvs Hown".
         iMod ("Hinvstep" with "[-Hstrf]") as "_".
         { iNext. iExists l,r,_,_. iFrame. }
         iModIntro. iFrame "Hcctx ∗ Hinv".
-      +  simpl. iIntros (v) "Hsucc".
-        rewrite /try_recv_succ. simpl.
-        iDestruct "Hsucc" as (r') "[Hsucc Hr]".
-        iDestruct "Hr" as %Hl.
-        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; last inversion Hl.
+      +  simpl. iIntros (v vs' Hvs) "Hown".
+        iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]"; last inversion Hvs.
         iMod (excl_update _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
         subst.
         iDestruct "Heval" as %Heval.
@@ -277,19 +266,21 @@ Section logrel.
     iIntros (Φ) "Hrecv HΦ".
     iApply (try_recv_spec with "[#]").
     { iDestruct "Hrecv" as "[? [$ ?]]". }
-    iMod (try_recv_vs with "Hrecv") as (ls lr) "[Hch H]"; first done.
-    iModIntro. iExists ls, lr. iFrame "Hch".
+    iMod (try_recv_vs with "Hrecv") as (vs) "[Hch H]"; first done.
+    iModIntro. iExists vs. iFrame "Hch".
     iIntros "!>".
     iSplit.
-    - iIntros "Hupd".
+    - iIntros (Hvs) "Hown".
       iDestruct "H" as "[H _]".
-      iMod ("H" with "Hupd") as "H".
+      iSpecialize ("H" $!Hvs).
+      iMod ("H" with "Hown") as "H".
       iModIntro.
       iApply "HΦ"=> //.
       eauto with iFrame.
-    - iIntros (v) "Hupd".
+    - iIntros (v vs' Hvs) "Hown".
       iDestruct "H" as "[_ H]".
-      iMod ("H" with "Hupd") as "H".
+      iSpecialize ("H" $!v vs' Hvs).
+      iMod ("H" with "Hown") as "H".
       iModIntro.
       iApply "HΦ"=> //.
       eauto with iFrame.
