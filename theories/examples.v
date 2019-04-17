@@ -109,14 +109,14 @@ Section Examples.
      !(recv "c" #Right))%E.
 
   Lemma heaplet_proof :
-    {{{ True }}} heaplet_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+    {{{ True }}} heaplet_example {{{ v l, RET v; ⌜v = #5⌝ ∗ l ↦ v }}}.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /heaplet_example.
     wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N
       (TSR Send (λ v, (∃ l, ⌜v = LitV $ LitLoc $ l⌝ ∧ (l ↦ #5))%I)
-                        (λ v, TEnd)))=> //.
+                (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_pures.
     wp_bind (Fork _).
@@ -130,6 +130,51 @@ Section Examples.
       iIntros (v) "[Hstr HP]".
       iDestruct "HP" as (l ->) "HP".
       wp_load.
+      iApply "HΦ".
+      iFrame. eauto.
+  Qed.
+
+  Definition channel_example : expr :=
+    (let: "c" := new_chan #() in
+     Fork(
+         let: "c'" := new_chan #() in
+         send "c" #Left ("c'");; send "c'" #Left #5);;
+     let: "c'" := recv "c" #Right in
+     recv "c'" #Right
+    )%E.
+
+  Lemma channel_proof :
+    {{{ True }}} channel_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /channel_example.
+    wp_bind (new_chan _).
+    wp_apply (new_chan_st_spec N
+      (TSR Send (λ v, ∃ γ, ⟦ v @ Right :
+        (TSR Receive
+             (λ v : val, ⌜v = #5⌝)
+             (λ _ : val, TEnd)) ⟧{γ})%I
+                (λ v, TEnd)))=> //.
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_pures.
+    wp_bind (Fork _).
+    wp_apply (wp_fork with "[Hstl]").
+    - iNext.
+      wp_bind (new_chan _).
+      wp_apply (new_chan_st_spec N
+        (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
+      iIntros (c' γ') "[Hstl' Hstr']"=> /=.
+      wp_apply (send_st_spec N with "[Hstl Hstr']").
+      iFrame. iExists γ'. iFrame.
+      iIntros "Hstl".
+      wp_apply (send_st_spec N with "[Hstl']").
+      iFrame. eauto. eauto.
+    - wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
+      iIntros (v) "[Hstr Hstr']".
+      iDestruct "Hstr'" as (γ') "Hstr'".
+      wp_apply (recv_st_spec _ with "[Hstr']").
+      iApply "Hstr'".
+      iIntros (v') "[Hstr' HP]".
       by iApply "HΦ".
   Qed.
 
