@@ -18,7 +18,7 @@ Instance subG_chanΣ {Σ} : subG logrelΣ Σ → logrelG Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
 Section logrel.
-  Context `{!heapG Σ, !lockG Σ} (N : namespace).
+  Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG Σ}.
 
   Notation stype_iprop := (@stypeC (laterC (iProp Σ))).

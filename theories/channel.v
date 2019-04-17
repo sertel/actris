@@ -20,6 +20,7 @@ Definition new_chan : val :=
 
 Coercion side_to_bool (s : side) : bool :=
   match s with Left => true | Right => false end.
+Arguments side_to_bool : simpl never.
 Definition side_elim {A} (s : side) (l r : A) : A :=
   match s with Left => l | Right => r end.
 
