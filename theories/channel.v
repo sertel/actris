@@ -2,7 +2,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import excl auth.
+From iris.algebra Require Import excl auth list.
 From iris.base_logic.lib Require Import auth.
 From iris.heap_lang.lib Require Import spin_lock.
 From osiris Require Import list.
@@ -57,8 +57,17 @@ Definition recv : val :=
     | NONE => "go" "c" "s"
     end.
 
+Class chanG Σ := {
+  chanG_lockG :> lockG Σ;
+  chanG_authG :> auth_exclG (listC valC) Σ;
+}.
+Definition chanΣ : gFunctors :=
+  #[ lockΣ; auth_exclΣ (constCF (listC valC)) ].
+Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
+Proof. solve_inG. Qed.
+
 Section channel.
-  Context `{!heapG Σ, !lockG Σ, !auth_exclG (list val) Σ} (N : namespace).
+  Context `{!heapG Σ, !chanG Σ} (N : namespace).
 
   Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
     (∃ l':loc, ∃ hd : val, ⌜l = #l'⌝ ∧ l' ↦ hd ∗ ⌜is_list hd xs⌝)%I.
@@ -159,7 +168,7 @@ Section channel.
     wp_load. wp_apply (lsnoc_spec with "Hlvs"). iIntros (lhd' Hlvs).
     wp_bind (_ <- _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
-    iDestruct (excl_eq with "Hvs Hchan") as %->.
+    iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
     iMod (excl_update _ _ _ (vs ++ [v]) with "Hvs Hchan") as "[Hvs Hchan]".
     wp_store. iMod ("HΦ" with "Hchan") as "HΦ".
     iModIntro.
@@ -188,7 +197,7 @@ Section channel.
     wp_bind (! _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     wp_load.
-    iDestruct (excl_eq with "Hvs Hchan") as %->.
+    iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
     destruct vs as [|v vs]; simpl.
     - iDestruct "Hlvs" as %->.
       iDestruct "HΦ" as "[HΦ _]".

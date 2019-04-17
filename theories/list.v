@@ -154,15 +154,13 @@ Lemma lsnoc_spec hd vs v :
 Proof.
   iIntros (Φ Hvs) "HΦ".
   iInduction vs as [|v' vs] "IH" forall (hd Hvs Φ).
-  - inversion Hvs.
-    subst.
+  - simplify_eq/=.
     wp_rec.
     wp_pures.
     wp_lam.
     wp_pures.
     iApply "HΦ". simpl. eauto.
-  - inversion Hvs as [vs' [Hhd Hvs']]; subst.
-    eauto.
+  - destruct Hvs as [vs' [-> Hvs']].
     wp_rec.
     wp_pures.
     wp_bind (lsnoc vs' v).
@@ -175,5 +173,4 @@ Proof.
     eauto.
     iApply "HΦ". 
 Qed.
-
 End lists.
