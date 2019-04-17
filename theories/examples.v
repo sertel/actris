@@ -103,4 +103,34 @@ Section Examples.
       eauto.
   Qed.
 
+  Definition heaplet_example : expr :=
+    (let: "c" := new_chan #() in
+     Fork(send "c" #Left (ref #5));;
+     !(recv "c" #Right))%E.
+
+  Lemma heaplet_proof :
+    {{{ True }}} heaplet_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /heaplet_example.
+    wp_bind (new_chan _).
+    wp_apply (new_chan_st_spec N
+      (TSR Send (λ v, (∃ l, ⌜v = LitV $ LitLoc $ l⌝ ∧ (l ↦ #5))%I)
+                        (λ v, TEnd)))=> //.
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_pures.
+    wp_bind (Fork _).
+    wp_apply (wp_fork with "[Hstl]").
+    - iNext.
+      wp_apply (wp_alloc)=> //.
+      iIntros (l) "HP".
+      wp_apply (send_st_spec N with "[Hstl HP]"). eauto 10 with iFrame.
+      eauto.
+    - wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
+      iIntros (v) "[Hstr HP]".
+      iDestruct "HP" as (l ->) "HP".
+      wp_load.
+      by iApply "HΦ".
+  Qed.
+
 End Examples.
