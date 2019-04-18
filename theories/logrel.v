@@ -7,19 +7,20 @@ From osiris Require Import typing auth_excl channel.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
 
-Class logrelG Σ := {
+Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;
-  logrelG_authG :> auth_exclG (laterC (stypeC (iPreProp Σ))) Σ;
+  logrelG_authG :> auth_exclG (laterC (stypeC A (iPreProp Σ))) Σ;
 }.
 
-Definition logrelΣ :=
-  #[ chanΣ ; GFunctor (authRF (optionURF (exclRF (laterCF (stypeCF idCF))))) ].
-Instance subG_chanΣ {Σ} : subG logrelΣ Σ → logrelG Σ.
+Definition logrelΣ A :=
+  #[ chanΣ ; GFunctor (authRF(optionURF (exclRF
+                       (laterCF (@stypeCF A idCF))))) ].
+Instance subG_chanΣ {A Σ} : subG (logrelΣ A) Σ → logrelG A Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
 Section logrel.
   Context `{!heapG Σ} (N : namespace).
-  Context `{!logrelG Σ}.
+  Context `{!logrelG val Σ}.
 
   Record st_name := SessionType_name {
     st_c_name : chan_name;
@@ -27,14 +28,16 @@ Section logrel.
     st_r_name : gname
   }.
 
-  Definition to_stype_auth_excl (st : stype (iProp Σ)) :=
+  Definition to_stype_auth_excl (st : stype val (iProp Σ)) :=
     to_auth_excl (Next (stype_map iProp_unfold st)).
 
-  Definition st_own (γ : st_name) (s : side) (st : stype (iProp Σ)) : iProp Σ :=
+  Definition st_own (γ : st_name) (s : side)
+             (st : stype val (iProp Σ)) : iProp Σ :=
     own (side_elim s st_l_name st_r_name γ)
         (◯ to_stype_auth_excl st)%I.
 
-  Definition st_ctx (γ : st_name) (s : side) (st : stype (iProp Σ)) : iProp Σ :=
+  Definition st_ctx (γ : st_name) (s : side)
+             (st : stype val (iProp Σ)) : iProp Σ :=
     own (side_elim s st_l_name st_r_name γ)
         (● to_stype_auth_excl st)%I.
 
@@ -45,7 +48,7 @@ Section logrel.
     iDestruct (own_valid_2 with "Hauth Hfrag") as "Hvalid".
     iDestruct (to_auth_excl_valid with "Hvalid") as "Hvalid".
     iDestruct (bi.later_eq_1 with "Hvalid") as "Hvalid"; iNext.
-    assert (∀ st : stype (iProp Σ),
+    assert (∀ st : stype val (iProp Σ),
       stype_map iProp_fold (stype_map iProp_unfold st) ≡ st) as help.
     { intros st''. rewrite -stype_fmap_compose -{2}(stype_fmap_id st'').
       apply stype_map_ext=> P. by rewrite /= iProp_fold_unfold. }
@@ -66,7 +69,7 @@ Section logrel.
     done.
   Qed.
 
-  Fixpoint st_eval (vs : list val) (st1 st2 : stype (iProp Σ)) : iProp Σ :=
+  Fixpoint st_eval (vs : list val) (st1 st2 : stype val (iProp Σ)) : iProp Σ :=
     match vs with
     | [] => st1 ≡ dual_stype st2
     | v::vs => match st2 with
@@ -76,7 +79,7 @@ Section logrel.
     end%I.
   Arguments st_eval : simpl nomatch.
 
-  Lemma st_later_eq a P2 (st : stype (iProp Σ)) st2 :
+  Lemma st_later_eq a P2 (st : stype val (iProp Σ)) st2 :
     (▷ (st ≡ TSR a P2 st2) -∗
          ◇ (∃ P1 st1, st ≡ TSR a P1 st1 ∗
                        ▷ ((∀ v, P1 v ≡ P2 v)) ∗
@@ -135,10 +138,10 @@ Section logrel.
       ((⌜r = []⌝ ∗ st_eval l stl str) ∨
        (⌜l = []⌝ ∗ st_eval r str stl)))%I.
 
-  Definition is_st (γ : st_name) (st : stype (iProp Σ)) (c : val) : iProp Σ :=
+  Definition is_st (γ : st_name) (st : stype val (iProp Σ)) (c : val) : iProp Σ :=
     (is_chan N (st_c_name γ) c ∗ inv N (inv_st γ c))%I.
 
-  Definition interp_st (γ : st_name) (st : stype (iProp Σ))
+  Definition interp_st (γ : st_name) (st : stype val (iProp Σ))
       (c : val) (s : side) : iProp Σ :=
     (st_own γ s st ∗ is_st γ st c)%I.
 
