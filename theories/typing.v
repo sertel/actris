@@ -23,42 +23,43 @@ Definition dual_action (a : action) : action :=
 Instance dual_action_involutive : Involutive (=) dual_action.
 Proof. by intros []. Qed.
 
-Inductive stype (A : Type) :=
+Inductive stype (V A : Type) :=
   | TEnd
-  | TSR (a : action) (P : val → A) (st : val → stype A).
-Arguments TEnd {_}.
-Arguments TSR {_} _ _ _.
-Instance: Params (@TSR) 2.
+  | TSR (a : action) (P : V → A) (st : V → stype V A).
+Arguments TEnd {_ _}.
+Arguments TSR {_ _} _ _ _.
+Instance: Params (@TSR) 3.
 
-Instance stype_inhabited A : Inhabited (stype A) := populate TEnd.
+Instance stype_inhabited V A : Inhabited (stype V A) := populate TEnd.
 
-Fixpoint dual_stype {A} (st : stype A) :=
+Fixpoint dual_stype {V A} (st : stype V A) :=
   match st with
   | TEnd => TEnd
   | TSR a P st => TSR (dual_action a) P (λ v, dual_stype (st v))
   end.
-Instance: Params (@dual_stype) 1.
+Instance: Params (@dual_stype) 2.
 
 Section stype_ofe.
+  Context {V : Type}.
   Context {A : ofeT}.
 
-  Inductive stype_equiv : Equiv (stype A) :=
+  Inductive stype_equiv : Equiv (stype V A) :=
     | TEnd_equiv : TEnd ≡ TEnd
     | TSR_equiv a P1 P2 st1 st2 :
-       pointwise_relation val (≡) P1 P2 →
-       pointwise_relation val (≡) st1 st2 →
+       pointwise_relation V (≡) P1 P2 →
+       pointwise_relation V (≡) st1 st2 →
        TSR a P1 st1 ≡ TSR a P2 st2.
   Existing Instance stype_equiv.
 
-  Inductive stype_dist' (n : nat) : relation (stype A) :=
+  Inductive stype_dist' (n : nat) : relation (stype V A) :=
     | TEnd_dist : stype_dist' n TEnd TEnd
     | TSR_dist a P1 P2 st1 st2 :
-       pointwise_relation val (dist n) P1 P2 →
-       pointwise_relation val (stype_dist' n) st1 st2 →
+       pointwise_relation V (dist n) P1 P2 →
+       pointwise_relation V (stype_dist' n) st1 st2 →
        stype_dist' n (TSR a P1 st1) (TSR a P2 st2).
-  Instance stype_dist : Dist (stype A) := stype_dist'.
+  Instance stype_dist : Dist (stype V A) := stype_dist'.
 
-  Definition stype_ofe_mixin : OfeMixin (stype A).
+  Definition stype_ofe_mixin : OfeMixin (stype V A).
   Proof.
     split.
     - intros st1 st2. rewrite /dist /stype_dist. split.
@@ -87,7 +88,7 @@ Section stype_ofe.
       + intros v. apply dist_S. apply H.
       + intros v. apply H1.
   Qed.
-  Canonical Structure stypeC : ofeT := OfeT (stype A) stype_ofe_mixin.
+  Canonical Structure stypeC : ofeT := OfeT (stype V A) stype_ofe_mixin.
 
   Global Instance TSR_stype_ne a n :
     Proper (pointwise_relation _ (dist n) ==> pointwise_relation _ (dist n) ==> dist n) (TSR a).
@@ -147,19 +148,19 @@ Section stype_ofe.
 End stype_ofe.
 Arguments stypeC : clear implicits.
 
-Fixpoint stype_map {A B} (f : A → B) (st : stype A) : stype B :=
+Fixpoint stype_map {V A B} (f : A → B) (st : stype V A) : stype V B :=
   match st with
   | TEnd => TEnd
   | TSR a P st => TSR a (λ v, f (P v)) (λ v, stype_map f (st v))
   end.
-Lemma stype_map_ext_ne {A} {B : ofeT} (f g : A → B) (st : stype A) n :
+Lemma stype_map_ext_ne {V A} {B : ofeT} (f g : A → B) (st : stype V A) n :
   (∀ x, f x ≡{n}≡ g x) → stype_map f st ≡{n}≡ stype_map g st.
 Proof.
   intros Hf. induction st as [| a P st IH]; constructor.
   - intros v. apply Hf.
   - intros v. apply IH.
 Qed.
-Lemma stype_map_ext {A} {B : ofeT} (f g : A → B) (st : stype A) :
+Lemma stype_map_ext {V A} {B : ofeT} (f g : A → B) (st : stype V A) :
   (∀ x, f x ≡ g x) → stype_map f st ≡ stype_map g st.
 Proof.
   intros Hf. apply equiv_dist.
@@ -167,50 +168,50 @@ Proof.
   intros x. apply equiv_dist.
   apply Hf.
 Qed.
-Instance stype_map_ne {A B : ofeT} (f : A → B) n:
-  Proper (dist n ==> dist n) f → Proper (dist n ==> dist n) (stype_map f).
+Instance stype_map_ne {V : Type} {A B : ofeT} (f : A → B) n:
+  Proper (dist n ==> dist n) f → Proper (dist n ==> dist n) (@stype_map V _ _ f).
 Proof.
   intros Hf st1 st2. induction 1 as [| a P1 P2 st1 st2 HP Hst IH]; constructor.
   - intros v. f_equiv. apply HP.
   - intros v. apply IH.
 Qed.
-Lemma stype_fmap_id {A : ofeT} (st : stype A) : stype_map id st ≡ st.
+Lemma stype_fmap_id {V : Type} {A : ofeT} (st : stype V A) : stype_map id st ≡ st.
 Proof.
   induction st as [| a P st IH]; constructor.
   - intros v. reflexivity.
   - intros v. apply IH.
 Qed.
-Lemma stype_fmap_compose {A B C : ofeT} (f : A → B) (g : B → C) st :
-  stype_map (g ∘ f) st ≡ stype_map g (stype_map f st).
+Lemma stype_fmap_compose {V : Type} {A B C : ofeT} (f : A → B) (g : B → C) st :
+  stype_map (g ∘ f) st ≡ stype_map g (@stype_map V _ _ f st).
 Proof.
   induction st as [| a P st IH]; constructor.
   - intros v. reflexivity.
   - intros v. apply IH.
 Qed.
 
-Definition stypeC_map {A B} (f : A -n> B) : stypeC A -n> stypeC B :=
-  CofeMor (stype_map f : stypeC A → stypeC B).
-Instance stypeC_map_ne A B : NonExpansive (@stypeC_map A B).
+Definition stypeC_map {V A B} (f : A -n> B) : stypeC V A -n> stypeC V B :=
+  CofeMor (stype_map f : stypeC V A → stypeC V B).
+Instance stypeC_map_ne {V} A B : NonExpansive (@stypeC_map V A B).
 Proof. intros n f g ? st. by apply stype_map_ext_ne. Qed.
 
-Program Definition stypeCF (F : cFunctor) : cFunctor := {|
-  cFunctor_car A B := stypeC (cFunctor_car F A B);
+Program Definition stypeCF {V} (F : cFunctor) : cFunctor := {|
+  cFunctor_car A B := stypeC V (cFunctor_car F A B);
   cFunctor_map A1 A2 B1 B2 fg := stypeC_map (cFunctor_map F fg)
 |}.
 Next Obligation.
-  by intros F A1 A2 B1 B2 n f g Hfg; apply stypeC_map_ne, cFunctor_ne.
+  by intros V F A1 A2 B1 B2 n f g Hfg; apply stypeC_map_ne, cFunctor_ne.
 Qed.
 Next Obligation.
-  intros F A B x. rewrite /= -{2}(stype_fmap_id x).
+  intros V F A B x. rewrite /= -{2}(stype_fmap_id x).
   apply stype_map_ext=>y. apply cFunctor_id.
 Qed.
 Next Obligation.
-  intros F A1 A2 A3 B1 B2 B3 f g f' g' x. rewrite /= -stype_fmap_compose.
+  intros V F A1 A2 A3 B1 B2 B3 f g f' g' x. rewrite /= -stype_fmap_compose.
   apply stype_map_ext=>y; apply cFunctor_compose.
 Qed.
 
-Instance stypeCF_contractive F :
-  cFunctorContractive F → cFunctorContractive (stypeCF F).
+Instance stypeCF_contractive {V} F :
+  cFunctorContractive F → cFunctorContractive (@stypeCF V F).
 Proof.
   by intros ? A1 A2 B1 B2 n f g Hfg; apply stypeC_map_ne, cFunctor_contractive.
 Qed.
