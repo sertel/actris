@@ -9,29 +9,25 @@ Section Examples.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG Σ}.
 
+  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
+    (at level 10, s at next level, sτ at next level, γ at next level,
+     format "⟦  c  @  s  :  sτ  ⟧{ γ }").
+
   Definition seq_example : expr :=
     (let: "c" := new_chan #() in
      send "c" #Left #5;;
      recv "c" #Right)%E.
-
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
-    (at level 10, s at next level, sτ at next level, γ at next level,
-     format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
   Lemma seq_proof :
     {{{ True }}} seq_example {{{ v, RET v; ⌜v = #5⌝ }}}.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /seq_example.
-    wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_pures.
-    wp_bind (send _ _ _).
-    wp_apply (send_st_spec N with "[Hstl]"). by iFrame.
+    wp_apply (send_st_spec N with "[$Hstl //]").
     iIntros "Hstl".
-    wp_pures.
-    wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
+    wp_apply (recv_st_spec _ with "Hstr").
     iIntros (v) "[Hstr HP]".
     by iApply "HΦ".
   Qed.
@@ -46,11 +42,8 @@ Section Examples.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /par_example.
-    wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_pures.
-    wp_bind (Fork _).
     wp_apply (wp_fork with "[Hstl]").
     - iNext. wp_apply (send_st_spec N with "[Hstl]"). by iFrame. eauto.
     - wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
@@ -65,11 +58,10 @@ Section Examples.
   Lemma par_2_proof :
     {{{ True }}}
       par_2_example
-    {{{ v, RET v; ∃ w, ⌜v = LitV $ LitInt $ w ∧ w >= 7⌝ }}}.
+    {{{ (v:Z), RET #v; ⌜7 ≤ v⌝ }}}.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /par_2_example.
-    wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N
       (TSR Send
            (λ v, ⌜v = #5⌝%I)
@@ -79,28 +71,20 @@ Section Examples.
                        ∃ w', ⌜v' = LitV $ LitInt $ w' ∧ w' >= w+2⌝)%I)
                      (λ v', TEnd))))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_pures.
-    wp_bind (Fork _).
     wp_apply (wp_fork with "[Hstr]").
     - iNext.
       wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
       iIntros (v) "[Hstr HP]".
-      wp_pures.
       iDestruct "HP" as %->.
-      wp_apply (send_st_spec N with "[Hstr]"). iFrame.
-      iExists _. iSplit=> //.
-      iExists _. iSplit=> //.
+      wp_apply (send_st_spec N with "[Hstr]"). iFrame; eauto 10 with iFrame.
       eauto.
     - wp_apply (send_st_spec _ with "[Hstl]"). by iFrame.
       iIntros "Hstl".
       wp_apply (recv_st_spec _ with "[Hstl]"). by iFrame.
       iIntros (v) "[Hstl HP]".
+      iDestruct "HP" as %[w [HP [w' [-> HQ']]]].
       iApply "HΦ".
-      iDestruct "HP" as %[w [HP [w' [HQ HQ']]]].
-      iExists _.
-      iSplit=> //. iPureIntro.
-      inversion HP. rewrite -H1 in HQ'.
-      eauto.
+      iPureIntro. simplify_eq. lia.
   Qed.
 
   Definition heaplet_example : expr :=
@@ -113,13 +97,10 @@ Section Examples.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /heaplet_example.
-    wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N
       (TSR Send (λ v, (∃ l, ⌜v = LitV $ LitLoc $ l⌝ ∧ (l ↦ #5))%I)
                 (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_pures.
-    wp_bind (Fork _).
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
       wp_apply (wp_alloc)=> //.
@@ -148,7 +129,6 @@ Section Examples.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /channel_example.
-    wp_bind (new_chan _).
     wp_apply (new_chan_st_spec N
       (TSR Send (λ v, ∃ γ, ⟦ v @ Right :
         (TSR Receive
@@ -157,10 +137,8 @@ Section Examples.
                 (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_pures.
-    wp_bind (Fork _).
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
-      wp_bind (new_chan _).
       wp_apply (new_chan_st_spec N
         (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
       iIntros (c' γ') "[Hstl' Hstr']"=> /=.
@@ -178,4 +156,69 @@ Section Examples.
       by iApply "HΦ".
   Qed.
 
+  Definition bad_seq_example : expr :=
+    (let: "c" := new_chan #() in
+     let: "v" := recv "c" #Right in
+     send "c" #Left #5;; "v")%E.
+
+  Lemma bad_seq_proof :
+    {{{ True }}} bad_seq_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_seq_example.
+    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (recv_st_spec _ with "Hstr").
+    iIntros (v) "[Hstr HP]".
+    wp_apply (send_st_spec N with "[Hstl]"). by iFrame.
+    iIntros "Hstl".
+    wp_pures.
+    by iApply "HΦ".
+  Qed.
+
+  Definition bad_par_example : expr :=
+    (let: "c" := new_chan #() in
+     Fork(#());;
+     recv "c" #Right)%E.
+
+  Lemma bad_par_proof :
+    {{{ True }}} bad_par_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_par_example.
+    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (wp_fork with "[Hstl]").
+    - iNext. wp_finish. eauto.
+    - wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
+      iIntros (v) "[Hstr HP]". by iApply "HΦ".
+  Qed.
+
+  Definition bad_interleave_example : expr :=
+    (let: "c" := new_chan #() in
+     let: "c'" := new_chan #() in
+     Fork(recv "c" #Right;; send "c'" #Right #5);;
+     recv "c'" #Left;; send "c" #Left #5)%E.
+
+  Lemma bad_interleave_proof :
+    {{{ True }}} bad_interleave_example {{{ v, RET v; ⌜v = #()⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_interleave_example.
+    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (new_chan_st_spec N (TSR Receive (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //.
+    iIntros (c' γ') "[Hstl' Hstr']"=> /=.
+    wp_apply (wp_fork with "[Hstr Hstr']").
+    - iNext. wp_apply (recv_st_spec _ with "[Hstr]"). by iFrame.
+      iIntros (v) "[Hstr HP]".
+      wp_apply (send_st_spec _ with "[Hstr']"). iFrame. eauto.
+      eauto.
+    - wp_apply (recv_st_spec _ with "[Hstl']"). by iFrame.
+      iIntros (v) "[Hstl' HP]".
+      wp_apply (send_st_spec _ with "[Hstl]"). iFrame. eauto.
+      iIntros "Hstl".
+      by iApply "HΦ".
+  Qed.
+  
 End Examples.
