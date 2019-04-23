@@ -21,8 +21,6 @@ Section logrel.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG Σ}.
 
-  Notation stype_iprop := (@stypeC (laterC (iProp Σ))).
-
   Record st_name := SessionType_name {
     st_c_name : chan_name;
     st_l_name : gname;
