@@ -63,17 +63,18 @@ Section stype_ofe.
   Proof.
     split.
     - intros st1 st2. rewrite /dist /stype_dist. split.
-      + intros Hst n. induction Hst as [|a P1 P2 st1 st2 HP Hst IH]; constructor.
-        * intros v. apply equiv_dist, HP.
-        * intros v. apply IH.
+      + intros Hst n.
+        induction Hst as [|a P1 P2 st1 st2 HP Hst IH]; constructor; intros v.
+        * apply equiv_dist, HP.
+        * apply IH.
       + revert st2. induction st1 as [|a P1 st1 IH]; intros [|a' P2 st2] Hst.
         * constructor.
         * feed inversion (Hst O).
         * feed inversion (Hst O).
         * feed inversion (Hst O); subst.
-          constructor.
-          ** intros v. apply equiv_dist=> n. feed inversion (Hst n); subst; auto.
-          ** intros v. apply IH=> n. feed inversion (Hst n); subst; auto.
+          constructor; intros v.
+          ** apply equiv_dist=> n. feed inversion (Hst n); subst; auto.
+          ** apply IH=> n. feed inversion (Hst n); subst; auto.
     - rewrite /dist /stype_dist. split.
       + intros st. induction st; constructor; repeat intro; auto.
       + intros st1 st2. induction 1; constructor; repeat intro; auto.
@@ -83,7 +84,7 @@ Section stype_ofe.
         induction H1 as [| a P1 P2 st1 st2 HP Hst12 IH]=> //.
         inversion 1. subst. constructor.
         ** by transitivity P2.
-        ** intros v. by apply IH. 
+        ** intros v. by apply IH.
     - intros n st1 st2. induction 1; constructor.
       + intros v. apply dist_S. apply H.
       + intros v. apply H1.
@@ -91,15 +92,17 @@ Section stype_ofe.
   Canonical Structure stypeC : ofeT := OfeT (stype V A) stype_ofe_mixin.
 
   Global Instance TSR_stype_ne a n :
-    Proper (pointwise_relation _ (dist n) ==> pointwise_relation _ (dist n) ==> dist n) (TSR a).
-  Proof. 
+    Proper (pointwise_relation _ (dist n) ==>
+            pointwise_relation _ (dist n) ==> dist n) (TSR a).
+  Proof.
     intros P1 P2 HP st1 st2 Hst.
     constructor.
     - apply HP.
     - intros v. apply Hst.
   Qed.
   Global Instance TSR_stype_proper a :
-    Proper (pointwise_relation _ (≡) ==> pointwise_relation _ (≡) ==> (≡)) (TSR a).
+    Proper (pointwise_relation _ (≡) ==>
+            pointwise_relation _ (≡) ==> (≡)) (TSR a).
   Proof.
     intros P1 P2 HP st1 st2 Hst. apply equiv_dist=> n.
     by f_equiv; intros v; apply equiv_dist.
@@ -122,7 +125,7 @@ Section stype_ofe.
     - rewrite /= (involutive (f:=dual_action)).
       constructor. reflexivity. intros v. apply H.
   Qed.
-  
+
   Lemma stype_equivI {M} st1 st2 :
     st1 ≡ st2 ⊣⊢@{uPredI M}
         match st1, st2 with
@@ -168,14 +171,16 @@ Proof.
   intros x. apply equiv_dist.
   apply Hf.
 Qed.
-Instance stype_map_ne {V : Type} {A B : ofeT} (f : A → B) n:
-  Proper (dist n ==> dist n) f → Proper (dist n ==> dist n) (@stype_map V _ _ f).
+Instance stype_map_ne {V : Type} {A B : ofeT} (f : A → B) n :
+  Proper (dist n ==> dist n) f →
+  Proper (dist n ==> dist n) (@stype_map V _ _ f).
 Proof.
   intros Hf st1 st2. induction 1 as [| a P1 P2 st1 st2 HP Hst IH]; constructor.
   - intros v. f_equiv. apply HP.
   - intros v. apply IH.
 Qed.
-Lemma stype_fmap_id {V : Type} {A : ofeT} (st : stype V A) : stype_map id st ≡ st.
+Lemma stype_fmap_id {V : Type} {A : ofeT} (st : stype V A) :
+  stype_map id st ≡ st.
 Proof.
   induction st as [| a P st IH]; constructor.
   - intros v. reflexivity.
@@ -215,4 +220,3 @@ Instance stypeCF_contractive {V} F :
 Proof.
   by intros ? A1 A2 B1 B2 n f g Hfg; apply stypeC_map_ne, cFunctor_contractive.
 Qed.
-
