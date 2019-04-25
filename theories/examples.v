@@ -7,7 +7,7 @@ From iris.base_logic Require Import invariants.
 
 Section Examples.
   Context `{!heapG Σ} (N : namespace).
-  Context `{!logrelG Σ}.
+  Context `{!logrelG val Σ}.
 
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
