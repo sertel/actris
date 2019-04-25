@@ -179,6 +179,9 @@ Proof.
   - intros v. f_equiv. apply HP.
   - intros v. apply IH.
 Qed.
+Lemma stype_map_equiv {A B : ofeT} (f g : A -n> B) (st st' : stype val A) :
+  (∀ x, f x ≡ g x) → st ≡ st' → stype_map f st ≡ stype_map g st'.
+Proof. intros Feq. induction 1=>//. constructor=>//. by repeat f_equiv. Qed.
 Lemma stype_fmap_id {V : Type} {A : ofeT} (st : stype V A) :
   stype_map id st ≡ st.
 Proof.

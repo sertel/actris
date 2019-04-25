@@ -131,10 +131,6 @@ Section Encodings.
       + intros v. destruct (decode v); eauto.
   Qed.
 
-  Lemma stype_map_equiv {A B : ofeT} (f : A -n> B) (st st' : stype val A) :
-    st ≡ st' → stype_map f st ≡ stype_map f st'.
-  Proof. induction 1=>//. constructor=>//. by repeat f_equiv. Qed.
-
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
@@ -160,7 +156,7 @@ Section Encodings.
     left.
     f_equiv.
     f_equiv.
-    apply stype_map_equiv.
+    apply stype_map_equiv=> //.
     apply dual_stype'_comm.
   Qed.
 
