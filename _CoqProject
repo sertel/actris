@@ -10,4 +10,4 @@ theories/encodings/stype.v
 theories/encodings/stype_enc.v
 theories/examples/examples.v
 theories/examples/proofs.v
-theories/examples/encoding_proofs.v
+theories/examples/proofs_enc.v
