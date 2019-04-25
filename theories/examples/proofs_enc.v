@@ -6,7 +6,7 @@ From iris.base_logic Require Import invariants.
 From osiris.encodings Require Import stype_enc.
 From osiris.examples Require Import examples.
 
-Section ExampleProofsEncodings.
+Section ExampleProofsEnc.
   Context `{!heapG Σ} {N : namespace}.
   Context `{!logrelG val Σ}.
 
@@ -115,4 +115,4 @@ Section ExampleProofsEncodings.
       by iApply "HΦ".
   Qed.
 
-End ExampleProofsEncodings.
+End ExampleProofsEnc.
