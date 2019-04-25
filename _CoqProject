@@ -5,3 +5,4 @@ theories/auth_excl.v
 theories/typing.v
 theories/channel.v
 theories/logrel.v
+theories/encodable.v
