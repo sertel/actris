@@ -20,11 +20,11 @@ Section ExampleProofsEnc.
     iIntros (Φ H) "HΦ".
     rewrite /seq_example.
     wp_apply (new_chan_st_enc_spec N
-             (TSR' Send (λ v, ⌜v = 5⌝%I) (λ v, TEnd')))=> //.
+             (TSR' Send (λ v, ⌜v = 5⌝%I) (λ v, TEnd')))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_apply (send_st_enc_spec N Z with "[Hstl]")=> //. by iFrame.
+    wp_apply (send_st_enc_spec N Z with "[$Hstl //]");
     iIntros "Hstl".
-    wp_apply (recv_st_enc_spec N Z with "[Hstr]"). iFrame.
+    wp_apply (recv_st_enc_spec N Z with "Hstr");
     iIntros (v) "[Hstr HP]".
     iApply "HΦ".
     iDestruct "HP" as %->.    
@@ -43,18 +43,18 @@ Section ExampleProofsEnc.
            (λ v:Z, ⌜5 ≤ v⌝%I)
            (λ v:Z, TSR' Receive
                      (λ v':Z, ⌜v+2 ≤ v'⌝%I)
-                     (λ v':Z, TEnd'))))=> //.
+                     (λ v':Z, TEnd'))))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstr]").
     - iNext.
-      wp_apply (recv_st_enc_spec N Z with "[Hstr]"). by iFrame.
+      wp_apply (recv_st_enc_spec N Z with "Hstr");
       iIntros (v) "[Hstr HP]".
-      wp_apply (send_st_enc_spec N Z with "[Hstr]")=> //.
-      iFrame; eauto 10 with iFrame.
+      wp_apply (send_st_enc_spec N Z with "[$Hstr //]");
+      iIntros "Hstr".
       eauto.
-    - wp_apply (send_st_enc_spec N Z with "[Hstl]")=> //. by iFrame.
+    - wp_apply (send_st_enc_spec N Z with "[$Hstl //]");
       iIntros "Hstl".
-      wp_apply (recv_st_enc_spec N Z with "[Hstl]"). by iFrame.
+      wp_apply (recv_st_enc_spec N Z with "Hstl");
       iIntros (v) "[Hstl HP]".
       iApply "HΦ".
       iDestruct "HP" as %HP.
@@ -68,19 +68,19 @@ Section ExampleProofsEnc.
     rewrite /heaplet_example.
     wp_apply (new_chan_st_enc_spec N
       (TSR' Send (λ v, (v ↦ #5)%I)
-                (λ v, TEnd')))=> //.
+                (λ v, TEnd')))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
-      wp_apply (wp_alloc)=> //.
-      iIntros (l) "HP".
-      wp_apply (send_st_enc_spec N loc with "[Hstl HP]")=> //. by iFrame.
+      wp_alloc l as "HP".
+      wp_apply (send_st_enc_spec N loc with "[$Hstl HP]")=> //;
+      iIntros "Hstl".
       eauto.
-    - wp_apply (recv_st_enc_spec N loc with "[Hstr]"). iFrame.
+    - wp_apply (recv_st_enc_spec N loc with "Hstr");
       iIntros (v) "[Hstr HP]".
       wp_load.
       iApply "HΦ".
-      iFrame. eauto.
+      by iFrame.
   Qed.
 
   Lemma channel_proof :
@@ -93,23 +93,23 @@ Section ExampleProofsEnc.
         (TSR' Receive
              (λ v, ⌜v = 5⌝)
              (λ _, TEnd')) ⟧{γ})%I
-                (λ v, TEnd')))=> //.
+                (λ v, TEnd')))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
-    wp_pures.
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
       wp_apply (new_chan_st_enc_spec N
-        (TSR' Send (λ v, ⌜v = 5⌝%I) (λ v, TEnd')))=> //.
+        (TSR' Send (λ v, ⌜v = 5⌝%I) (λ v, TEnd')))=> //;
       iIntros (c' γ') "[Hstl' Hstr']"=> /=.
-      wp_apply (send_st_enc_spec N val with "[Hstl Hstr']")=> //.
-      iFrame. iExists γ'. iFrame.
+      wp_apply (send_st_enc_spec N val with "[Hstl Hstr']");
+        first by eauto 10 with iFrame.
       iIntros "Hstl".
-      wp_apply (send_st_enc_spec N Z with "[Hstl']")=> //.
-      iFrame. eauto. eauto.
-    - wp_apply (recv_st_enc_spec N val with "[Hstr]")=> //.
+      wp_apply (send_st_enc_spec N Z with "[$Hstl' //]");
+      iIntros "Hstl'".
+      eauto.
+    - wp_apply (recv_st_enc_spec N val with "Hstr");
       iIntros (v) "[Hstr Hstr']".
       iDestruct "Hstr'" as (γ') "Hstr'".
-      wp_apply (recv_st_enc_spec N Z with "[Hstr']")=> //.
+      wp_apply (recv_st_enc_spec N Z with "Hstr'");
       iIntros (v') "[Hstr' HP]".
       iDestruct "HP" as %<-.
       by iApply "HΦ".
