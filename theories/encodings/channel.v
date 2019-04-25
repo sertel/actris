@@ -5,9 +5,8 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import excl auth list.
 From iris.base_logic.lib Require Import auth.
 From iris.heap_lang.lib Require Import spin_lock.
-From osiris Require Import list.
-From osiris Require Import auth_excl.
-From osiris Require Import typing.
+From osiris.typing Require Export side.
+From osiris.encodings Require Import list auth_excl.
 Set Default Proof Using "Type".
 Import uPred.
 

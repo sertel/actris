@@ -1,9 +1,9 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
-From osiris Require Import typing channel logrel.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
+From osiris.encodings Require Export stype.
 
 Class Encodable A := encode : A -> val.
 Instance val_encodable : Encodable val := id.
@@ -138,8 +138,8 @@ Section Encodings.
   Lemma new_chan_st_enc_spec st :
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c;  ⟦ c @ Left : (stype'_to_stype st) ⟧{γ} ∗
-                     ⟦ c @ Right : (stype'_to_stype (dual_stype' st)) ⟧{γ} }}}.
+    {{{ c γ, RET c; ⟦ c @ Left : (stype'_to_stype st) ⟧{γ} ∗
+                    ⟦ c @ Right : (stype'_to_stype (dual_stype' st)) ⟧{γ} }}}.
   Proof.
     iIntros (Φ _) "HΦ".
     iApply (new_chan_st_spec). eauto.

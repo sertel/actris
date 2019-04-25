@@ -4,17 +4,8 @@ From stdpp Require Export list.
 From iris.base_logic Require Import base_logic.
 From iris.algebra Require Import updates local_updates.
 From iris.heap_lang Require Import proofmode notation.
+From osiris.typing Require Import involutive.
 Set Default Proof Using "Type".
-
-Class Involutive {A} (R : relation A) (f : A → A) :=
-  involutive x : R (f (f x)) x.
-
-Inductive side := Left | Right.
-Instance side_inhabited : Inhabited side := populate Left.
-Definition dual_side (s : side) : side :=
-  match s with Left => Right | Right => Left end.
-Instance dual_side_involutive : Involutive (=) dual_side.
-Proof. by intros []. Qed.
 
 Inductive action := Send | Receive.
 Instance action_inhabited : Inhabited action := populate Send.

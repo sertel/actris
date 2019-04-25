@@ -67,30 +67,42 @@ Context `{heapG Σ}.
 Implicit Types i : nat.
 Implicit Types v : val.
 
-Lemma lnil_spec : {{{ True }}} lnil #() {{{ hd, RET hd; ⌜ is_list hd [] ⌝ }}}.
+Lemma lnil_spec :
+  {{{ True }}}
+    lnil #()
+  {{{ hd, RET hd; ⌜ is_list hd [] ⌝ }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. by iApply "HΦ". Qed.
 
 Lemma lcons_spec hd vs v :
-  {{{ ⌜ is_list hd vs ⌝ }}} lcons v hd {{{ hd', RET hd'; ⌜ is_list hd' (v :: vs) ⌝ }}}.
+  {{{ ⌜ is_list hd vs ⌝ }}}
+    lcons v hd
+  {{{ hd', RET hd'; ⌜ is_list hd' (v :: vs) ⌝ }}}.
 Proof.
   iIntros (Φ ?) "HΦ". wp_lam. wp_pures.
   iApply "HΦ". simpl; eauto.
 Qed.
 
 Lemma lhead_spec hd vs v :
-  {{{ ⌜ is_list hd (v :: vs) ⌝ }}} lhead hd {{{ RET v; True }}}.
+  {{{ ⌜ is_list hd (v :: vs) ⌝ }}}
+    lhead hd
+  {{{ RET v; True }}}.
 Proof. iIntros (Φ (hd'&->&?)) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma ltail_spec hd vs v :
-  {{{ ⌜ is_list hd (v :: vs) ⌝ }}} ltail hd {{{ hd', RET hd'; ⌜ is_list hd' vs ⌝ }}}.
+  {{{ ⌜ is_list hd (v :: vs) ⌝ }}}
+    ltail hd
+  {{{ hd', RET hd'; ⌜ is_list hd' vs ⌝ }}}.
 Proof. iIntros (Φ (hd'&->&?)) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma llookup_spec i hd vs v :
   vs !! i = Some v →
-  {{{ ⌜ is_list hd vs ⌝ }}} llookup #i hd {{{ RET v; True }}}.
+  {{{ ⌜ is_list hd vs ⌝ }}}
+    llookup #i hd
+  {{{ RET v; True }}}.
 Proof.
   iIntros (Hi Φ Hl) "HΦ".
-  iInduction vs as [|v' vs] "IH" forall (hd i Hi Hl); destruct i as [|i]=> //; simplify_eq/=.
+  iInduction vs as [|v' vs] "IH" forall (hd i Hi Hl);
+    destruct i as [|i]=> //; simplify_eq/=.
   { wp_lam. wp_pures. by iApply (lhead_spec with "[//]"). }
   wp_lam. wp_pures.
   wp_apply (ltail_spec with "[//]"); iIntros (hd' ?). wp_let.
@@ -99,10 +111,13 @@ Qed.
 
 Lemma linsert_spec i hd vs v :
   is_Some (vs !! i) →
-  {{{ ⌜ is_list hd vs ⌝ }}} linsert #i v hd {{{ hd', RET hd'; ⌜ is_list hd' (<[i:=v]> vs) ⌝ }}}.
+  {{{ ⌜ is_list hd vs ⌝ }}}
+    linsert #i v hd
+  {{{ hd', RET hd'; ⌜ is_list hd' (<[i:=v]> vs) ⌝ }}}.
 Proof.
   iIntros ([w Hi] Φ Hl) "HΦ".
-  iInduction vs as [|v' vs] "IH" forall (hd i Hi Hl Φ); destruct i as [|i]=> //; simplify_eq/=.
+  iInduction vs as [|v' vs] "IH" forall (hd i Hi Hl Φ);
+    destruct i as [|i]=> //; simplify_eq/=.
   { wp_lam. wp_pures. wp_apply (ltail_spec with "[//]"). iIntros (hd' ?).
     wp_let. by iApply (lcons_spec with "[//]"). }
   wp_lam; wp_pures.
@@ -114,7 +129,9 @@ Proof.
 Qed.
 
 Lemma llist_member_spec hd vs v :
-  {{{ ⌜ is_list hd vs ⌝ }}} llist_member v hd {{{ RET #(bool_decide (v ∈ vs)); True }}}.
+  {{{ ⌜ is_list hd vs ⌝ }}}
+    llist_member v hd
+  {{{ RET #(bool_decide (v ∈ vs)); True }}}.
 Proof.
   iIntros (Φ Hl) "HΦ".
   iInduction vs as [|v' vs] "IH" forall (hd Hl); simplify_eq/=.
@@ -122,13 +139,16 @@ Proof.
   destruct Hl as (hd'&->&?). wp_lam; wp_pures.
   destruct (bool_decide_reflect (v' = v)) as [->|?]; wp_if.
   { rewrite (bool_decide_true (_ ∈ _ :: _)); last by left. by iApply "HΦ". }
-  wp_proj. wp_let. iApply ("IH" with "[//]"). destruct (bool_decide_reflect (v ∈ vs)).
+  wp_proj. wp_let. iApply ("IH" with "[//]").
+  destruct (bool_decide_reflect (v ∈ vs)).
   - by rewrite bool_decide_true; last by right.
   - by rewrite bool_decide_false ?elem_of_cons; last naive_solver.
 Qed.
 
 Lemma lreplicate_spec i v :
-  {{{ True }}} lreplicate #i v {{{ hd, RET hd; ⌜ is_list hd (replicate i v) ⌝ }}}.
+  {{{ True }}}
+    lreplicate #i v
+  {{{ hd, RET hd; ⌜ is_list hd (replicate i v) ⌝ }}}.
 Proof.
   iIntros (Φ _) "HΦ". iInduction i as [|i] "IH" forall (Φ); simpl.
   { wp_lam; wp_pures.
@@ -150,7 +170,9 @@ Proof.
 Qed.
 
 Lemma lsnoc_spec hd vs v :
-  {{{ ⌜ is_list hd vs ⌝ }}} lsnoc hd v {{{ hd', RET hd'; ⌜ is_list hd' (vs++[v]) ⌝ }}}.
+  {{{ ⌜ is_list hd vs ⌝ }}}
+    lsnoc hd v
+  {{{ hd', RET hd'; ⌜ is_list hd' (vs++[v]) ⌝ }}}.
 Proof.
   iIntros (Φ Hvs) "HΦ".
   iInduction vs as [|v' vs] "IH" forall (hd Hvs Φ).
@@ -171,6 +193,6 @@ Proof.
     wp_pures.
     iApply lcons_spec.
     eauto.
-    iApply "HΦ". 
+    iApply "HΦ".
 Qed.
 End lists.

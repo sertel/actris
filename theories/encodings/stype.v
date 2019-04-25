@@ -3,9 +3,11 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From osiris Require Import typing auth_excl channel.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
+From osiris.typing Require Export stype.
+From osiris.encodings Require Import auth_excl.
+From osiris.encodings Require Export channel.
 
 Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;
@@ -138,7 +140,8 @@ Section logrel.
       ((⌜r = []⌝ ∗ st_eval l stl str) ∨
        (⌜l = []⌝ ∗ st_eval r str stl)))%I.
 
-  Definition is_st (γ : st_name) (st : stype val (iProp Σ)) (c : val) : iProp Σ :=
+  Definition is_st (γ : st_name) (st : stype val (iProp Σ))
+      (c : val) : iProp Σ :=
     (is_chan N (st_c_name γ) c ∗ inv N (inv_st γ c))%I.
 
   Definition interp_st (γ : st_name) (st : stype val (iProp Σ))
