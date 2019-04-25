@@ -7,7 +7,7 @@ From osiris.encodings Require Import stype_enc.
 From osiris.examples Require Import examples.
 
 Section ExampleProofsEnc.
-  Context `{!heapG Σ} {N : namespace}.
+  Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (stype'_to_stype sτ) c s)
