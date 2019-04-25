@@ -94,7 +94,7 @@ Section Encodings.
     (TSR' Receive
           (λ v', ⌜v' = 5⌝%I)
           (λ v', TEnd')).
-  
+
   Example ex_st2 : stype' (iProp Σ) :=
     TSR' Send
          (λ b, ⌜b = true⌝%I)
@@ -106,22 +106,23 @@ Section Encodings.
   Fixpoint stype'_to_stype (st : stype' (iProp Σ)) : stype val (iProp Σ) :=
     match st with
     | TEnd' => TEnd
-    | TSR' a P st => TSR a
-                         (λ v, match decode v with
-                               | Some v => P v
-                               | None => False
-                               end%I)
-                         (λ v, match decode v with
-                               | Some v => stype'_to_stype (st v)
-                               | None => TEnd
-                               end)
+    | TSR' a P st =>
+      TSR a
+          (λ v, match decode v with
+                | Some v => P v
+                | None => False
+                end%I)
+          (λ v, match decode v with
+                | Some v => stype'_to_stype (st v)
+                | None => TEnd
+                end)
     end.
   Global Instance: Params (@stype'_to_stype) 1.
   Global Arguments stype'_to_stype : simpl never.
 
   Lemma dual_stype'_comm st :
-    dual_stype (stype'_to_stype st) ≡ stype'_to_stype (dual_stype' st).
-  Proof. 
+    stype'_to_stype (dual_stype' st) ≡ dual_stype (stype'_to_stype st).
+  Proof.
     induction st.
     - by simpl.
     - unfold stype'_to_stype. simpl.
@@ -130,9 +131,9 @@ Section Encodings.
       + intros v. destruct (decode v); eauto.
   Qed.
 
-  Lemma dual_stype'_comm_eq st :
-    dual_stype (stype'_to_stype st) = stype'_to_stype (dual_stype' st).
-  Proof. Admitted.
+  Lemma stype_map_equiv {A B : ofeT} (f : A -n> B) (st st' : stype val A) :
+    st ≡ st' → stype_map f st ≡ stype_map f st'.
+  Proof. induction 1=>//. constructor=>//. by repeat f_equiv. Qed.
 
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
@@ -149,47 +150,57 @@ Section Encodings.
     iNext.
     iIntros (c γ) "[Hl Hr]".
     iApply "HΦ".
-    iFrame. 
-    rewrite dual_stype'_comm_eq.    
     iFrame.
+    iDestruct "Hr" as "[Hown Hctx]".
+    iFrame.
+    unfold st_own. simpl.
+    iApply (own_mono with "Hown").
+    apply (auth_frag_mono).
+    apply Some_included.
+    left.
+    f_equiv.
+    f_equiv.
+    apply stype_map_equiv.
+    apply dual_stype'_comm.
   Qed.
 
   Lemma send_st_enc_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
-        st γ c s (P : A → iProp Σ) v w :
-    decode v = Some w →
+        st γ c s (P : A → iProp Σ) w :
     {{{ P w ∗ ⟦ c @ s : (stype'_to_stype (TSR' Send P st)) ⟧{γ} }}}
-      send c #s v
+      send c #s (encode w)
     {{{ RET #(); ⟦ c @ s : stype'_to_stype (st w) ⟧{γ} }}}.
   Proof.
-    intros Henc.
     iIntros (Φ) "[HP Hsend] HΦ".
     iApply (send_st_spec with "[HP Hsend]").
     simpl.
     iFrame.
-    by destruct (decode v); inversion Henc.
+    by rewrite encdec.
     iNext.
-    destruct (decode v); inversion Henc.
+    rewrite encdec.
     by iApply "HΦ".
   Qed.
-    
+
   Lemma recv_st_enc_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
     {{{ ⟦ c @ s : (stype'_to_stype (TSR' Receive P st)) ⟧{γ} }}}
       recv c #s
-    {{{ v w, RET v; ⟦ c @ s : stype'_to_stype (st w) ⟧{γ} ∗ P w ∗
-        ⌜encode w = v⌝ }}}.
+    {{{ v, RET (encode v); ⟦ c @ s : stype'_to_stype (st v) ⟧{γ} ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (recv_st_spec with "Hrecv").
-    iNext. iIntros (v). iSpecialize ("HΦ" $!v).
+    iNext. iIntros (v). (* iSpecialize ("HΦ" $!v). *)
     iIntros "[H HP]".
     iAssert ((∃ w, ⌜decode v = Some w⌝ ∗ P w)%I) with "[HP]" as (w Hw) "HP".
-    destruct (decode v). iExists a. by iFrame. iDestruct "HP" as %HP=>//.
-    assert (encode w = v). by apply decenc.
-    destruct (decode v); inversion Hw.
+    { destruct (decode v).
+      iExists a. by iFrame. iDestruct "HP" as %HP=>//. }
+    iSpecialize ("HΦ" $!w).
+    apply enc_dec in Hw. rewrite Hw.
     iApply "HΦ".
     iFrame.
-    iPureIntro. eauto.
+    apply enc_dec in Hw.
+    destruct (decode v).
+    - inversion Hw. subst. iApply "H".
+    - inversion Hw.
   Qed.
 
 End Encodings.
