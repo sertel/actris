@@ -131,15 +131,15 @@ Section Encodings.
       + intros v. destruct (decode v); eauto.
   Qed.
 
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
+  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (stype'_to_stype sτ) c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
   Lemma new_chan_st_enc_spec st :
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c; ⟦ c @ Left : (stype'_to_stype st) ⟧{γ} ∗
-                    ⟦ c @ Right : (stype'_to_stype (dual_stype' st)) ⟧{γ} }}}.
+    {{{ c γ, RET c; ⟦ c @ Left : st ⟧{γ} ∗
+                    ⟦ c @ Right : (dual_stype' st) ⟧{γ} }}}.
   Proof.
     iIntros (Φ _) "HΦ".
     iApply (new_chan_st_spec). eauto.
@@ -162,9 +162,9 @@ Section Encodings.
 
   Lemma send_st_enc_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : (stype'_to_stype (TSR' Send P st)) ⟧{γ} }}}
+    {{{ P w ∗ ⟦ c @ s : (TSR' Send P st) ⟧{γ} }}}
       send c #s (encode w)
-    {{{ RET #(); ⟦ c @ s : stype'_to_stype (st w) ⟧{γ} }}}.
+    {{{ RET #(); ⟦ c @ s : st w ⟧{γ} }}}.
   Proof.
     iIntros (Φ) "[HP Hsend] HΦ".
     iApply (send_st_spec with "[HP Hsend]").
@@ -178,13 +178,13 @@ Section Encodings.
 
   Lemma recv_st_enc_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : (stype'_to_stype (TSR' Receive P st)) ⟧{γ} }}}
+    {{{ ⟦ c @ s : (TSR' Receive P st) ⟧{γ} }}}
       recv c #s
-    {{{ v, RET (encode v); ⟦ c @ s : stype'_to_stype (st v) ⟧{γ} ∗ P v }}}.
+    {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{γ} ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (recv_st_spec with "Hrecv").
-    iNext. iIntros (v). (* iSpecialize ("HΦ" $!v). *)
+    iNext. iIntros (v).
     iIntros "[H HP]".
     iAssert ((∃ w, ⌜decode v = Some w⌝ ∗ P w)%I) with "[HP]" as (w Hw) "HP".
     { destruct (decode v).
