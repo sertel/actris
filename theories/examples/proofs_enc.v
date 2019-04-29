@@ -10,21 +10,21 @@ Section ExampleProofsEnc.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (lift_stype sτ) c s)
+  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
-
+  
   Lemma seq_proof :
     {{{ True }}} seq_example {{{ v, RET v; ⌜v = #5⌝ }}}.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /seq_example.
     wp_apply (new_chan_st_spec N
-             (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+             (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //.
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (send_st_spec N Z with "[$Hstl //]");
     iIntros "Hstl".
-    wp_apply (recv_st_spec N Z with "Hstr");
+    wp_apply (recv_st_spec N Z with "[Hstr]"). iApply "Hstr".
     iIntros (v) "[Hstr HP]".
     iApply "HΦ".
     iDestruct "HP" as %->.    
@@ -98,7 +98,7 @@ Section ExampleProofsEnc.
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
       wp_apply (new_chan_st_spec N
-        (TSR Send (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+        (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
       iIntros (c' γ') "[Hstl' Hstr']"=> /=.
       wp_apply (send_st_spec N val with "[Hstl Hstr']");
         first by eauto 10 with iFrame.

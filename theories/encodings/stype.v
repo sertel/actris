@@ -20,7 +20,7 @@ Definition logrelΣ A :=
 Instance subG_chanΣ {A Σ} : subG (logrelΣ A) Σ → logrelG A Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
-Section logrel.
+Section stype_interp.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
@@ -148,6 +148,22 @@ Section logrel.
       (c : val) (s : side) : iProp Σ :=
     (st_own γ s st ∗ is_st γ st c)%I.
 
+  Global Instance interp_st_proper γ : Proper ((≡) ==> (=) ==> (=) ==> (≡)) (interp_st γ).
+  Proof.
+    intros st1 st2 Heq v1 v2 <- s1 s2 <-.
+    iSplit;
+    iIntros "[Hown Hctx]";
+    iFrame;
+    unfold st_own;
+    iApply (own_mono with "Hown");
+    apply (auth_frag_mono);
+    apply Some_included;
+    left;
+    f_equiv;
+    f_equiv;
+    apply stype_map_equiv=> //.
+  Qed.
+
   Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
@@ -176,22 +192,25 @@ Section logrel.
     iFrame "Hlstf Hrstf Hcctx Hinv".
   Qed.
 
-  Lemma new_chan_st_spec st :
+  Lemma new_chan_st_spec st1 st2 :
+    IsDualStype st1 st2 →
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c;  ⟦ c @ Left : st ⟧{γ} ∗
-                     ⟦ c @ Right : dual_stype st ⟧{γ} }}}.
+    {{{ c γ, RET c;  ⟦ c @ Left : st1 ⟧{γ} ∗
+                     ⟦ c @ Right : st2 ⟧{γ} }}}.
   Proof.
-    iIntros (Φ _) "HΦ".
+    rewrite /IsDualStype.
+    iIntros (Hst Φ _) "HΦ".
     iApply (wp_fupd).
     iApply (new_chan_spec)=> //.
     iModIntro.
     iIntros (c γ) "[Hc Hctx]".
-    iMod (new_chan_vs st ⊤ c γ with "[-HΦ]") as "H".
+    iMod (new_chan_vs st1 ⊤ c γ with "[-HΦ]") as "H".
     { rewrite /is_chan. eauto with iFrame. }
     iDestruct "H" as (lγ rγ) "[Hl Hr]".
     iApply "HΦ".
-    by iFrame.
+    rewrite Hst.
+    by iFrame.        
   Qed.
 
   Lemma send_vs c γ s (P : val → iProp Σ) st E :
@@ -388,4 +407,4 @@ Section logrel.
       iFrame.
   Qed.
 
-End logrel.
+End stype_interp.

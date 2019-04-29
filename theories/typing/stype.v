@@ -14,6 +14,15 @@ Definition dual_action (a : action) : action :=
 Instance dual_action_involutive : Involutive (=) dual_action.
 Proof. by intros []. Qed.
 
+Class IsDualAction (a1 a2 : action) :=
+  is_dual_action : dual_action a1 = a2.
+Instance is_dual_action_default : IsDualAction a (dual_action a) | 100.
+Proof. done. Qed.
+Instance is_dual_action_Send : IsDualAction Send Receive.
+Proof. done. Qed.
+Instance is_dual_action_Receive : IsDualAction Receive Send.
+Proof. done. Qed.
+
 Inductive stype (V A : Type) :=
   | TEnd
   | TSR (a : action) (P : V → A) (st : V → stype V A).
@@ -217,3 +226,37 @@ Instance stypeCF_contractive {V} F :
 Proof.
   by intros ? A1 A2 B1 B2 n f g Hfg; apply stypeC_map_ne, cFunctor_contractive.
 Qed.
+
+Class IsDualStype {V} {A : ofeT} (st1 st2 : stype V A) :=
+  is_dual_stype : dual_stype st1 ≡ st2.
+
+Section DualStype.
+  Context `{PROP: bi} {V : Type}.
+
+  Global Instance is_dual_default (st : stype V PROP) :
+    IsDualStype st (dual_stype st) | 100.
+  Proof. by rewrite /IsDualStype. Qed.
+
+  Global Instance is_dual_end : IsDualStype (TEnd : stype V PROP) TEnd.
+  Proof. constructor. Qed.
+
+  Global Instance is_dual_tsr a1 a2 P (st1 st2 : V → stype V PROP) :
+    IsDualAction a1 a2 →
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TSR a1 P st1) (TSR a2 P st2).
+  Proof.
+    rewrite /IsDualAction /IsDualStype. intros <- Hst.
+    by constructor=> x.
+  Qed.
+  
+  Global Instance is_dual_send P (st1 st2 : V → stype V PROP) :
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TSR Send P st1) (TSR Receive P st2).
+  Proof. intros H. by apply is_dual_tsr. Qed.
+  
+  Global Instance is_dual_receive P (st1 st2 : V → stype V PROP) :
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TSR Receive P st1) (TSR Send P st2).
+  Proof. intros H. by apply is_dual_tsr. Qed.
+
+End DualStype.

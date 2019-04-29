@@ -70,35 +70,50 @@ Proof.
     apply decenc. eauto.
 Qed.
 
-Inductive stype (A : Type) :=
-| TEnd
-| TSR {V : Type} {EV : Encodable V} {DV : Decodable V}
-       (a : action) (P : V → A) (st : V → stype A).
-Arguments TEnd {_}.
-Arguments TSR {_ _ _ _} _ _ _.
-Instance: Params (@TSR) 4.
+Definition TSR' `{PROP: bi} {V} `{ED : EncDec V}
+    (a : action) (P : V → PROP) (st : V → stype val PROP) : stype val PROP :=
+  TSR a
+    (λ v, if decode v is Some x then P x else False)%I
+    (λ v, if decode v is Some x then st x else TEnd (* dummy *)).
+Instance: Params (@TSR') 4.
 
-Notation TSend P st := (TSR Send P st).
-Notation TReceive P st := (TSR Receive P st).
+Notation TSend P st := (TSR' Send P st).
+Notation TReceive P st := (TSR' Receive P st).
 
-Fixpoint dual_stype {A} (st : stype A) :=
-  match st with
-  | TEnd => TEnd
-  | TSR a P st => TSR (dual_action a) P (λ v, dual_stype (st v))
-  end.
-Instance: Params (@dual_stype) 2.
-Arguments dual_stype : simpl never.
+Section DualStypeEnc.
+  Context `{PROP: bi} `{EncDec V}.
+
+  Global Instance is_dual_tsr' a1 a2 P (st1 st2 : V → stype val PROP) :
+    IsDualAction a1 a2 →
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TSR' a1 P st1) (TSR' a2 P st2).
+  Proof.
+    rewrite /IsDualAction /IsDualStype. intros <- Hst.
+    constructor=> x. done. by destruct (decode x).
+  Qed.
+
+  Global Instance is_dual_send P (st1 st2 : V → stype val PROP) :
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TSend P st1) (TReceive P st2).
+  Proof. intros Heq. by apply is_dual_tsr'. Qed.
+  
+  Global Instance is_dual_receive P (st1 st2 : V → stype val PROP) :
+    (∀ x, IsDualStype (st1 x) (st2 x)) →
+    IsDualStype (TReceive P st1) (TSend P st2).
+  Proof. intros Heq. by apply is_dual_tsr'. Qed.
+
+End DualStypeEnc.
 
 Section Encodings.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
-  Example ex_st : stype (iProp Σ) :=
+  Example ex_st : stype val (iProp Σ) :=
     (TReceive
           (λ v', ⌜v' = 5⌝%I)
           (λ v', TEnd)).
 
-  Example ex_st2 : stype (iProp Σ) :=
+  Example ex_st2 : stype val (iProp Σ) :=
     TSend
          (λ b, ⌜b = true⌝%I)
          (λ b,
@@ -106,67 +121,11 @@ Section Encodings.
               (λ v', ⌜(v' > 5) = b⌝%I)
               (λ _, TEnd))).
 
-  Fixpoint lift_stype (st : stype (iProp Σ)) : stype.stype val (iProp Σ) :=
-    match st with
-    | TEnd => stype.TEnd
-    | TSR a P st =>
-      stype.TSR a
-          (λ v, match decode v with
-                | Some v => P v
-                | None => False
-                end%I)
-          (λ v, match decode v with
-                | Some v => lift_stype (st v)
-                | None => stype.TEnd
-                end)
-    end.
-  Global Instance: Params (@lift_stype) 1.
-  Global Arguments lift_stype : simpl never.
-
-  Instance stype_equiv : Equiv (stype (iProp Σ)) :=
-    λ st1  st2, lift_stype st1 ≡ lift_stype st2.
-
-  Lemma lift_dual_comm st :
-    lift_stype (dual_stype st) ≡ stype.dual_stype (lift_stype st).
-  Proof.
-    induction st.
-    - by simpl.
-    - unfold lift_stype. simpl.
-      constructor.
-      + intros v. eauto.
-      + intros v. destruct (decode v); eauto.
-  Qed.
-
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (lift_stype sτ) c s)
+  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
-  Lemma new_chan_st_spec st :
-    {{{ True }}}
-      new_chan #()
-    {{{ c γ, RET c; ⟦ c @ Left : st ⟧{γ} ∗
-                    ⟦ c @ Right : (dual_stype st) ⟧{γ} }}}.
-  Proof.
-    iIntros (Φ _) "HΦ".
-    iApply (new_chan_st_spec). eauto.
-    iNext.
-    iIntros (c γ) "[Hl Hr]".
-    iApply "HΦ".
-    iFrame.
-    iDestruct "Hr" as "[Hown Hctx]".
-    iFrame.
-    unfold st_own. simpl.
-    iApply (own_mono with "Hown").
-    apply (auth_frag_mono).
-    apply Some_included.
-    left.
-    f_equiv.
-    f_equiv.
-    apply stype_map_equiv=> //.
-    apply lift_dual_comm.
-  Qed.
-
-  Lemma send_st_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
+  Lemma send_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
     {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{γ} }}}
       send c #s (encode w)
