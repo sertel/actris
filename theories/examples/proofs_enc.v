@@ -115,4 +115,58 @@ Section ExampleProofsEnc.
       by iApply "HΦ".
   Qed.
 
+  Lemma bad_seq_proof :
+    {{{ True }}} bad_seq_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_seq_example.
+    wp_apply (new_chan_st_enc_spec N
+               (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (recv_st_enc_spec _ with "Hstr");
+    iIntros (v) "[Hstr HP]".
+    wp_apply (send_st_enc_spec N with "[$Hstl //]");
+    iIntros "Hstl".
+    iDestruct "HP" as %->.
+    wp_pures.
+    by iApply "HΦ".
+  Qed.
+
+  Lemma bad_par_proof :
+    {{{ True }}} bad_par_example {{{ v, RET v; ⌜v = #5⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_par_example.
+    wp_apply (new_chan_st_enc_spec N
+               (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (wp_fork with "[Hstl]").
+    - iNext. by wp_finish.
+    - wp_apply (recv_st_enc_spec _ with "Hstr");
+      iIntros (v) "[Hstr HP]".
+      iDestruct "HP" as %->.
+      by iApply "HΦ".
+  Qed.
+
+  Lemma bad_interleave_proof :
+    {{{ True }}} bad_interleave_example {{{ v, RET v; ⌜v = #()⌝ }}}.
+  Proof.
+    iIntros (Φ H) "HΦ".
+    rewrite /bad_interleave_example.
+    wp_apply (new_chan_st_enc_spec N (TSend (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+    iIntros (c γ) "[Hstl Hstr]"=> /=.
+    wp_apply (new_chan_st_enc_spec N
+               (TReceive (λ v, ⌜v = 5⌝%I) (λ v, TEnd)))=> //;
+    iIntros (c' γ') "[Hstl' Hstr']"=> /=.
+    wp_apply (wp_fork with "[Hstr Hstr']").
+    - iNext. wp_apply (recv_st_enc_spec _ with "Hstr");
+      iIntros (v) "[Hstr HP]".
+      wp_apply (send_st_enc_spec _ with "[$Hstr' //]"). eauto.
+    - wp_apply (recv_st_enc_spec _ with "[$Hstl' //]");
+      iIntros (v) "[Hstl' HP]".
+      wp_apply (send_st_enc_spec _ with "[$Hstl //]");
+      iIntros "Hstl".
+      by iApply "HΦ".
+  Qed.
+
 End ExampleProofsEnc.
