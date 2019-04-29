@@ -141,7 +141,7 @@ Section Encodings.
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
-  Lemma new_chan_st_enc_spec st :
+  Lemma new_chan_st_spec st :
     {{{ True }}}
       new_chan #()
     {{{ c γ, RET c; ⟦ c @ Left : st ⟧{γ} ∗
@@ -166,7 +166,7 @@ Section Encodings.
     apply lift_dual_comm.
   Qed.
 
-  Lemma send_st_enc_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
+  Lemma send_st_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
     {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{γ} }}}
       send c #s (encode w)
@@ -182,7 +182,7 @@ Section Encodings.
     by iApply "HΦ".
   Qed.
 
-  Lemma recv_st_enc_spec (A : Type) `{EncDec A}
+  Lemma recv_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
     {{{ ⟦ c @ s : (TReceive P st) ⟧{γ} }}}
       recv c #s
