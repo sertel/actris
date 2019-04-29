@@ -70,68 +70,68 @@ Proof.
     apply decenc. eauto.
 Qed.
 
-Inductive stype' (A : Type) :=
-| TEnd'
-| TSR' {V : Type} {EV : Encodable V} {DV : Decodable V}
-       (a : action) (P : V → A) (st : V → stype' A).
-Arguments TEnd' {_}.
-Arguments TSR' {_ _ _ _} _ _ _.
-Instance: Params (@TSR') 4.
+Inductive stype (A : Type) :=
+| TEnd
+| TSR {V : Type} {EV : Encodable V} {DV : Decodable V}
+       (a : action) (P : V → A) (st : V → stype A).
+Arguments TEnd {_}.
+Arguments TSR {_ _ _ _} _ _ _.
+Instance: Params (@TSR) 4.
 
-Fixpoint dual_stype' {A} (st : stype' A) :=
+Fixpoint dual_stype {A} (st : stype A) :=
   match st with
-  | TEnd' => TEnd'
-  | TSR' a P st => TSR' (dual_action a) P (λ v, dual_stype' (st v))
+  | TEnd => TEnd
+  | TSR a P st => TSR (dual_action a) P (λ v, dual_stype (st v))
   end.
-Instance: Params (@dual_stype') 2.
+Instance: Params (@dual_stype) 2.
 Arguments dual_stype : simpl never.
 
 Section Encodings.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
-  Example ex_st : stype' (iProp Σ) :=
-    (TSR' Receive
+  Example ex_st : stype (iProp Σ) :=
+    (TSR Receive
           (λ v', ⌜v' = 5⌝%I)
-          (λ v', TEnd')).
+          (λ v', TEnd)).
 
-  Example ex_st2 : stype' (iProp Σ) :=
-    TSR' Send
+  Example ex_st2 : stype (iProp Σ) :=
+    TSR Send
          (λ b, ⌜b = true⌝%I)
          (λ b,
-          (TSR' Receive
+          (TSR Receive
               (λ v', ⌜(v' > 5) = b⌝%I)
-              (λ _, TEnd'))).
+              (λ _, TEnd))).
 
-  Fixpoint stype'_to_stype (st : stype' (iProp Σ)) : stype val (iProp Σ) :=
+  Fixpoint lift_stype (st : stype (iProp Σ)) : stype.stype val (iProp Σ) :=
     match st with
-    | TEnd' => TEnd
-    | TSR' a P st =>
-      TSR a
+    | TEnd => stype.TEnd
+    | TSR a P st =>
+      stype.TSR a
           (λ v, match decode v with
                 | Some v => P v
                 | None => False
                 end%I)
           (λ v, match decode v with
-                | Some v => stype'_to_stype (st v)
-                | None => TEnd
+                | Some v => lift_stype (st v)
+                | None => stype.TEnd
                 end)
     end.
-  Global Instance: Params (@stype'_to_stype) 1.
-  Global Arguments stype'_to_stype : simpl never.
+  Global Instance: Params (@lift_stype) 1.
+  Global Arguments lift_stype : simpl never.
 
-  Lemma dual_stype'_comm st :
-    stype'_to_stype (dual_stype' st) ≡ dual_stype (stype'_to_stype st).
+  Lemma lift_dual_comm st :
+    lift_stype (dual_stype st) ≡ stype.dual_stype (lift_stype st).
   Proof.
     induction st.
     - by simpl.
-    - unfold stype'_to_stype. simpl.
+    - unfold lift_stype. simpl.
       constructor.
       + intros v. eauto.
       + intros v. destruct (decode v); eauto.
   Qed.
 
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (stype'_to_stype sτ) c s)
+  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ (lift_stype sτ) c s)
     (at level 10, s at next level, sτ at next level, γ at next level,
      format "⟦  c  @  s  :  sτ  ⟧{ γ }").
 
@@ -139,7 +139,7 @@ Section Encodings.
     {{{ True }}}
       new_chan #()
     {{{ c γ, RET c; ⟦ c @ Left : st ⟧{γ} ∗
-                    ⟦ c @ Right : (dual_stype' st) ⟧{γ} }}}.
+                    ⟦ c @ Right : (dual_stype st) ⟧{γ} }}}.
   Proof.
     iIntros (Φ _) "HΦ".
     iApply (new_chan_st_spec). eauto.
@@ -157,12 +157,12 @@ Section Encodings.
     f_equiv.
     f_equiv.
     apply stype_map_equiv=> //.
-    apply dual_stype'_comm.
+    apply lift_dual_comm.
   Qed.
 
   Lemma send_st_enc_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : (TSR' Send P st) ⟧{γ} }}}
+    {{{ P w ∗ ⟦ c @ s : (TSR Send P st) ⟧{γ} }}}
       send c #s (encode w)
     {{{ RET #(); ⟦ c @ s : st w ⟧{γ} }}}.
   Proof.
@@ -178,7 +178,7 @@ Section Encodings.
 
   Lemma recv_st_enc_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : (TSR' Receive P st) ⟧{γ} }}}
+    {{{ ⟦ c @ s : (TSR Receive P st) ⟧{γ} }}}
       recv c #s
     {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{γ} ∗ P v }}}.
   Proof.
