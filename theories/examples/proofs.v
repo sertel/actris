@@ -19,7 +19,7 @@ Section ExampleProofs.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /seq_example.
-    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+    wp_apply (new_chan_st_spec N (TSend (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (send_st_spec N with "[$Hstl //]");
     iIntros "Hstl".
@@ -33,7 +33,7 @@ Section ExampleProofs.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /par_example.
-    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+    wp_apply (new_chan_st_spec N (TSend (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").
     - iNext. wp_apply (send_st_spec N with "[$Hstl //]"). eauto.
@@ -49,13 +49,13 @@ Section ExampleProofs.
     iIntros (Φ H) "HΦ".
     rewrite /par_2_example.
     wp_apply (new_chan_st_spec N
-      (TSR Send
-           (λ v, ⌜v = #5⌝%I)
-           (λ v, TSR Receive
-                     (λ v',
-                      (∃ w, ⌜v = LitV $ LitInt $ w⌝ ∧
-                       ∃ w', ⌜v' = LitV $ LitInt $ w' ∧ w' >= w+2⌝)%I)
-                     (λ v', TEnd))))=> //;
+      (TSend
+        (λ v, ⌜v = #5⌝%I)
+        (λ v, TReceive
+                (λ v',
+                  (∃ w, ⌜v = LitV $ LitInt $ w⌝ ∧
+                   ∃ w', ⌜v' = LitV $ LitInt $ w' ∧ w' >= w+2⌝)%I)
+                (λ v', TEnd))))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstr]").
     - iNext.
@@ -80,8 +80,8 @@ Section ExampleProofs.
     iIntros (Φ H) "HΦ".
     rewrite /heaplet_example.
     wp_apply (new_chan_st_spec N
-      (TSR Send (λ v, (∃ l, ⌜v = LitV $ LitLoc $ l⌝ ∧ (l ↦ #5))%I)
-                (λ v, TEnd)))=> //;
+      (TSend (λ v, (∃ l, ⌜v = LitV $ LitLoc $ l⌝ ∧ (l ↦ #5))%I)
+             (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
@@ -102,11 +102,12 @@ Section ExampleProofs.
     iIntros (Φ H) "HΦ".
     rewrite /channel_example.
     wp_apply (new_chan_st_spec N
-      (TSR Send (λ v, ∃ γ, ⟦ v @ Right :
-        (TSR Receive
-             (λ v : val, ⌜v = #5⌝)
-             (λ _ : val, TEnd)) ⟧{γ})%I
-                (λ v, TEnd)))=> //;
+      (TSend
+        (λ v, ∃ γ,
+          ⟦ v @ Right : (TReceive
+                           (λ v : val, ⌜v = #5⌝)
+                           (λ _ : val, TEnd)) ⟧{γ})%I
+        (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").
     - iNext.
@@ -132,7 +133,7 @@ Section ExampleProofs.
     iIntros (Φ H) "HΦ".
     rewrite /bad_seq_example.
     wp_apply (new_chan_st_spec N
-               (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+               (TSend (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (recv_st_spec _ with "Hstr");
     iIntros (v) "[Hstr HP]".
@@ -148,7 +149,7 @@ Section ExampleProofs.
     iIntros (Φ H) "HΦ".
     rewrite /bad_par_example.
     wp_apply (new_chan_st_spec N
-               (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+               (TSend (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").
     - iNext. by wp_finish.
@@ -161,10 +162,10 @@ Section ExampleProofs.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /bad_interleave_example.
-    wp_apply (new_chan_st_spec N (TSR Send (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+    wp_apply (new_chan_st_spec N (TSend (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (new_chan_st_spec N
-               (TSR Receive (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
+               (TReceive (λ v, ⌜v = #5⌝%I) (λ v, TEnd)))=> //;
     iIntros (c' γ') "[Hstl' Hstr']"=> /=.
     wp_apply (wp_fork with "[Hstr Hstr']").
     - iNext. wp_apply (recv_st_spec _ with "Hstr");

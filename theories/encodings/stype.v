@@ -75,7 +75,7 @@ Section logrel.
     match vs with
     | [] => st1 ≡ dual_stype st2
     | v::vs => match st2 with
-               | TSR Receive P st2 => P v ∗ st_eval vs st1 (st2 v)
+               | TReceive P st2  => P v ∗ st_eval vs st1 (st2 v)
                | _ => False
                end
     end%I.
@@ -109,7 +109,7 @@ Section logrel.
   Qed.
 
   Lemma st_eval_send (P : val -> iProp Σ) st l str v :
-    P v -∗ st_eval l (TSR Send P st) str -∗ st_eval (l ++ [v]) (st v) str.
+    P v -∗ st_eval l (TSend P st) str -∗ st_eval (l ++ [v]) (st v) str.
   Proof.
     iIntros "HP".
     iRevert (str).
@@ -128,7 +128,7 @@ Section logrel.
   Qed.
 
   Lemma st_eval_recv (P : val → iProp Σ) st1 l st2 v :
-     st_eval (v :: l) st1 (TSR Receive P st2) -∗ st_eval l st1 (st2 v) ∗ P v.
+     st_eval (v :: l) st1 (TReceive P st2) -∗ st_eval l st1 (st2 v) ∗ P v.
   Proof. iDestruct 1 as "[HP Heval]". iFrame. Qed.
 
   Definition inv_st (γ : st_name) (c : val) : iProp Σ :=
@@ -196,7 +196,7 @@ Section logrel.
 
   Lemma send_vs c γ s (P : val → iProp Σ) st E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Send P st ⟧{γ} ={E,E∖↑N}=∗
+    ⟦ c @ s : TSend P st ⟧{γ} ={E,E∖↑N}=∗
       ∃ vs, chan_own (st_c_name γ) s vs ∗
       ▷ (∀ v, P v -∗
               chan_own (st_c_name γ) s (vs ++ [v])
@@ -252,7 +252,7 @@ Section logrel.
   Qed.
 
   Lemma send_st_spec st γ c s (P : val → iProp Σ) v :
-    {{{ P v ∗ ⟦ c @ s : TSR Send P st ⟧{γ} }}}
+    {{{ P v ∗ ⟦ c @ s : TSend P st ⟧{γ} }}}
       send c #s v
     {{{ RET #(); ⟦ c @ s : st v ⟧{γ} }}}.
   Proof.
@@ -267,11 +267,11 @@ Section logrel.
 
   Lemma try_recv_vs c γ s (P : val → iProp Σ) st E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Receive P st ⟧{γ}
+    ⟦ c @ s : TReceive P st ⟧{γ}
     ={E,E∖↑N}=∗
       ∃ vs, chan_own (st_c_name γ) (dual_side s) vs ∗
       (▷ ((⌜vs = []⌝ -∗ chan_own (st_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
-           ⟦ c @ s : TSR Receive P st ⟧{γ}) ∧
+           ⟦ c @ s : TReceive P st ⟧{γ}) ∧
           (∀ v vs', ⌜vs = v :: vs'⌝ -∗
                chan_own (st_c_name γ) (dual_side s) vs' -∗ |={E∖↑N,E}=>
                ⟦ c @ s : (st v) ⟧{γ} ∗ ▷  P v))).
@@ -339,9 +339,9 @@ Section logrel.
   Qed.
 
   Lemma try_recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : TSR Receive P st ⟧{γ} }}}
+    {{{ ⟦ c @ s : TReceive P st ⟧{γ} }}}
       try_recv c #s
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : TSR Receive P st ⟧{γ}) ∨
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : TReceive P st ⟧{γ}) ∨
                   (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : st w ⟧{γ} ∗ ▷ P w)}}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
@@ -368,7 +368,7 @@ Section logrel.
   Qed.
 
   Lemma recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : TSR Receive P st ⟧{γ} }}}
+    {{{ ⟦ c @ s : TReceive P st ⟧{γ} }}}
       recv c #s
     {{{ v, RET v; ⟦ c @ s : st v ⟧{γ} ∗ P v}}}.
   Proof.

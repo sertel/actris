@@ -78,6 +78,9 @@ Arguments TEnd {_}.
 Arguments TSR {_ _ _ _} _ _ _.
 Instance: Params (@TSR) 4.
 
+Notation TSend P st := (TSR Send P st).
+Notation TReceive P st := (TSR Receive P st).
+
 Fixpoint dual_stype {A} (st : stype A) :=
   match st with
   | TEnd => TEnd
@@ -91,15 +94,15 @@ Section Encodings.
   Context `{!logrelG val Σ}.
 
   Example ex_st : stype (iProp Σ) :=
-    (TSR Receive
+    (TReceive
           (λ v', ⌜v' = 5⌝%I)
           (λ v', TEnd)).
 
   Example ex_st2 : stype (iProp Σ) :=
-    TSR Send
+    TSend
          (λ b, ⌜b = true⌝%I)
          (λ b,
-          (TSR Receive
+          (TReceive
               (λ v', ⌜(v' > 5) = b⌝%I)
               (λ _, TEnd))).
 
@@ -119,6 +122,9 @@ Section Encodings.
     end.
   Global Instance: Params (@lift_stype) 1.
   Global Arguments lift_stype : simpl never.
+
+  Instance stype_equiv : Equiv (stype (iProp Σ)) :=
+    λ st1  st2, lift_stype st1 ≡ lift_stype st2.
 
   Lemma lift_dual_comm st :
     lift_stype (dual_stype st) ≡ stype.dual_stype (lift_stype st).
@@ -162,7 +168,7 @@ Section Encodings.
 
   Lemma send_st_enc_spec (A : Type) `{Encodable A} `{Decodable A} `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : (TSR Send P st) ⟧{γ} }}}
+    {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{γ} }}}
       send c #s (encode w)
     {{{ RET #(); ⟦ c @ s : st w ⟧{γ} }}}.
   Proof.
@@ -178,7 +184,7 @@ Section Encodings.
 
   Lemma recv_st_enc_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : (TSR Receive P st) ⟧{γ} }}}
+    {{{ ⟦ c @ s : (TReceive P st) ⟧{γ} }}}
       recv c #s
     {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{γ} ∗ P v }}}.
   Proof.

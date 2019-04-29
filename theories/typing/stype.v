@@ -30,6 +30,9 @@ Fixpoint dual_stype {V A} (st : stype V A) :=
   end.
 Instance: Params (@dual_stype) 2.
 
+Notation TSend P st := (TSR Send P st).
+Notation TReceive P st := (TSR Receive P st).
+
 Section stype_ofe.
   Context {V : Type}.
   Context {A : ofeT}.
@@ -41,7 +44,7 @@ Section stype_ofe.
        pointwise_relation V (≡) st1 st2 →
        TSR a P1 st1 ≡ TSR a P2 st2.
   Existing Instance stype_equiv.
-
+    
   Inductive stype_dist' (n : nat) : relation (stype V A) :=
     | TEnd_dist : stype_dist' n TEnd TEnd
     | TSR_dist a P1 P2 st1 st2 :
