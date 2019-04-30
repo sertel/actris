@@ -70,18 +70,15 @@ Proof.
     apply decenc. eauto.
 Qed.
 
-Definition TSR' `{PROP: bi} {V} `{ED : EncDec V}
+Section DualStypeEnc.
+  Context `{EncDec V} `{PROP: bi} .
+
+  Definition TSR'
     (a : action) (P : V → PROP) (st : V → stype val PROP) : stype val PROP :=
   TSR a
     (λ v, if decode v is Some x then P x else False)%I
     (λ v, if decode v is Some x then st x else TEnd (* dummy *)).
-Instance: Params (@TSR') 4.
-
-Notation TSend P st := (TSR' Send P st).
-Notation TReceive P st := (TSR' Receive P st).
-
-Section DualStypeEnc.
-  Context `{PROP: bi} `{EncDec V}.
+  Global Instance: Params (@TSR') 3.
 
   Global Instance is_dual_tsr' a1 a2 P (st1 st2 : V → stype val PROP) :
     IsDualAction a1 a2 →
@@ -92,44 +89,20 @@ Section DualStypeEnc.
     constructor=> x. done. by destruct (decode x).
   Qed.
 
-  Global Instance is_dual_send P (st1 st2 : V → stype val PROP) :
-    (∀ x, IsDualStype (st1 x) (st2 x)) →
-    IsDualStype (TSend P st1) (TReceive P st2).
-  Proof. intros Heq. by apply is_dual_tsr'. Qed.
-  
-  Global Instance is_dual_receive P (st1 st2 : V → stype val PROP) :
-    (∀ x, IsDualStype (st1 x) (st2 x)) →
-    IsDualStype (TReceive P st1) (TSend P st2).
-  Proof. intros Heq. by apply is_dual_tsr'. Qed.
-
 End DualStypeEnc.
 
-Section Encodings.
+Notation TSend := (TSR' Send).
+Notation TReceive := (TSR' Receive).
+
+Section stype_enc_specs.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
-  Example ex_st : stype val (iProp Σ) :=
-    (TReceive
-          (λ v', ⌜v' = 5⌝%I)
-          (λ v', TEnd)).
-
-  Example ex_st2 : stype val (iProp Σ) :=
-    TSend
-         (λ b, ⌜b = true⌝%I)
-         (λ b,
-          (TReceive
-              (λ v', ⌜(v' > 5) = b⌝%I)
-              (λ _, TEnd))).
-
-  Notation "⟦ c @ s : sτ ⟧{ γ }" := (interp_st N γ sτ c s)
-    (at level 10, s at next level, sτ at next level, γ at next level,
-     format "⟦  c  @  s  :  sτ  ⟧{ γ }").
-
   Lemma send_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{γ} }}}
+    {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{N,γ} }}}
       send c #s (encode w)
-    {{{ RET #(); ⟦ c @ s : st w ⟧{γ} }}}.
+    {{{ RET #(); ⟦ c @ s : st w ⟧{N,γ} }}}.
   Proof.
     iIntros (Φ) "[HP Hsend] HΦ".
     iApply (send_st_spec with "[HP Hsend]").
@@ -143,9 +116,9 @@ Section Encodings.
 
   Lemma recv_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : (TReceive P st) ⟧{γ} }}}
+    {{{ ⟦ c @ s : (TReceive P st) ⟧{N,γ} }}}
       recv c #s
-    {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{γ} ∗ P v }}}.
+    {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{N,γ} ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (recv_st_spec with "Hrecv").
@@ -164,4 +137,4 @@ Section Encodings.
     - inversion Hw.
   Qed.
 
-End Encodings.
+End stype_enc_specs.

@@ -52,5 +52,5 @@ Section Examples.
      let: "c'" := new_chan #() in
      Fork(recv "c" #Right;; send "c'" #Right #5);;
      recv "c'" #Left;; send "c" #Left #5)%E.
-
+  
 End Examples.
