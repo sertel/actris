@@ -8,6 +8,9 @@ theories/encodings/auth_excl.v
 theories/encodings/channel.v
 theories/encodings/stype.v
 theories/encodings/stype_enc.v
+theories/encodings/branching.v
 theories/examples/examples.v
 theories/examples/proofs.v
 theories/examples/proofs_enc.v
+theories/examples/branching_examples.v
+theories/examples/branching_proofs.v
