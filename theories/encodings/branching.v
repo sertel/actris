@@ -57,7 +57,7 @@ Section branching_specs.
       then "b1"
       else "b2".
 
-  Lemma select_st_spec st1 st2 γ c s (b : bool) :
+  Lemma select_st_spec st1 st2 γ c s (b : side) :
     {{{ ⟦ c @ s : st1 <+> st2 ⟧{N,γ} }}}
       select c #s #b
     {{{ RET #(); ⟦ c @ s : (if b then st1 else st2) ⟧{N,γ} }}}.
@@ -68,7 +68,7 @@ Section branching_specs.
     wp_apply (send_st_spec N bool with "[$Hst //]");
     iIntros "Hstl".
     iApply "HΦ".
-    eauto.
+    by destruct b.
   Qed.
 
   Lemma branch_st_spec st1 st2 γ c s (b1 b2 : val) Φ :

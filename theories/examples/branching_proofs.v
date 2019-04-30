@@ -14,14 +14,14 @@ Section BranchingExampleProofs.
     {{{ True }}}
       branch_example b
     {{{ v, RET v; match b with
-                  | true => ⌜v = #5⌝
-                  | false => ⌜v = #()⌝
+                  | Left => ⌜v = #5⌝
+                  | Right => ⌜v = #()⌝
                   end }}}.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /branch_example.
     wp_apply (new_chan_st_spec N
-      ((<?> v @ ⌜v = 5⌝, TEnd)  <+> (TEnd)))=> //;
+      ((<?> v @ ⌜v = 5⌝, TEnd) <+> (TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]".
     wp_apply (select_st_spec with "Hstl");
     iIntros "Hstl".
