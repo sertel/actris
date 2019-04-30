@@ -75,7 +75,7 @@ Section stype_interp.
     match vs with
     | [] => st1 ≡ dual_stype st2
     | v::vs => match st2 with
-               | TReceive P st2  => P v ∗ st_eval vs st1 (st2 v)
+               | TSR Receive P st2  => P v ∗ st_eval vs st1 (st2 v)
                | _ => False
                end
     end%I.
@@ -109,7 +109,7 @@ Section stype_interp.
   Qed.
 
   Lemma st_eval_send (P : val -> iProp Σ) st l str v :
-    P v -∗ st_eval l (TSend P st) str -∗ st_eval (l ++ [v]) (st v) str.
+    P v -∗ st_eval l (TSR Send P st) str -∗ st_eval (l ++ [v]) (st v) str.
   Proof.
     iIntros "HP".
     iRevert (str).
@@ -128,7 +128,7 @@ Section stype_interp.
   Qed.
 
   Lemma st_eval_recv (P : val → iProp Σ) st1 l st2 v :
-     st_eval (v :: l) st1 (TReceive P st2) -∗ st_eval l st1 (st2 v) ∗ P v.
+     st_eval (v :: l) st1 (TSR Receive P st2) -∗ st_eval l st1 (st2 v) ∗ P v.
   Proof. iDestruct 1 as "[HP Heval]". iFrame. Qed.
 
   Definition inv_st (γ : st_name) (c : val) : iProp Σ :=
@@ -166,9 +166,9 @@ Section stype_interp.
   Qed.
 End stype_interp.
 
-  Notation "⟦ c @ s : sτ ⟧{ N , γ }" := (interp_st N γ sτ c s)
-    (at level 10, s at next level, sτ at next level, γ at next level,
-     format "⟦  c  @  s  :  sτ  ⟧{ N , γ }").
+Notation "⟦ c @ s : st ⟧{ N , γ }" := (interp_st N γ st c s)
+  (at level 10, s at next level, st at next level, γ at next level,
+   format "⟦  c  @  s  :  st  ⟧{ N , γ }").
 
 Section stype_specs.
   Context `{!heapG Σ} (N : namespace).
@@ -221,7 +221,7 @@ Section stype_specs.
 
   Lemma send_vs c γ s (P : val → iProp Σ) st E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSend P st ⟧{N,γ} ={E,E∖↑N}=∗
+    ⟦ c @ s : TSR Send P st ⟧{N,γ} ={E,E∖↑N}=∗
       ∃ vs, chan_own (st_c_name γ) s vs ∗
       ▷ (∀ v, P v -∗
               chan_own (st_c_name γ) s (vs ++ [v])
@@ -273,11 +273,12 @@ Section stype_specs.
           iApply (st_eval_send with "HP").
             by iRewrite -"Heq".
       }
+
       iModIntro. iFrame. rewrite /is_st. auto.
   Qed.
 
   Lemma send_st_spec st γ c s (P : val → iProp Σ) v :
-    {{{ P v ∗ ⟦ c @ s : TSend P st ⟧{N,γ} }}}
+    {{{ P v ∗ ⟦ c @ s : <!> @ P , st ⟧{N,γ} }}}
       send c #s v
     {{{ RET #(); ⟦ c @ s : st v ⟧{N,γ} }}}.
   Proof.
@@ -292,11 +293,11 @@ Section stype_specs.
 
   Lemma try_recv_vs c γ s (P : val → iProp Σ) st E :
     ↑N ⊆ E →
-    ⟦ c @ s : TReceive P st ⟧{N,γ}
+    ⟦ c @ s : TSR Receive P st ⟧{N,γ}
     ={E,E∖↑N}=∗
       ∃ vs, chan_own (st_c_name γ) (dual_side s) vs ∗
       (▷ ((⌜vs = []⌝ -∗ chan_own (st_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
-           ⟦ c @ s : TReceive P st ⟧{N,γ}) ∧
+           ⟦ c @ s : TSR Receive P st ⟧{N,γ}) ∧
           (∀ v vs', ⌜vs = v :: vs'⌝ -∗
                chan_own (st_c_name γ) (dual_side s) vs' -∗ |={E∖↑N,E}=>
                ⟦ c @ s : (st v) ⟧{N,γ} ∗ ▷  P v))).
@@ -364,9 +365,9 @@ Section stype_specs.
   Qed.
 
   Lemma try_recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : TReceive P st ⟧{N,γ} }}}
+    {{{ ⟦ c @ s : <?> @ P , st ⟧{N,γ} }}}
       try_recv c #s
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : TReceive P st ⟧{N,γ}) ∨
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : <?> @ P, st ⟧{N,γ}) ∨
                   (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : st w ⟧{N,γ} ∗ ▷ P w)}}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
@@ -393,7 +394,7 @@ Section stype_specs.
   Qed.
 
   Lemma recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : TReceive P st ⟧{N,γ} }}}
+    {{{ ⟦ c @ s : <?> @ P ,  st ⟧{N,γ} }}}
       recv c #s
     {{{ v, RET v; ⟦ c @ s : st v ⟧{N,γ} ∗ P v}}}.
   Proof.

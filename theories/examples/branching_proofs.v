@@ -20,9 +20,8 @@ Section BranchingExampleProofs.
   Proof.
     iIntros (Φ H) "HΦ".
     rewrite /branch_example.
-    wp_apply (new_chan_st_spec N (TSelect
-                                    (TReceive (λ v, ⌜v = 5⌝%I) (λ v, TEnd))
-                                    TEnd))=> //;
+    wp_apply (new_chan_st_spec N
+      ((<?> v @ ⌜v = 5⌝, TEnd)  <+> (TEnd)))=> //;
     iIntros (c γ) "[Hstl Hstr]".
     wp_apply (select_st_spec with "Hstl");
     iIntros "Hstl".

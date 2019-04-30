@@ -91,8 +91,20 @@ Section DualStypeEnc.
 
 End DualStypeEnc.
 
-Notation TSend := (TSR' Send).
-Notation TReceive := (TSR' Receive).
+Notation "<!> x @ P , st" :=
+  (TSR' Send (λ x, P%I) (λ x, st%stype))
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<?> x @ P , st" :=
+  (TSR' Receive (λ x, P%I) (λ x, st%stype))
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<!> x , st" := (<!> x @ True, (st x))%stype
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<?> x , st" := (<?> x @ True, (st x))%stype
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<!> @ P , st" := (<!> dummy__ @ P dummy__, st dummy__)%stype
+  (at level 200, st at level 200) : stype_scope.
+Notation "<?> @ P , st" := (<?> dummy__ @ P dummy__, st dummy__)%stype
+  (at level 200, st at level 200) : stype_scope.
 
 Section stype_enc_specs.
   Context `{!heapG Σ} (N : namespace).
@@ -100,7 +112,7 @@ Section stype_enc_specs.
 
   Lemma send_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : (TSend P st) ⟧{N,γ} }}}
+    {{{ P w ∗ ⟦ c @ s : <!> @ P, st ⟧{N,γ} }}}
       send c #s (encode w)
     {{{ RET #(); ⟦ c @ s : st w ⟧{N,γ} }}}.
   Proof.
@@ -116,7 +128,7 @@ Section stype_enc_specs.
 
   Lemma recv_st_spec (A : Type) `{EncDec A}
         st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : (TReceive P st) ⟧{N,γ} }}}
+    {{{ ⟦ c @ s : <?> @ P, st ⟧{N,γ} }}}
       recv c #s
     {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{N,γ} ∗ P v }}}.
   Proof.

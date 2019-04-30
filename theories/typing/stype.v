@@ -30,8 +30,23 @@ Fixpoint dual_stype {V A} (st : stype V A) :=
   end.
 Instance: Params (@dual_stype) 2.
 
-Notation TSend P st := (TSR Send P st).
-Notation TReceive P st := (TSR Receive P st).
+Delimit Scope stype_scope with stype.
+Bind Scope stype_scope with stype.
+
+Notation "<!> x @ P , st" :=
+  (TSR Send (λ x, P%I) (λ x, st%stype))
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<?> x @ P , st" :=
+  (TSR Receive (λ x, P%I) (λ x, st%stype))
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<!> x , st" := (<!> x @ True, (st x))%stype
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<?> x , st" := (<?> x @ True, (st x))%stype
+  (at level 200, x pattern, st at level 200) : stype_scope.
+Notation "<!> @ P , st" := (<!> dummy__ @ P dummy__, st dummy__)%stype
+  (at level 200, st at level 200) : stype_scope.
+Notation "<?> @ P , st" := (<?> dummy__ @ P dummy__, st dummy__)%stype
+  (at level 200, st at level 200) : stype_scope.
 
 Section stype_ofe.
   Context {V : Type}.

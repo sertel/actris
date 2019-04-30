@@ -40,8 +40,8 @@ Section DualBranch.
 End DualBranch.
 Global Typeclasses Opaque TSB.
 
-Notation TSelect := (TSB Send).
-Notation TBranch := (TSB Receive).
+Infix "<+>" := (TSB Send) (at level 85) : stype_scope.
+Infix "<&>" := (TSB Receive) (at level 85) : stype_scope.
 
 Section branching_specs.
   Context `{!heapG Σ} (N : namespace).
@@ -58,7 +58,7 @@ Section branching_specs.
       else "b2".
 
   Lemma select_st_spec st1 st2 γ c s (b : bool) :
-    {{{ ⟦ c @ s : TSelect st1 st2 ⟧{N,γ} }}}
+    {{{ ⟦ c @ s : st1 <+> st2 ⟧{N,γ} }}}
       select c #s #b
     {{{ RET #(); ⟦ c @ s : (if b then st1 else st2) ⟧{N,γ} }}}.
   Proof.
@@ -72,7 +72,7 @@ Section branching_specs.
   Qed.
 
   Lemma branch_st_spec st1 st2 γ c s (b1 b2 : val) Φ :
-    ⟦ c @ s : TBranch st1 st2 ⟧{N,γ} -∗
+    ⟦ c @ s : st1 <&> st2 ⟧{N,γ} -∗
     (⟦ c @ s : st1 ⟧{N,γ} -∗ (Φ b1)) -∗
     (⟦ c @ s : st2 ⟧{N,γ} -∗ (Φ b2)) -∗
     WP branch c #s b1 b2 {{ v, Φ v }}.
