@@ -57,8 +57,8 @@ Section ExampleProofsEnc.
   Lemma heaplet_proof :
     {{{ True }}} heaplet_example {{{ v l, RET v; ⌜v = #5⌝ ∗ l ↦ v }}}.
   Proof.
-    iIntros (Φ H) "HΦ".
     rewrite /heaplet_example.
+    iIntros (Φ H) "HΦ".
     wp_apply (new_chan_st_spec N (<!> v @ (v ↦ #5), TEnd))=> //;
     iIntros (c γ) "[Hstl Hstr]"=> /=.
     wp_apply (wp_fork with "[Hstl]").

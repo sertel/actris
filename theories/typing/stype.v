@@ -39,13 +39,13 @@ Notation "<!> x @ P , st" :=
 Notation "<?> x @ P , st" :=
   (TSR Receive (λ x, P%I) (λ x, st%stype))
   (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<!> x , st" := (<!> x @ True, (st x))%stype
+Notation "<!> x , st" := (<!> x @ True, st%stype)%stype
   (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<?> x , st" := (<?> x @ True, (st x))%stype
+Notation "<?> x , st" := (<?> x @ True, st%stype)%stype
   (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<!> @ P , st" := (<!> dummy__ @ P dummy__, st dummy__)%stype
+Notation "<!> @ P , st" := (<!> x @ P x, st x)%stype
   (at level 200, st at level 200) : stype_scope.
-Notation "<?> @ P , st" := (<?> dummy__ @ P dummy__, st dummy__)%stype
+Notation "<?> @ P , st" := (<?> x @ P x, st x)%stype
   (at level 200, st at level 200) : stype_scope.
 
 Section stype_ofe.

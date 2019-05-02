@@ -3,6 +3,7 @@
 theories/typing/involutive.v
 theories/typing/side.v
 theories/typing/stype.v
+theories/encodings/encodable.v
 theories/encodings/list.v
 theories/encodings/auth_excl.v
 theories/encodings/channel.v

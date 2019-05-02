@@ -273,7 +273,6 @@ Section stype_specs.
           iApply (st_eval_send with "HP").
             by iRewrite -"Heq".
       }
-
       iModIntro. iFrame. rewrite /is_st. auto.
   Qed.
 
