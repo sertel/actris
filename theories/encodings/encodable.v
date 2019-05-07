@@ -64,3 +64,14 @@ Proof.
   - intros.
     apply decenc. eauto.
 Qed.
+
+Lemma enc_inj {A : Type} `{ED : EncDec A}
+      x y : encode x = encode y -> x = y.
+Proof.
+  intros Heq.
+  assert (decode (encode x) = decode (encode y)).
+  { by f_equiv. }
+  erewrite encdec in H=> //.
+  erewrite encdec in H=> //.
+  by inversion H.
+Qed.

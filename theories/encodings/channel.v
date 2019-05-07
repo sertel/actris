@@ -70,7 +70,7 @@ Section channel.
   Context `{!heapG Σ, !chanG Σ} (N : namespace).
 
   Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
-    (∃ l':loc, ∃ hd : val, ⌜l = #l'⌝ ∧ l' ↦ hd ∗ ⌜is_list hd xs⌝)%I.
+    (∃ l':loc, ⌜l = #l'⌝ ∧ l' ↦ encode xs)%I.
 
   Record chan_name := Chan_name {
     chan_lock_name : gname;
@@ -119,8 +119,8 @@ Section channel.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_own.
     wp_lam.
-    wp_apply (lnil_spec with "[//]"); iIntros (ls Hls). wp_alloc l as "Hl".
-    wp_apply (lnil_spec with "[//]"); iIntros (rs Hrs). wp_alloc r as "Hr".
+    wp_apply (lnil_spec with "[//]"); iIntros (ls). wp_alloc l as "Hl".
+    wp_apply (lnil_spec with "[//]"); iIntros (rs). wp_alloc r as "Hr".
     iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
       as (lsγ) "[Hls Hls']"; first done.
     iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
@@ -164,8 +164,9 @@ Section channel.
     wp_apply get_side_spec; wp_pures.
     iDestruct (chan_inv_alt s with "Hinv") as
         (vs ws) "(Href & Hvs & Href' & Hws)".
-    iDestruct "Href" as (ll lhd Hslr) "(Hll & Hlvs)"; rewrite Hslr.
-    wp_load. wp_apply (lsnoc_spec with "Hlvs"). iIntros (lhd' Hlvs).
+    iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
+    wp_load. 
+    wp_apply (lsnoc_spec (T:=val))=> //; iIntros (_).
     wp_bind (_ <- _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
@@ -174,7 +175,7 @@ Section channel.
     iModIntro.
     wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]"); last eauto.
     iApply (chan_inv_alt s).
-    rewrite /is_list_ref. eauto 10 with iFrame.
+    rewrite /is_list_ref. eauto 20 with iFrame.
   Qed.
 
   Lemma try_recv_spec Φ E γ c s :
@@ -193,22 +194,20 @@ Section channel.
     wp_apply dual_side_spec. wp_apply get_side_spec; wp_pures.
     iDestruct (chan_inv_alt (dual_side s) with "Hinv") as
         (vs ws) "(Href & Hvs & Href' & Hws)".
-    iDestruct "Href" as (ll lhd Hslr) "(Hll & Hlvs)"; rewrite Hslr.
+    iDestruct "Href" as (ll Hslr) "Hll"; rewrite Hslr.
     wp_bind (! _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     wp_load.
     iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
     destruct vs as [|v vs]; simpl.
-    - iDestruct "Hlvs" as %->.
-      iDestruct "HΦ" as "[HΦ _]".
+    - iDestruct "HΦ" as "[HΦ _]".
       iMod ("HΦ" with "[//] Hchan") as "HΦ".
       iModIntro.
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
       { iApply (chan_inv_alt (dual_side s)).
         rewrite /is_list_ref. eauto 10 with iFrame. }
       iIntros (_). wp_pures. by iApply "HΦ".
-    - iDestruct "Hlvs" as %(hd' & -> & Hhd').
-      iMod (excl_update _ _ _ vs with "Hvs Hchan") as "[Hvs Hchan]".
+    - iMod (excl_update _ _ _ vs with "Hvs Hchan") as "[Hvs Hchan]".
       iDestruct "HΦ" as "[_ HΦ]".
       iMod ("HΦ" with "[//] Hchan") as "HΦ".
       iModIntro. wp_store.

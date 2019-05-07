@@ -15,3 +15,4 @@ theories/examples/proofs.v
 theories/examples/proofs_enc.v
 theories/examples/branching_examples.v
 theories/examples/branching_proofs.v
+theories/examples/list_sort.v
