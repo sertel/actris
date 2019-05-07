@@ -3,12 +3,6 @@ From iris.heap_lang Require Import assert.
 From osiris Require Export encodable.
 
 (** Immutable ML-style functional lists *)
-Instance pair_encodable `{Encodable A, Encodable B} : Encodable (A * B) :=
-  λ p, (encode p.1, encode p.2)%V.
-
-Instance option_encodable `{Encodable A} : Encodable (option A) := λ mx,
-  match mx with Some x => SOMEV (encode x) | None => NONEV end%V.
-
 Instance list_encodable `{Encodable A} : Encodable (list A) :=
   fix go xs :=
   let _ : Encodable _ := @go in
@@ -25,6 +19,7 @@ Definition lhead : val := λ: "l",
     SOME "p" => Fst "p"
   | NONE => assert: #false
   end.
+
 Definition ltail : val := λ: "l",
   match: "l" with
     SOME "p" => Snd "p"

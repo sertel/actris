@@ -75,3 +75,10 @@ Proof.
   erewrite encdec in H=> //.
   by inversion H.
 Qed.
+
+(* Common Functional structures *)
+Instance pair_encodable `{Encodable A, Encodable B} : Encodable (A * B) :=
+  λ p, (encode p.1, encode p.2)%V.
+
+Instance option_encodable `{Encodable A} : Encodable (option A) := λ mx,
+  match mx with Some x => SOMEV (encode x) | None => NONEV end%V.
