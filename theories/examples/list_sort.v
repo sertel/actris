@@ -25,7 +25,7 @@ Section ListSortExample.
         lzs ↦ encode zs }}}.
   Proof.
     iIntros (Φ) "Hhd HΦ".
-    wp_lam. wp_load. wp_apply (lsplit_spec (T:=Z))=> //; iIntros (_).
+    wp_lam. wp_load. wp_apply (lsplit_spec (T:=Z))=> //. iIntros (ys zs <-).
     wp_alloc lzs as "Hlzs".
     wp_alloc lys as "Hlys".
     wp_pures.
@@ -41,18 +41,22 @@ Section ListSortExample.
       compare_vals (encode x) (encode y)
     {{{ RET (encode (bool_decide (x ≤ y))); True }}}.
   Proof. iIntros (Φ) "_ HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
-
+    
   Definition lmerge : val :=
     rec: "go" "hys" "hzs" :=
-      if: llength "hys" = #0
-      then "hzs"
-      else if: llength "hzs" = #0
-           then "hys"
-           else let: "y" := lhead "hys" in
-                let: "z" := lhead "hzs" in
-                if: (compare_vals "y" "z")
-                then lcons "y" ("go" (ltail "hys") "hzs")
-                else lcons "z" ("go" "hys" (ltail "hzs")).
+      match: "hys" with
+        NONE => "hzs"
+      | SOME "_" =>
+        match: "hzs" with
+          NONE => "hys"
+        | SOME "_" =>
+          let: "y" := lhead "hys" in
+          let: "z" := lhead "hzs" in
+          if: (compare_vals "y" "z")
+          then lcons "y" ("go" (ltail "hys") "hzs")
+          else lcons "z" ("go" "hys" (ltail "hzs"))
+        end
+      end.
 
   Lemma list_merge_emp1 (ys : list Z) : list_merge (≤) [] ys = ys.
   Proof. induction ys; eauto. Qed.
@@ -69,12 +73,10 @@ Section ListSortExample.
     iLöb as "IH".
     iIntros (ys zs Φ _) "HΦ".
     wp_lam.
-    wp_apply (llength_spec (T:=Z))=> //; iIntros "_".
     destruct ys as [|y ys].
     { wp_pures. rewrite list_merge_emp1. by iApply ("HΦ"). }
-    wp_apply (llength_spec (T:=Z))=> //; iIntros "_".
     destruct zs as [|z zs].
-    { wp_pures. by iApply ("HΦ"). }
+    { wp_pures. rewrite list_merge_emp2. by iApply ("HΦ"). }
     wp_apply (lhead_spec (T:=Z))=> //; iIntros "_".
     wp_apply (lhead_spec (T:=Z))=> //; iIntros "_".
     wp_apply (compare_vals_spec)=> //; iIntros "_".

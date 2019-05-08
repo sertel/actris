@@ -66,12 +66,29 @@ Definition lsnoc : val :=
     | NONE => lcons "x" NONE
     end.
 
+Definition ltake : val :=
+  rec: "go" "l" "n" :=
+  if: "n" ≤ #0
+  then NONEV
+  else match: "l" with
+         SOME "l" => lcons (Fst "l") ("go" (Snd "l") ("n"-#1))
+       | NONE => NONEV
+       end.
+
+Definition ldrop : val :=
+  rec: "go" "l" "n" :=
+    if: "n" ≤ #0 then "l"
+    else match: "l" with
+         SOME "l" => "go" (Snd "l") ("n"-#1)
+       | NONE => NONEV
+         end.
+
+Definition lsplit_at : val :=
+  λ: "l" "n",
+  (ltake "l" "n", ldrop "l" "n").
+
 Definition lsplit : val :=
-  λ: "xs",
-  let: "hd" := lhead "xs" in
-  let: "ys" := lcons "hd" NONEV in
-  let: "zs" := ltail "xs" in
-  ("ys", "zs").
+  λ: "l", lsplit_at "l" ((llength "l") `quot` #2).
 
 Section lists.
 Context `{heapG Σ}.
@@ -85,7 +102,9 @@ Lemma lnil_spec :
 Proof. iIntros (Φ _) "HΦ". wp_lam. by iApply "HΦ". Qed.
 
 Lemma lcons_spec x xs :
-  {{{ True }}} lcons (encode x) (encode xs) {{{ RET (encode (x :: xs)); True }}}.
+  {{{ True }}}
+    lcons (encode x) (encode xs)
+  {{{ RET (encode (x :: xs)); True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma lhead_spec x xs:
@@ -140,7 +159,8 @@ Proof.
   { wp_lam; wp_pures. by iApply "HΦ". }
   wp_lam; wp_pures.
   destruct (bool_decide_reflect (encode x' = encode x)) as [Heq|?]; wp_if.
-  { apply enc_inj in Heq. rewrite Heq. rewrite (bool_decide_true (_ ∈ _ :: _)). by iApply "HΦ". by left. }
+  { apply enc_inj in Heq. rewrite Heq.
+    rewrite (bool_decide_true (_ ∈ _ :: _)). by iApply "HΦ". by left. }
   wp_proj. wp_let. iApply ("IH" with "[//]").
   destruct (bool_decide_reflect (x ∈ xs)).
   - by rewrite bool_decide_true; last by right.
@@ -172,28 +192,105 @@ wp_lam. wp_match. wp_proj.
 Qed.
 
 Lemma lsnoc_spec xs x :
-  {{{ True }}} lsnoc (encode xs) (encode x) {{{ RET (encode (xs++[x])); True }}}.
+  {{{ True }}}
+    lsnoc (encode xs) (encode x)
+  {{{ RET (encode (xs++[x])); True }}}.
 Proof.
-  iIntros (Φ Hvs) "HΦ".
-  iInduction xs as [|x' xs] "IH" forall (Hvs Φ).
+  iIntros (Φ _) "HΦ".
+  iInduction xs as [|x' xs] "IH" forall (Φ).
   { wp_rec. wp_pures. wp_lam. wp_pures. by iApply "HΦ". }
   wp_rec.
   wp_apply "IH"=> //.
   iIntros (_). by wp_apply lcons_spec=> //.
 Qed.
 
-Lemma lsplit_spec xs x :
-  {{{ True }}} lsplit (encode (x::xs)) {{{ RET (encode [x],encode xs); True }}}.
+Lemma ltake_spec xs (n:Z) :
+  {{{ True }}}
+    ltake (encode xs) #n
+  {{{ RET encode (take (Z.to_nat n) xs); True }}}.
 Proof.
-  iIntros (Φ _) "HΦ". 
-  wp_lam. wp_apply (lhead_spec)=> //.
-  iIntros (_).
-  wp_apply (lcons_spec _ [])=> //.
-  iIntros (_).
-  wp_apply (ltail_spec)=> //.
-  iIntros (_).
+  iIntros (Φ _) "HΦ".
+  iInduction xs as [|x' xs] "IH" forall (n Φ).
+  - wp_rec. wp_pures. destruct (bool_decide (n ≤ 0)); wp_pures;
+      rewrite take_nil; by iApply "HΦ".
+  - wp_rec. wp_pures.
+    destruct (decide (n ≤ 0)).
+    + rewrite bool_decide_true=> //. wp_pures.
+      rewrite Z_to_nat_nonpos=> //.
+      rewrite firstn_O. by iApply "HΦ".
+    + rewrite bool_decide_false=> //.
+      wp_apply ("IH"); iIntros (_).
+      wp_apply (lcons_spec)=> //; iIntros (_).
+      rewrite -firstn_cons.
+      rewrite -Z2Nat.inj_succ; last lia.
+      rewrite Z.succ_pred.
+      by iApply "HΦ".
+Qed.
+
+Lemma drop_cons x xs n :
+  drop (S n) (x::xs) = drop n xs.
+Proof. by destruct xs. Qed.
+
+Lemma ldrop_spec xs (n:Z) :
+  {{{ True }}}
+    ldrop (encode xs) #n
+  {{{ RET encode (drop (Z.to_nat n) xs); True }}}.
+Proof.
+  iIntros (Φ _) "HΦ".
+  iInduction xs as [|x' xs] "IH" forall (n Φ).
+  - wp_rec.
+    wp_pures. destruct (bool_decide (n ≤ 0)); wp_pures;
+      rewrite drop_nil; by iApply "HΦ".
+  - wp_rec. wp_pures.
+    destruct (decide (n ≤ 0)).
+    + rewrite bool_decide_true=> //. wp_pures.
+      rewrite Z_to_nat_nonpos=> //. rewrite drop_0.
+      by iApply "HΦ".
+    + rewrite bool_decide_false=> //.
+      wp_apply ("IH").
+      rewrite -(drop_cons x' xs (Z.to_nat (n - 1))).
+      rewrite -Z2Nat.inj_succ; last lia.
+      rewrite Z.succ_pred.
+      iIntros (_).
+      by iApply "HΦ".
+Qed.
+
+Lemma lsplit_at_spec xs n :
+  {{{ True }}}
+    lsplit_at (encode (xs)) #n
+  {{{ RET encode (encode (take (Z.to_nat n) xs),
+          encode (drop (Z.to_nat n) xs)); True }}}.
+Proof.
+  iIntros (Φ _) "HΦ".
+  wp_lam.
+  wp_apply (ldrop_spec)=> //; iIntros (_).
+  wp_apply (ltake_spec)=> //; iIntros (_).
   wp_pures.
   by iApply "HΦ".
+Qed.
+
+Lemma take_drop xs n :
+  take n xs ++ drop n xs = xs.
+Proof.
+  revert n.
+  induction xs; intros n.
+  - by destruct n.
+  - destruct n=> //.
+    simpl. f_equiv. apply IHxs.
+Qed.
+
+Lemma lsplit_spec xs :
+  {{{ True }}} lsplit (encode xs) {{{ ys zs, RET (encode ys, encode zs);
+                                           ⌜ys++zs = xs⌝ }}}.
+Proof.
+  iIntros (Φ _) "HΦ".
+  wp_lam.
+  wp_apply (llength_spec)=>//; iIntros (_).
+  wp_apply (lsplit_at_spec)=>//; iIntros (_).
+  wp_pures.
+  iApply ("HΦ").
+  iPureIntro.
+  apply take_drop.
 Qed.
 
 End lists.
