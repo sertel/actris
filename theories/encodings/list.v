@@ -66,6 +66,13 @@ Definition lsnoc : val :=
     | NONE => lcons "x" NONE
     end.
 
+Definition lsplit : val :=
+  λ: "xs",
+  let: "hd" := lhead "xs" in
+  let: "ys" := lcons "hd" NONEV in
+  let: "zs" := ltail "xs" in
+  ("ys", "zs").
+
 Section lists.
 Context `{heapG Σ}.
 Implicit Types i : nat.
@@ -173,6 +180,20 @@ Proof.
   wp_rec.
   wp_apply "IH"=> //.
   iIntros (_). by wp_apply lcons_spec=> //.
+Qed.
+
+Lemma lsplit_spec xs x :
+  {{{ True }}} lsplit (encode (x::xs)) {{{ RET (encode [x],encode xs); True }}}.
+Proof.
+  iIntros (Φ _) "HΦ". 
+  wp_lam. wp_apply (lhead_spec)=> //.
+  iIntros (_).
+  wp_apply (lcons_spec _ [])=> //.
+  iIntros (_).
+  wp_apply (ltail_spec)=> //.
+  iIntros (_).
+  wp_pures.
+  by iApply "HΦ".
 Qed.
 
 End lists.

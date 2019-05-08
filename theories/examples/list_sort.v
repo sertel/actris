@@ -11,29 +11,6 @@ Require Import Omega.
 Section ListSortExample.
   Context `{!heapG Σ} `{logrelG val Σ} (N : namespace).
 
-  Definition lsplit : val :=
-    λ: "xs",
-      let: "hd" := lhead "xs" in
-      let: "ys" := lcons "hd" NONEV in
-      let: "zs" := ltail "xs" in
-    ("ys", "zs").
-
-  Lemma lsplit_spec (x : Z) (xs : list Z) :
-    {{{ True }}}
-      lsplit (encode (x::xs))
-    {{{ RET (encode [x],encode xs); True }}}.
-  Proof.
-    iIntros (Φ _) "HΦ".
-    wp_lam. wp_apply (lhead_spec (T := Z))=> //.
-    iIntros (_).
-    wp_apply (lcons_spec (T := Z) _ [])=> //.
-    iIntros (_).
-    wp_apply (ltail_spec (T := Z))=> //.
-    iIntros (_).
-    wp_pures.
-    by iApply "HΦ".
-  Qed.
-
   Definition lsplit_ref : val :=
     λ: "xs", let: "ys_zs" := lsplit !"xs" in
              (ref (Fst "ys_zs"), ref (Snd ("ys_zs"))).
@@ -48,7 +25,7 @@ Section ListSortExample.
         lzs ↦ encode zs }}}.
   Proof.
     iIntros (Φ) "Hhd HΦ".
-    wp_lam. wp_load. wp_apply (lsplit_spec)=> //; iIntros (_).
+    wp_lam. wp_load. wp_apply (lsplit_spec (T:=Z))=> //; iIntros (_).
     wp_alloc lzs as "Hlzs".
     wp_alloc lys as "Hlys".
     wp_pures.
