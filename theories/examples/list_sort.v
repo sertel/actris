@@ -65,14 +65,18 @@ Section ListSortExample.
               {{{ RET encode (bool_decide (R x y)); True}}})%I.
 
     Lemma lmerge_spec  (cmp : val) (ys zs : list T) :
-      cmp_spec cmp →
+      cmp_spec cmp -∗
       {{{ True }}}
         lmerge cmp (encode ys) (encode zs)
       {{{ RET (encode (list_merge (R) ys zs)); True }}}.
     Proof.
       revert ys zs.
       iLöb as "IH".
-      iIntros (ys zs Hcmp_spec Φ _) "HΦ".
+      iIntros (ys zs).
+      iIntros "#Hcmp_spec".
+      iIntros (Φ).
+      iModIntro.
+      iIntros (_) "HΦ".
       wp_lam.
       destruct ys as [|y ys].
       { wp_pures. rewrite list_merge_emp1. by iApply ("HΦ"). }
@@ -80,7 +84,7 @@ Section ListSortExample.
       { wp_pures. rewrite list_merge_emp2. by iApply ("HΦ"). }
       wp_apply (lhead_spec)=> //; iIntros "_".
       wp_apply (lhead_spec)=> //; iIntros "_".
-      wp_apply (Hcmp_spec)=> //; iIntros "_".
+      wp_apply ("Hcmp_spec")=> //; iIntros "_".
       rewrite list_merge_cons.
       destruct (decide (R y z)).
       - rewrite bool_decide_true=> //.
@@ -98,14 +102,17 @@ Section ListSortExample.
       "lxs" <- lmerge "cmp" "hys" "hzs".
 
     Lemma lmerge_ref_spec (cmp : val) ldx tmp ys zs :
-      cmp_spec cmp →
+      cmp_spec cmp -∗
       {{{ ldx ↦ tmp }}}
         lmerge_ref cmp #ldx (encode ys) (encode zs)
       {{{ RET #(); ldx ↦ encode (list_merge R ys zs) }}}.
     Proof.
-      iIntros (cmp_spec Φ) "Hldx HΦ".
+      iIntros "#Hcmp_spec".
+      iIntros (Φ).
+      iModIntro.
+      iIntros "Hldx HΦ".
       wp_lam.
-      wp_apply (lmerge_spec cmp ys zs)=> //.
+      wp_apply (lmerge_spec cmp ys zs with "Hcmp_spec")=> //.
       iIntros (_).
       wp_store.
       by iApply ("HΦ").
@@ -132,7 +139,7 @@ Section ListSortExample.
              send "c" #Right "xs".
 
     Definition sort_protocol xs :=
-      (<?> cmp @ ⌜cmp_spec cmp⌝,
+      (<?> cmp @ cmp_spec cmp,
        <?> l @ l ↦ encode xs,
        <!> l' @ ⌜l = l'⌝ ∗
                 (∃ ys : list T,
@@ -151,8 +158,7 @@ Section ListSortExample.
       iIntros (γ c xs Φ) "Hstr HΦ".
       wp_lam.
       wp_apply (recv_st_spec N val with "Hstr").
-      iIntros (cmp) "[Hstr cmp_spec]".
-      iDestruct ("cmp_spec") as %Hcmp_spec.
+      iIntros (cmp) "[Hstr #Hcmp_spec]".
       wp_pures.
       wp_apply (recv_st_spec N loc with "Hstr").
       iIntros (v) "Hstr".
@@ -204,8 +210,7 @@ Section ListSortExample.
       iDestruct "Hzs'_sorted_of" as %[Hzs'_sorted Hzs'_perm].
       wp_load.
       wp_load.
-      wp_pures.
-      wp_apply (lmerge_ref_spec with "[Hhdx]")=> //.
+      wp_apply (lmerge_ref_spec with "Hcmp_spec Hhdx").
       iIntros "Hhdx".
       wp_apply (send_st_spec N loc with "[Hstr Hhdx]").
       {
@@ -226,9 +231,6 @@ Section ListSortExample.
 
   Definition compare_vals : val :=
     λ: "x" "y", "x" ≤ "y".
-
-  Instance total_le : Total Z.le.
-  Proof. intros x y. lia. Qed.
 
   Lemma compare_vals_spec (x y : Z) :
     {{{ True }}}
@@ -260,19 +262,8 @@ Section ListSortExample.
      }
      wp_apply (send_st_spec N val with "[$Hstl]").
      {
-       iPureIntro.
        iIntros (x y Φ').
-       iModIntro. iIntros (_) "HΦ".
        iApply compare_vals_spec=> //.
-       iNext.
-       iIntros (_).
-       destruct (decide (x ≤ y)).
-       - rewrite bool_decide_true=>//.
-         rewrite bool_decide_true=>//.
-         by iApply "HΦ".
-       - rewrite bool_decide_false=>//.
-         rewrite bool_decide_false=>//.
-         by iApply "HΦ".
      }
      iIntros "Hstl".
      wp_apply (send_st_spec N loc with "[Hc $Hstl]"). iFrame.
