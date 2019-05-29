@@ -28,9 +28,11 @@ Section BranchingExampleProofs.
     wp_pures.
     wp_apply (wp_fork with "[Hstr]").
     - iNext.
-      wp_apply (branch_st_spec N with "Hstr");
-      iIntros "Hstr".
-      + wp_apply (send_st_spec N Z with "[$Hstr //]");
+      simpl.
+      wp_apply (branch_st_spec with "Hstr")=> //;
+      iIntros (v) "[Hstr | Hstr]"; iDestruct "Hstr" as (->) "Hstr".
+      + wp_pures. 
+        wp_apply (send_st_spec N Z with "[$Hstr //]").
         iIntros "Hstr". done.
       + wp_pures. done.
     - destruct b.

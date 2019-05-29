@@ -51,12 +51,6 @@ Section branching_specs.
     λ: "c" "s" "b",
       send "c" "s" "b".
 
-  Definition branch : val :=
-    λ: "c" "s" "b1" "b2",
-      if: recv "c" "s"
-      then "b1"
-      else "b2".
-
   Lemma select_st_spec st1 st2 γ c s (b : side) :
     {{{ ⟦ c @ s : st1 <+> st2 ⟧{N,γ} }}}
       select c #s #b
@@ -70,20 +64,28 @@ Section branching_specs.
     iApply "HΦ".
     by destruct b.
   Qed.
+  
+  Definition branch : val :=
+    λ: "c" "s" "b1" "b2",
+      if: recv "c" "s"
+       then "b1"
+       else "b2".
 
-  Lemma branch_st_spec st1 st2 γ c s (b1 b2 : val) Φ :
-    ⟦ c @ s : st1 <&> st2 ⟧{N,γ} -∗
-    (⟦ c @ s : st1 ⟧{N,γ} -∗ (Φ b1)) -∗
-    (⟦ c @ s : st2 ⟧{N,γ} -∗ (Φ b2)) -∗
-    WP branch c #s b1 b2 {{ v, Φ v }}.
+  Lemma branch_st_spec st1 st2 γ c s (b1 b2 : val) :
+    {{{ ⟦ c @ s : st1 <&> st2 ⟧{N,γ} }}}
+      branch c #s b1 b2
+    {{{ v, RET v; (⌜v = b1%V⌝ ∧ ⟦ c @ s : st1 ⟧{N,γ}) ∨
+                  (⌜v = b2%V⌝ ∧ ⟦ c @ s : st2 ⟧{N,γ})}}}.
   Proof.
-    iIntros "Hst Hb1 Hb2".
-    wp_lam. rewrite /TSB.
+    iIntros (Φ').
+    iIntros "Hst HΦ'".
+    wp_pures.
+    wp_lam. rewrite /TSB. simpl.
     wp_apply (recv_st_spec N bool with "[$Hst //]").
     iIntros (v) "[Hstl _]".
-    destruct v; wp_pures.
-    - by iApply "Hb1".
-    - by iApply "Hb2".
+    destruct v.
+    - wp_pures. iApply ("HΦ'"). eauto with iFrame.
+    - wp_pures. iApply ("HΦ'"). eauto with iFrame.
   Qed.
 
 End branching_specs.
