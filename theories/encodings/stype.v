@@ -185,11 +185,11 @@ Section stype_specs.
   Proof.
     iIntros "[#Hcctx [Hcol Hcor]]".
     iMod (own_alloc (● (to_stype_auth_excl st) ⋅
-                     ◯ (to_stype_auth_excl st)))
-      as (lγ) "[Hlsta Hlstf]"; first done.
+                     ◯ (to_stype_auth_excl st))) as (lγ) "[Hlsta Hlstf]".
+    { by apply auth_both_valid_2. }
     iMod (own_alloc (● (to_stype_auth_excl (dual_stype st)) ⋅
-                     ◯ (to_stype_auth_excl (dual_stype st))))
-      as (rγ) "[Hrsta Hrstf]"; first done.
+                     ◯ (to_stype_auth_excl (dual_stype st)))) as (rγ) "[Hrsta Hrstf]".
+    { by apply auth_both_valid_2. }
     pose (SessionType_name cγ lγ rγ) as stγ.
     iMod (inv_alloc N _ (inv_st stγ c) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
     { iNext. rewrite /inv_st. eauto 10 with iFrame. }

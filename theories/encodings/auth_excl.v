@@ -38,11 +38,11 @@ Section auth_excl.
     ✓ (● to_auth_excl x ⋅ ◯ to_auth_excl y) -∗ (x ≡ y : iProp Σ).
   Proof.
     iIntros "Hvalid".
-    iDestruct (auth_validI with "Hvalid") as "[Hy Hvalid]"; simpl.
-    iDestruct "Hy" as ([z|]) "Hy"; last first.
-    - by rewrite left_id right_id_L bi.option_equivI /= excl_equivI.
+    iDestruct (auth_both_validI with "Hvalid") as "[_ [Hle Hvalid]]"; simpl.
+    iDestruct "Hle" as ([z|]) "Hy"; last first.
+    - by rewrite bi.option_equivI /= excl_equivI.
     - iRewrite "Hy" in "Hvalid".
-      by rewrite left_id uPred.option_validI /= excl_validI /=.
+      by rewrite uPred.option_validI /= excl_validI /=.
   Qed.
 
   Lemma excl_eq γ x y :
