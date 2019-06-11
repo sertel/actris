@@ -21,7 +21,9 @@ Section DualStypeEnc.
     IsDualStype (TSR' a1 P st1) (TSR' a2 P st2).
   Proof.
     rewrite /IsDualAction /IsDualStype. intros <- Hst.
-    constructor=> x. done. by destruct (decode x).
+    rewrite -(stype_force_eq (dual_stype _)).
+    constructor=> x. done. destruct (decode x)=> //.
+    apply is_dual_end.
   Qed.
 
 End DualStypeEnc.

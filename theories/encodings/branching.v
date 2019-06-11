@@ -22,20 +22,22 @@ Section DualBranch.
     intros Ha Hst1 Hst2.
     destruct a1.
     - simpl.
-      simpl in Ha. rewrite Ha.
+      simpl in Ha. rewrite -Ha.
+      rewrite -(stype_force_eq (dual_stype _)).
       constructor.
       f_equiv.
       f_equiv.
       destruct (decode a).
-      by destruct b. done.
+      by destruct b. apply is_dual_end.
     - simpl.
-      simpl in Ha. rewrite Ha.
+      simpl in Ha. rewrite -Ha.
+      rewrite -(stype_force_eq (dual_stype _)).
       constructor.
       f_equiv.
       f_equiv.
       destruct (decode a).
-        by destruct b.
-        done.
+      by destruct b.
+      apply is_dual_end.
   Qed.
 End DualBranch.
 Global Typeclasses Opaque TSB.

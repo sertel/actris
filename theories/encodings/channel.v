@@ -121,10 +121,10 @@ Section channel.
     wp_lam.
     wp_apply (lnil_spec with "[//]"); iIntros (ls). wp_alloc l as "Hl".
     wp_apply (lnil_spec with "[//]"); iIntros (rs). wp_alloc r as "Hr".
-    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
-      as (lsγ) "[Hls Hls']"; first done.
-    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl [])))
-      as (rsγ) "[Hrs Hrs']"; first done.
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
+    { by apply auth_both_valid. }
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
+    { by apply auth_both_valid. }
     iAssert (is_list_ref #l []) with "[Hl]" as "Hl".
     { rewrite /is_list_ref; eauto. }
     iAssert (is_list_ref #r []) with "[Hr]" as "Hr".
