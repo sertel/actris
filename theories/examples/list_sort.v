@@ -4,8 +4,8 @@ Require Import Omega.
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.proto Require Import list channel stype_enc.
 From iris.base_logic Require Import invariants.
+From osiris.proto Require Import list channel proto_enc.
 
 Section ListSortExample.
   Context `{!heapG Σ} `{logrelG val Σ} (N : namespace).

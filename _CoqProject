@@ -6,9 +6,9 @@ theories/proto/list.v
 theories/proto/channel.v
 theories/proto/involutive.v
 theories/proto/side.v
-theories/proto/stype_def.v
-theories/proto/stype.v
-theories/proto/stype_enc.v
+theories/proto/proto_def.v
+theories/proto/proto_specs.v
+theories/proto/proto_enc.v
 theories/proto/branching.v
 theories/examples/examples.v
 theories/examples/proofs.v
