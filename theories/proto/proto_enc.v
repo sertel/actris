@@ -5,53 +5,53 @@ From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
 From osiris.proto Require Export encodable proto_specs.
 
-Section DualStypeEnc.
+Section DualProtoEnc.
   Context `{EncDec V} `{PROP: bi} .
 
   Definition TSR'
-    (a : action) (P : V → PROP) (st : V → stype val PROP) : stype val PROP :=
+    (a : action) (P : V → PROP) (prot : V → proto val PROP) : proto val PROP :=
   TSR a
     (λ v, if decode v is Some x then P x else False)%I
-    (λ v, if decode v is Some x then st x else TEnd (* dummy *)).
+    (λ v, if decode v is Some x then prot x else TEnd (* dummy *)).
   Global Instance: Params (@TSR') 3.
 
-  Global Instance is_dual_tsr' a1 a2 P (st1 st2 : V → stype val PROP) :
+  Global Instance is_dual_tsr' a1 a2 P (st1 st2 : V → proto val PROP) :
     IsDualAction a1 a2 →
-    (∀ x, IsDualStype (st1 x) (st2 x)) →
-    IsDualStype (TSR' a1 P st1) (TSR' a2 P st2).
+    (∀ x, IsDualProto (st1 x) (st2 x)) →
+    IsDualProto (TSR' a1 P st1) (TSR' a2 P st2).
   Proof.
-    rewrite /IsDualAction /IsDualStype. intros <- Hst.
-    rewrite -(stype_force_eq (dual_stype _)).
+    rewrite /IsDualAction /IsDualProto. intros <- Hst.
+    rewrite -(proto_force_eq (dual_proto _)).
     constructor=> x. done. destruct (decode x)=> //.
     apply is_dual_end.
   Qed.
 
-End DualStypeEnc.
+End DualProtoEnc.
 
-Notation "<!> x @ P , st" :=
-  (TSR' Send (λ x, P%I) (λ x, st%stype))
-  (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<?> x @ P , st" :=
-  (TSR' Receive (λ x, P%I) (λ x, st%stype))
-  (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<!> x , st" := (<!> x @ True, (st x))%stype
-  (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<?> x , st" := (<?> x @ True, (st x))%stype
-  (at level 200, x pattern, st at level 200) : stype_scope.
-Notation "<!> @ P , st" := (<!> dummy__ @ P dummy__, st dummy__)%stype
-  (at level 200, st at level 200) : stype_scope.
-Notation "<?> @ P , st" := (<?> dummy__ @ P dummy__, st dummy__)%stype
-  (at level 200, st at level 200) : stype_scope.
+Notation "<!> x @ P , prot" :=
+  (TSR' Send (λ x, P%I) (λ x, prot%proto))
+  (at level 200, x pattern, prot at level 200) : proto_scope.
+Notation "<?> x @ P , prot" :=
+  (TSR' Receive (λ x, P%I) (λ x, prot%proto))
+  (at level 200, x pattern, prot at level 200) : proto_scope.
+Notation "<!> x , prot" := (<!> x @ True, (prot x))%proto
+  (at level 200, x pattern, prot at level 200) : proto_scope.
+Notation "<?> x , prot" := (<?> x @ True, (prot x))%proto
+  (at level 200, x pattern, prot at level 200) : proto_scope.
+Notation "<!> @ P , prot" := (<!> dummy__ @ P dummy__, prot dummy__)%proto
+  (at level 200, prot at level 200) : proto_scope.
+Notation "<?> @ P , prot" := (<?> dummy__ @ P dummy__, prot dummy__)%proto
+  (at level 200, prot at level 200) : proto_scope.
 
-Section stype_enc_specs.
+Section proto_enc_specs.
   Context `{!heapG Σ} (N : namespace).
   Context `{!logrelG val Σ}.
 
   Lemma send_st_spec (A : Type) `{EncDec A}
-        st γ c s (P : A → iProp Σ) w :
-    {{{ P w ∗ ⟦ c @ s : <!> @ P, st ⟧{N,γ} }}}
+        prot γ c s (P : A → iProp Σ) w :
+    {{{ P w ∗ ⟦ c @ s : <!> @ P, prot ⟧{N,γ} }}}
       send c #s (encode w)
-    {{{ RET #(); ⟦ c @ s : st w ⟧{N,γ} }}}.
+    {{{ RET #(); ⟦ c @ s : prot w ⟧{N,γ} }}}.
   Proof.
     iIntros (Φ) "[HP Hsend] HΦ".
     iApply (send_st_spec with "[HP Hsend]").
@@ -64,10 +64,10 @@ Section stype_enc_specs.
   Qed.
 
   Lemma recv_st_spec (A : Type) `{EncDec A}
-        st γ c s (P : A → iProp Σ) :
-    {{{ ⟦ c @ s : <?> @ P, st ⟧{N,γ} }}}
+        prot γ c s (P : A → iProp Σ) :
+    {{{ ⟦ c @ s : <?> @ P, prot ⟧{N,γ} }}}
       recv c #s
-    {{{ v, RET (encode v); ⟦ c @ s : st v ⟧{N,γ} ∗ P v }}}.
+    {{{ v, RET (encode v); ⟦ c @ s : prot v ⟧{N,γ} ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (recv_st_spec with "Hrecv").
@@ -86,4 +86,4 @@ Section stype_enc_specs.
     - inversion Hw.
   Qed.
 
-End stype_enc_specs.
+End proto_enc_specs.

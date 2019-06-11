@@ -137,7 +137,7 @@ Section ListSortExample.
              lmerge_ref "cmp" "xs" !"ys" !"zs";;
              send "c" #Right "xs".
 
-    Definition sort_protocol xs :=
+    Definition sort_protocol xs : proto val (iProp Σ) :=
       (<?> cmp @ cmp_spec cmp,
        <?> l @ l ↦ encode xs,
        <!> l' @ ⌜l = l'⌝ ∗
@@ -145,7 +145,7 @@ Section ListSortExample.
                     l' ↦ encode ys ∗
                        ⌜Sorted (R) ys⌝ ∗
                        ⌜Permutation ys xs⌝),
-       TEnd)%stype.
+       TEnd).
 
     Lemma list_sort_service_spec γ c xs :
       {{{ ⟦ c @ Right : sort_protocol xs ⟧{N,γ} }}}

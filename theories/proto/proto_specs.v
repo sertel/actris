@@ -11,67 +11,67 @@ From osiris.proto Require Export channel.
 
 Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;
-  logrelG_authG :> auth_exclG (laterC (stypeC A (iPreProp Σ))) Σ;
+  logrelG_authG :> auth_exclG (laterC (protoC A (iPreProp Σ))) Σ;
 }.
 
 Definition logrelΣ A :=
   #[ chanΣ ; GFunctor (authRF(optionURF (exclRF
-                       (laterCF (@stypeCF A idCF))))) ].
+                       (laterCF (@protoCF A idCF))))) ].
 Instance subG_chanΣ {A Σ} : subG (logrelΣ A) Σ → logrelG A Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
-Fixpoint st_eval `{!logrelG val Σ} (vs : list val) (st1 st2 : stype val (iProp Σ)) : iProp Σ :=
+Fixpoint prot_eval `{!logrelG val Σ} (vs : list val) (prot1 prot2 : proto val (iProp Σ)) : iProp Σ :=
   match vs with
-  | [] => st1 ≡ dual_stype st2
-  | v::vs => match st2 with
-             | TSR Receive P st2  => P v ∗ ▷ st_eval vs st1 (st2 v)
+  | [] => prot1 ≡ dual_proto prot2
+  | v::vs => match prot2 with
+             | TSR Receive P prot2  => P v ∗ ▷ prot_eval vs prot1 (prot2 v)
              | _ => False
              end
   end%I.
-Arguments st_eval : simpl nomatch.
+Arguments prot_eval : simpl nomatch.
 
-Record st_name := STName {
-  st_c_name : chan_name;
-  st_l_name : gname;
-  st_r_name : gname
+Record prot_name := ProtName {
+  prot_c_name : chan_name;
+  prot_l_name : gname;
+  prot_r_name : gname
 }.
 
-Definition to_stype_auth_excl `{!logrelG val Σ} (st : stype val (iProp Σ)) :=
-  to_auth_excl (Next (stype_map iProp_unfold st)).
+Definition to_proto_auth_excl `{!logrelG val Σ} (prot : proto val (iProp Σ)) :=
+  to_auth_excl (Next (proto_map iProp_unfold prot)).
 
-Definition st_own `{!logrelG val Σ} (γ : st_name) (s : side)
-    (st : stype val (iProp Σ)) : iProp Σ :=
-  own (side_elim s st_l_name st_r_name γ) (◯ to_stype_auth_excl st)%I.
+Definition prot_own `{!logrelG val Σ} (γ : prot_name) (s : side)
+    (prot : proto val (iProp Σ)) : iProp Σ :=
+  own (side_elim s prot_l_name prot_r_name γ) (◯ to_proto_auth_excl prot)%I.
 
-Definition st_ctx `{!logrelG val Σ} (γ : st_name) (s : side)
-    (st : stype val (iProp Σ)) : iProp Σ :=
-  own (side_elim s st_l_name st_r_name γ) (● to_stype_auth_excl st)%I.
+Definition prot_ctx `{!logrelG val Σ} (γ : prot_name) (s : side)
+    (prot : proto val (iProp Σ)) : iProp Σ :=
+  own (side_elim s prot_l_name prot_r_name γ) (● to_proto_auth_excl prot)%I.
 
-Definition inv_st `{!logrelG val Σ} (γ : st_name) (c : val) : iProp Σ :=
-  (∃ l r stl str,
-    chan_own (st_c_name γ) Left l ∗
-    chan_own (st_c_name γ) Right r ∗
-    st_ctx γ Left stl  ∗
-    st_ctx γ Right str ∗
-    ▷ ((⌜r = []⌝ ∗ st_eval l stl str) ∨
-       (⌜l = []⌝ ∗ st_eval r str stl)))%I.
+Definition inv_prot `{!logrelG val Σ} (γ : prot_name) (c : val) : iProp Σ :=
+  (∃ l r protl protr,
+    chan_own (prot_c_name γ) Left l ∗
+    chan_own (prot_c_name γ) Right r ∗
+    prot_ctx γ Left protl  ∗
+    prot_ctx γ Right protr ∗
+    ▷ ((⌜r = []⌝ ∗ prot_eval l protl protr) ∨
+       (⌜l = []⌝ ∗ prot_eval r protr protl)))%I.
 
-Definition interp_st `{!logrelG val Σ, !heapG Σ} (N : namespace) (γ : st_name)
-    (c : val) (s : side) (st : stype val (iProp Σ)) : iProp Σ :=
-  (st_own γ s st ∗ is_chan N (st_c_name γ) c ∗ inv N (inv_st γ c))%I.
-Instance: Params (@interp_st) 7.
+Definition interp_prot `{!logrelG val Σ, !heapG Σ} (N : namespace) (γ : prot_name)
+    (c : val) (s : side) (prot : proto val (iProp Σ)) : iProp Σ :=
+  (prot_own γ s prot ∗ is_chan N (prot_c_name γ) c ∗ inv N (inv_prot γ c))%I.
+Instance: Params (@interp_prot) 7.
 
-Notation "⟦ c @ s : st ⟧{ N , γ }" := (interp_st N γ c s st)
-  (at level 10, s at next level, st at next level, γ at next level,
-   format "⟦  c  @  s  :  st  ⟧{ N , γ }").
+Notation "⟦ c @ s : prot ⟧{ N , γ }" := (interp_prot N γ c s prot)
+  (at level 10, s at next level, prot at next level, γ at next level,
+   format "⟦  c  @  s  :  prot  ⟧{ N , γ }").
 
-Section stype.
+Section proto.
   Context `{!logrelG val Σ, !heapG Σ} (N : namespace).
 
-  Global Instance st_eval_ne : NonExpansive2 (st_eval vs).
+  Global Instance prot_eval_ne : NonExpansive2 (prot_eval vs).
   Proof.
     induction vs as [|v vs IH];
-      destruct 2 as [n|[] P1 P2 st1 st2|n [] P1 P2 st1 st2]=> //=.
+      destruct 2 as [n|[] P1 P2 prot1 prot2|n [] P1 P2 prot1 prot2]=> //=.
     - by repeat f_equiv.
     - f_equiv. done. f_equiv. by constructor.
     - f_equiv. done. f_equiv. by constructor.
@@ -80,139 +80,139 @@ Section stype.
     - f_equiv. done. by f_contractive.
     - f_equiv. done. f_contractive. apply IH. by apply dist_S. done.
   Qed.
-  Global Instance st_eval_proper vs : Proper ((≡) ==> (≡) ==> (≡)) (st_eval vs).
+  Global Instance prot_eval_proper vs : Proper ((≡) ==> (≡) ==> (≡)) (prot_eval vs).
   Proof. apply (ne_proper_2 _). Qed.
 
-  Global Instance to_stype_auth_excl_ne : NonExpansive to_stype_auth_excl.
+  Global Instance to_proto_auth_excl_ne : NonExpansive to_proto_auth_excl.
   Proof. solve_proper. Qed.
-  Global Instance st_own_ne γ s : NonExpansive (st_own γ s).
+  Global Instance prot_own_ne γ s : NonExpansive (prot_own γ s).
   Proof. solve_proper. Qed.
-  Global Instance interp_st_ne γ c s : NonExpansive (interp_st N γ c s).
+  Global Instance interp_st_ne γ c s : NonExpansive (interp_prot N γ c s).
   Proof. solve_proper. Qed.
-  Global Instance interp_st_proper γ c s : Proper ((≡) ==> (≡)) (interp_st N γ c s).
+  Global Instance interp_st_proper γ c s : Proper ((≡) ==> (≡)) (interp_prot N γ c s).
   Proof. apply (ne_proper _). Qed.
 
-  Lemma st_excl_eq γ s st st' :
-    st_ctx γ s st -∗ st_own γ s st' -∗ ▷ (st ≡ st').
+  Lemma prot_excl_eq γ s prot prot' :
+    prot_ctx γ s prot -∗ prot_own γ s prot' -∗ ▷ (prot ≡ prot').
   Proof.
     iIntros "Hauth Hfrag".
     iDestruct (own_valid_2 with "Hauth Hfrag") as "Hvalid".
     iDestruct (to_auth_excl_valid with "Hvalid") as "Hvalid".
     iDestruct (bi.later_eq_1 with "Hvalid") as "Hvalid"; iNext.
-    assert (∀ st : stype val (iProp Σ),
-      stype_map iProp_fold (stype_map iProp_unfold st) ≡ st) as help.
-    { intros st''. rewrite -stype_fmap_compose -{2}(stype_fmap_id st'').
-      apply stype_map_ext=> P. by rewrite /= iProp_fold_unfold. }
-    rewrite -{2}(help st). iRewrite "Hvalid". by rewrite help.
+    assert (∀ prot : proto val (iProp Σ),
+      proto_map iProp_fold (proto_map iProp_unfold prot) ≡ prot) as help.
+    { intros prot''. rewrite -proto_fmap_compose -{2}(proto_fmap_id prot'').
+      apply proto_map_ext=> P. by rewrite /= iProp_fold_unfold. }
+    rewrite -{2}(help prot). iRewrite "Hvalid". by rewrite help.
   Qed.
 
-  Lemma st_excl_update γ s st st' st'' :
-    st_ctx γ s st -∗ st_own γ s st' ==∗ st_ctx γ s st'' ∗ st_own γ s st''.
+  Lemma prot_excl_update γ s prot prot' prot'' :
+    prot_ctx γ s prot -∗ prot_own γ s prot' ==∗ prot_ctx γ s prot'' ∗ prot_own γ s prot''.
   Proof.
     iIntros "Hauth Hfrag".
     iDestruct (own_update_2 with "Hauth Hfrag") as "H".
-    { eapply (auth_update _ _ (to_stype_auth_excl st'')
-                              (to_stype_auth_excl st'')).
+    { eapply (auth_update _ _ (to_proto_auth_excl prot'')
+                              (to_proto_auth_excl prot'')).
       eapply option_local_update.
       eapply exclusive_local_update. done. }
     by rewrite own_op.
   Qed.
 
-  Lemma st_eval_send (P : val →iProp Σ) st vs v str :
-    P v -∗ st_eval vs (<!> @ P, st) str -∗ st_eval (vs ++ [v]) (st v) str.
+  Lemma prot_eval_send (P : val →iProp Σ) prot vs v protr :
+    P v -∗ prot_eval vs (<!> @ P, prot) protr -∗ prot_eval (vs ++ [v]) (prot v) protr.
   Proof.
     iIntros "HP".
-    iRevert (str).
-    iInduction vs as [|v' vs] "IH"; iIntros (str) "Heval".
-    - iDestruct (dual_stype_flip with "Heval") as "Heval".
+    iRevert (protr).
+    iInduction vs as [|v' vs] "IH"; iIntros (protr) "Heval".
+    - iDestruct (dual_proto_flip with "Heval") as "Heval".
       iRewrite -"Heval"; simpl.
-      rewrite dual_stype_involutive.
+      rewrite dual_proto_involutive.
       by iFrame.
-    - destruct str as [|[] P' str]=> //=.
+    - destruct protr as [|[] P' protr]=> //=.
       iDestruct "Heval" as "[$ Heval]".
       by iApply ("IH" with "HP").
   Qed.
 
-  Lemma st_eval_recv (P : val → iProp Σ) st1 l st2 v :
-     st_eval (v :: l) st1 (<?> @ P, st2) -∗ ▷ st_eval l st1 (st2 v) ∗ P v.
+  Lemma prot_eval_recv (P : val → iProp Σ) prot1 l prot2 v :
+     prot_eval (v :: l) prot1 (<?> @ P, prot2) -∗ ▷ prot_eval l prot1 (prot2 v) ∗ P v.
   Proof. iDestruct 1 as "[HP Heval]". iFrame. Qed.
 
-  Lemma new_chan_vs st E c cγ :
+  Lemma new_chan_vs prot E c cγ :
     is_chan N cγ c ∗
     chan_own cγ Left [] ∗
     chan_own cγ Right [] ={E}=∗ ∃ lγ rγ,
-      let γ := STName cγ lγ rγ in
-      ⟦ c @ Left : st ⟧{N,γ} ∗ ⟦ c @ Right : dual_stype st ⟧{N,γ}.
+      let γ := ProtName cγ lγ rγ in
+      ⟦ c @ Left : prot ⟧{N,γ} ∗ ⟦ c @ Right : dual_proto prot ⟧{N,γ}.
   Proof.
     iIntros "[#Hcctx [Hcol Hcor]]".
-    iMod (own_alloc (● (to_stype_auth_excl st) ⋅
-                     ◯ (to_stype_auth_excl st))) as (lγ) "[Hlsta Hlstf]".
+    iMod (own_alloc (● (to_proto_auth_excl prot) ⋅
+                     ◯ (to_proto_auth_excl prot))) as (lγ) "[Hlsta Hlstf]".
     { by apply auth_both_valid_2. }
-    iMod (own_alloc (● (to_stype_auth_excl (dual_stype st)) ⋅
-                     ◯ (to_stype_auth_excl (dual_stype st)))) as (rγ) "[Hrsta Hrstf]".
+    iMod (own_alloc (● (to_proto_auth_excl (dual_proto prot)) ⋅
+                     ◯ (to_proto_auth_excl (dual_proto prot)))) as (rγ) "[Hrsta Hrstf]".
     { by apply auth_both_valid_2. }
-    pose (STName cγ lγ rγ) as stγ.
-    iMod (inv_alloc N _ (inv_st stγ c) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
-    { iNext. rewrite /inv_st. eauto 10 with iFrame. }
+    pose (ProtName cγ lγ rγ) as protγ.
+    iMod (inv_alloc N _ (inv_prot protγ c) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
+    { iNext. rewrite /inv_prot. eauto 10 with iFrame. }
     iModIntro.
     iExists _, _.
     iFrame "Hlstf Hrstf Hcctx Hinv".
   Qed.
 
-  Lemma new_chan_st_spec st1 st2 :
-    IsDualStype st1 st2 →
+  Lemma new_chan_st_spec prot1 prot2 :
+    IsDualProto prot1 prot2 →
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c; ⟦ c @ Left : st1 ⟧{N,γ} ∗ ⟦ c @ Right : st2 ⟧{N,γ} }}}.
+    {{{ c γ, RET c; ⟦ c @ Left : prot1 ⟧{N,γ} ∗ ⟦ c @ Right : prot2 ⟧{N,γ} }}}.
   Proof.
-    rewrite /IsDualStype.
-    iIntros (Hst Φ _) "HΦ".
+    rewrite /IsDualProto.
+    iIntros (Hprot Φ _) "HΦ".
     iApply (wp_fupd).
     iApply (new_chan_spec)=> //.
     iModIntro.
     iIntros (c γ) "[Hc Hctx]".
-    iMod (new_chan_vs st1 ⊤ c γ with "[-HΦ]") as "H".
+    iMod (new_chan_vs prot1 ⊤ c γ with "[-HΦ]") as "H".
     { rewrite /is_chan. eauto with iFrame. }
     iDestruct "H" as (lγ rγ) "[Hl Hr]".
     iApply "HΦ".
-    rewrite Hst.
+    rewrite Hprot.
     by iFrame.
   Qed.
 
-  Lemma send_vs c γ s (P : val → iProp Σ) st E :
+  Lemma send_vs c γ s (P : val → iProp Σ) prot E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Send P st ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
-      chan_own (st_c_name γ) s vs ∗
+    ⟦ c @ s : TSR Send P prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
+      chan_own (prot_c_name γ) s vs ∗
       ▷ ∀ v, P v -∗
-             chan_own (st_c_name γ) s (vs ++ [v]) ={E∖↑N,E}=∗
-             ⟦ c @ s : st v ⟧{N,γ}.
+             chan_own (prot_c_name γ) s (vs ++ [v]) ={E∖↑N,E}=∗
+             ⟦ c @ s : prot v ⟧{N,γ}.
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
-    iInv N as (l r stl str) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
+    iInv N as (l r protl protr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
     iModIntro.
     destruct s.
     - iExists _.
       iIntros "{$Hclf} !>" (v) "HP Hclf".
       iRename "Hstf" into "Hstlf".
-      iDestruct (st_excl_eq with "Hstla Hstlf") as "#Heq".
-      iMod (st_excl_update _ _ _ _ (st v) with "Hstla Hstlf") as "[Hstla Hstlf]".
+      iDestruct (prot_excl_eq with "Hstla Hstlf") as "#Heq".
+      iMod (prot_excl_update _ _ _ _ (prot v) with "Hstla Hstlf") as "[Hstla Hstlf]".
       iMod ("Hclose" with "[-Hstlf]") as "_".
       { iNext.
         iExists _,_,_,_. iFrame.
         iLeft.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]".
         - iSplit=> //.
-          iApply (st_eval_send with "HP").
+          iApply (prot_eval_send with "HP").
           by iRewrite "Heq" in "Heval".
         - iRewrite "Heq" in "Heval". destruct r as [|vr r]=> //=.
           iSplit; first done.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_stype_involutive. }
+          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_proto_involutive. }
       iModIntro. iFrame. auto.
     - iExists _.
       iIntros "{$Hcrf} !>" (v) "HP Hcrf".
       iRename "Hstf" into "Hstrf".
-      iDestruct (st_excl_eq with "Hstra Hstrf") as "#Heq".
-      iMod (st_excl_update _ _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
+      iDestruct (prot_excl_eq with "Hstra Hstrf") as "#Heq".
+      iMod (prot_excl_update _ _ _ _ (prot v) with "Hstra Hstrf") as "[Hstra Hstrf]".
       iMod ("Hclose" with "[-Hstrf]") as "_".
       { iNext.
         iExists _, _, _, _. iFrame.
@@ -220,17 +220,17 @@ Section stype.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]".
         - iRewrite "Heq" in "Heval". destruct l as [|vl l]=> //.
           iSplit; first done. simpl.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_stype_involutive.
+          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_proto_involutive.
         - iSplit=> //.
-          iApply (st_eval_send with "HP").
+          iApply (prot_eval_send with "HP").
           by iRewrite "Heq" in "Heval". }
       iModIntro. iFrame. auto.
   Qed.
 
-  Lemma send_st_spec st γ c s (P : val → iProp Σ) v :
-    {{{ P v ∗ ⟦ c @ s : <!> @ P , st ⟧{N,γ} }}}
+  Lemma send_st_spec prot γ c s (P : val → iProp Σ) v :
+    {{{ P v ∗ ⟦ c @ s : <!> @ P , prot ⟧{N,γ} }}}
       send c #s v
-    {{{ RET #(); ⟦ c @ s : st v ⟧{N,γ} }}}.
+    {{{ RET #(); ⟦ c @ s : prot v ⟧{N,γ} }}}.
   Proof.
     iIntros (Φ) "[HP Hsend] HΦ".
     iApply (send_spec with "[#]").
@@ -241,25 +241,25 @@ Section stype.
     iApply ("H" $! v with "HP"). by destruct s.
   Qed.
 
-  Lemma try_recv_vs c γ s (P : val → iProp Σ) st E :
+  Lemma try_recv_vs c γ s (P : val → iProp Σ) prot E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Receive P st ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
-      chan_own (st_c_name γ) (dual_side s) vs ∗
+    ⟦ c @ s : TSR Receive P prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
+      chan_own (prot_c_name γ) (dual_side s) vs ∗
       ▷ ((⌜vs = []⌝ -∗
-           chan_own (st_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
-           ⟦ c @ s : TSR Receive P st ⟧{N,γ}) ∧
+           chan_own (prot_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
+           ⟦ c @ s : TSR Receive P prot ⟧{N,γ}) ∧
          (∀ v vs',
            ⌜vs = v :: vs'⌝ -∗
-           chan_own (st_c_name γ) (dual_side s) vs' ={E∖↑N,E}=∗
-           ⟦ c @ s : (st v) ⟧{N,γ} ∗ ▷ P v)).
+           chan_own (prot_c_name γ) (dual_side s) vs' ={E∖↑N,E}=∗
+           ⟦ c @ s : (prot v) ⟧{N,γ} ∗ ▷ P v)).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
-    iInv N as (l r stl str) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
+    iInv N as (l r protl protr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
     iExists (side_elim s r l). iModIntro.
     destruct s; simpl.
     - iIntros "{$Hcrf} !>".
       iRename "Hstf" into "Hstlf".
-      iDestruct (st_excl_eq with "Hstla Hstlf") as "#Heq".
+      iDestruct (prot_excl_eq with "Hstla Hstlf") as "#Heq".
       iSplit.
       + iIntros (->) "Hown".
         iMod ("Hclose" with "[-Hstlf]") as "_".
@@ -267,11 +267,11 @@ Section stype.
         iModIntro. iFrame "Hcctx ∗ Hinv".
       + iIntros (v vs ->) "Hown".
         iDestruct "Hinv'" as "[[>% _]|[> -> Heval]]"; first done.
-        iMod (st_excl_update _ _ _ _ (st v) with "Hstla Hstlf") as "[Hstla Hstlf]".
-        iDestruct (stype_later_equiv with "Heq") as ">Hleq".
-        iDestruct "Hleq" as (P1 st1) "(Hsteq & HPeq & Hsteq')".
+        iMod (prot_excl_update _ _ _ _ (prot v) with "Hstla Hstlf") as "[Hstla Hstlf]".
+        iDestruct (proto_later_equiv with "Heq") as ">Hleq".
+        iDestruct "Hleq" as (P1 prot1) "(Hsteq & HPeq & Hsteq')".
         iRewrite "Hsteq" in "Heval".
-        iDestruct (st_eval_recv with "Heval") as "[Heval HP]".
+        iDestruct (prot_eval_recv with "Heval") as "[Heval HP]".
         iMod ("Hclose" with "[-Hstlf HP]") as "H".
         { iExists _, _,_ ,_. iFrame. iRight.
           iNext. iSplit=> //. iNext. by iRewrite -("Hsteq'" $! v). }
@@ -279,7 +279,7 @@ Section stype.
         iNext. by iRewrite -("HPeq" $! v).
     - iIntros "{$Hclf} !>".
       iRename "Hstf" into "Hstrf".
-      iDestruct (st_excl_eq with "Hstra Hstrf") as "#Heq".
+      iDestruct (prot_excl_eq with "Hstra Hstrf") as "#Heq".
       iSplit=> //.
       + iIntros (->) "Hown".
         iMod ("Hclose" with "[-Hstrf]") as "_".
@@ -287,11 +287,11 @@ Section stype.
         iModIntro. iFrame "Hcctx ∗ Hinv".
       + iIntros (v vs' ->) "Hown".
         iDestruct "Hinv'" as "[[>-> Heval]|[>% Heval]]"; last done.
-        iMod (st_excl_update _ _ _ _ (st v) with "Hstra Hstrf") as "[Hstra Hstrf]".
-        iDestruct (stype_later_equiv with "Heq") as ">Hleq".
-        iDestruct "Hleq" as (P1 st1) "(Hsteq & HPeq & Hsteq')".
+        iMod (prot_excl_update _ _ _ _ (prot v) with "Hstra Hstrf") as "[Hstra Hstrf]".
+        iDestruct (proto_later_equiv with "Heq") as ">Hleq".
+        iDestruct "Hleq" as (P1 prot1) "(Hsteq & HPeq & Hsteq')".
         iRewrite "Hsteq" in "Heval".
-        iDestruct (st_eval_recv with "Heval") as "[Heval HP]".
+        iDestruct (prot_eval_recv with "Heval") as "[Heval HP]".
         iMod ("Hclose" with "[-Hstrf HP]") as "_".
         { iExists _, _, _, _. iFrame. iLeft.
           iNext. iSplit=> //. iNext. by iRewrite -("Hsteq'" $! v). }
@@ -299,11 +299,11 @@ Section stype.
         iNext. by iRewrite -("HPeq" $! v).
   Qed.
 
-  Lemma try_recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : <?> @ P , st ⟧{N,γ} }}}
+  Lemma try_recv_st_spec prot γ c s (P : val → iProp Σ) :
+    {{{ ⟦ c @ s : <?> @ P , prot ⟧{N,γ} }}}
       try_recv c #s
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : <?> @ P, st ⟧{N,γ}) ∨
-                  (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : st w ⟧{N,γ} ∗ ▷ P w)}}}.
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : <?> @ P, prot ⟧{N,γ}) ∨
+                  (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : prot w ⟧{N,γ} ∗ ▷ P w)}}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iApply (try_recv_spec with "[#]").
@@ -325,10 +325,10 @@ Section stype.
       iApply "HΦ"; eauto with iFrame.
   Qed.
 
-  Lemma recv_st_spec st γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : <?> @ P ,  st ⟧{N,γ} }}}
+  Lemma recv_st_spec prot γ c s (P : val → iProp Σ) :
+    {{{ ⟦ c @ s : <?> @ P ,  prot ⟧{N,γ} }}}
       recv c #s
-    {{{ v, RET v; ⟦ c @ s : st v ⟧{N,γ} ∗ P v }}}.
+    {{{ v, RET v; ⟦ c @ s : prot v ⟧{N,γ} ∗ P v }}}.
   Proof.
     iIntros (Φ) "Hrecv HΦ".
     iLöb as "IH". wp_rec.
@@ -339,4 +339,4 @@ Section stype.
     - iDestruct "H" as (w ->) "[H HP]".
       wp_pures. iApply "HΦ". iFrame.
   Qed.
-End stype. 
+End proto. 
