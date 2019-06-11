@@ -6,8 +6,8 @@ From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
 From osiris.base_logic Require Import auth_excl.
-From osiris.encodings Require Export stype_def.
-From osiris.encodings Require Export channel.
+From osiris.proto Require Export stype_def.
+From osiris.proto Require Export channel.
 
 Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;

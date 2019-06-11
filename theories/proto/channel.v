@@ -6,8 +6,8 @@ From iris.algebra Require Import excl auth list.
 From iris.base_logic.lib Require Import auth.
 From iris.heap_lang.lib Require Import spin_lock.
 From osiris.base_logic Require Import auth_excl.
-From osiris.encodings Require Export side.
-From osiris.encodings Require Import list.
+From osiris.proto Require Export side.
+From osiris.proto Require Import list.
 Set Default Proof Using "Type".
 Import uPred.
 

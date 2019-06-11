@@ -4,7 +4,7 @@ From stdpp Require Export list.
 From iris.base_logic Require Import base_logic.
 From iris.algebra Require Import updates local_updates.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.encodings Require Import involutive.
+From osiris.proto Require Import involutive.
 Set Default Proof Using "Type".
 
 Inductive action := Send | Receive.

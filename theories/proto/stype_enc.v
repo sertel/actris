@@ -3,7 +3,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
-From osiris.encodings Require Export encodable stype.
+From osiris.proto Require Export encodable stype.
 
 Section DualStypeEnc.
   Context `{EncDec V} `{PROP: bi} .

@@ -1,15 +1,15 @@
 -Q theories osiris
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
 theories/base_logic/auth_excl.v
-theories/encodings/involutive.v
-theories/encodings/side.v
-theories/encodings/stype_def.v
-theories/encodings/encodable.v
-theories/encodings/list.v
-theories/encodings/channel.v
-theories/encodings/stype.v
-theories/encodings/stype_enc.v
-theories/encodings/branching.v
+theories/proto/encodable.v
+theories/proto/list.v
+theories/proto/channel.v
+theories/proto/involutive.v
+theories/proto/side.v
+theories/proto/stype_def.v
+theories/proto/stype.v
+theories/proto/stype_enc.v
+theories/proto/branching.v
 theories/examples/examples.v
 theories/examples/proofs.v
 theories/examples/proofs_enc.v

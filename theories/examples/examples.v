@@ -1,8 +1,8 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.encodings Require Import stype.
 From iris.base_logic Require Import invariants.
+From osiris.proto Require Import stype.
 
 Section Examples.
   Context `{!heapG Σ} (N : namespace).

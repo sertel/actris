@@ -3,7 +3,7 @@ From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
-From osiris.encodings Require Import stype_enc.
+From osiris.proto Require Import stype_enc.
 From osiris.examples Require Import examples.
 
 Section ExampleProofsEnc.
