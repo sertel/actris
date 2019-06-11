@@ -339,4 +339,4 @@ Section stype.
     - iDestruct "H" as (w ->) "[H HP]".
       wp_pures. iApply "HΦ". iFrame.
   Qed.
-End stype.
+End stype. 
