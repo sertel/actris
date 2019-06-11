@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import proofmode notation.
-From osiris.typing Require Export involutive.
+From osiris.encodings Require Export involutive.
 
 Inductive side := Left | Right.
 Instance side_inhabited : Inhabited side := populate Left.

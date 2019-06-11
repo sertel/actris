@@ -1,7 +1,6 @@
 From iris.proofmode Require Import tactics.
 From iris.program_logic Require Export weakestpre.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.typing Require Import side stype.
 From osiris.encodings Require Import channel branching.
 From iris.base_logic Require Import invariants.
 

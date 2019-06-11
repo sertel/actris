@@ -4,10 +4,8 @@ From stdpp Require Export list.
 From iris.base_logic Require Import base_logic.
 From iris.algebra Require Import updates local_updates.
 From iris.heap_lang Require Import proofmode notation.
+From osiris.encodings Require Import involutive.
 Set Default Proof Using "Type".
-
-Class Involutive {A} (R : relation A) (f : A → A) :=
-  involutive x : R (f (f x)) x.
 
 Inductive action := Send | Receive.
 Instance action_inhabited : Inhabited action := populate Send.

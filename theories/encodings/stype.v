@@ -5,8 +5,8 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import list auth excl.
 From iris.base_logic Require Import invariants.
-From osiris.typing Require Export stype.
-From osiris.encodings Require Import auth_excl.
+From osiris.base_logic Require Import auth_excl.
+From osiris.encodings Require Export stype_def.
 From osiris.encodings Require Export channel.
 
 Class logrelG A Σ := {
