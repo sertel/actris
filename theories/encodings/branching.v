@@ -91,3 +91,7 @@ Section branching_specs.
   Qed.
 
 End branching_specs.
+
+Notation "'branch:' c @ s 'left' e1 'right' e2" :=
+  (branch c s (λ: <>, e1)%E (λ: <>, e2)%E #())
+    (at level 200, c, s, e1, e2 at level 200) : expr_scope.

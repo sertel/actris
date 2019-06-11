@@ -11,9 +11,9 @@ Section BranchingExamples.
   Definition branch_example b : expr :=
     (let: "c" := new_chan #() in
      select "c" #Left #b;;
-     Fork((branch "c" #Right
-      (λ: <>, send "c" #Right #5)
-      (λ: <>, #())) #());;
+     Fork(branch: "c" @ #Right
+      left  send "c" #Right #5
+      right #());;
      (if: #b then recv "c" #Left else #()))%E.
 
 End BranchingExamples.
