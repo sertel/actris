@@ -206,7 +206,7 @@ Section stype.
           by iRewrite "Heq" in "Heval".
         - iRewrite "Heq" in "Heval". destruct r as [|vr r]=> //=.
           iSplit; first done.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite involutive. }
+          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_stype_involutive. }
       iModIntro. iFrame. auto.
     - iExists _.
       iIntros "{$Hcrf} !>" (v) "HP Hcrf".
@@ -220,7 +220,7 @@ Section stype.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]".
         - iRewrite "Heq" in "Heval". destruct l as [|vl l]=> //.
           iSplit; first done. simpl.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite involutive.
+          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_stype_involutive.
         - iSplit=> //.
           iApply (st_eval_send with "HP").
           by iRewrite "Heq" in "Heval". }
