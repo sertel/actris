@@ -1,15 +1,10 @@
-From iris.program_logic Require Export weakestpre.
-From iris.heap_lang Require Export lang.
-From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import excl auth list.
-From iris.base_logic.lib Require Import auth.
 From iris.heap_lang.lib Require Import spin_lock.
-From osiris.base_logic Require Import auth_excl.
+From iris.algebra Require Import excl auth list.
+From osiris.utils Require Import auth_excl.
 From osiris.proto Require Export side.
 From osiris.proto Require Import list.
 Set Default Proof Using "Type".
-Import uPred.
 
 Definition new_chan : val :=
   λ: <>,
@@ -71,7 +66,7 @@ Section channel.
   Context `{!heapG Σ, !chanG Σ} (N : namespace).
 
   Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
-    (∃ l':loc, ⌜l = #l'⌝ ∧ l' ↦ encode xs)%I.
+    (∃ l' : loc, ⌜l = #l'⌝ ∧ l' ↦ val_encode xs)%I.
 
   Record chan_name := Chan_name {
     chan_lock_name : gname;
@@ -167,7 +162,7 @@ Section channel.
         (vs ws) "(Href & Hvs & Href' & Hws)".
     iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
     wp_load. 
-    wp_apply (lsnoc_spec (T:=val))=> //; iIntros (_).
+    wp_apply (lsnoc_spec (A:=val))=> //; iIntros (_).
     wp_bind (_ <- _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.

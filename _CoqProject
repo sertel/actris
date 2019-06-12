@@ -1,6 +1,6 @@
 -Q theories osiris
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
-theories/base_logic/auth_excl.v
+theories/utils/auth_excl.v
 theories/proto/encodable.v
 theories/proto/list.v
 theories/proto/channel.v
@@ -10,9 +10,7 @@ theories/proto/proto_def.v
 theories/proto/proto_specs.v
 theories/proto/proto_enc.v
 theories/proto/branching.v
-theories/examples/examples.v
 theories/examples/proofs.v
 theories/examples/proofs_enc.v
-theories/examples/branching_examples.v
 theories/examples/branching_proofs.v
 theories/examples/list_sort.v

@@ -1,10 +1,6 @@
-From iris.heap_lang Require Export lang.
-From iris.algebra Require Export cmra.
-From stdpp Require Export list.
 From iris.base_logic Require Import base_logic.
-From iris.algebra Require Import updates local_updates.
-From iris.heap_lang Require Import proofmode notation.
 From osiris.proto Require Import involutive.
+From iris.proofmode Require Import tactics.
 Set Default Proof Using "Type".
 
 Inductive action := Send | Receive.

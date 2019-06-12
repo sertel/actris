@@ -3,12 +3,12 @@ From iris.heap_lang Require Import assert.
 From osiris Require Export encodable.
 
 (** Immutable ML-style functional lists *)
-Instance list_encodable `{Encodable A} : Encodable (list A) :=
+Instance list_val_enc `{ValEnc A} : ValEnc (list A) :=
   fix go xs :=
-  let _ : Encodable _ := @go in
+  let _ : ValEnc _ := @go in
   match xs with
-  | [] => encode None
-  | x :: xs => encode (Some (x,xs))
+  | [] => val_encode None
+  | x :: xs => val_encode (Some (x,xs))
   end.
 
 Definition lnil : val := λ: <>, NONEV.
@@ -91,35 +91,34 @@ Definition lsplit : val :=
   λ: "l", lsplit_at "l" ((llength "l") `quot` #2).
 
 Section lists.
-Context `{heapG Σ}.
+Context `{heapG Σ} `{ValEncDec A}.
 Implicit Types i : nat.
-Context `{EncDec T}.
-Implicit Types x : T.
-Implicit Types xs : list T.
+Implicit Types x : A.
+Implicit Types xs : list A.
 
 Lemma lnil_spec :
-  {{{ True }}} lnil #() {{{ RET encode []; True }}}.
+  {{{ True }}} lnil #() {{{ RET val_encode []; True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. by iApply "HΦ". Qed.
 
 Lemma lcons_spec x xs :
   {{{ True }}}
-    lcons (encode x) (encode xs)
-  {{{ RET (encode (x :: xs)); True }}}.
+    lcons (val_encode x) (val_encode xs)
+  {{{ RET val_encode (x :: xs); True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma lhead_spec x xs:
-  {{{ True }}} lhead (encode (x::xs)) {{{ RET encode x; True }}}.
+  {{{ True }}} lhead (val_encode (x::xs)) {{{ RET val_encode x; True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma ltail_spec x xs :
-  {{{ True }}} ltail (encode (x::xs)) {{{ RET encode xs; True }}}.
+  {{{ True }}} ltail (val_encode (x::xs)) {{{ RET val_encode xs; True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
 
 Lemma llookup_spec i xs x:
   xs !! i = Some x →
   {{{ True }}}
-    llookup #i (encode xs)
-  {{{ RET encode x; True }}}.
+    llookup #i (val_encode xs)
+  {{{ RET val_encode x; True }}}.
 Proof.
   iIntros (Hi Φ Hl) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (i Hi Hl);
@@ -133,8 +132,8 @@ Qed.
 Lemma linsert_spec i xs x :
   is_Some (xs !! i) →
   {{{ True }}}
-    linsert #i (encode x) (encode xs)
-  {{{ RET encode (<[i:=x]>xs); True }}}.
+    linsert #i (val_encode x) (val_encode xs)
+  {{{ RET val_encode (<[i:=x]>xs); True }}}.
 Proof.
   iIntros ([w Hi] Φ Hl) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (i Hi Hl Φ);
@@ -149,18 +148,17 @@ Proof.
   by wp_apply (lcons_spec with "[//]").
 Qed.
 
-Lemma llist_member_spec `{EqDecision T} (xs : list T) (x : T) :
+Lemma llist_member_spec `{EqDecision A} (xs : list A) (x : A) :
   {{{ True }}}
-    llist_member (encode x) (encode xs)
+    llist_member (val_encode x) (val_encode xs)
   {{{ RET #(bool_decide (x ∈ xs)); True }}}.
 Proof.
   iIntros (Φ Hl) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (Hl); simplify_eq/=.
   { wp_lam; wp_pures. by iApply "HΦ". }
   wp_lam; wp_pures.
-  destruct (bool_decide_reflect (encode x' = encode x)) as [Heq|?]; wp_if.
-  { apply enc_inj in Heq. rewrite Heq.
-    rewrite (bool_decide_true (_ ∈ _ :: _)). by iApply "HΦ". by left. }
+  destruct (bool_decide_reflect (val_encode x' = val_encode x)); simplify_eq/=; wp_if.
+  { rewrite (bool_decide_true (_ ∈ _ :: _)); last by left. by iApply "HΦ". }
   wp_proj. wp_let. iApply ("IH" with "[//]").
   destruct (bool_decide_reflect (x ∈ xs)).
   - by rewrite bool_decide_true; last by right.
@@ -169,8 +167,8 @@ Qed.
 
 Lemma lreplicate_spec i x :
   {{{ True }}}
-    lreplicate #i (encode x)
-  {{{ RET encode (replicate i x); True }}}.
+    lreplicate #i (val_encode x)
+  {{{ RET val_encode (replicate i x); True }}}.
 Proof.
   iIntros (Φ _) "HΦ". iInduction i as [|i] "IH" forall (Φ); simpl.
   { wp_lam; wp_pures.
@@ -181,20 +179,20 @@ Proof.
 Qed.
 
 Lemma llength_spec xs :
-  {{{ True }}} llength (encode xs) {{{ RET #(length xs); True }}}.
+  {{{ True }}} llength (val_encode xs) {{{ RET #(length xs); True }}}.
 Proof.
   iIntros (Φ Hl) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (Hl Φ); simplify_eq/=.
   { wp_lam. wp_match. by iApply "HΦ". }
-wp_lam. wp_match. wp_proj.
+  wp_lam. wp_match. wp_proj.
   wp_apply ("IH" with "[//]"); iIntros "_ /=". wp_op.
   rewrite (Nat2Z.inj_add 1). by iApply "HΦ".
 Qed.
 
 Lemma lsnoc_spec xs x :
   {{{ True }}}
-    lsnoc (encode xs) (encode x)
-  {{{ RET (encode (xs++[x])); True }}}.
+    lsnoc (val_encode xs) (val_encode x)
+  {{{ RET (val_encode (xs++[x])); True }}}.
 Proof.
   iIntros (Φ _) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (Φ).
@@ -206,8 +204,8 @@ Qed.
 
 Lemma ltake_spec xs (n:Z) :
   {{{ True }}}
-    ltake (encode xs) #n
-  {{{ RET encode (take (Z.to_nat n) xs); True }}}.
+    ltake (val_encode xs) #n
+  {{{ RET val_encode (take (Z.to_nat n) xs); True }}}.
 Proof.
   iIntros (Φ _) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (n Φ).
@@ -227,14 +225,10 @@ Proof.
       by iApply "HΦ".
 Qed.
 
-Lemma drop_cons x xs n :
-  drop (S n) (x::xs) = drop n xs.
-Proof. by destruct xs. Qed.
-
 Lemma ldrop_spec xs (n:Z) :
   {{{ True }}}
-    ldrop (encode xs) #n
-  {{{ RET encode (drop (Z.to_nat n) xs); True }}}.
+    ldrop (val_encode xs) #n
+  {{{ RET val_encode (drop (Z.to_nat n) xs); True }}}.
 Proof.
   iIntros (Φ _) "HΦ".
   iInduction xs as [|x' xs] "IH" forall (n Φ).
@@ -247,19 +241,16 @@ Proof.
       rewrite Z_to_nat_nonpos=> //. rewrite drop_0.
       by iApply "HΦ".
     + rewrite bool_decide_false=> //.
-      wp_apply ("IH").
-      rewrite -(drop_cons x' xs (Z.to_nat (n - 1))).
-      rewrite -Z2Nat.inj_succ; last lia.
-      rewrite Z.succ_pred.
-      iIntros (_).
+      wp_apply "IH"; iIntros (_).
+      rewrite -{1}(Z.succ_pred n) Z2Nat.inj_succ /= -Z.sub_1_r; last lia.
       by iApply "HΦ".
 Qed.
 
 Lemma lsplit_at_spec xs n :
   {{{ True }}}
-    lsplit_at (encode (xs)) #n
-  {{{ RET encode (encode (take (Z.to_nat n) xs),
-          encode (drop (Z.to_nat n) xs)); True }}}.
+    lsplit_at (val_encode (xs)) #n
+  {{{ RET val_encode (val_encode (take (Z.to_nat n) xs),
+          val_encode (drop (Z.to_nat n) xs)); True }}}.
 Proof.
   iIntros (Φ _) "HΦ".
   wp_lam.
@@ -269,28 +260,18 @@ Proof.
   by iApply "HΦ".
 Qed.
 
-Lemma take_drop xs n :
-  take n xs ++ drop n xs = xs.
-Proof.
-  revert n.
-  induction xs; intros n.
-  - by destruct n.
-  - destruct n=> //.
-    simpl. f_equiv. apply IHxs.
-Qed.
-
 Lemma lsplit_spec xs :
-  {{{ True }}} lsplit (encode xs) {{{ ys zs, RET (encode ys, encode zs);
-                                           ⌜ys++zs = xs⌝ }}}.
+  {{{ True }}}
+    lsplit (val_encode xs)
+  {{{ ys zs, RET (val_encode ys, val_encode zs); ⌜ ys++zs = xs ⌝ }}}.
 Proof.
   iIntros (Φ _) "HΦ".
   wp_lam.
   wp_apply (llength_spec)=>//; iIntros (_).
   wp_apply (lsplit_at_spec)=>//; iIntros (_).
   wp_pures.
-  iApply ("HΦ").
+  iApply "HΦ".
   iPureIntro.
   apply take_drop.
 Qed.
-
 End lists.

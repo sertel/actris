@@ -1,13 +1,9 @@
-From iris.proofmode Require Import tactics.
-From iris.program_logic Require Export weakestpre.
-From iris.heap_lang Require Export lang.
-From iris.heap_lang Require Import proofmode notation.
-From iris.heap_lang.lib Require Import spin_lock.
-From iris.algebra Require Import list auth excl.
-From iris.base_logic Require Import invariants.
-From osiris.base_logic Require Import auth_excl.
 From osiris.proto Require Export proto_def.
 From osiris.proto Require Export channel.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Import proofmode notation.
+From iris.algebra Require Import list auth excl.
+From osiris.utils Require Import auth_excl.
 
 Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;
