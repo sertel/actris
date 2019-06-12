@@ -21,7 +21,7 @@ Arguments TEnd {_ _}.
 Arguments TSR {_ _} _ _ _.
 Instance: Params (@TSR) 3.
 
-Instance stype_inhabited V A : Inhabited (proto V A) := populate TEnd.
+Instance proto_inhabited V A : Inhabited (proto V A) := populate TEnd.
 
 CoFixpoint dual_proto {V A} (prot : proto V A) : proto V A :=
   match prot with
