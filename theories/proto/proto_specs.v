@@ -20,7 +20,7 @@ Fixpoint prot_eval `{!logrelG val Σ} (vs : list val) (prot1 prot2 : proto val (
   match vs with
   | [] => prot1 ≡ dual_proto prot2
   | v::vs => match prot2 with
-             | TSR Receive P prot2  => P v ∗ ▷ prot_eval vs prot1 (prot2 v)
+             | TSR Receive Φ prot2  => Φ v ∗ ▷ prot_eval vs prot1 (prot2 v)
              | _ => False
              end
   end%I.
@@ -67,7 +67,7 @@ Section proto.
   Global Instance prot_eval_ne : NonExpansive2 (prot_eval vs).
   Proof.
     induction vs as [|v vs IH];
-      destruct 2 as [n|[] P1 P2 prot1 prot2|n [] P1 P2 prot1 prot2]=> //=.
+      destruct 2 as [n|[] Φ1 Φ2 prot1 prot2|n [] Φ1 Φ2 prot1 prot2]=> //=.
     - by repeat f_equiv.
     - f_equiv. done. f_equiv. by constructor.
     - f_equiv. done. f_equiv. by constructor.
@@ -114,24 +114,24 @@ Section proto.
     by rewrite own_op.
   Qed.
 
-  Lemma prot_eval_send (P : val →iProp Σ) prot vs v protr :
-    P v -∗ prot_eval vs (<!> @ P, prot) protr -∗ prot_eval (vs ++ [v]) (prot v) protr.
+  Lemma prot_eval_send (Φ : val → iProp Σ) prot vs v protr :
+    Φ v -∗ prot_eval vs (<!> @ Φ, prot) protr -∗ prot_eval (vs ++ [v]) (prot v) protr.
   Proof.
-    iIntros "HP".
+    iIntros "HΦ".
     iRevert (protr).
     iInduction vs as [|v' vs] "IH"; iIntros (protr) "Heval".
     - iDestruct (dual_proto_flip with "Heval") as "Heval".
       iRewrite -"Heval"; simpl.
       rewrite dual_proto_involutive.
       by iFrame.
-    - destruct protr as [|[] P' protr]=> //=.
+    - destruct protr as [|[] Φ' protr]=> //=.
       iDestruct "Heval" as "[$ Heval]".
-      by iApply ("IH" with "HP").
+      by iApply ("IH" with "HΦ").
   Qed.
 
-  Lemma prot_eval_recv (P : val → iProp Σ) prot1 l prot2 v :
-     prot_eval (v :: l) prot1 (<?> @ P, prot2) -∗ ▷ prot_eval l prot1 (prot2 v) ∗ P v.
-  Proof. iDestruct 1 as "[HP Heval]". iFrame. Qed.
+  Lemma prot_eval_recv (Φ : val → iProp Σ) prot1 l prot2 v :
+     prot_eval (v :: l) prot1 (<?> @ Φ, prot2) -∗ ▷ prot_eval l prot1 (prot2 v) ∗ Φ v.
+  Proof. iDestruct 1 as "[HΦ Heval]". iFrame. Qed.
 
   Lemma new_chan_vs prot E c cγ :
     is_chan N cγ c ∗
@@ -175,11 +175,11 @@ Section proto.
     by iFrame.
   Qed.
 
-  Lemma send_vs c γ s (P : val → iProp Σ) prot E :
+  Lemma send_vs c γ s (Φ : val → iProp Σ) prot E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Send P prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
+    ⟦ c @ s : <!> @ Φ, prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
       chan_own (prot_c_name γ) s vs ∗
-      ▷ ∀ v, P v -∗
+      ▷ ∀ v, Φ v -∗
              chan_own (prot_c_name γ) s (vs ++ [v]) ={E∖↑N,E}=∗
              ⟦ c @ s : prot v ⟧{N,γ}.
   Proof.
@@ -188,7 +188,7 @@ Section proto.
     iModIntro.
     destruct s.
     - iExists _.
-      iIntros "{$Hclf} !>" (v) "HP Hclf".
+      iIntros "{$Hclf} !>" (v) "HΦ Hclf".
       iRename "Hstf" into "Hstlf".
       iDestruct (prot_excl_eq with "Hstla Hstlf") as "#Heq".
       iMod (prot_excl_update _ _ _ _ (prot v) with "Hstla Hstlf") as "[Hstla Hstlf]".
@@ -198,14 +198,14 @@ Section proto.
         iLeft.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]".
         - iSplit=> //.
-          iApply (prot_eval_send with "HP").
+          iApply (prot_eval_send with "HΦ").
           by iRewrite "Heq" in "Heval".
         - iRewrite "Heq" in "Heval". destruct r as [|vr r]=> //=.
           iSplit; first done.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_proto_involutive. }
+          iRewrite "Heval". simpl. iFrame "HΦ". by rewrite dual_proto_involutive. }
       iModIntro. iFrame. auto.
     - iExists _.
-      iIntros "{$Hcrf} !>" (v) "HP Hcrf".
+      iIntros "{$Hcrf} !>" (v) "HΦ Hcrf".
       iRename "Hstf" into "Hstrf".
       iDestruct (prot_excl_eq with "Hstra Hstrf") as "#Heq".
       iMod (prot_excl_update _ _ _ _ (prot v) with "Hstra Hstrf") as "[Hstra Hstrf]".
@@ -216,38 +216,38 @@ Section proto.
         iDestruct "Hinv'" as "[[-> Heval]|[-> Heval]]".
         - iRewrite "Heq" in "Heval". destruct l as [|vl l]=> //.
           iSplit; first done. simpl.
-          iRewrite "Heval". simpl. iFrame "HP". by rewrite dual_proto_involutive.
+          iRewrite "Heval". simpl. iFrame "HΦ". by rewrite dual_proto_involutive.
         - iSplit=> //.
-          iApply (prot_eval_send with "HP").
+          iApply (prot_eval_send with "HΦ").
           by iRewrite "Heq" in "Heval". }
       iModIntro. iFrame. auto.
   Qed.
 
-  Lemma send_st_spec prot γ c s (P : val → iProp Σ) v :
-    {{{ P v ∗ ⟦ c @ s : <!> @ P , prot ⟧{N,γ} }}}
+  Lemma send_st_spec prot γ c s (Φ : val → iProp Σ) v :
+    {{{ Φ v ∗ ⟦ c @ s : <!> @ Φ, prot ⟧{N,γ} }}}
       send c #s v
     {{{ RET #(); ⟦ c @ s : prot v ⟧{N,γ} }}}.
   Proof.
-    iIntros (Φ) "[HP Hsend] HΦ".
+    iIntros (Ψ) "[HΦ Hsend] HΨ".
     iApply (send_spec with "[#]").
     { iDestruct "Hsend" as "[? [$ ?]]". }
     iMod (send_vs with "Hsend") as (vs) "[Hch H]"; first done.
     iModIntro. iExists vs. iFrame "Hch".
-    iIntros "!> Hupd". iApply "HΦ".
-    iApply ("H" $! v with "HP"). by destruct s.
+    iIntros "!> Hupd". iApply "HΨ".
+    iApply ("H" $! v with "HΦ"). by destruct s.
   Qed.
 
-  Lemma try_recv_vs c γ s (P : val → iProp Σ) prot E :
+  Lemma try_recv_vs c γ s (Φ : val → iProp Σ) prot E :
     ↑N ⊆ E →
-    ⟦ c @ s : TSR Receive P prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
+    ⟦ c @ s : TSR Receive Φ prot ⟧{N,γ} ={E,E∖↑N}=∗ ∃ vs,
       chan_own (prot_c_name γ) (dual_side s) vs ∗
       ▷ ((⌜vs = []⌝ -∗
            chan_own (prot_c_name γ) (dual_side s) vs ={E∖↑N,E}=∗
-           ⟦ c @ s : TSR Receive P prot ⟧{N,γ}) ∧
+           ⟦ c @ s : <?> @ Φ, prot ⟧{N,γ}) ∧
          (∀ v vs',
            ⌜vs = v :: vs'⌝ -∗
            chan_own (prot_c_name γ) (dual_side s) vs' ={E∖↑N,E}=∗
-           ⟦ c @ s : (prot v) ⟧{N,γ} ∗ ▷ P v)).
+           ⟦ c @ s : prot v ⟧{N,γ} ∗ ▷ Φ v)).
   Proof.
     iIntros (Hin) "[Hstf #[Hcctx Hinv]]".
     iInv N as (l r protl protr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
@@ -295,13 +295,13 @@ Section proto.
         iNext. by iRewrite -("HPeq" $! v).
   Qed.
 
-  Lemma try_recv_st_spec prot γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : <?> @ P , prot ⟧{N,γ} }}}
+  Lemma try_recv_st_spec prot γ c s (Φ : val → iProp Σ) :
+    {{{ ⟦ c @ s : <?> @ Φ, prot ⟧{N,γ} }}}
       try_recv c #s
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : <?> @ P, prot ⟧{N,γ}) ∨
-                  (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : prot w ⟧{N,γ} ∗ ▷ P w)}}}.
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ ⟦ c @ s : <?> @ Φ, prot ⟧{N,γ}) ∨
+                  (∃ w, ⌜v = SOMEV w⌝ ∧ ⟦ c @ s : prot w ⟧{N,γ} ∗ ▷ Φ w)}}}.
   Proof.
-    iIntros (Φ) "Hrecv HΦ".
+    iIntros (Ψ) "Hrecv HΨ".
     iApply (try_recv_spec with "[#]").
     { iDestruct "Hrecv" as "[? [$ ?]]". }
     iMod (try_recv_vs with "Hrecv") as (vs) "[Hch H]"; first done.
@@ -312,27 +312,27 @@ Section proto.
       iDestruct "H" as "[H _]".
       iMod ("H" $!Hvs with "Hown") as "H".
       iModIntro.
-      iApply "HΦ"=> //.
+      iApply "HΨ"=> //.
       eauto with iFrame.
     - iIntros (v vs' Hvs) "Hown".
       iDestruct "H" as "[_ H]".
       iMod ("H" $!v vs' Hvs with "Hown") as "H".
       iModIntro.
-      iApply "HΦ"; eauto with iFrame.
+      iApply "HΨ"; eauto with iFrame.
   Qed.
 
-  Lemma recv_st_spec prot γ c s (P : val → iProp Σ) :
-    {{{ ⟦ c @ s : <?> @ P ,  prot ⟧{N,γ} }}}
+  Lemma recv_st_spec prot γ c s (Φ : val → iProp Σ) :
+    {{{ ⟦ c @ s : <?> @ Φ,  prot ⟧{N,γ} }}}
       recv c #s
-    {{{ v, RET v; ⟦ c @ s : prot v ⟧{N,γ} ∗ P v }}}.
+    {{{ v, RET v; ⟦ c @ s : prot v ⟧{N,γ} ∗ Φ v }}}.
   Proof.
-    iIntros (Φ) "Hrecv HΦ".
+    iIntros (Ψ) "Hrecv HΨ".
     iLöb as "IH". wp_rec.
     wp_apply (try_recv_st_spec with "Hrecv").
     iIntros (v) "H".
     iDestruct "H" as "[[-> H]| H]".
     - wp_pures. by iApply ("IH" with "[H]").
-    - iDestruct "H" as (w ->) "[H HP]".
-      wp_pures. iApply "HΦ". iFrame.
+    - iDestruct "H" as (w ->) "[H HΦ]".
+      wp_pures. iApply "HΨ". iFrame.
   Qed.
 End proto. 
