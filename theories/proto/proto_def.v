@@ -10,16 +10,16 @@ Definition dual_action (a : action) : action :=
 Instance dual_action_involutive : Involutive (=) dual_action.
 Proof. by intros []. Qed.
 
-CoInductive proto (V A : Type) :=
+CoInductive proto (V PROP : Type) :=
   | TEnd
-  | TSR (a : action) (P : V → A) (prot : V → proto V A).
+  | TSR (a : action) (P : V → PROP) (prot : V → proto V PROP).
 Arguments TEnd {_ _}.
 Arguments TSR {_ _} _ _ _.
 Instance: Params (@TSR) 3.
 
-Instance proto_inhabited V A : Inhabited (proto V A) := populate TEnd.
+Instance proto_inhabited V PROP : Inhabited (proto V PROP) := populate TEnd.
 
-CoFixpoint dual_proto {V A} (prot : proto V A) : proto V A :=
+CoFixpoint dual_proto {V PROP} (prot : proto V PROP) : proto V PROP :=
   match prot with
   | TEnd => TEnd
   | TSR a P prot => TSR (dual_action a) P (λ v, dual_proto (prot v))
@@ -46,9 +46,9 @@ Notation "<?> @ P , prot" := (<?> x @ P x, prot x)%proto
 
 Section proto_ofe.
   Context {V : Type}.
-  Context {A : ofeT}.
+  Context {PROP : ofeT}.
 
-  CoInductive proto_equiv : Equiv (proto V A) :=
+  CoInductive proto_equiv : Equiv (proto V PROP) :=
     | TEnd_equiv : TEnd ≡ TEnd
     | TSR_equiv a P1 P2 prot1 prot2 :
        pointwise_relation V (≡) P1 P2 →
@@ -56,7 +56,7 @@ Section proto_ofe.
        TSR a P1 prot1 ≡ TSR a P2 prot2.
   Existing Instance proto_equiv.
 
-  CoInductive proto_dist : Dist (proto V A) :=
+  CoInductive proto_dist : Dist (proto V PROP) :=
     | TEnd_dist n : TEnd ≡{n}≡ TEnd
     | TSR_dist_0 a P1 P2 prot1 prot2 :
        pointwise_relation V (dist 0) P1 P2 →
@@ -73,7 +73,7 @@ Section proto_ofe.
     TSR a P1 prot1 ≡{n}≡ TSR a P2 prot2.
   Proof. destruct n; by constructor. Defined.
 
-  Definition proto_ofe_mixin : OfeMixin (proto V A).
+  Definition proto_ofe_mixin : OfeMixin (proto V PROP).
   Proof.
     split.
     - intros prot1 prot2. split.
@@ -92,9 +92,9 @@ Section proto_ofe.
       + revert n. cofix IH; destruct 1; inversion 1; constructor=> v; etrans; eauto.
     - cofix IH=> -[|n]; inversion 1; constructor=> v; try apply dist_S; auto.
   Qed.
-  Canonical Structure protoC : ofeT := OfeT (proto V A) proto_ofe_mixin.
+  Canonical Structure protoC : ofeT := OfeT (proto V PROP) proto_ofe_mixin.
 
-  Definition proto_head (d : V -c> A) (prot : proto V A) : V -c> A :=
+  Definition proto_head (d : V -c> PROP) (prot : proto V PROP) : V -c> PROP :=
     match prot with TEnd => d | TSR a P prot => P end.
   Definition proto_tail (v : V) (prot : protoC) : later protoC :=
     match prot with TEnd => Next TEnd | TSR a P prot => Next (prot v) end.
@@ -103,7 +103,7 @@ Section proto_ofe.
   Global Instance proto_tail_ne v : NonExpansive (proto_tail v).
   Proof. destruct 1; naive_solver. Qed.
 
-  Definition proto_force (prot : proto V A) : proto V A :=
+  Definition proto_force (prot : proto V PROP) : proto V PROP :=
     match prot with
     | TEnd => TEnd
     | TSR a P prot => TSR a P prot
@@ -111,15 +111,15 @@ Section proto_ofe.
   Lemma proto_force_eq prot : proto_force prot = prot.
   Proof. by destruct prot. Defined.
 
-  CoFixpoint proto_compl_go `{!Cofe A} (c : chain protoC) : protoC :=
+  CoFixpoint proto_compl_go `{!Cofe PROP} (c : chain protoC) : protoC :=
     match c O with
     | TEnd => TEnd
     | TSR a P prot => TSR a
-       (compl (chain_map (proto_head P) c) : V → A)
+       (compl (chain_map (proto_head P) c) : V → PROP)
        (λ v, proto_compl_go (later_chain (chain_map (proto_tail v) c)))
     end.
 
-  Global Program Instance proto_cofe `{!Cofe A} : Cofe protoC :=
+  Global Program Instance proto_cofe `{!Cofe PROP} : Cofe protoC :=
     {| compl c := proto_compl_go c |}.
   Next Obligation.
     intros ? n c; rewrite /compl. revert c n. cofix IH=> c n.
@@ -208,25 +208,27 @@ End proto_ofe.
 
 Arguments protoC : clear implicits.
 
-CoFixpoint proto_map {V A B} (f : A → B) (prot : proto V A) : proto V B :=
+CoFixpoint proto_map {V PROP PROP'} (f : PROP → PROP')
+    (prot : proto V PROP) : proto V PROP' :=
   match prot with
   | TEnd => TEnd
   | TSR a P prot => TSR a (λ v, f (P v)) (λ v, proto_map f (prot v))
   end.
-Lemma proto_map_ext_ne {V A} {B : ofeT} (f g : A → B) (prot : proto V A) n :
+Lemma proto_map_ext_ne {V PROP} {PROP' : ofeT}
+    (f g : PROP → PROP') (prot : proto V PROP) n :
   (∀ x, f x ≡{n}≡ g x) → proto_map f prot ≡{n}≡ proto_map g prot.
 Proof.
   revert n prot. cofix IH=> n prot Hf.
   rewrite -(proto_force_eq (proto_map f prot)) -(proto_force_eq (proto_map g prot)).
   destruct prot as [|a P prot], n as [|n]; constructor=> v //. apply IH; auto using dist_S.
 Qed.
-Lemma proto_map_ext {V A} {B : ofeT} (f g : A → B) (prot : proto V A) :
+Lemma proto_map_ext {V PROP} {B : ofeT} (f g : PROP → B) (prot : proto V PROP) :
   (∀ x, f x ≡ g x) → proto_map f prot ≡ proto_map g prot.
 Proof.
   intros Hf. apply equiv_dist=> n. apply proto_map_ext_ne=> v.
   apply equiv_dist, Hf.
 Qed.
-Instance proto_map_ne {V : Type} {A B : ofeT} (f : A → B) n :
+Instance proto_map_ne {V} {PROP PROP' : ofeT} (f : PROP → PROP') n :
   (∀ n, Proper (dist n ==> dist n) f) →
   Proper (dist n ==> dist n) (@proto_map V _ _ f).
 Proof.
@@ -234,13 +236,14 @@ Proof.
   rewrite -(proto_force_eq (proto_map _ prot1)) -(proto_force_eq (proto_map _ prot2)).
   destruct Hst; constructor=> v; apply Hf || apply IH; auto.
 Qed.
-Lemma proto_fmap_id {V : Type} {A : ofeT} (prot : proto V A) :
+Lemma proto_fmap_id {V} {PROP : ofeT} (prot : proto V PROP) :
   proto_map id prot ≡ prot.
 Proof.
   revert prot. cofix IH=> prot. rewrite -(proto_force_eq (proto_map _ _)).
   destruct prot; constructor=> v; auto.
 Qed.
-Lemma proto_fmap_compose {V : Type} {A B C : ofeT} (f : A → B) (g : B → C) prot :
+Lemma proto_fmap_compose {V} {PROP PROP' PROP'' : ofeT}
+    (f : PROP → PROP') (g : PROP' → PROP'') prot :
   proto_map (g ∘ f) prot ≡ proto_map g (@proto_map V _ _ f prot).
 Proof.
   revert prot. cofix IH=> prot.
@@ -248,26 +251,27 @@ Proof.
   destruct prot; constructor=> v; auto.
 Qed.
 
-Definition protoC_map {V A B} (f : A -n> B) : protoC V A -n> protoC V B :=
-  CofeMor (proto_map f : protoC V A → protoC V B).
-Instance protoC_map_ne {V} A B : NonExpansive (@protoC_map V A B).
+Definition protoC_map {V PROP PROP'}
+    (f : PROP -n> PROP') : protoC V PROP -n> protoC V PROP' :=
+  CofeMor (proto_map f : protoC V PROP → protoC V PROP').
+Instance protoC_map_ne {V} PROP B : NonExpansive (@protoC_map V PROP B).
 Proof. intros n f g ? prot. by apply proto_map_ext_ne. Qed.
 
 Program Definition protoCF {V} (F : cFunctor) : cFunctor := {|
-  cFunctor_car A _ B _ := protoC V (cFunctor_car F A _ B _);
-  cFunctor_map A1 _ A2 _ B1 _ B2 _ fg := protoC_map (cFunctor_map F fg)
+  cFunctor_car PROP _ B _ := protoC V (cFunctor_car F PROP _ B _);
+  cFunctor_map PROP1 _ PROP2 _ PROP1' _ PROP2' _ fg := protoC_map (cFunctor_map F fg)
 |}.
 Next Obligation. done. Qed.
 Next Obligation.
-  by intros V F A1 ? A2 ? B1 ? B2 ? n f g Hfg;
-  apply protoC_map_ne, cFunctor_ne.
+  intros V F PROP1 ? PROP2 ? PROP1' ? PROP2' ? n f g Hfg.
+  by apply protoC_map_ne, cFunctor_ne.
 Qed.
 Next Obligation.
-  intros V F A ? B ? x. rewrite /= -{2}(proto_fmap_id x).
+  intros V F PROP ? PROP' ? x. rewrite /= -{2}(proto_fmap_id x).
   apply proto_map_ext=>y. apply cFunctor_id.
 Qed.
 Next Obligation.
-  intros V F A1 ? A2 ? A3 ? B1 ? B2 ? B3 ? f g f' g' x.
+  intros V F PROP1 ? PROP2 ? PROP3 ? PROP1' ? PROP2' ? PROP3' ? f g f' g' x.
   rewrite /= -proto_fmap_compose.
   apply proto_map_ext=>y; apply cFunctor_compose.
 Qed.
@@ -275,8 +279,8 @@ Qed.
 Instance protoCF_contractive {V} F :
   cFunctorContractive F → cFunctorContractive (@protoCF V F).
 Proof.
-  by intros ? A1 ? A2 ? B1 ? B2 ? n f g Hfg;
-  apply protoC_map_ne, cFunctor_contractive.
+  intros ? PROP1 ? PROP2 ? PROP1' ? PROP2' ? n f g Hfg.
+  by apply protoC_map_ne, cFunctor_contractive.
 Qed.
 
 Class IsDualAction (a1 a2 : action) :=
@@ -289,19 +293,19 @@ Instance is_dual_action_Receive : IsDualAction Receive Send.
 Proof. done. Qed.
 
 Section DualProto.
-  Context {V : Type} {A : ofeT}.
+  Context {V : Type} {PROP : ofeT}.
 
-  Class IsDualProto (prot1 prot2 : proto V A) :=
+  Class IsDualProto (prot1 prot2 : proto V PROP) :=
   is_dual_proto : dual_proto prot1 ≡ prot2.
 
-  Global Instance is_dual_default (prot : proto V A) :
+  Global Instance is_dual_default (prot : proto V PROP) :
     IsDualProto prot (dual_proto prot) | 100.
   Proof. by rewrite /IsDualProto. Qed.
 
-  Global Instance is_dual_end : IsDualProto (TEnd : proto V A) TEnd.
+  Global Instance is_dual_end : IsDualProto (TEnd : proto V PROP) TEnd.
   Proof. by rewrite /IsDualProto -(proto_force_eq (dual_proto _)). Qed.
 
-  Global Instance is_dual_tsr a1 a2 P (prot1 prot2 : V → proto V A) :
+  Global Instance is_dual_tsr a1 a2 P (prot1 prot2 : V → proto V PROP) :
     IsDualAction a1 a2 →
     (∀ x, IsDualProto (prot1 x) (prot2 x)) →
     IsDualProto (TSR a1 P prot1) (TSR a2 P prot2).
