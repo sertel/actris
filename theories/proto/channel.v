@@ -55,10 +55,10 @@ Definition recv : val :=
 
 Class chanG Σ := {
   chanG_lockG :> lockG Σ;
-  chanG_authG :> auth_exclG (listC valC) Σ;
+  chanG_authG :> auth_exclG (listO valO) Σ;
 }.
 Definition chanΣ : gFunctors :=
-  #[ lockΣ; auth_exclΣ (constCF (listC valC)) ].
+  #[ lockΣ; auth_exclΣ (constOF (listO valO)) ].
 Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
 Proof. solve_inG. Qed.
 

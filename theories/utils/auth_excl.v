@@ -8,10 +8,10 @@ Class auth_exclG (A : ofeT) (Σ : gFunctors) := AuthExclG {
   exclG_authG :> inG Σ (authR (optionUR (exclR A)));
 }.
 
-Definition auth_exclΣ (F : cFunctor) `{!cFunctorContractive F} : gFunctors :=
+Definition auth_exclΣ (F : oFunctor) `{!oFunctorContractive F} : gFunctors :=
   #[GFunctor (authRF (optionURF (exclRF F)))].
 
-Instance subG_auth_exclG (F : cFunctor) `{!cFunctorContractive F} {Σ} :
+Instance subG_auth_exclG (F : oFunctor) `{!oFunctorContractive F} {Σ} :
   subG (auth_exclΣ F) Σ → auth_exclG (F (iPreProp Σ) _) Σ.
 Proof. solve_inG. Qed.
 

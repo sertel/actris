@@ -7,12 +7,12 @@ From osiris.utils Require Import auth_excl.
 
 Class logrelG A Σ := {
   logrelG_channelG :> chanG Σ;
-  logrelG_authG :> auth_exclG (laterC (protoC A (iPreProp Σ))) Σ;
+  logrelG_authG :> auth_exclG (laterO (protoO A (iPreProp Σ))) Σ;
 }.
 
 Definition logrelΣ A :=
   #[ chanΣ ; GFunctor (authRF(optionURF (exclRF
-                       (laterCF (@protoCF A idCF))))) ].
+                       (laterOF (@protoOF A idOF))))) ].
 Instance subG_chanΣ {A Σ} : subG (logrelΣ A) Σ → logrelG A Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
