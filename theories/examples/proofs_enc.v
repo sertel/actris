@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import proofmode notation.
-From osiris.proto Require Import proto_enc.
+From osiris.channel Require Import proto_channel.
 
 Definition seq_example : expr :=
   (let: "c" := new_chan #() in

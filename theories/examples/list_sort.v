@@ -1,227 +1,151 @@
 From stdpp Require Import sorting.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.proto Require Import list channel proto_enc.
+From osiris.utils Require Import list.
+From osiris.channel Require Import proto_channel.
 
-Section ListSortExample.
-  Context `{!heapG Σ, !logrelG val Σ} (N : namespace).
+Definition lmerge : val :=
+  rec: "go" "cmp" "hys" "hzs" :=
+    match: "hys" with
+      NONE => "hzs"
+    | SOME "_" =>
+      match: "hzs" with
+        NONE => "hys"
+      | SOME "_" =>
+        let: "y" := lhead "hys" in
+        let: "z" := lhead "hzs" in
+        if: ("cmp" "y" "z")
+        then lcons "y" ("go" "cmp" (ltail "hys") "hzs")
+        else lcons "z" ("go" "cmp" "hys" (ltail "hzs"))
+      end
+    end.
 
-  Section SortService.
-    Context `{ValEncDec T}.
-    Context (R : relation T) `{!Total R} `{∀ x y, Decision (R x y)}.
+Definition list_sort_service : val :=
+  rec: "go" "c" :=
+    let: "cmp" := recv "c" in
+    let: "xs" := recv "c" in
+    if: llength !"xs" ≤ #1 then
+      send "c" #() else
+    let: "ys_zs" := lsplit !"xs" in
+    let: "ys" := ref (Fst "ys_zs") in
+    let: "zs" := ref (Snd "ys_zs") in
+    let: "cy" := new_chan #() in Fork("go" (Fst "cy"));;
+    let: "cz" := new_chan #() in Fork("go" (Fst "cz"));;
+    send (Snd "cy") "cmp";;
+    send (Snd "cy") "ys";;
+    send (Snd "cz") "cmp";;
+    send (Snd "cz") "zs";;
+    recv (Snd "cy");;
+    recv (Snd "cz");;
+    "xs" <- lmerge "cmp" !"ys" !"zs";;
+    send "c" #().
 
-    Definition lsplit_ref : val :=
-      λ: "xs", let: "ys_zs" := lsplit !"xs" in
-               (ref (Fst "ys_zs"), ref (Snd ("ys_zs"))).
+Section list_sort.
+  Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
-    Lemma lsplit_ref_spec lxs (x : T) (xs : list T) :
-      {{{ lxs ↦ val_encode (x :: xs) }}}
-        lsplit_ref #lxs
-      {{{ lys lzs ys zs, RET (#lys, #lzs);
-          ⌜ x :: xs = ys ++ zs⌝ ∗
-          lxs ↦ val_encode (x :: xs) ∗
-          lys ↦ val_encode ys ∗
-          lzs ↦ val_encode zs }}}.
-    Proof.
-      iIntros (Φ) "Hhd HΦ".
-      wp_lam. wp_load. wp_apply (lsplit_spec)=> //. iIntros (ys zs <-).
-      wp_alloc lzs as "Hlzs".
-      wp_alloc lys as "Hlys".
-      wp_pures.
-      iApply "HΦ".
-      eauto 10 with iFrame.
-    Qed.
+  Definition cmp_spec {A} (I : A → val → iProp Σ)
+      (R : A → A → Prop) `{!RelDecision R} (cmp : val) : iProp Σ :=
+    (∀ x x' v v',
+      {{{ I x v ∗ I x' v' }}}
+        cmp v v'
+      {{{ RET #(bool_decide (R x x')); I x v ∗ I x' v' }}})%I.
 
-    Definition lmerge : val :=
-      rec: "go" "cmp" "hys" "hzs" :=
-        match: "hys" with
-          NONE => "hzs"
-        | SOME "_" =>
-          match: "hzs" with
-            NONE => "hys"
-          | SOME "_" =>
-            let: "y" := lhead "hys" in
-            let: "z" := lhead "hzs" in
-            if: ("cmp" "y" "z")
-            then lcons "y" ("go" "cmp" (ltail "hys") "hzs")
-            else lcons "z" ("go" "cmp" "hys" (ltail "hzs"))
-          end
-        end.
+  Definition sort_protocol : iProto Σ :=
+    (<?> ∃ A (I : A → val → iProp Σ) (R : A → A → Prop)
+         `{!RelDecision R, !TotalOrder R} (cmp : val),
+       MSG cmp {{ cmp_spec I R cmp }};
+     <?> ∃ (xs : list A) (l : loc) (vs : list val),
+       MSG #l {{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }};
+     <!> ∃ (xs' : list A) (vs' : list val),
+       MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗
+                  l ↦ val_encode vs' ∗ [∗ list] x;v ∈ xs';vs', I x v }};
+     iProto_end)%proto.
 
-    Lemma list_merge_emp1 (ys : list T) : list_merge (R) [] ys = ys.
-    Proof. induction ys; eauto. Qed.
+  Lemma lmerge_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
+      `{!RelDecision R, !TotalOrder R} (cmp : val) xs1 xs2 vs1 vs2 :
+    cmp_spec I R cmp -∗
+    {{{ ([∗ list] x;v ∈ xs1;vs1, I x v) ∗ ([∗ list] x;v ∈ xs2;vs2, I x v) }}}
+      lmerge cmp (val_encode vs1) (val_encode vs2)
+    {{{ ws, RET val_encode ws; [∗ list] x;v ∈ list_merge R xs1 xs2;ws, I x v }}}.
+  Proof.
+    iIntros "#Hcmp" (Ψ) "!> [HI1 HI2] HΨ". iLöb as "IH" forall (xs1 xs2 vs1 vs2 Ψ).
+    destruct xs1 as [|x1 xs1], vs1 as [|v1 vs1]; simpl; try done.
+    { wp_lam. wp_pures. iApply "HΨ". by rewrite list_merge_nil_l. }
+    wp_lam; wp_pures.
+    destruct xs2 as [|x2 xs2], vs2 as [|v2 vs2]; simpl; try done.
+    { wp_pures. iApply "HΨ". iFrame. }
+    wp_pures.
+    wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
+    wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
+    iDestruct "HI1" as "[HI1 HI1']"; iDestruct "HI2" as "[HI2 HI2']".
+    wp_apply ("Hcmp" with "[$HI1 $HI2]"); iIntros "[HI1 HI2]".
+    case_bool_decide; wp_pures.
+    - rewrite decide_True //.
+      wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply ("IH" $! _ (x2 :: _) with "HI1'[HI2 HI2']"); [simpl; iFrame|].
+      iIntros (ws) "HI".
+      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      iApply "HΨ". iFrame.
+    - rewrite decide_False //.
+      wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply ("IH" $! (x1 :: _) with "[HI1 HI1'] HI2'"); [simpl; iFrame|].
+      iIntros (ws) "HI".
+      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      iApply "HΨ". iFrame.
+  Qed.
 
-    Lemma list_merge_emp2 (xs : list T) : list_merge (R) xs [] = xs.
-    Proof. induction xs; eauto. Qed.
+  Lemma list_sort_service_spec c :
+    {{{ c ↣ sort_protocol @ N }}}
+      list_sort_service c
+    {{{ RET #(); c ↣ iProto_end @ N }}}.
+  Proof.
+    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
+    wp_lam.
+    wp_apply (recv_proto_spec with "Hc"); simpl.
+    iIntros (A I R ?? cmp) "/= Hc #Hcmp".
+    wp_apply (recv_proto_spec with "Hc"); simpl.
+    iIntros (xs l vs) "/= Hc [Hl HI]".
+    wp_load. wp_apply (llength_spec (A:=val) with "[//]"); iIntros (_).
+    iDestruct (big_sepL2_length with "HI") as %<-.
+    wp_op; case_bool_decide as Hlen; wp_if.
+    { assert (Sorted R xs).
+      { destruct xs as [|x1 [|x2 xs]]; simpl in *; eauto with lia. }
+      wp_apply (send_proto_spec with "Hc"); simpl.
+      iExists xs, vs; iSplit; first done. eauto 10 with iFrame. }
+    wp_load. wp_apply (lsplit_spec (A:=val) with "[//]"); iIntros (vs1 vs2 <-).
+    wp_alloc l1 as "Hl1"; wp_alloc l2 as "Hl2".
+    iDestruct (big_sepL2_app_inv_r with "HI") as (xs1 xs2 ->) "[HI1 HI2]".
+    wp_apply (new_chan_proto_spec N sort_protocol)=> //.
+    iIntros (cy1 cy2) "[Hcy1 Hcy2]".
+    wp_apply (wp_fork with "[Hcy1]").
+    { iNext. wp_apply ("IH" with "Hcy1"); auto. }
+    wp_apply (new_chan_proto_spec N sort_protocol)=> //.
+    iIntros (cz1 cz2) "[Hcz1 Hcz2]".
+    wp_apply (wp_fork with "[Hcz1]").
+    { iNext. wp_apply ("IH" with "Hcz1"); auto. }
+    wp_apply (send_proto_spec with "Hcy2"); simpl.
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} Hcy2".
+    wp_apply (send_proto_spec with "Hcy2"); simpl.
+    iExists xs1, l1, vs1. iSplit; first done. iIntros "{$Hl1 $HI1} Hcy2".
+    wp_apply (send_proto_spec with "Hcz2"); simpl.
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} Hcz2".
+    wp_apply (send_proto_spec with "Hcz2"); simpl.
+    iExists xs2, l2, vs2. iSplit; first done. iIntros "{$Hl2 $HI2} Hcz2".
+    wp_apply (recv_proto_spec with "Hcy2"); simpl.
+    iIntros (ys1 ws1) "_". iDestruct 1 as (??) "[Hl1 HI1]".
+    wp_apply (recv_proto_spec with "Hcz2"); simpl.
+    iIntros (ys2 ws2) "_". iDestruct 1 as (??) "[Hl2 HI2]".
+    do 2 wp_load.
+    wp_apply (lmerge_spec with "Hcmp [$HI1 $HI2]"); iIntros (ws) "HI".
+    wp_store.
+    wp_apply (send_proto_spec with "Hc"); simpl.
+    iExists (list_merge R ys1 ys2), ws.
+    iSplit; first done. iFrame. iSplit; iPureIntro.
+    - by apply (Sorted_list_merge _).
+    - rewrite (merge_Permutation R). by f_equiv.
+  Qed.
+End list_sort.
 
-    Definition cmp_spec (cmp : val) : iProp Σ :=
-      (∀ x y, {{{ True }}}
-                cmp (val_encode x) (val_encode y)
-              {{{ RET val_encode (bool_decide (R x y)); True}}})%I.
-
-    Lemma lmerge_spec  (cmp : val) (ys zs : list T) :
-      cmp_spec cmp -∗
-      {{{ True }}}
-        lmerge cmp (val_encode ys) (val_encode zs)
-      {{{ RET val_encode (list_merge R ys zs); True }}}.
-    Proof.
-      revert ys zs.
-      iLöb as "IH".
-      iIntros (ys zs).
-      iIntros "#Hcmp_spec".
-      iIntros (Φ).
-      iModIntro.
-      iIntros (_) "HΦ".
-      wp_lam.
-      destruct ys as [|y ys].
-      { wp_pures. rewrite list_merge_emp1. by iApply ("HΦ"). }
-      destruct zs as [|z zs].
-      { wp_pures. rewrite list_merge_emp2. by iApply ("HΦ"). }
-      wp_apply (lhead_spec)=> //; iIntros "_".
-      wp_apply (lhead_spec)=> //; iIntros "_".
-      wp_apply ("Hcmp_spec")=> //; iIntros "_".
-      rewrite list_merge_cons.
-      destruct (decide (R y z)).
-      - rewrite bool_decide_true=> //.
-        wp_apply (ltail_spec)=> //; iIntros (_).
-        wp_apply ("IH")=> //; iIntros (_).
-        wp_apply (lcons_spec)=> //.
-      - rewrite bool_decide_false=> //.
-        wp_apply (ltail_spec)=> //; iIntros (_).
-        wp_apply ("IH")=> //; iIntros (_).
-        wp_apply (lcons_spec)=> //.
-    Qed.
-
-    Definition lmerge_ref : val :=
-      λ: "cmp" "lxs" "hys" "hzs",
-      "lxs" <- lmerge "cmp" "hys" "hzs".
-
-    Lemma lmerge_ref_spec (cmp : val) ldx tmp ys zs :
-      cmp_spec cmp -∗
-      {{{ ldx ↦ tmp }}}
-        lmerge_ref cmp #ldx (val_encode ys) (val_encode zs)
-      {{{ RET #(); ldx ↦ val_encode (list_merge R ys zs) }}}.
-    Proof.
-      iIntros "#Hcmp_spec".
-      iIntros (Φ).
-      iModIntro.
-      iIntros "Hldx HΦ".
-      wp_lam.
-      wp_apply (lmerge_spec cmp ys zs with "Hcmp_spec")=> //.
-      iIntros (_).
-      wp_store.
-      by iApply ("HΦ").
-    Qed.
-
-    Definition list_sort_service : val :=
-      rec: "go" "c" :=
-        let: "cmp" := recv "c" #Right in
-        let: "xs" := recv "c" #Right in
-        if: llength (!"xs") ≤ #1
-        then send "c" #Right "xs"
-        else let: "ys_zs" := lsplit_ref "xs" in
-             let: "ys" := Fst "ys_zs" in
-             let: "zs" := Snd "ys_zs" in
-             let: "cy" := new_chan #() in Fork("go" "cy");;
-             let: "cz" := new_chan #() in Fork("go" "cz");;
-             send "cy" #Left "cmp";;
-             send "cy" #Left "ys";;
-             send "cz" #Left "cmp";;
-             send "cz" #Left "zs";;
-             let: "ys" := recv "cy" #Left in
-             let: "zs" := recv "cz" #Left in
-             lmerge_ref "cmp" "xs" !"ys" !"zs";;
-             send "c" #Right "xs".
-
-    Definition sort_protocol xs : proto val (iProp Σ) :=
-      (<?> cmp @ cmp_spec cmp,
-       <?> l @ l ↦ val_encode xs,
-       <!> l' @ ⌜l = l'⌝ ∗
-                (∃ ys : list T,
-                    l' ↦ val_encode ys ∗
-                    ⌜Sorted R ys⌝ ∗
-                    ⌜Permutation ys xs⌝),
-       TEnd).
-
-    Lemma list_sort_service_spec γ c xs :
-      {{{ ⟦ c @ Right : sort_protocol xs ⟧{N,γ} }}}
-        list_sort_service c
-      {{{ RET #(); ⟦ c @ Right : TEnd ⟧{N,γ} }}}.
-    Proof.
-      revert γ c xs.
-      iLöb as "IH".
-      iIntros (γ c xs Φ) "Hstr HΦ".
-      wp_lam.
-      wp_apply (recv_st_spec (A:=val) with "Hstr").
-      iIntros (cmp) "[Hstr #Hcmp_spec]".
-      wp_pures.
-      wp_apply (recv_st_spec (A:=loc) with "Hstr").
-      iIntros (v) "[Hstr HP]".
-      wp_load.
-      destruct xs.
-      {
-        wp_apply (llength_spec)=> //; iIntros (_).
-        wp_apply (send_st_spec (A:=loc) with "[HP Hstr]")=> //. iFrame.
-        eauto 10 with iFrame.
-      }
-      destruct xs.
-      {
-        wp_apply (llength_spec)=> //; iIntros (_).
-        wp_apply (send_st_spec (A:=loc) with "[HP Hstr]")=> //. iFrame.
-        eauto 10 with iFrame.
-      }
-      wp_apply (llength_spec)=> //; iIntros (_).
-      wp_pures.
-      assert (bool_decide (S (S (length xs)) ≤ 1) = false) as HSS.
-      { apply bool_decide_false. lia. }
-      rewrite HSS.
-      wp_apply (lsplit_ref_spec with "HP");
-        iIntros (hdy hdz ys zs) "(Heq & Hhdx & Hhdy & Hhdz)".
-      iDestruct "Heq" as %->.
-      wp_apply (new_chan_st_spec N _ (sort_protocol ys))=> //.
-      iIntros (cy γy) "[Hstly Hstry]".
-      wp_apply (wp_fork with "[Hstry]").
-      { iNext. iApply ("IH" with "Hstry"). iNext. by iIntros "Hstry". }
-      wp_apply (new_chan_st_spec N _ (sort_protocol zs))=> //.
-      iIntros (cz γz) "[Hstlz Hstrz]".
-      wp_apply (wp_fork with "[Hstrz]").
-      { iNext. iApply ("IH" with "Hstrz"). iNext. by iIntros "Hstrz". }
-      wp_apply (send_st_spec (A:=val) with "[Hstly]"). iFrame. done.
-      iIntros "Hstly".
-      wp_apply (send_st_spec (A:=loc) with "[Hhdy Hstly]"). iFrame.
-      iIntros "Hstly".
-      wp_apply (send_st_spec (A:=val) with "[Hstlz]"). iFrame. done.
-      iIntros "Hstlz".
-      wp_apply (send_st_spec (A:=loc) with "[Hhdz Hstlz]"). iFrame.
-      iIntros "Hstlz".
-      wp_apply (recv_st_spec (A:=loc) with "Hstly").
-      iIntros (ly') "[Hstly Hys']".
-      iDestruct "Hys'" as (<- ys') "(Hys' & Hys'_sorted_of)".
-      iDestruct "Hys'_sorted_of" as %[Hys'_sorted Hys'_perm].
-      wp_apply (recv_st_spec (A:=loc) with "Hstlz").
-      iIntros (lz') "[Hstlz Hzs']".
-      iDestruct "Hzs'" as (<- zs') "(Hzs' & Hzs'_sorted_of)".
-      iDestruct "Hzs'_sorted_of" as %[Hzs'_sorted Hzs'_perm].
-      wp_load.
-      wp_load.
-      wp_apply (lmerge_ref_spec with "Hcmp_spec Hhdx").
-      iIntros "Hhdx".
-      wp_apply (send_st_spec (A:=loc) with "[Hstr Hhdx]").
-      {
-        iFrame.
-        iSplit=> //.
-        iExists (list_merge R ys' zs').
-        iSplit=> //.
-        iPureIntro.
-        split.
-        - apply Sorted_list_merge=> //.
-        - rewrite merge_Permutation.
-            by apply Permutation_app.
-      }
-      iIntros "Hstr".
-      by iApply "HΦ".
-    Qed.
-  End SortService.
-
+(*
   Definition compare_vals : val :=
     λ: "x" "y", "x" ≤ "y".
 
@@ -266,4 +190,4 @@ Section ListSortExample.
      iDestruct "HP" as (<- ys) "[Hys Hys_sorted_of]".
      iApply "HΦ". iFrame.
   Qed.
-End ListSortExample.
+*)

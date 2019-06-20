@@ -1,6 +1,6 @@
 From iris.heap_lang Require Export proofmode notation.
 From iris.heap_lang Require Import assert.
-From osiris Require Export encodable.
+From osiris.utils Require Export encodable.
 
 (** Immutable ML-style functional lists *)
 Instance list_val_enc `{ValEnc A} : ValEnc (list A) :=
@@ -148,6 +148,7 @@ Proof.
   by wp_apply (lcons_spec with "[//]").
 Qed.
 
+(*
 Lemma llist_member_spec `{EqDecision A} (xs : list A) (x : A) :
   {{{ True }}}
     llist_member (val_encode x) (val_encode xs)
@@ -164,6 +165,7 @@ Proof.
   - by rewrite bool_decide_true; last by right.
   - by rewrite bool_decide_false ?elem_of_cons; last naive_solver.
 Qed.
+*)
 
 Lemma lreplicate_spec i x :
   {{{ True }}}

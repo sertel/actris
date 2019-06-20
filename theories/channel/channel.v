@@ -1,44 +1,34 @@
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
-From osiris.utils Require Import auth_excl.
-From osiris.proto Require Export side.
-From osiris.proto Require Import list.
+From osiris.utils Require Import auth_excl list.
 Set Default Proof Using "Type".
+
+Inductive side := Left | Right.
+Instance side_inhabited : Inhabited side := populate Left.
+Definition side_elim {A} (s : side) (l r : A) : A :=
+  match s with Left => l | Right => r end.
 
 Definition new_chan : val :=
   λ: <>,
      let: "l" := ref (lnil #()) in
      let: "r" := ref (lnil #()) in
      let: "lk" := newlock #() in
-     (("l","r"),"lk").
-
-Coercion side_to_bool (s : side) : bool :=
-  match s with Left => true | Right => false end.
-Arguments side_to_bool : simpl never.
-Definition side_elim {A} (s : side) (l r : A) : A :=
-  match s with Left => l | Right => r end.
-
-Definition get_side : val := λ: "c" "s",
-  (if: "s" = #Left then Fst (Fst "c") else Snd (Fst "c"))%E.
-Definition get_lock : val := λ: "c", Snd "c".
-
-Definition get_dual_side : val := λ: "s",
-  (if: "s" = #Left then #Right else #Left)%E.
+     ((("l","r"),"lk"), (("r","l"),"lk")).
 
 Definition send : val :=
-  λ: "c" "s" "v",
-    let: "lk" := get_lock "c" in
+  λ: "c" "v",
+    let: "lk" := Snd "c" in
     acquire "lk";;
-    let: "l" := get_side "c" "s" in
+    let: "l" := Fst (Fst "c") in
     "l" <- lsnoc !"l" "v";;
     release "lk".
 
 Definition try_recv : val :=
-  λ: "c" "s",
-    let: "lk" := get_lock "c" in
+  λ: "c",
+    let: "lk" := Snd "c" in
     acquire "lk";;
-    let: "l" := get_side "c" (get_dual_side "s") in
+    let: "l" := Snd (Fst "c") in
     let: "ret" :=
       match: !"l" with
         SOME "p" => "l" <- Snd "p";; SOME (Fst "p")
@@ -47,10 +37,10 @@ Definition try_recv : val :=
     release "lk";; "ret".
 
 Definition recv : val :=
-  rec: "go" "c" "s" :=
-    match: try_recv "c" "s" with
+  rec: "go" "c" :=
+    match: try_recv "c" with
       SOME "p" => "p"
-    | NONE => "go" "c" "s"
+    | NONE => "go" "c"
     end.
 
 Class chanG Σ := {
@@ -80,12 +70,12 @@ Section channel.
       is_list_ref r rs ∗ own (chan_r_name γ) (● to_auth_excl rs))%I.
   Typeclasses Opaque chan_inv.
 
-  Definition is_chan (γ : chan_name) (c : val) : iProp Σ :=
+  Definition is_chan (γ : chan_name) (c1 c2 : val) : iProp Σ :=
     (∃ l r lk : val,
-      ⌜c = ((l, r), lk)%V⌝ ∧
+      ⌜ c1 = ((l, r), lk)%V ∧ c2 = ((r, l), lk)%V ⌝ ∗
       is_lock N (chan_lock_name γ) lk (chan_inv γ l r))%I.
 
-  Global Instance is_chan_persistent : Persistent (is_chan γ c).
+  Global Instance is_chan_persistent : Persistent (is_chan γ c1 c2).
   Proof. by apply _. Qed.
 
   Definition chan_own (γ : chan_name) (s : side) (vs : list val) : iProp Σ :=
@@ -94,24 +84,10 @@ Section channel.
   Global Instance chan_own_timeless γ s vs : Timeless (chan_own γ s vs).
   Proof. by apply _. Qed.
 
-  Lemma get_side_spec Φ s (l r lk : val) :
-    Φ (side_elim s l r) -∗
-    WP get_side ((l, r), lk)%V #s {{ Φ }}.
-  Proof. iIntros "?". wp_lam. by destruct s; wp_pures. Qed.
-
-  Lemma get_lock_spec Φ (l r lk : val) :
-    Φ lk -∗
-    WP get_lock ((l, r), lk)%V {{ Φ }}.
-  Proof. iIntros "?". wp_lam. by wp_pures. Qed.
-
-  Lemma dual_side_spec Φ s :
-    Φ #(dual_side s) -∗ WP get_dual_side #s {{ Φ }}.
-  Proof. iIntros "?". wp_lam. by destruct s; wp_pures. Qed.
-
   Lemma new_chan_spec :
     {{{ True }}}
       new_chan #()
-    {{{ c γ, RET c; is_chan γ c ∗ chan_own γ Left [] ∗ chan_own γ Right [] }}}.
+    {{{ c1 c2 γ, RET (c1,c2); is_chan γ c1 c2 ∗ chan_own γ Left [] ∗ chan_own γ Right [] }}}.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_own.
     wp_lam.
@@ -131,7 +107,7 @@ Section channel.
                 with "[Hl Hr Hls Hrs]").
     { eauto 10 with iFrame. }
     iIntros (lk γlk) "#Hlk". wp_pures.
-    iApply ("HΦ" $! _ (Chan_name γlk lsγ rsγ)); simpl.
+    iApply ("HΦ" $! _ _ (Chan_name γlk lsγ rsγ)); simpl.
     rewrite /chan_inv /=. eauto 20 with iFrame.
   Qed.
 
@@ -146,22 +122,23 @@ Section channel.
     iSplit; iDestruct 1 as (ls rs) "(?&?&?&?)"; iExists rs, ls; iFrame.
   Qed.
 
-  Lemma send_spec Φ E γ c v s :
-    is_chan γ c -∗
+  Lemma send_spec Φ E γ c1 c2 v s :
+    is_chan γ c1 c2 -∗
     (|={⊤,E}=> ∃ vs,
       chan_own γ s vs ∗
-      ▷ (chan_own γ s (vs ++ [v]) ={E,⊤}=∗ Φ #())) -∗
-    WP send c #s v {{ Φ }}.
+      ▷ (chan_own γ s (vs ++ [v]) ={E,⊤}=∗ ▷ ▷ Φ #())) -∗
+    WP send (side_elim s c1 c2) v {{ Φ }}.
   Proof.
     iIntros "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (l r lk ->) "#Hlock"; wp_pures.
-    wp_apply get_lock_spec; wp_pures.
+    iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
+    assert (side_elim s (l, r, lk)%V (r, l, lk)%V =
+      ((side_elim s l r, side_elim s r l), lk)%V) as -> by (by destruct s).
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
-    wp_apply get_side_spec; wp_pures.
+    wp_pures.
     iDestruct (chan_inv_alt s with "Hinv") as
-        (vs ws) "(Href & Hvs & Href' & Hws)".
+      (vs ws) "(Href & Hvs & Href' & Hws)".
     iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
-    wp_load. 
+    wp_load.
     wp_apply (lsnoc_spec (A:=val))=> //; iIntros (_).
     wp_bind (_ <- _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
@@ -174,76 +151,56 @@ Section channel.
     rewrite /is_list_ref. eauto 20 with iFrame.
   Qed.
 
-  Lemma try_recv_spec Φ E γ c s :
-    is_chan γ c -∗
-    (|={⊤,E}=> ∃ vs,
-      chan_own γ (dual_side s) vs ∗
-      ▷ ((⌜vs = []⌝ -∗ chan_own γ (dual_side s) vs ={E,⊤}=∗ Φ NONEV) ∧
-         (∀ v vs', ⌜vs = v :: vs'⌝ -∗
-                   chan_own γ (dual_side s) vs' ={E,⊤}=∗ Φ (SOMEV v)))) -∗
-    WP try_recv c #s {{ Φ }}.
+  Lemma try_recv_spec Φ E γ c1 c2 s :
+    is_chan γ c1 c2 -∗
+    ((|={⊤,E}▷=> ▷ Φ NONEV) ∧
+     (|={⊤,E}=> ∃ vs,
+       chan_own γ s vs ∗
+       ▷ (∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
+                   chan_own γ s vs' ={E,⊤}=∗ ▷ ▷ Φ (SOMEV v)))) -∗
+    WP try_recv (side_elim s c2 c1) {{ Φ }}.
   Proof.
     iIntros "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (l r lk ->) "#Hlock"; wp_pures.
-    wp_apply get_lock_spec; wp_pures.
-    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]". wp_pures.
-    wp_apply dual_side_spec. wp_apply get_side_spec; wp_pures.
-    iDestruct (chan_inv_alt (dual_side s) with "Hinv") as
-        (vs ws) "(Href & Hvs & Href' & Hws)".
-    iDestruct "Href" as (ll Hslr) "Hll"; rewrite Hslr.
-    wp_bind (! _)%E.
-    iMod "HΦ" as (vs') "[Hchan HΦ]".
-    wp_load.
-    iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
-    destruct vs as [|v vs]; simpl.
-    - iDestruct "HΦ" as "[HΦ _]".
-      iMod ("HΦ" with "[//] Hchan") as "HΦ".
-      iModIntro.
+    iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
+    assert (side_elim s (r, l, lk)%V (l, r, lk)%V =
+      ((side_elim s r l, side_elim s l r), lk)%V) as -> by (by destruct s).
+    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
+    wp_pures.
+    iDestruct (chan_inv_alt s with "Hinv")
+      as (vs ws) "(Href & Hvs & Href' & Hws)".
+    iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
+    wp_bind (! _)%E. destruct vs as [|v vs]; simpl.
+    - iDestruct "HΦ" as "[>HΦ _]". wp_load. iMod "HΦ"; iModIntro.
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
-      { iApply (chan_inv_alt (dual_side s)).
+      { iApply (chan_inv_alt s).
         rewrite /is_list_ref. eauto 10 with iFrame. }
-      iIntros (_). wp_pures. by iApply "HΦ".
-    - iMod (excl_update _ _ _ vs with "Hvs Hchan") as "[Hvs Hchan]".
-      iDestruct "HΦ" as "[_ HΦ]".
-      iMod ("HΦ" with "[//] Hchan") as "HΦ".
-      iModIntro. wp_store.
+      iIntros (_). by wp_pures.
+    - iDestruct "HΦ" as "[_ >HΦ]". iDestruct "HΦ" as (vs') "[Hvs' HΦ]".
+      iDestruct (excl_eq with "Hvs Hvs'") as %<-%leibniz_equiv.
+      iMod (excl_update _ _ _ vs with "Hvs Hvs'") as "[Hvs Hvs']".
+      wp_load.
+      iMod ("HΦ" with "[//] Hvs'") as "HΦ"; iModIntro.
+      wp_store; wp_pures.
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
-      { iApply (chan_inv_alt (dual_side s)).
+      { iApply (chan_inv_alt s).
         rewrite /is_list_ref. eauto 10 with iFrame. }
-      iIntros (_). wp_pures. by iApply "HΦ".
+      iIntros (_). by wp_pures.
   Qed.
 
-  Lemma recv_spec Φ E γ c s :
-    is_chan γ c -∗
-    (□ (|={⊤,E}=> ∃ vs,
-      chan_own γ (dual_side s) vs ∗
-        ▷ ((⌜vs = []⌝ -∗ chan_own γ (dual_side s) vs ={E,⊤}=∗ True) ∗
-          (∀ v vs', ⌜vs = v :: vs'⌝ -∗
-                    chan_own γ (dual_side s) vs' ={E,⊤}=∗ Φ v)))) -∗
-    WP recv c #s {{ Φ }}.
+  Lemma recv_spec Φ E γ c1 c2 s :
+    is_chan γ c1 c2 -∗
+    (|={⊤,E}=> ∃ vs,
+      chan_own γ s vs ∗
+      ▷ ∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
+                 chan_own γ s vs' ={E,⊤}=∗ ▷ ▷ Φ v) -∗
+    WP recv (side_elim s c2 c1) {{ Φ }}.
   Proof.
-    iIntros "#Hc #HΦ".
-    rewrite /recv.
-    iLöb as "IH".
-    wp_apply (try_recv_spec with "Hc")=> //.
-    iMod "HΦ" as (vs) "[Hchan [HΦfail HΦsucc]]".
-    iModIntro.
-    iExists _.
-    iFrame.
-    iNext.
-    iSplitL "HΦfail".
-    - iIntros "Hvs Hown".
-      iRename ("HΦfail") into "HΦ".
-      iDestruct ("HΦ" with "Hvs Hown") as "HΦ".
-      iMod ("HΦ") as "HΦ".
-      iModIntro.
-      wp_match.
-      by iApply ("IH").
-    - iRename ("HΦsucc") into "HΦ".
-      iIntros (v vs') "Hvs Hown".
-      iMod ("HΦ" with "Hvs Hown") as "HΦ".
-      iModIntro.
-      by wp_pures.
+    iIntros "#Hc HΦ". iLöb as "IH". wp_lam.
+    wp_apply (try_recv_spec _ E with "Hc")=> //. iSplit.
+    - iMod (fupd_intro_mask' _ E) as "Hclose"; first done. iIntros "!> !>".
+      iMod "Hclose" as %_; iIntros "!> !>". wp_pures. by iApply "IH".
+    - iMod "HΦ" as (vs) "[Hvs HΦ]". iExists vs; iFrame "Hvs".
+      iIntros "!> !>" (v vs' ->) "Hvs".
+      iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !> !>". by wp_pures.
   Qed.
-
 End channel.

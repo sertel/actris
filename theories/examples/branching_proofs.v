@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import proofmode notation.
-From osiris.proto Require Import branching.
+From osiris.channel Require Import branching.
 
 Definition branch_example b : expr :=
   (let: "c" := new_chan #() in

@@ -1,5 +1,5 @@
 From iris.heap_lang Require Import proofmode notation.
-From osiris.proto Require Export proto_enc.
+From osiris.channel Require Export proto_channel.
 
 Definition TSB {PROP : bi} (a : action)
     (prot1 prot2 : proto val PROP) : proto val PROP :=
