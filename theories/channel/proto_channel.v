@@ -53,6 +53,7 @@ Notation "'MSG' v {{ P }}; p" :=
 Notation "'MSG' v ; p" :=
   (proto_payload v True p) (at level 20, v at level 20, p at level 200) : proto_cont_scope.
 
+(** Dual *)
 Definition proto_dual {Σ} (p : iProto Σ) : iProto Σ :=
   proto_map action_dual cid cid p.
 Arguments proto_dual {_} _%proto.
@@ -67,6 +68,13 @@ Class IsProtoDual {Σ} (p1 p2 : iProto Σ) :=
   is_dual_proto : proto_dual p1 ≡ p2.
 Class IsProtoContDual {Σ X} (pc1 pc2 : iProto_cont Σ X) :=
   is_dual_proto_cont x : prod_map id proto_dual (tele_app pc1 x) ≡ tele_app pc2 x.
+
+(** Branching *)
+Definition iProto_branch {Σ} (a : action)(p1 p2 : iProto Σ) : iProto Σ :=
+  iProto_message a (∃ b : bool, MSG #b {{ True }}; if b then p1 else p2).
+Typeclasses Opaque iProto_branch.
+Infix "<+>" := (iProto_branch Send) (at level 85) : proto_scope.
+Infix "<&>" := (iProto_branch Receive) (at level 85) : proto_scope.
 
 (** Invariants *)
 Fixpoint proto_eval `{!proto_chanG Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
@@ -165,6 +173,14 @@ Section proto.
   Proof.
     rewrite /IsProtoContDual=> Hpc. apply tforall_forall=> /= x'.
     apply tforall_forall. apply Hpc.
+  Qed.
+
+  Global Instance is_proto_dual_branch a1 a2 (p1 p2 p1' p2' : iProto Σ) :
+    IsActionDual a1 a2 → IsProtoDual p1 p1' → IsProtoDual p2 p2' →
+    IsProtoDual (iProto_branch a1 p1 p2) (iProto_branch a2 p1' p2').
+  Proof.
+    intros. apply is_proto_dual_message,
+      is_proto_cont_dual_exist; last (intros []); apply _.
   Qed.
 
   Global Instance proto_eval_ne : NonExpansive2 (proto_eval vs).
@@ -423,7 +439,7 @@ Section proto.
     (∃.. x : X,
       ⌜ v = (tele_app pc x).1.1 ⌝ ∗
       (tele_app pc x).1.2 ∗
-      (c ↣ (tele_app pc x).2 @ N -∗ Ψ #())) -∗
+      ▷ (c ↣ (tele_app pc x).2 @ N -∗ Ψ #())) -∗
     WP send c v {{ Ψ }}.
   Proof.
     iIntros "Hc H". iDestruct (bi_texist_exist with "H") as (x ->) "[HP HΨ]".
@@ -464,12 +480,31 @@ Section proto.
 
   Lemma recv_proto_spec {X} Ψ c (pc : iProto_cont Σ X) :
     c ↣ <?> pc @ N -∗
-    (∀.. x : X, c ↣ (tele_app pc x).2 @ N -∗
-                (tele_app pc x).1.2 -∗ Ψ (tele_app pc x).1.1) -∗
+    ▷ (∀.. x : X, c ↣ (tele_app pc x).2 @ N -∗
+                  (tele_app pc x).1.2 -∗ Ψ (tele_app pc x).1.1) -∗
     WP recv c {{ Ψ }}.
   Proof.
     iIntros "Hc H". iApply (recv_proto_spec_packed with "[$]").
     iIntros "!>" (x) "[Hc HP]". iDestruct (bi_tforall_forall with "H") as "H".
     iApply ("H" with "[$] [$]").
+  Qed.
+
+  Lemma select_spec c b p1 p2 :
+    {{{ c ↣ p1 <+> p2 @ N }}}
+      send c #b
+    {{{ RET #(); c ↣ (if b : bool then p1 else p2) @ N }}}.
+  Proof.
+    rewrite /iProto_branch. iIntros (Ψ) "Hc HΨ".
+    iApply (send_proto_spec with "Hc"); simpl; eauto with iFrame.
+  Qed.
+
+  Lemma branch_spec c p1 p2  :
+    {{{ c ↣ p1 <&> p2 @ N }}}
+      recv c
+    {{{ b, RET #b; c ↣ if b : bool then p1 else p2 @ N }}}.
+  Proof.
+    rewrite /iProto_branch. iIntros (Ψ) "Hc HΨ".
+    iApply (recv_proto_spec with "Hc"); simpl.
+    iIntros "!>" (b) "Hc _". by iApply "HΨ".
   Qed.
 End proto. 

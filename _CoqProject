@@ -6,7 +6,6 @@ theories/utils/list.v
 theories/channel/channel.v
 theories/channel/proto_model.v
 theories/channel/proto_channel.v
-theories/channel/branching.v
 theories/examples/proofs_enc.v
 theories/examples/branching_proofs.v
 theories/examples/list_sort.v

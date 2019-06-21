@@ -123,13 +123,13 @@ Section list_sort.
     wp_apply (wp_fork with "[Hcz1]").
     { iNext. wp_apply ("IH" with "Hcz1"); auto. }
     wp_apply (send_proto_spec with "Hcy2"); simpl.
-    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} Hcy2".
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcy2".
     wp_apply (send_proto_spec with "Hcy2"); simpl.
-    iExists xs1, l1, vs1. iSplit; first done. iIntros "{$Hl1 $HI1} Hcy2".
+    iExists xs1, l1, vs1. iSplit; first done. iIntros "{$Hl1 $HI1} !> Hcy2".
     wp_apply (send_proto_spec with "Hcz2"); simpl.
-    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} Hcz2".
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcz2".
     wp_apply (send_proto_spec with "Hcz2"); simpl.
-    iExists xs2, l2, vs2. iSplit; first done. iIntros "{$Hl2 $HI2} Hcz2".
+    iExists xs2, l2, vs2. iSplit; first done. iIntros "{$Hl2 $HI2} !> Hcz2".
     wp_apply (recv_proto_spec with "Hcy2"); simpl.
     iIntros (ys1 ws1) "_". iDestruct 1 as (??) "[Hl1 HI1]".
     wp_apply (recv_proto_spec with "Hcz2"); simpl.
