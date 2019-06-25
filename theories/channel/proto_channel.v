@@ -5,6 +5,7 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth excl.
 From osiris.utils Require Import auth_excl.
 Set Default Proof Using "Type*".
+Export action.
 
 (** Camera setup *)
 Class proto_chanG Σ := {
@@ -44,6 +45,21 @@ Definition iProto_message := iProto_message_aux.(unseal).
 Definition iProto_message_eq : @iProto_message = @iProto_message_def := iProto_message_aux.(seal_eq).
 Arguments iProto_message {_ _} _ _%proto.
 Instance: Params (@iProto_message) 3.
+
+Notation "< a > x1 .. xn , 'MSG' v {{ P }}; p" :=
+  (iProto_message
+    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+    a
+    (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
+                       λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
+  (at level 20, a at level 10, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
+Notation "< a > x1 .. xn , 'MSG' v ; p" :=
+  (iProto_message
+    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
+    a
+    (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
+                       λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
+  (at level 20, a at level 10, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
 
 Notation "<!> x1 .. xn , 'MSG' v {{ P }}; p" :=
   (iProto_message
@@ -89,8 +105,7 @@ Instance: Params (@iProto_dual_if) 2.
 
 (** Branching *)
 Definition iProto_branch {Σ} (a : action) (p1 p2 : iProto Σ) : iProto Σ :=
-  iProto_message a (tele_app (TT:=TeleS (λ _: bool, TeleO))
-                             (λ b, (#b, True%I, if b then p1 else p2))).
+  (<a> (b : bool), MSG #b; if b then p1 else p2)%proto.
 Typeclasses Opaque iProto_branch.
 Arguments iProto_branch {_} _ _%proto _%proto.
 Instance: Params (@iProto_branch) 2.
@@ -286,6 +301,13 @@ Section proto.
   Global Instance iProto_app_assoc : Assoc (≡) (@iProto_app Σ).
   Proof. intros p1 p2 p3. by rewrite /iProto_app proto_app_assoc. Qed.
 
+  Lemma iProto_app_branch a p1 p2 q :
+    (iProto_branch a p1 p2 <++> q)%proto ≡ (iProto_branch a (p1 <++> q) (p2 <++> q))%proto.
+  Proof.
+    rewrite /iProto_branch iProto_app_message.
+    by apply iProto_message_proper=> /= -[].
+  Qed.
+
   Lemma iProto_dual_app p1 p2 :
     iProto_dual (p1 <++> p2) ≡ (iProto_dual p1 <++> iProto_dual p2)%proto.
   Proof. by rewrite /iProto_dual /iProto_app proto_map_app. Qed.
@@ -296,6 +318,9 @@ Section proto.
   Global Instance proto_normalize_done_dual p :
     ProtoNormalize true p [] (iProto_dual p) | 0.
   Proof. by rewrite /ProtoNormalize /= right_id. Qed.
+  Global Instance proto_normalize_done_dual_end :
+    ProtoNormalize (Σ:=Σ) true END [] END | 0.
+  Proof. by rewrite /ProtoNormalize /= right_id iProto_dual_end. Qed.
 
   Global Instance proto_normalize_dual d p pas q :
     ProtoNormalize (negb d) p pas q →
@@ -356,6 +381,16 @@ Section proto.
       apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
     - rewrite iProto_app_message.
       apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
+  Qed.
+
+  Global Instance proto_normalize_branch d a1 a2 p1 p2 q1 q2 pas :
+    ActionDualIf d a1 a2 →
+    ProtoNormalize d p1 pas q1 → ProtoNormalize d p2 pas q2 →
+    ProtoNormalize d (iProto_branch a1 p1 p2) pas
+                     (iProto_branch a2 q1 q2).
+  Proof.
+    rewrite /ActionDualIf /ProtoNormalize=> -> -> ->.
+    destruct d; by rewrite /= -?iProto_app_branch -?iProto_dual_branch.
   Qed.
 
   (** Auxiliary definitions and invariants *)
@@ -438,6 +473,23 @@ Section proto.
 
   Arguments proto_eval : simpl never.
 
+  (** Automatically perform normalization of protocols in the proof mode *)
+  Global Instance mapsto_proto_from_assumption q c p1 p2 :
+    ProtoNormalize false p1 [] p2 →
+    FromAssumption q (c ↣ p1 @ N) (c ↣ p2 @ N).
+  Proof.
+    rewrite /FromAssumption /ProtoNormalize=> ->.
+    by rewrite /= right_id bi.intuitionistically_if_elim.
+  Qed.
+  Global Instance mapsto_proto_from_frame q c p1 p2 :
+    ProtoNormalize false p1 [] p2 →
+    Frame q (c ↣ p1 @ N) (c ↣ p2 @ N) True.
+  Proof.
+    rewrite /Frame /ProtoNormalize=> ->.
+    by rewrite /= !right_id bi.intuitionistically_if_elim.
+  Qed.
+
+  (** The actual specs *)
   Lemma proto_init E cγ c1 c2 p :
     is_chan N cγ c1 c2 -∗
     chan_own cγ Left [] -∗ chan_own cγ Right [] ={E}=∗
@@ -616,14 +668,12 @@ Section proto.
     iMod ("H" $! x with "Hf Hvs"); auto.
   Qed.
 
-  Lemma send_proto_spec {TT} Ψ c v p (pc : TT → val * iProp Σ * iProto Σ) :
-    ProtoNormalize false p [] (iProto_message Send pc) →
-    c ↣ p @ N -∗
+  Lemma send_proto_spec {TT} Ψ c v (pc : TT → val * iProp Σ * iProto Σ) :
+    c ↣ iProto_message Send pc @ N -∗
     (∃.. x : TT,
       ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 @ N -∗ Ψ #())) -∗
     WP send c v {{ Ψ }}.
   Proof.
-    rewrite /ProtoNormalize /= right_id=> <-.
     iIntros "Hc H". iDestruct (bi_texist_exist with "H") as (x ->) "[HP HΨ]".
     by iApply (send_proto_spec_packed with "[$]").
   Qed.
@@ -658,13 +708,11 @@ Section proto.
     iDestruct "H" as (x ->) "H". by iApply "HΨ".
   Qed.
 
-  Lemma recv_proto_spec {TT} Ψ p c (pc : TT → val * iProp Σ * iProto Σ) :
-    ProtoNormalize false p [] (iProto_message Receive pc) →
-    c ↣ p @ N -∗
+  Lemma recv_proto_spec {TT} Ψ c (pc : TT → val * iProp Σ * iProto Σ) :
+    c ↣ iProto_message Receive pc @ N -∗
     ▷ (∀.. x : TT, c ↣ (pc x).2 @ N -∗ (pc x).1.2 -∗ Ψ (pc x).1.1) -∗
     WP recv c {{ Ψ }}.
   Proof.
-    rewrite /ProtoNormalize /= right_id=> <-.
     iIntros "Hc H". iApply (recv_proto_spec_packed with "[$]").
     iIntros "!>" (x) "[Hc HP]". iDestruct (bi_tforall_forall with "H") as "H".
     iApply ("H" with "[$] [$]").

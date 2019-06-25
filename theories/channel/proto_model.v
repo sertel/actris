@@ -3,13 +3,15 @@ From iris.proofmode Require Import tactics.
 From iris.algebra Require Import cofe_solver.
 Set Default Proof Using "Type".
 
-Inductive action := Send | Receive.
-Instance action_inhabited : Inhabited action := populate Send.
-Definition action_dual (a : action) : action :=
-  match a with Send => Receive | Receive => Send end.
-Instance action_dual_involutive : Involutive (=) action_dual.
-Proof. by intros []. Qed.
-Canonical Structure actionO := leibnizO action.
+Module Export action.
+  Inductive action := Send | Receive.
+  Instance action_inhabited : Inhabited action := populate Send.
+  Definition action_dual (a : action) : action :=
+    match a with Send => Receive | Receive => Send end.
+  Instance action_dual_involutive : Involutive (=) action_dual.
+  Proof. by intros []. Qed.
+  Canonical Structure actionO := leibnizO action.
+End action.
 
 Definition protoOF_helper (V : Type) (PROPn PROP : ofeT) : oFunctor :=
   optionOF (actionO * (V -d> (▶ ∙ -n> PROPn) -n> PROP)).

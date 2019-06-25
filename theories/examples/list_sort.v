@@ -179,8 +179,7 @@ Section list_sort.
     {{{ RET #(); c ↣ END @ N }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
-    wp_rec. rewrite {2}loop_sort_protocol_unfold /loop_sort_protocol_aux.
-    rewrite !iProto_dual_branch iProto_dual_app iProto_dual_end /=.
+    wp_rec. rewrite {2}loop_sort_protocol_unfold.
     wp_apply (branch_spec with "Hc"); iIntros ([]) "/= Hc"; wp_if.
     { wp_apply (list_sort_service_spec with "Hc"); iIntros "Hc".
       by wp_apply ("IH" with "Hc"). }
