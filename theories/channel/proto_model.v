@@ -41,6 +41,25 @@ Definition proto_message {V} `{!Cofe PROPn, !Cofe PROP} (a : action)
     (pc : V → (laterO (proto V PROPn PROP) -n> PROPn) -n> PROP) : proto V PROPn PROP :=
   proto_fold (Some (a, pc)).
 
+Instance proto_message_ne {V} `{!Cofe PROPn, !Cofe PROP} a n :
+  Proper (pointwise_relation V (dist n) ==> dist n)
+         (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
+Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
+Instance proto_message_proper {V} `{!Cofe PROPn, !Cofe PROP} a :
+  Proper (pointwise_relation V (≡) ==> (≡))
+         (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
+Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
+
+Lemma proto_case {V} `{!Cofe PROPn, !Cofe PROP} (p : proto V PROPn PROP) :
+  p ≡ proto_end ∨ ∃ a pc, p ≡ proto_message a pc.
+Proof.
+  destruct (proto_unfold p) as [[a pc]|] eqn:E; simpl in *; last first.
+  - left. by rewrite -(proto_fold_unfold p) E.
+  - right. exists a, pc. by rewrite -(proto_fold_unfold p) E.
+Qed.
+Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
+  Inhabited (proto V PROPn PROP) := populate proto_end.
+
 Lemma proto_message_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a1 a2 pc1 pc2 :
   proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a1 pc1 ≡ proto_message a2 pc2
   ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧ (∀ v, pc1 v ≡ pc2 v).
@@ -54,31 +73,106 @@ Proof.
   by rewrite bi.discrete_fun_equivI bi.discrete_eq.
 Qed.
 
-Lemma proto_case {V} `{!Cofe PROPn, !Cofe PROP} (p : proto V PROPn PROP) :
-  p ≡ proto_end ∨ ∃ a pc, p ≡ proto_message a pc.
-Proof.
-  destruct (proto_unfold p) as [[a pc]|] eqn:E; simpl in *; last first.
-  - left. by rewrite -(proto_fold_unfold p) E.
-  - right. exists a, pc. by rewrite -(proto_fold_unfold p) E.
-Qed.
-Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
-  Inhabited (proto V PROPn PROP) := populate proto_end.
-
-Instance proto_message_ne {V} `{!Cofe PROPn, !Cofe PROP} a n :
-  Proper (pointwise_relation V (dist n) ==> dist n)
-         (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
-Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
-Instance proto_message_proper {V} `{!Cofe PROPn, !Cofe PROP} a :
-  Proper (pointwise_relation V (≡) ==> (≡))
-         (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
-Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
-
 Definition proto_cont_map
-   `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, Cofe PROP', !Cofe A, !Cofe B}
+   `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP', !Cofe A, !Cofe B}
     (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') (h : A -n> B) :
     ((laterO A -n> PROPn) -n> PROP) -n> (laterO B -n> PROPn') -n> PROP' :=
   ofe_morO_map (ofe_morO_map (laterO_map h) gn) g.
 
+(** Append *)
+Program Definition proto_app_flipped_aux {V} `{!Cofe PROPn, !Cofe PROP}
+    (p2 : proto V PROPn PROP) (rec : proto V PROPn PROP -n> proto V PROPn PROP) :
+    proto V PROPn PROP -n> proto V PROPn PROP := λne p1,
+  match proto_unfold p1 return _ with
+  | None => p2
+  | Some (a, c) => proto_message a (proto_cont_map cid cid rec ∘ c)
+  end.
+Next Obligation.
+  intros V PROPn ? PROP ? rec n p2 p1 p1' Hp.
+  apply (ofe_mor_ne _ _ proto_unfold) in Hp.
+  destruct Hp as [[??][??] [-> ?]|]; simplify_eq/=; last done.
+  f_equiv=> v /=. by f_equiv.
+Qed.
+
+Instance proto_app_flipped_aux_contractive {V} `{!Cofe PROPn, !Cofe PROP}
+  (p2 : proto V PROPn PROP) : Contractive (proto_app_flipped_aux p2).
+Proof.
+  intros n rec1 rec2 Hrec p1. simpl.
+  destruct (proto_unfold p1) as [[a c]|]; last done.
+  f_equiv=> v /=. do 2 f_equiv.
+  intros=> p'. apply Next_contractive. destruct n as [|n]=> //=.
+Qed.
+
+Definition proto_app_flipped {V} `{!Cofe PROPn, !Cofe PROP}
+    (p2 : proto V PROPn PROP) : proto V PROPn PROP -n> proto V PROPn PROP :=
+  fixpoint (proto_app_flipped_aux p2).
+Definition proto_app {V} `{!Cofe PROPn, !Cofe PROP}
+  (p1 p2 : proto V PROPn PROP) : proto V PROPn PROP := proto_app_flipped p2 p1.
+Instance: Params (@proto_app) 5.
+
+Lemma proto_app_flipped_unfold {V} `{!Cofe PROPn, !Cofe PROP} (p1 p2 : proto V PROPn PROP):
+  proto_app_flipped p2 p1 ≡ proto_app_flipped_aux p2 (proto_app_flipped p2) p1.
+Proof. apply (fixpoint_unfold (proto_app_flipped_aux p2)). Qed.
+Lemma proto_app_unfold {V} `{!Cofe PROPn, !Cofe PROP} (p1 p2 : proto V PROPn PROP):
+  proto_app (V:=V) p1 p2 ≡ proto_app_flipped_aux p2 (proto_app_flipped p2) p1.
+Proof. apply (fixpoint_unfold (proto_app_flipped_aux p2)). Qed.
+
+Lemma proto_app_end_l {V} `{!Cofe PROPn, !Cofe PROP} (p2 : proto V PROPn PROP) :
+  proto_app proto_end p2 ≡ p2.
+Proof.
+  rewrite proto_app_unfold /proto_end /=.
+  pose proof (proto_unfold_fold (V:=V) (PROPn:=PROPn) (PROP:=PROP) None) as Hfold.
+  by destruct (proto_unfold (proto_fold None))
+    as [[??]|] eqn:E; rewrite E; inversion Hfold.
+Qed.
+Lemma proto_app_message {V} `{!Cofe PROPn, !Cofe PROP} a c (p2 : proto V PROPn PROP) :
+  proto_app (proto_message a c) p2
+  ≡ proto_message a (proto_cont_map cid cid (proto_app_flipped p2) ∘ c).
+Proof.
+  rewrite proto_app_unfold /proto_message /=.
+  pose proof (proto_unfold_fold (V:=V) (PROPn:=PROPn) (PROP:=PROP) (Some (a, c))) as Hfold.
+  destruct (proto_unfold (proto_fold (Some (a, c))))
+    as [[??]|] eqn:E; inversion Hfold as [?? [Ha Hc]|]; simplify_eq/=.
+  rewrite /proto_message. do 3 f_equiv. intros v=> /=.
+  apply equiv_dist=> n. f_equiv. by apply equiv_dist.
+Qed.
+
+Instance proto_app_ne {V} `{!Cofe PROPn, !Cofe PROP} :
+  NonExpansive2 (proto_app (V:=V) (PROPn:=PROPn) (PROP:=PROP)).
+Proof.
+  intros n p1 p1' Hp1 p2 p2' Hp2. rewrite /proto_app -Hp1 {p1' Hp1}.
+  revert p1. induction (lt_wf n) as [n _ IH]=> p1 /=.
+  rewrite !proto_app_flipped_unfold /proto_app_flipped_aux /=.
+  destruct (proto_unfold p1) as [[a c]|]; last done.
+  f_equiv=> v f /=. do 2 f_equiv. intros p. apply Next_contractive.
+  destruct n as [|n]=> //=. apply IH; first lia; auto using dist_S.
+Qed.
+Instance proto_app_proper {V} `{!Cofe PROPn, !Cofe PROP} :
+  Proper ((≡) ==> (≡) ==> (≡)) (proto_app (V:=V) (PROPn:=PROPn) (PROP:=PROP)).
+Proof. apply (ne_proper_2 _). Qed.
+
+Lemma proto_app_end_r {V} `{!Cofe PROPn, !Cofe PROP} (p1 : proto V PROPn PROP) :
+  proto_app p1 proto_end ≡ p1.
+Proof.
+  apply equiv_dist=> n. revert p1. induction (lt_wf n) as [n _ IH]=> p1 /=.
+  destruct (proto_case p1) as [->|(a & c & ->)].
+  - by rewrite !proto_app_end_l.
+  - rewrite !proto_app_message /=. f_equiv=> v c' /=. f_equiv=> p' /=. f_equiv.
+    apply Next_contractive. destruct n as [|n]=> //=.
+    apply IH; first lia; auto using dist_S.
+Qed.
+Lemma proto_app_assoc {V} `{!Cofe PROPn, !Cofe PROP} (p1 p2 p3 : proto V PROPn PROP) :
+  proto_app p1 (proto_app p2 p3) ≡ proto_app (proto_app p1 p2) p3.
+Proof.
+  apply equiv_dist=> n. revert p1. induction (lt_wf n) as [n _ IH]=> p1 /=.
+  destruct (proto_case p1) as [->|(a & c & ->)].
+  - by rewrite !proto_app_end_l.
+  - rewrite !proto_app_message /=. f_equiv=> v c' /=. f_equiv=> p' /=. f_equiv.
+    apply Next_contractive. destruct n as [|n]=> //=.
+    apply IH; first lia; auto using dist_S.
+Qed.
+
+(** Functor *)
 Program Definition proto_map_aux {V}
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP')
@@ -94,7 +188,6 @@ Next Obligation.
   destruct Hp as [[??][??] [-> ?]|]; simplify_eq/=; last done.
   f_equiv=> v /=. by f_equiv.
 Qed.
-
 Instance proto_map_aux_contractive {V}
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') :
@@ -105,7 +198,6 @@ Proof.
   f_equiv=> v /=. do 2 f_equiv.
   intros=> p'. apply Next_contractive. destruct n as [|n]=> //=.
 Qed.
-
 Definition proto_map {V}
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') :
@@ -116,7 +208,7 @@ Lemma proto_map_unfold {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') p :
   proto_map (V:=V) f gn g p ≡ proto_map_aux f gn g (proto_map f gn g) p.
 Proof. apply (fixpoint_unfold (proto_map_aux f gn g)). Qed.
-Lemma proto_map_end {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, Cofe PROP'}
+Lemma proto_map_end {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') :
   proto_map (V:=V) f gn g proto_end ≡ proto_end.
 Proof.
@@ -179,6 +271,20 @@ Proof.
   - by rewrite !proto_map_end.
   - rewrite !proto_map_message /=. f_equiv=> v c' /=. do 3 f_equiv. move=> p' /=.
     do 3 f_equiv. apply Next_contractive. destruct n as [|n]=> //=.
+    apply IH; first lia; auto using dist_S.
+Qed.
+
+Lemma proto_map_app {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
+    (f : action → action) (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') p1 p2 :
+  proto_map (V:=V) f gn g (proto_app p1 p2)
+  ≡ proto_app (proto_map (V:=V) f gn g p1) (proto_map (V:=V) f gn g p2).
+Proof.
+  apply equiv_dist=> n. revert p1 p2. induction (lt_wf n) as [n _ IH]=> p1 p2 /=.
+  destruct (proto_case p1) as [->|(a & c & ->)].
+  - by rewrite proto_map_end !proto_app_end_l.
+  - rewrite proto_map_message !proto_app_message proto_map_message /=.
+    f_equiv=> v c' /=. do 2 f_equiv. move=> p' /=. do 2 f_equiv.
+    apply Next_contractive. destruct n as [|n]=> //=.
     apply IH; first lia; auto using dist_S.
 Qed.
 

@@ -1,7 +1,7 @@
 From stdpp Require Import sorting.
+From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
 From osiris.utils Require Import list.
-From osiris.channel Require Import proto_channel.
 
 Definition lmerge : val :=
   rec: "go" "cmp" "hys" "hzs" :=
@@ -28,14 +28,14 @@ Definition list_sort_service : val :=
     let: "ys_zs" := lsplit !"xs" in
     let: "ys" := ref (Fst "ys_zs") in
     let: "zs" := ref (Snd "ys_zs") in
-    let: "cy" := new_chan #() in Fork("go" (Fst "cy"));;
-    let: "cz" := new_chan #() in Fork("go" (Fst "cz"));;
-    send (Snd "cy") "cmp";;
-    send (Snd "cy") "ys";;
-    send (Snd "cz") "cmp";;
-    send (Snd "cz") "zs";;
-    recv (Snd "cy");;
-    recv (Snd "cz");;
+    let: "cy" := new_chan #() in Fork("go" (Snd "cy"));;
+    let: "cz" := new_chan #() in Fork("go" (Snd "cz"));;
+    send (Fst "cy") "cmp";;
+    send (Fst "cy") "ys";;
+    send (Fst "cz") "cmp";;
+    send (Fst "cz") "zs";;
+    recv (Fst "cy");;
+    recv (Fst "cz");;
     "xs" <- lmerge "cmp" !"ys" !"zs";;
     send "c" #().
 
@@ -50,15 +50,15 @@ Section list_sort.
       {{{ RET #(bool_decide (R x x')); I x v ∗ I x' v' }}})%I.
 
   Definition sort_protocol : iProto Σ :=
-    (<?> ∃ A (I : A → val → iProp Σ) (R : A → A → Prop)
+    (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
          `{!RelDecision R, !TotalOrder R} (cmp : val),
        MSG cmp {{ cmp_spec I R cmp }};
-     <?> ∃ (xs : list A) (l : loc) (vs : list val),
+     <!> (xs : list A) (l : loc) (vs : list val),
        MSG #l {{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }};
-     <!> ∃ (xs' : list A) (vs' : list val),
+     <?> (xs' : list A) (vs' : list val),
        MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗
                   l ↦ val_encode vs' ∗ [∗ list] x;v ∈ xs';vs', I x v }};
-     iProto_end)%proto.
+     END)%proto.
 
   Lemma lmerge_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
       `{!RelDecision R, !TotalOrder R} (cmp : val) xs1 xs2 vs1 vs2 :
@@ -93,12 +93,12 @@ Section list_sort.
       iApply "HΨ". iFrame.
   Qed.
 
-  Lemma list_sort_service_spec c :
-    {{{ c ↣ sort_protocol @ N }}}
+  Lemma list_sort_service_spec p c :
+    {{{ c ↣ iProto_dual sort_protocol <++> p @ N }}}
       list_sort_service c
-    {{{ RET #(); c ↣ iProto_end @ N }}}.
+    {{{ RET #(); c ↣ p @ N }}}.
   Proof.
-    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
+    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ).
     wp_lam.
     wp_apply (recv_proto_spec with "Hc"); simpl.
     iIntros (A I R ?? cmp) "/= Hc #Hcmp".
@@ -116,23 +116,25 @@ Section list_sort.
     iDestruct (big_sepL2_app_inv_r with "HI") as (xs1 xs2 ->) "[HI1 HI2]".
     wp_apply (new_chan_proto_spec N sort_protocol)=> //.
     iIntros (cy1 cy2) "[Hcy1 Hcy2]".
-    wp_apply (wp_fork with "[Hcy1]").
-    { iNext. wp_apply ("IH" with "Hcy1"); auto. }
+    wp_apply (wp_fork with "[Hcy2]").
+    { iNext. rewrite -{2}(right_id END%proto _ (iProto_dual _)).
+      wp_apply ("IH" with "Hcy2"); auto. }
     wp_apply (new_chan_proto_spec N sort_protocol)=> //.
     iIntros (cz1 cz2) "[Hcz1 Hcz2]".
-    wp_apply (wp_fork with "[Hcz1]").
-    { iNext. wp_apply ("IH" with "Hcz1"); auto. }
-    wp_apply (send_proto_spec with "Hcy2"); simpl.
-    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcy2".
-    wp_apply (send_proto_spec with "Hcy2"); simpl.
-    iExists xs1, l1, vs1. iSplit; first done. iIntros "{$Hl1 $HI1} !> Hcy2".
-    wp_apply (send_proto_spec with "Hcz2"); simpl.
-    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcz2".
-    wp_apply (send_proto_spec with "Hcz2"); simpl.
-    iExists xs2, l2, vs2. iSplit; first done. iIntros "{$Hl2 $HI2} !> Hcz2".
-    wp_apply (recv_proto_spec with "Hcy2"); simpl.
+    wp_apply (wp_fork with "[Hcz2]").
+    { iNext. rewrite -{2}(right_id END%proto _ (iProto_dual _)).
+      wp_apply ("IH" with "Hcz2"); auto. }
+    wp_apply (send_proto_spec with "Hcy1"); simpl.
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcy1".
+    wp_apply (send_proto_spec with "Hcy1"); simpl.
+    iExists xs1, l1, vs1. iSplit; first done. iIntros "{$Hl1 $HI1} !> Hcy1".
+    wp_apply (send_proto_spec with "Hcz1"); simpl.
+    iExists _, I, R, _, _, cmp. iSplit; first done. iIntros "{$Hcmp} !> Hcz1".
+    wp_apply (send_proto_spec with "Hcz1"); simpl.
+    iExists xs2, l2, vs2. iSplit; first done. iIntros "{$Hl2 $HI2} !> Hcz1".
+    wp_apply (recv_proto_spec with "Hcy1"); simpl.
     iIntros (ys1 ws1) "_". iDestruct 1 as (??) "[Hl1 HI1]".
-    wp_apply (recv_proto_spec with "Hcz2"); simpl.
+    wp_apply (recv_proto_spec with "Hcz1"); simpl.
     iIntros (ys2 ws2) "_". iDestruct 1 as (??) "[Hl2 HI2]".
     do 2 wp_load.
     wp_apply (lmerge_spec with "Hcmp [$HI1 $HI2]"); iIntros (ws) "HI".
