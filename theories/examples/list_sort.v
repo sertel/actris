@@ -39,6 +39,20 @@ Definition list_sort_service : val :=
     "xs" <- lmerge "cmp" !"ys" !"zs";;
     send "c" #().
 
+Definition loop_sort_service_go : val :=
+  rec: "go" "c" :=
+    if: recv "c" then list_sort_service "c";; "go" "c"
+    else if: recv "c" then
+      let: "d" := new_chan #() in
+      Fork ("go" (Snd "d"));;
+      send "c" (Fst "d");;
+      "go" "c"
+    else #().
+Definition loop_sort_service : val := λ: <>,
+  let: "c" := new_chan #() in
+  Fork (loop_sort_service_go (Snd "c"));;
+  Fst "c".
+
 Section list_sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
@@ -144,6 +158,41 @@ Section list_sort.
     iSplit; first done. iFrame. iSplit; iPureIntro.
     - by apply (Sorted_list_merge _).
     - rewrite (merge_Permutation R). by f_equiv.
+  Qed.
+
+  Definition loop_sort_protocol_aux (rec : iProto Σ) : iProto Σ :=
+    ((sort_protocol <++> rec) <+> ((<?> c, MSG c {{ c ↣ rec @ N }}; rec) <+> END))%proto.
+
+  Instance loop_sort_protocol_aux_contractive : Contractive loop_sort_protocol_aux.
+  Proof.
+    intros n p p' Hp. rewrite /loop_sort_protocol_aux.
+    f_contractive; f_equiv=> //. apply iProto_message_ne=> c /=; by repeat f_equiv.
+  Qed.
+  Definition loop_sort_protocol : iProto Σ := fixpoint loop_sort_protocol_aux.
+  Lemma loop_sort_protocol_unfold :
+    loop_sort_protocol ≡ loop_sort_protocol_aux loop_sort_protocol.
+  Proof. apply (fixpoint_unfold loop_sort_protocol_aux). Qed.
+
+  Lemma loop_sort_service_go_spec c :
+    {{{ c ↣ iProto_dual loop_sort_protocol @ N }}}
+      loop_sort_service_go c
+    {{{ RET #(); c ↣ END @ N }}}.
+  Proof.
+    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
+    wp_rec. rewrite {2}loop_sort_protocol_unfold /loop_sort_protocol_aux.
+    rewrite !iProto_dual_branch iProto_dual_app iProto_dual_end /=.
+    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= Hc"; wp_if.
+    { wp_apply (list_sort_service_spec with "Hc"); iIntros "Hc".
+      by wp_apply ("IH" with "Hc"). }
+    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= Hc"; wp_if.
+    - wp_apply (new_chan_proto_spec N loop_sort_protocol with "[//]");
+        iIntros (d1 d2) "[Hd1 Hd2]".
+      wp_apply (wp_fork with "[Hd2]").
+      { iNext. wp_apply ("IH" with "Hd2"); auto. }
+      wp_apply (send_proto_spec with "Hc"); simpl.
+      iExists d1; iSplit; first done. iIntros "{$Hd1} !> Hc".
+      by wp_apply ("IH" with "Hc").
+    - by iApply "HΨ".
   Qed.
 End list_sort.
 
