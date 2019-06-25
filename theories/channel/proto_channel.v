@@ -92,7 +92,8 @@ Definition iProto_branch {Σ} (a : action) (p1 p2 : iProto Σ) : iProto Σ :=
   iProto_message a (tele_app (TT:=TeleS (λ _: bool, TeleO))
                              (λ b, (#b, True%I, if b then p1 else p2))).
 Typeclasses Opaque iProto_branch.
-Instance: Params (@iProto_branch) 1.
+Arguments iProto_branch {_} _ _%proto _%proto.
+Instance: Params (@iProto_branch) 2.
 Infix "<+>" := (iProto_branch Send) (at level 85) : proto_scope.
 Infix "<&>" := (iProto_branch Receive) (at level 85) : proto_scope.
 
