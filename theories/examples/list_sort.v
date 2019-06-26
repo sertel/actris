@@ -3,6 +3,9 @@ From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
 From osiris.utils Require Import list.
 
+Definition compare_vals : val :=
+    λ: "x" "y", "x" ≤ "y".
+
 Definition lmerge : val :=
   rec: "go" "cmp" "hys" "hzs" :=
     match: "hys" with
@@ -53,6 +56,15 @@ Definition loop_sort_service : val := λ: <>,
   Fork (loop_sort_service_go (Snd "c"));;
   Fst "c".
 
+  Definition list_sort_client : val :=
+    λ: "cmp" "xs",
+    let: "c" := new_chan #() in
+    Fork(list_sort_service (Snd "c"));;
+    send (Fst "c") "cmp";;
+    send (Fst "c") "xs";;
+    recv (Fst "c");;
+    #().
+
 Section list_sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
@@ -65,7 +77,7 @@ Section list_sort.
 
   Definition sort_protocol : iProto Σ :=
     (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
-         `{!RelDecision R, !TotalOrder R} (cmp : val),
+         `{!RelDecision R, !Total R} (cmp : val),
        MSG cmp {{ cmp_spec I R cmp }};
      <!> (xs : list A) (l : loc) (vs : list val),
        MSG #l {{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }};
@@ -75,7 +87,7 @@ Section list_sort.
      END)%proto.
 
   Lemma lmerge_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
-      `{!RelDecision R, !TotalOrder R} (cmp : val) xs1 xs2 vs1 vs2 :
+      `{!RelDecision R, !Total R} (cmp : val) xs1 xs2 vs1 vs2 :
     cmp_spec I R cmp -∗
     {{{ ([∗ list] x;v ∈ xs1;vs1, I x v) ∗ ([∗ list] x;v ∈ xs2;vs2, I x v) }}}
       lmerge cmp (val_encode vs1) (val_encode vs2)
@@ -151,7 +163,7 @@ Section list_sort.
     wp_apply (recv_proto_spec with "Hcz1"); simpl.
     iIntros (ys2 ws2) "_". iDestruct 1 as (??) "[Hl2 HI2]".
     do 2 wp_load.
-    wp_apply (lmerge_spec with "Hcmp [$HI1 $HI2]"); iIntros (ws) "HI".
+    wp_apply (lmerge_spec with "Hcmp [$HI1 $HI2]"). iIntros (ws) "HI".
     wp_store.
     wp_apply (send_proto_spec with "Hc"); simpl.
     iExists (list_merge R ys1 ys2), ws.
@@ -193,51 +205,68 @@ Section list_sort.
       by wp_apply ("IH" with "Hc").
     - by iApply "HΨ".
   Qed.
-End list_sort.
 
-(*
-  Definition compare_vals : val :=
-    λ: "x" "y", "x" ≤ "y".
-
-  Lemma compare_vals_spec (x y : Z) :
-    {{{ True }}}
-      compare_vals (val_encode x) (val_encode y)
-    {{{ RET val_encode (bool_decide (x ≤ y)); True }}}.
-  Proof. iIntros (Φ) "_ HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
-
-  Definition list_sort : val :=
-    λ: "xs",
-    let: "c" := new_chan #() in
-    Fork(list_sort_service "c");;
-        send "c" #Left compare_vals;;
-        send "c" #Left "xs";;
-        recv "c" #Left.
-
-  Lemma list_sort_spec l xs :
-    {{{ l ↦ val_encode xs }}}
-      list_sort #l
-    {{{ ys, RET #l; l ↦ val_encode ys ∗ ⌜Sorted (≤) ys⌝ ∗ ⌜Permutation ys xs⌝ }}}.
+  Lemma list_sort_client_spec I R `{!RelDecision R} `{!Total R}
+        cmp l (vs : list val) (xs : list Z) :
+    cmp_spec I R cmp -∗
+    {{{ l ↦ val_encode vs ∗ ([∗ list] x;v ∈ xs;vs, I x v)}}}
+      list_sort_client cmp #l
+    {{{ ys ws, RET #(); l ↦ val_encode ws ∗ ⌜Sorted R ys⌝ ∗ ⌜Permutation ys xs⌝ ∗ ([∗ list] y;w ∈ ys;ws, I y w) }}}.
   Proof.
-     iIntros (Φ) "Hc HΦ".
-     wp_lam.
-     wp_apply (new_chan_st_spec N _ (sort_protocol (≤) xs))=> //.
-     iIntros (c γ) "[Hstl Hstr]".
-     wp_apply (wp_fork with "[Hstr]").
-     {
-       iApply (list_sort_service_spec (≤) γ c xs with "Hstr").
-       iNext. iNext. iIntros "Hstr". done.
-     }
-     wp_apply (send_st_spec (A:=val) with "[$Hstl]").
-     {
-       iIntros (x y Φ').
-       iApply compare_vals_spec=> //.
-     }
-     iIntros "Hstl".
-     wp_apply (send_st_spec (A:=loc) with "[Hc $Hstl]"). iFrame.
-     iIntros "Hstl".
-     wp_apply (recv_st_spec (A:=loc) with "Hstl").
-     iIntros (v) "[Hstl HP]".
-     iDestruct "HP" as (<- ys) "[Hys Hys_sorted_of]".
-     iApply "HΦ". iFrame.
+    iIntros "#Hcmp".
+    iModIntro.
+    iIntros (Φ) "Hl HΦ".
+    wp_lam.
+    wp_apply (new_chan_proto_spec N (sort_protocol <++> END)%proto with "[//]")=> /=.
+    iIntros (c c') "[Hstl Hstr]".
+    wp_apply (wp_fork with "[Hstr]").
+    {
+      iNext.
+       rewrite (iProto_dual_app sort_protocol (END%proto)).
+       wp_apply (list_sort_service_spec (END%proto) c' with "Hstr").
+       iIntros "Hstr". done.
+    }
+    wp_apply (send_proto_spec with "Hstl"); simpl.
+    iExists _, I, R, _, _, cmp.
+    iSplitR=> //.
+    iSplitR=> //.
+    iNext.
+    iIntros "Hstl".
+    wp_pures.
+    wp_apply (send_proto_spec with "Hstl"); simpl.
+    iExists xs, l, vs.
+    iSplitR=> //.
+    iFrame.
+    iNext.
+    iIntros "Hstl".
+    wp_apply (recv_proto_spec with "Hstl"); simpl.
+    iIntros (ys ws) "Hstl (Hsorted & Hperm & Hl & HI)".
+    wp_pures. iApply "HΦ".
+    iFrame.
   Qed.
-*)
+
+  (* Example: Sort of integers *)
+  Definition IZ : Z → val → iProp Σ :=
+    (λ x v, ⌜∃ w, v = LitV $ LitInt w ∧ x = w⌝%I).
+  
+  Lemma compare_vals_spec :
+    cmp_spec IZ (≤) compare_vals.
+  Proof.
+    iIntros (x x' v v' Φ).
+    iModIntro.
+    iIntros ([[w [-> ->]] [w' [-> ->]]]) "HΦ".
+    wp_lam. wp_pures. iApply "HΦ". eauto 10 with iFrame.
+  Qed.
+
+  Lemma list_sort_client_le_spec l (vs : list val) (xs : list Z) :
+    {{{ l ↦ val_encode vs ∗ ([∗ list] x;v ∈ xs;vs, IZ x v)}}}
+      list_sort_client compare_vals #l
+    {{{ ys ws, RET #(); l ↦ val_encode ws ∗ ⌜Sorted (≤) ys⌝ ∗ ⌜Permutation ys xs⌝ ∗ ([∗ list] y;w ∈ ys;ws, IZ y w) }}}.
+  Proof.
+    iIntros (Φ) "[Hl HI] HΦ".
+    iApply (list_sort_client_spec IZ (≤) with "[] [Hl HI] [HΦ]")=> //.
+    { iApply compare_vals_spec. }
+    iFrame.
+  Qed.
+
+End list_sort.
