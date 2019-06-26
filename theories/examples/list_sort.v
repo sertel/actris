@@ -246,19 +246,27 @@ Section list_sort.
     wp_lam. wp_pures. iApply "HΦ". eauto 10 with iFrame.
   Qed.
 
+  Local Arguments val_encode _ _ !_ /.
+
   Lemma list_sort_client_le_spec l (xs : list Z) :
     {{{ l ↦ val_encode xs }}}
       list_sort_client compare_vals #l
     {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ val_encode ys }}}.
   Proof.
-    assert (val_encode xs = val_encode (LitV ∘ LitInt <$> xs)) as Hxs.
-    { admit. }
+    assert (∀ zs : list Z, val_encode zs = val_encode (LitV ∘ LitInt <$> zs)) as Henc.
+    { intros zs. induction zs; f_equal/=; auto with f_equal. }
     iIntros (Φ) "Hl HΦ".
     iApply (list_sort_client_spec IZ (≤) _ _ (LitV ∘ LitInt <$> xs) xs with "[] [Hl] [HΦ]").
     { iApply compare_vals_spec. }
-    { rewrite -Hxs {Hxs}. iFrame "Hl".
+    { rewrite -Henc. iFrame "Hl".
       iInduction xs as [|x xs] "IH"; csimpl; first by iFrame.
       iFrame "IH". by iExists x. }
-    { admit. }
-  Admitted.
+    iIntros "!>" (ys ws) "(?&?&?&HI)".
+    iAssert ⌜ ws = (LitV ∘ LitInt) <$> ys ⌝%I with "[HI]" as %->.
+    { iInduction ys as [|y ys] "IH" forall (ws);
+        destruct ws as [|w ws]; csimpl; try done.
+      iDestruct "HI" as "[HI1 HI2]"; iDestruct "HI1" as %(?&->&->).
+      by iDestruct ("IH" with "HI2") as %->. }
+    rewrite -Henc. iApply ("HΦ" $! ys with "[$]").
+  Qed.
 End list_sort.

@@ -53,11 +53,13 @@ Proof. split. by intros []. by intros [[]| | | |] ? [= <-]. Qed.
 
 Instance pair_val_enc `{ValEnc A, ValEnc B} : ValEnc (A * B) := λ p,
   (val_encode p.1, val_encode p.2)%V.
+Arguments pair_val_enc {_ _ _ _} !_ /.
 Instance pair_val_dec `{ValDec A, ValDec B} : ValDec (A * B) := λ v,
   match v with
   | PairV v1 v2 => x1 ← val_decode v1; x2 ← val_decode v2; Some (x1, x2)
   | _ => None
   end.
+Arguments pair_val_dec {_ _ _ _} !_ /.
 Instance pair_val_enc_dec `{ValEncDec A, ValEncDec B} : ValEncDec (A * B).
 Proof.
   split.
@@ -70,12 +72,14 @@ Qed.
 
 Instance option_val_enc `{ValEnc A} : ValEnc (option A) := λ mx,
   match mx with Some x => SOMEV (val_encode x) | None => NONEV end%V.
+Arguments option_val_enc {_ _} !_ /.
 Instance option_val_dec `{ValDec A} : ValDec (option A) := λ v,
   match v with
   | SOMEV v => x ← val_decode v; Some (Some x)
   | NONEV => Some None
   | _ => None
   end.
+Arguments option_val_dec {_ _} !_ /.
 Instance option_val_enc_dec `{ValEncDec A} : ValEncDec (option A).
 Proof.
   split.
