@@ -56,14 +56,13 @@ Definition loop_sort_service : val := λ: <>,
   Fork (loop_sort_service_go (Snd "c"));;
   Fst "c".
 
-  Definition list_sort_client : val :=
-    λ: "cmp" "xs",
-    let: "c" := new_chan #() in
-    Fork(list_sort_service (Snd "c"));;
-    send (Fst "c") "cmp";;
-    send (Fst "c") "xs";;
-    recv (Fst "c");;
-    #().
+Definition list_sort_client : val := λ: "cmp" "xs",
+  let: "c" := new_chan #() in
+  Fork (list_sort_service (Snd "c"));;
+  send (Fst "c") "cmp";;
+  send (Fst "c") "xs";;
+  recv (Fst "c");;
+  #().
 
 Section list_sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
@@ -206,67 +205,60 @@ Section list_sort.
     - by iApply "HΨ".
   Qed.
 
-  Lemma list_sort_client_spec I R `{!RelDecision R} `{!Total R}
-        cmp l (vs : list val) (xs : list Z) :
+  Lemma list_sort_client_spec {A} (I : A → val → iProp Σ) R
+       `{!RelDecision R, !Total R} cmp l (vs : list val) (xs : list A) :
     cmp_spec I R cmp -∗
-    {{{ l ↦ val_encode vs ∗ ([∗ list] x;v ∈ xs;vs, I x v)}}}
+    {{{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
       list_sort_client cmp #l
-    {{{ ys ws, RET #(); l ↦ val_encode ws ∗ ⌜Sorted R ys⌝ ∗ ⌜Permutation ys xs⌝ ∗ ([∗ list] y;w ∈ ys;ws, I y w) }}}.
+    {{{ ys ws, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
+               l ↦ val_encode ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
   Proof.
-    iIntros "#Hcmp".
-    iModIntro.
-    iIntros (Φ) "Hl HΦ".
+    iIntros "#Hcmp !>" (Φ) "Hl HΦ".
     wp_lam.
     wp_apply (new_chan_proto_spec N (sort_protocol <++> END)%proto with "[//]")=> /=.
     iIntros (c c') "[Hstl Hstr]".
     wp_apply (wp_fork with "[Hstr]").
-    {
-      iNext.
-       rewrite (iProto_dual_app sort_protocol (END%proto)).
-       wp_apply (list_sort_service_spec (END%proto) c' with "Hstr").
-       iIntros "Hstr". done.
-    }
+    { iNext.
+      rewrite (iProto_dual_app sort_protocol (END%proto)).
+      wp_apply (list_sort_service_spec (END%proto) c' with "Hstr"); auto. }
     wp_apply (send_proto_spec with "Hstl"); simpl.
     iExists _, I, R, _, _, cmp.
     iSplitR=> //.
     iSplitR=> //.
-    iNext.
-    iIntros "Hstl".
-    wp_pures.
+    iIntros "!> Hstl".
     wp_apply (send_proto_spec with "Hstl"); simpl.
     iExists xs, l, vs.
     iSplitR=> //.
-    iFrame.
-    iNext.
-    iIntros "Hstl".
+    iIntros "{$Hl} !> Hstl".
     wp_apply (recv_proto_spec with "Hstl"); simpl.
     iIntros (ys ws) "Hstl (Hsorted & Hperm & Hl & HI)".
-    wp_pures. iApply "HΦ".
-    iFrame.
+    wp_pures. iApply "HΦ". iFrame.
   Qed.
 
   (* Example: Sort of integers *)
-  Definition IZ : Z → val → iProp Σ :=
-    (λ x v, ⌜∃ w, v = LitV $ LitInt w ∧ x = w⌝%I).
-  
-  Lemma compare_vals_spec :
-    cmp_spec IZ (≤) compare_vals.
+  Definition IZ (x : Z) (v : val) : iProp Σ :=
+    ⌜∃ w, v = LitV $ LitInt w ∧ x = w⌝%I.
+
+  Lemma compare_vals_spec : cmp_spec IZ (≤) compare_vals.
   Proof.
-    iIntros (x x' v v' Φ).
-    iModIntro.
+    iIntros (x x' v v' Φ) "!>".
     iIntros ([[w [-> ->]] [w' [-> ->]]]) "HΦ".
     wp_lam. wp_pures. iApply "HΦ". eauto 10 with iFrame.
   Qed.
 
-  Lemma list_sort_client_le_spec l (vs : list val) (xs : list Z) :
-    {{{ l ↦ val_encode vs ∗ ([∗ list] x;v ∈ xs;vs, IZ x v)}}}
+  Lemma list_sort_client_le_spec l (xs : list Z) :
+    {{{ l ↦ val_encode xs }}}
       list_sort_client compare_vals #l
-    {{{ ys ws, RET #(); l ↦ val_encode ws ∗ ⌜Sorted (≤) ys⌝ ∗ ⌜Permutation ys xs⌝ ∗ ([∗ list] y;w ∈ ys;ws, IZ y w) }}}.
+    {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ val_encode ys }}}.
   Proof.
-    iIntros (Φ) "[Hl HI] HΦ".
-    iApply (list_sort_client_spec IZ (≤) with "[] [Hl HI] [HΦ]")=> //.
+    assert (val_encode xs = val_encode (LitV ∘ LitInt <$> xs)) as Hxs.
+    { admit. }
+    iIntros (Φ) "Hl HΦ".
+    iApply (list_sort_client_spec IZ (≤) _ _ (LitV ∘ LitInt <$> xs) xs with "[] [Hl] [HΦ]").
     { iApply compare_vals_spec. }
-    iFrame.
-  Qed.
-
+    { rewrite -Hxs {Hxs}. iFrame "Hl".
+      iInduction xs as [|x xs] "IH"; csimpl; first by iFrame.
+      iFrame "IH". by iExists x. }
+    { admit. }
+  Admitted.
 End list_sort.
