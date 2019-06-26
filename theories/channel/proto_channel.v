@@ -7,6 +7,10 @@ From osiris.utils Require Import auth_excl.
 Set Default Proof Using "Type*".
 Export action.
 
+Definition start_chan : val := λ: "f",
+  let: "cc" := new_chan #() in
+  Fork ("f" (Snd "cc"));; Fst "cc".
+
 (** Camera setup *)
 Class proto_chanG Σ := {
   proto_chanG_chanG :> chanG Σ;
@@ -653,6 +657,18 @@ Section proto.
     iIntros (c1 c2 γ) "(Hc & Hl & Hr)".
     iMod (proto_init ⊤ γ c1 c2 p with "Hc Hl Hr") as "[Hp Hdp]".
     iApply "HΨ". by iFrame.
+  Qed.
+
+  Lemma start_chan_proto_spec p Ψ (f : val) :
+    ▷ (∀ c, c ↣ iProto_dual p @ N -∗ WP f c {{ _, True }}) -∗
+    ▷ (∀ c, c ↣ p @ N -∗ Ψ c) -∗
+    WP start_chan f {{ Ψ }}.
+  Proof.
+    iIntros "Hfork HΨ". wp_lam.
+    wp_apply (new_chan_proto_spec p with "[//]"); iIntros (c1 c2) "[Hc1 Hc2]".
+    wp_apply (wp_fork with "[Hfork Hc2]").
+    { iNext. wp_apply ("Hfork" with "Hc2"). }
+    wp_pures. iApply ("HΨ" with "Hc1").
   Qed.
 
   Lemma send_proto_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
