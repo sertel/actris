@@ -4,20 +4,14 @@ From iris.heap_lang Require Import proofmode notation.
 From osiris.utils Require Import list.
 
 Definition lmerge : val :=
-  rec: "go" "cmp" "hys" "hzs" :=
-    match: "hys" with
-      NONE => "hzs"
-    | SOME "_" =>
-      match: "hzs" with
-        NONE => "hys"
-      | SOME "_" =>
-        let: "y" := lhead "hys" in
-        let: "z" := lhead "hzs" in
-        if: "cmp" "y" "z"
-        then lcons "y" ("go" "cmp" (ltail "hys") "hzs")
-        else lcons "z" ("go" "cmp" "hys" (ltail "hzs"))
-      end
-    end.
+  rec: "go" "cmp" "ys" "zs" :=
+    if: lisnil "ys" then "zs" else
+    if: lisnil "zs" then "ys" else
+    let: "y" := lhead "ys" in
+    let: "z" := lhead "zs" in
+    if: "cmp" "y" "z"
+    then lcons "y" ("go" "cmp" (ltail "ys") "zs")
+    else lcons "z" ("go" "cmp" "ys" (ltail "zs")).
 
 Definition list_sort_service : val :=
   rec: "go" "c" :=
@@ -70,12 +64,12 @@ Section list_sort.
     {{{ ws, RET val_encode ws; [∗ list] x;v ∈ list_merge R xs1 xs2;ws, I x v }}}.
   Proof.
     iIntros "#Hcmp" (Ψ) "!> [HI1 HI2] HΨ". iLöb as "IH" forall (xs1 xs2 vs1 vs2 Ψ).
-    destruct xs1 as [|x1 xs1], vs1 as [|v1 vs1]; simpl; try done.
-    { wp_lam. wp_pures. iApply "HΨ". by rewrite list_merge_nil_l. }
-    wp_lam; wp_pures.
-    destruct xs2 as [|x2 xs2], vs2 as [|v2 vs2]; simpl; try done.
-    { wp_pures. iApply "HΨ". iFrame. }
-    wp_pures.
+    wp_lam. wp_apply (lisnil_spec (A:=val) with "[//]"); iIntros (_).
+    destruct xs1 as [|x1 xs1], vs1 as [|v1 vs1]; simpl; done || wp_pures.
+    { iApply "HΨ". by rewrite list_merge_nil_l. }
+    wp_apply (lisnil_spec (A:=val) with "[//]"); iIntros (_).
+    destruct xs2 as [|x2 xs2], vs2 as [|v2 vs2]; simpl; done || wp_pures.
+    { iApply "HΨ". iFrame. }
     wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
     wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
     iDestruct "HI1" as "[HI1 HI1']"; iDestruct "HI2" as "[HI2 HI2']".

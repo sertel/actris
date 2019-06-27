@@ -14,6 +14,12 @@ Instance list_val_enc `{ValEnc A} : ValEnc (list A) :=
 Definition lnil : val := λ: <>, NONEV.
 Definition lcons : val := λ: "x" "l", SOME ("x", "l").
 
+Definition lisnil : val := λ: "l",
+  match: "l" with
+    SOME "p" => #false
+  | NONE => #true
+  end.
+
 Definition lhead : val := λ: "l",
   match: "l" with
     SOME "p" => Fst "p"
@@ -105,6 +111,12 @@ Lemma lcons_spec x xs :
     lcons (val_encode x) (val_encode xs)
   {{{ RET val_encode (x :: xs); True }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_pures. by iApply "HΦ". Qed.
+
+Lemma lisnil_spec xs:
+  {{{ True }}}
+    lisnil (val_encode xs)
+  {{{ RET #(if xs is [] then true else false); True }}}.
+Proof. iIntros (Φ _) "HΦ". wp_lam. destruct xs; wp_pures; by iApply "HΦ". Qed.
 
 Lemma lhead_spec x xs:
   {{{ True }}} lhead (val_encode (x::xs)) {{{ RET val_encode x; True }}}.
