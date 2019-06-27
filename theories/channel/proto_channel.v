@@ -52,48 +52,74 @@ Instance: Params (@iProto_message) 3.
 
 Notation "< a > x1 .. xn , 'MSG' v {{ P }}; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     a
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
   (at level 20, a at level 10, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
 Notation "< a > x1 .. xn , 'MSG' v ; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     a
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, a at level 10, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
+Notation "< a > 'MSG' v {{ P }}; p" :=
+  (iProto_message
+    a
+    (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
+  (at level 20, a at level 10, v at level 20, P, p at level 200) : proto_scope.
+Notation "< a > 'MSG' v ; p" :=
+  (iProto_message
+    a
+    (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
+  (at level 20, a at level 10, v at level 20, p at level 200) : proto_scope.
 
 Notation "<!> x1 .. xn , 'MSG' v {{ P }}; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     Send
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
 Notation "<!> x1 .. xn , 'MSG' v ; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     Send
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
+Notation "<!> 'MSG' v {{ P }}; p" :=
+  (iProto_message
+    (TT:=TeleO)
+    Send
+    (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
+  (at level 20, v at level 20, P, p at level 200) : proto_scope.
+Notation "<!> 'MSG' v ; p" :=
+  (iProto_message
+    (TT:=TeleO)
+    Send
+    (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
+  (at level 20, v at level 20, p at level 200) : proto_scope.
 
 Notation "<?> x1 .. xn , 'MSG' v {{ P }}; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     Receive
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
 Notation "<?> x1 .. xn , 'MSG' v ; p" :=
   (iProto_message
-    (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. ))
     Receive
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
+Notation "<?> 'MSG' v {{ P }}; p" :=
+  (iProto_message
+    Receive
+    (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
+  (at level 20, v at level 20, P, p at level 200) : proto_scope.
+Notation "<?> 'MSG' v ; p" :=
+  (iProto_message
+    Receive
+    (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
+  (at level 20, v at level 20, p at level 200) : proto_scope.
 
 Notation "'END'" := iProto_end : proto_scope.
 
