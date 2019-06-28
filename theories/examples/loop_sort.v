@@ -37,10 +37,10 @@ Section loop_sort.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
     wp_rec. rewrite {2}loop_sort_protocol_unfold.
-    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= Hc"; wp_if.
+    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
     { wp_apply (list_sort_service_spec with "Hc"); iIntros "Hc".
       by wp_apply ("IH" with "Hc"). }
-    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= Hc"; wp_if.
+    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
     - wp_apply (start_chan_proto_spec N loop_sort_protocol); iIntros (d) "Hd".
       { wp_apply ("IH" with "Hd"); auto. }
       wp_apply (send_proto_spec with "Hc"); simpl.
