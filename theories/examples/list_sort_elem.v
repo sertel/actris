@@ -2,7 +2,7 @@ From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
-From osiris.utils Require Import list.
+From osiris.utils Require Import list compare.
 
 Definition cont := true.
 Definition stop := false.
@@ -46,14 +46,6 @@ Definition list_sort_elem_service : val :=
     list_sort_elem_service_split "c" "c1" "c2";;
     let: "x" := (if: recv "c1" then recv "c1" else assert #false) in
     list_sort_elem_service_merge "cmp" "c" "x" "c1" "c2".
-
-(** This definition is also in list_sort, move elsewhere *)
-Definition cmp_spec `{!heapG Σ} {A} (I : A → val → iProp Σ)
-    (R : relation A) `{!RelDecision R} (cmp : val) : iProp Σ :=
-  (∀ x x' v v',
-    {{{ I x v ∗ I x' v' }}}
-      cmp v v'
-    {{{ RET #(bool_decide (R x x')); I x v ∗ I x' v' }}})%I.
 
 Section list_sort_elem.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).

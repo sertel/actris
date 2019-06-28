@@ -1,30 +1,18 @@
 From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.utils Require Import list.
+From osiris.utils Require Import list compare.
 From osiris.examples Require Import list_sort.
-
-Definition cmpZ : val :=
-  λ: "x" "y", "x" ≤ "y".
 
 Section list_sort_instances.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
-
-  (* Example: Sort of integers *)
-  Definition IZ (x : Z) (v : val) : iProp Σ := ⌜v = #x⌝%I.
-
-  Lemma cmpZ_spec : cmp_spec IZ (≤) cmpZ.
-  Proof.
-    rewrite /IZ. iIntros (x x' v v' Φ [-> ->]) "!> HΦ".
-    wp_lam. wp_pures. by iApply "HΦ".
-  Qed.
 
   Local Arguments val_encode _ _ !_ /.
 
   Lemma list_sort_client_le_spec l (xs : list Z) :
     {{{ l ↦ val_encode xs }}}
       list_sort_client cmpZ #l
-      {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ val_encode ys }}}.
+    {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ val_encode ys }}}.
   Proof.
     assert (∀ zs : list Z, val_encode zs = val_encode (LitV ∘ LitInt <$> zs)) as Henc.
     { intros zs. induction zs; f_equal/=; auto with f_equal. }

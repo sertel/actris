@@ -3,6 +3,7 @@
 theories/utils/auth_excl.v
 theories/utils/encodable.v
 theories/utils/list.v
+theories/utils/compare.v
 theories/channel/channel.v
 theories/channel/proto_model.v
 theories/channel/proto_channel.v

@@ -1,7 +1,7 @@
 From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.utils Require Import list.
+From osiris.utils Require Import list compare.
 
 Definition lmerge : val :=
   rec: "go" "cmp" "ys" "zs" :=
@@ -37,13 +37,6 @@ Definition list_sort_client : val := λ: "cmp" "xs",
 
 Section list_sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
-
-  Definition cmp_spec {A} (I : A → val → iProp Σ)
-      (R : A → A → Prop) `{!RelDecision R} (cmp : val) : iProp Σ :=
-    (∀ x x' v v',
-      {{{ I x v ∗ I x' v' }}}
-        cmp v v'
-      {{{ RET #(bool_decide (R x x')); I x v ∗ I x' v' }}})%I.
 
   Definition sort_protocol : iProto Σ :=
     (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
@@ -163,5 +156,4 @@ Section list_sort.
     iIntros (ys ws) "Hc (Hsorted & Hperm & Hl & HI)".
     wp_pures. iApply "HΦ". iFrame.
   Qed.
-
 End list_sort.
