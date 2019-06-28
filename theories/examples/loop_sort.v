@@ -16,7 +16,6 @@ Definition loop_sort_service : val :=
 Section loop_sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
-  
   Definition loop_sort_protocol_aux (rec : iProto Σ) : iProto Σ :=
     ((sort_protocol <++> rec) <+> ((<?> c, MSG c {{ c ↣ rec @ N }}; rec) <+> END))%proto.
 
@@ -48,5 +47,4 @@ Section loop_sort.
       by wp_apply ("IH" with "Hc").
     - by iApply "HΨ".
   Qed.
-
 End loop_sort.
