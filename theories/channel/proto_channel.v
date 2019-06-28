@@ -50,7 +50,7 @@ Definition iProto_message_eq : @iProto_message = @iProto_message_def := iProto_m
 Arguments iProto_message {_ _} _ _%proto.
 Instance: Params (@iProto_message) 3.
 
-Notation "< a > x1 .. xn , 'MSG' v {{ P }}; p" :=
+Notation "< a > x1 .. xn , 'MSG' v {{ P } } ; p" :=
   (iProto_message
     a
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
@@ -62,7 +62,7 @@ Notation "< a > x1 .. xn , 'MSG' v ; p" :=
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, a at level 10, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
-Notation "< a > 'MSG' v {{ P }}; p" :=
+Notation "< a > 'MSG' v {{ P } } ; p" :=
   (iProto_message
     a
     (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
@@ -73,7 +73,7 @@ Notation "< a > 'MSG' v ; p" :=
     (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
   (at level 20, a at level 10, v at level 20, p at level 200) : proto_scope.
 
-Notation "<!> x1 .. xn , 'MSG' v {{ P }}; p" :=
+Notation "<!> x1 .. xn , 'MSG' v {{ P } } ; p" :=
   (iProto_message
     Send
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
@@ -85,7 +85,7 @@ Notation "<!> x1 .. xn , 'MSG' v ; p" :=
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
-Notation "<!> 'MSG' v {{ P }}; p" :=
+Notation "<!> 'MSG' v {{ P } } ; p" :=
   (iProto_message
     (TT:=TeleO)
     Send
@@ -98,7 +98,7 @@ Notation "<!> 'MSG' v ; p" :=
     (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
   (at level 20, v at level 20, p at level 200) : proto_scope.
 
-Notation "<?> x1 .. xn , 'MSG' v {{ P }}; p" :=
+Notation "<?> x1 .. xn , 'MSG' v {{ P } } ; p" :=
   (iProto_message
     Receive
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
@@ -110,7 +110,7 @@ Notation "<?> x1 .. xn , 'MSG' v ; p" :=
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
-Notation "<?> 'MSG' v {{ P }}; p" :=
+Notation "<?> 'MSG' v {{ P } } ; p" :=
   (iProto_message
     Receive
     (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
@@ -134,13 +134,20 @@ Arguments iProto_dual_if {_} _ _%proto.
 Instance: Params (@iProto_dual_if) 2.
 
 (** Branching *)
-Definition iProto_branch {Σ} (a : action) (p1 p2 : iProto Σ) : iProto Σ :=
-  (<a> (b : bool), MSG #b; if b then p1 else p2)%proto.
+Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
+    (p1 p2 : iProto Σ) : iProto Σ :=
+  (<a> (b : bool), MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
 Typeclasses Opaque iProto_branch.
-Arguments iProto_branch {_} _ _%proto _%proto.
+Arguments iProto_branch {_} _ _%I _%I _%proto _%proto.
 Instance: Params (@iProto_branch) 2.
-Infix "<+>" := (iProto_branch Send) (at level 85) : proto_scope.
-Infix "<&>" := (iProto_branch Receive) (at level 85) : proto_scope.
+Infix "<{ P1 }+{ P2 }>" := (iProto_branch Send P1 P2) (at level 85) : proto_scope.
+Infix "<{ P1 }&{ P2 }>" := (iProto_branch Receive P1 P2) (at level 85) : proto_scope.
+Infix "<+{ P2 }>" := (iProto_branch Send True P2) (at level 85) : proto_scope.
+Infix "<&{ P2 }>" := (iProto_branch Receive True P2) (at level 85) : proto_scope.
+Infix "<{ P1 }+>" := (iProto_branch Send P1 True) (at level 85) : proto_scope.
+Infix "<{ P1 }&>" := (iProto_branch Receive P1 True) (at level 85) : proto_scope.
+Infix "<+>" := (iProto_branch Send True True) (at level 85) : proto_scope.
+Infix "<&>" := (iProto_branch Receive True True) (at level 85) : proto_scope.
 
 (** Append *)
 Definition iProto_app {Σ} (p1 p2 : iProto Σ) : iProto Σ := proto_app p1 p2.
@@ -264,18 +271,24 @@ Section proto.
   Qed.
 
   Global Instance iProto_branch_contractive n a :
-    Proper (dist_later n ==> dist_later n ==> dist n) (@iProto_branch Σ a).
+    Proper (dist_later n ==> dist_later n ==>
+            dist_later n ==> dist_later n ==> dist n) (@iProto_branch Σ a).
   Proof.
-    intros p1 p1' Hp1 p2 p2' Hp2.
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
     apply iProto_message_contractive=> /= -[] //.
   Qed.
-  Global Instance iProto_branch_ne a : NonExpansive2 (@iProto_branch Σ a).
+  Global Instance iProto_branch_ne n a :
+    Proper (dist n ==> dist n ==> dist n ==> dist n ==> dist n) (@iProto_branch Σ a).
   Proof.
-    intros n p1 p1' Hp1 p2 p2' Hp2. by apply iProto_message_ne=> /= -[].
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
+    by apply iProto_message_ne=> /= -[].
   Qed.
   Global Instance iProto_branch_proper a :
-    Proper ((≡) ==> (≡) ==> (≡)) (@iProto_branch Σ a).
-  Proof. apply (ne_proper_2 _). Qed.
+    Proper ((≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡)) (@iProto_branch Σ a).
+  Proof.
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
+    by apply iProto_message_proper=> /= -[].
+  Qed.
 
   (** Dual *)
   Global Instance iProto_dual_ne : NonExpansive (@iProto_dual Σ).
@@ -299,9 +312,9 @@ Section proto.
     by f_equiv=> v f /=.
   Qed.
 
-  Lemma iProto_dual_branch a p1 p2 :
-    iProto_dual (iProto_branch a p1 p2)
-    ≡ iProto_branch (action_dual a) (iProto_dual p1) (iProto_dual p2).
+  Lemma iProto_dual_branch a P1 P2 p1 p2 :
+    iProto_dual (iProto_branch a P1 P2 p1 p2)
+    ≡ iProto_branch (action_dual a) P1 P2 (iProto_dual p1) (iProto_dual p2).
   Proof.
     rewrite /iProto_branch iProto_dual_message /=.
     by apply iProto_message_proper=> /= -[].
@@ -331,8 +344,9 @@ Section proto.
   Global Instance iProto_app_assoc : Assoc (≡) (@iProto_app Σ).
   Proof. intros p1 p2 p3. by rewrite /iProto_app proto_app_assoc. Qed.
 
-  Lemma iProto_app_branch a p1 p2 q :
-    (iProto_branch a p1 p2 <++> q)%proto ≡ (iProto_branch a (p1 <++> q) (p2 <++> q))%proto.
+  Lemma iProto_app_branch a P1 P2 p1 p2 q :
+    (iProto_branch a P1 P2 p1 p2 <++> q)%proto
+    ≡ (iProto_branch a P1 P2 (p1 <++> q) (p2 <++> q))%proto.
   Proof.
     rewrite /iProto_branch iProto_app_message.
     by apply iProto_message_proper=> /= -[].
@@ -413,11 +427,11 @@ Section proto.
       apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
   Qed.
 
-  Global Instance proto_normalize_branch d a1 a2 p1 p2 q1 q2 pas :
+  Global Instance proto_normalize_branch d a1 a2 P1 P2 p1 p2 q1 q2 pas :
     ActionDualIf d a1 a2 →
     ProtoNormalize d p1 pas q1 → ProtoNormalize d p2 pas q2 →
-    ProtoNormalize d (iProto_branch a1 p1 p2) pas
-                     (iProto_branch a2 q1 q2).
+    ProtoNormalize d (iProto_branch a1 P1 P2 p1 p2) pas
+                     (iProto_branch a2 P1 P2 q1 q2).
   Proof.
     rewrite /ActionDualIf /ProtoNormalize=> -> -> ->.
     destruct d; by rewrite /= -?iProto_app_branch -?iProto_dual_branch.
@@ -761,22 +775,22 @@ Section proto.
   Qed.
 
   (** Branching *)
-  Lemma select_spec c b p1 p2 :
-    {{{ c ↣ p1 <+> p2 @ N }}}
+  Lemma select_spec c (b : bool) P1 P2 p1 p2 :
+    {{{ c ↣ p1 <{P1}+{P2}> p2 @ N ∗ if b then P1 else P2 }}}
       send c #b
-    {{{ RET #(); c ↣ (if b : bool then p1 else p2) @ N }}}.
+    {{{ RET #(); c ↣ (if b then p1 else p2) @ N }}}.
   Proof.
-    rewrite /iProto_branch. iIntros (Ψ) "Hc HΨ".
+    rewrite /iProto_branch. iIntros (Ψ) "[Hc HP] HΨ".
     iApply (send_proto_spec with "Hc"); simpl; eauto with iFrame.
   Qed.
 
-  Lemma branch_spec c p1 p2  :
-    {{{ c ↣ p1 <&> p2 @ N }}}
+  Lemma branch_spec c P1 P2 p1 p2 :
+    {{{ c ↣ p1 <{P1}&{P2}> p2 @ N }}}
       recv c
-    {{{ b, RET #b; c ↣ if b : bool then p1 else p2 @ N }}}.
+    {{{ b, RET #b; c ↣ if b : bool then p1 else p2 @ N ∗ if b then P1 else P2 }}}.
   Proof.
     rewrite /iProto_branch. iIntros (Ψ) "Hc HΨ".
     iApply (recv_proto_spec with "Hc"); simpl.
-    iIntros "!>" (b) "Hc _". by iApply "HΨ".
+    iIntros "!>" (b) "Hc HP". iApply "HΨ". iFrame.
   Qed.
 End proto.
