@@ -9,3 +9,4 @@ theories/channel/proto_channel.v
 theories/examples/list_sort.v
 theories/examples/list_sort_instances.v
 theories/examples/loop_sort.v
+theories/examples/loop_sort.v

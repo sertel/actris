@@ -10,29 +10,29 @@ Definition compareZ : val :=
 Definition cont := true.
 Definition stop := false.
 
-Definition list_sort_service_split : val :=
+Definition list_sort_elem_service_split : val :=
   rec: "go" "c" "c1" "c2" :=
     if: ~(recv "c")
     then send "c1" #stop;; send "c2" #stop
     else let: "x" := recv "c" in
          send "c1" #cont;; send "c1" "x";; "go" "c" "c2" "c1".
 
-Definition list_sort_service_copy : val :=
+Definition list_sort_elem_service_copy : val :=
   rec: "go" "c" "cin" :=
     if: ~(recv "cin")
     then send "c" #stop
     else let: "x" := recv "cin" in send "c" #cont;; send "c" "x";; "go" "c" "cin".
 
-Definition list_sort_service_merge : val :=
+Definition list_sort_elem_service_merge : val :=
   rec: "go" "c" "x1" "c1" "c2" :=
     if: ~recv "c2"
-    then send "c" #cont;; send "c" "x1";; list_sort_service_copy "c" "c1"
+    then send "c" #cont;; send "c" "x1";; list_sort_elem_service_copy "c" "c1"
     else let: "x2" := recv "c2" in
          if: compareZ "x1" "x2"
          then send "c" #cont;; send "c" "x1";; "go" "c" "x2" "c2" "c1"
          else send "c" #cont;; send "c" "x2";; "go" "c" "x1" "c1" "c2".
 
-Definition list_sort_service : val :=
+Definition list_sort_elem_service : val :=
   rec: "go" "c" :=
     if: ~(recv "c")
     then send "c" #stop
@@ -44,9 +44,9 @@ Definition list_sort_service : val :=
               let: "c2" := start_chan ("go") in
               send "c1" #cont;; send "c1" "x";;
               send "c2" #cont;; send "c2" "y";;
-              list_sort_service_split "c" "c1" "c2";;
+              list_sort_elem_service_split "c" "c1" "c2";;
               let: "x" := (if: recv "c1" then recv "c1" else assert #false) in
-              list_sort_service_merge "c" "x" "c1" "c2".
+              list_sort_elem_service_merge "c" "x" "c1" "c2".
 
 Section list_sort_elem.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
@@ -104,13 +104,13 @@ Section list_sort_elem.
 
   Definition list_sort_elem_protocol := helper_protocol [].
 
-  Lemma loop_sort_service_split_spec c c1 c2 (xs xs1 xs2 : list Z) :
+  Lemma list_sort_elem_service_split_spec c c1 c2 (xs xs1 xs2 : list Z) :
     {{{
          c ↣ iProto_dual (helper_protocol xs) @ N ∗ 
          c1 ↣ helper_protocol xs1 @ N ∗ 
          c2 ↣ helper_protocol xs2 @ N
      }}}
-      list_sort_service_split c c1 c2
+      list_sort_elem_service_split c c1 c2
     {{{ xs' xs1' xs2', RET #();
         c ↣ iProto_dual (tail_protocol (xs++xs') []) @ N ∗
         c1 ↣ tail_protocol (xs1++xs1') [] @ N ∗ 
@@ -158,25 +158,30 @@ Section list_sort_elem.
       done.
   Qed.
 
-  Lemma cmp_spec : 
+  Lemma cmp_spec :
     (∀ x y,
       {{{ True }}}
         compareZ #x #y
       {{{ RET #(bool_decide (x ≤ y)); True }}})%I.
-  Proof. Admitted.
+  Proof.
+    iIntros (x y Φ).
+    iModIntro. 
+    iIntros "_ HΦ".
+    wp_lam.
+    wp_pures.
+    by iApply "HΦ".
+  Qed.
 
-  Lemma list_sort_service_elem_copy_spec c cin xs ys zs xs' ys' :
+  Lemma list_sort_elem_service_copy_spec c cin xs ys zs xs' ys' :
     xs ≡ₚ  xs' ++ zs →
     ys ≡ₚ  ys' ++ zs →
-    (* xs ≡ₚ  ys ++ zs → *)
-    (* xs'≡ₚ  ys' ++ zs → *)
     Sorted (≤) ys →
     (∀ x, TlRel Z.le x ys' → TlRel Z.le x ys) →
     {{{
       c ↣ iProto_dual (tail_protocol xs ys) @ N ∗
       cin ↣ tail_protocol xs' ys' @ N
     }}}
-      list_sort_service_copy c cin
+      list_sort_elem_service_copy c cin
     {{{ RET #(); c ↣ END @ N ∗ cin ↣ END @ N }}}.
   Proof.
     iIntros (H1 H2 Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
@@ -196,7 +201,7 @@ Section list_sort_elem.
       wp_apply (send_proto_spec N with "Hc")=> //=.
       iExists x. iSplit; first done; iSplit; first by auto. iIntros "!> Hc".
       wp_apply ("IH" with "[%] [%] [%] [%] Hc Hcin")=> //.
-      { admit. }
+      { by rewrite H2 -app_assoc -app_assoc (Permutation_app_comm zs). }
       { apply Sorted_snoc; auto. }
       { intros x'. inversion 1; discriminate_list || simplify_list_eq.
           by constructor. }
@@ -210,9 +215,9 @@ Section list_sort_elem.
       iIntros "!> Hc".
       iApply "HΨ".
       iFrame.
-  Admitted.
-      
-  Lemma loop_sort_service_merge_spec c c1 c2 xs ys xs1 xs2 y1 ys1 ys2 :
+  Qed.
+    
+  Lemma list_sort_elem_service_merge_spec c c1 c2 xs ys xs1 xs2 y1 ys1 ys2 :
     xs ≡ₚ xs1 ++ xs2 →
     ys ≡ₚ ys1 ++ ys2 →
     Sorted (≤) ys →
@@ -223,7 +228,7 @@ Section list_sort_elem.
       c1 ↣ tail_protocol xs1 (ys1 ++ [y1]) @ N ∗ 
       c2 ↣ tail_protocol xs2 ys2 @ N
     }}}
-      list_sort_service_merge c #y1 c1 c2
+      list_sort_elem_service_merge c #y1 c1 c2
     {{{ RET #(); c ↣ END @ N ∗ c1 ↣ END @ N ∗ c2 ↣ END @ N}}}.
   Proof.
     iIntros (Hxs Hys Hsort Htl Htl_le Ψ) "(Hc & Hc1 & Hc2) HΨ".
@@ -268,20 +273,21 @@ Section list_sort_elem.
     - wp_apply (send_proto_spec N with "Hc")=> //=.
       iExists cont. iSplit; first done; iSplit; first done; iIntros "!> Hc".
       wp_apply (send_proto_spec N with "Hc")=> //=.
+      iDestruct "HP" as %HP.
       iExists y1. iSplit; first done; iSplit; first done; iIntros "!> Hc".
-      wp_apply (list_sort_service_elem_copy_spec with "[$Hc $Hc1]")=> //.
-      { rewrite Hys. admit. }
+      wp_apply (list_sort_elem_service_copy_spec with "[$Hc $Hc1]")=> //.
+      { by rewrite Hys -app_assoc -app_assoc (Permutation_app_comm [y1]) HP. }
       { by apply Sorted_snoc. }
       { intros x'. inversion 1; discriminate_list || simplify_list_eq.
           constructor; lia. }
       iIntros "[Hc Hc1]".
       iApply "HΨ".
       iFrame.
-  Admitted.
+  Qed.
 
-  Lemma list_sort_service_elem_spec c :
+  Lemma list_sort_elem_service_spec c :
     {{{ c ↣ iProto_dual list_sort_elem_protocol @ N }}}
-      list_sort_service c
+      list_sort_elem_service c
     {{{ RET #(); c ↣ END @ N }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
@@ -318,8 +324,7 @@ Section list_sort_elem.
         iExists cont. iSplit; first done; iSplit; first done; iIntros "!> Hcz".
         wp_apply (send_proto_spec N with "Hcz")=> //=.
         iExists x2. iSplit; first done; iSplit; first done; iIntros "!> Hcz".
-        
-        wp_apply (loop_sort_service_split_spec with "[Hc Hcy Hcz]")=> //.
+        wp_apply (list_sort_elem_service_split_spec with "[Hc Hcy Hcz]")=> //.
         iFrame.
         iIntros (xs' xs1' xs2') "(Hc & Hcy & Hcz & Hperm)".
         iDestruct "Hperm" as %Hperm.
@@ -332,7 +337,7 @@ Section list_sort_elem.
         iClear "HP".
         wp_apply (recv_proto_spec N with "[Hcy]")=> //=.
         iIntros (x) "Hcy _".
-        wp_apply (loop_sort_service_merge_spec _ _ _ _ [] _ _ _ [] []
+        wp_apply (list_sort_elem_service_merge_spec _ _ _ _ [] _ _ _ [] []
           with "[$Hc $Hcy $Hcz]"); auto using TlRel_nil.
         { by rewrite /= Hperm Permutation_middle. }
         iIntros "(Hc & Hcy & Hcz)".
