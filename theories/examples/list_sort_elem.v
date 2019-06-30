@@ -47,8 +47,16 @@ Definition list_sort_elem_service : val :=
     let: "x" := (if: recv "c1" then recv "c1" else assert #false) in
     list_sort_elem_service_merge "cmp" "c" "x" "c1" "c2".
 
+Definition list_sort_elem_service_top : val :=
+  λ: "c",
+    let: "cmp" := recv "c" in
+    list_sort_elem_service "cmp" "c".
+
+
 Section list_sort_elem.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
+
+  Section list_sort_elem_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
 
   Definition tail_protocol_aux (xs : list (A * val))
@@ -78,7 +86,7 @@ Section list_sort_elem.
   Proof. apply proto_unfold_eq, (fixpoint_unfold head_protocol_aux). Qed.
 
   Definition list_sort_elem_protocol : iProto Σ := head_protocol [].
-
+  
   Lemma list_sort_elem_service_split_spec c c1 c2 xs xs1 xs2 :
     {{{
       c ↣ iProto_dual (head_protocol xs) @ N ∗ 
@@ -211,4 +219,23 @@ Section list_sort_elem.
         by wp_apply (select_spec with "[$Hc]").
     - by wp_apply (select_spec with "[$Hc]").
   Qed.
+  End list_sort_elem_inner.
+
+  Definition list_sort_elem_top_protocol : iProto Σ :=
+    (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
+         `{!RelDecision R, !Total R} (cmp : val),
+       MSG cmp {{ cmp_spec I R cmp }};
+     head_protocol I R [])%proto.
+
+  Lemma list_sort_elem_service_top_spec c :
+    {{{ c ↣ iProto_dual list_sort_elem_top_protocol @ N }}}
+      list_sort_elem_service_top c
+    {{{ RET #(); c ↣ END @ N }}}.
+  Proof.
+    iIntros (Ψ) "Hc HΨ".
+    wp_lam.
+    wp_recv (? I R ? ? cmp) as "#Hcmp".
+    wp_apply (list_sort_elem_service_spec with "Hcmp Hc")=> //.
+  Qed.
+
 End list_sort_elem.
