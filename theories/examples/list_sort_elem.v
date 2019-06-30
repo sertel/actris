@@ -57,10 +57,7 @@ Section list_sort_elem.
      <&{⌜ ys ≡ₚ xs ⌝}> END)%proto.
 
   Instance tail_protocol_aux_contractive xs : Contractive (tail_protocol_aux xs).
-  Proof.
-    intros n p p' Hp ys. apply iProto_branch_ne=> //=.
-    apply iProto_message_contractive=> x //=. destruct n as [|n]=> //=.
-  Qed.
+  Proof. solve_proto_contractive. Qed.
   Definition tail_protocol (xs : list (A * val)) : list (A * val) → iProto Σ :=
     fixpoint (tail_protocol_aux xs).
   Global Instance tail_protocol_unfold xs ys :
@@ -73,10 +70,7 @@ Section list_sort_elem.
      <+> tail_protocol xs [])%proto.
 
   Instance head_protocol_aux_contractive : Contractive head_protocol_aux.
-  Proof.
-    intros n p p' Hp xs. apply iProto_branch_ne=> //=.
-    apply iProto_message_contractive=> //= x. destruct n as [|n]=> //=.
-  Qed.
+  Proof. solve_proto_contractive. Qed.
 
   Definition head_protocol : list (A * val) → iProto Σ := fixpoint head_protocol_aux.
   Global Instance head_protocol_unfold xs :

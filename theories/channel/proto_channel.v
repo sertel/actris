@@ -803,3 +803,17 @@ Section proto.
     iIntros "!>" (b) "Hc HP". iApply "HΨ". iFrame.
   Qed.
 End proto.
+
+Ltac f_proto_contractive :=
+  match goal with
+  | _ => apply iProto_branch_contractive
+  | _ => apply iProto_message_contractive; simpl; intros; [reflexivity|..]
+  | H : _ ≡{?n}≡ _ |- _ ≡{?n'}≡ _ => apply (dist_le n); [apply H|lia]
+  end;
+  try match goal with
+  | |- @dist_later ?A _ ?n ?x ?y =>
+         destruct n as [|n]; simpl in *; [exact Logic.I|change (@dist A _ n x y)]
+  end.
+
+Ltac solve_proto_contractive :=
+  solve_proper_core ltac:(fun _ => first [f_contractive | f_proto_contractive | f_equiv]).

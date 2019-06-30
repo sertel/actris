@@ -20,10 +20,7 @@ Section loop_sort.
     ((sort_protocol <++> rec) <+> ((<?> c, MSG c {{ c ↣ rec @ N }}; rec) <+> END))%proto.
 
   Instance loop_sort_protocol_aux_contractive : Contractive loop_sort_protocol_aux.
-  Proof.
-    intros n p p' Hp. rewrite /loop_sort_protocol_aux.
-    f_contractive; f_equiv=> //. apply iProto_message_ne=> c /=; by repeat f_equiv.
-  Qed.
+  Proof. solve_proto_contractive. Qed.
   Definition loop_sort_protocol : iProto Σ := fixpoint loop_sort_protocol_aux.
   Global Instance loop_sort_protocol_unfold :
     ProtoUnfold loop_sort_protocol (loop_sort_protocol_aux loop_sort_protocol).
