@@ -57,28 +57,28 @@ Section list_sort_elem.
   Section list_sort_elem_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
 
-  Definition tail_protocol_aux (xs : list (A * val))
-      (rec : list (A * val) -d> iProto Σ) : list (A * val) -d> iProto Σ := λ ys,
-    ((<?> y v, MSG v {{ ⌜ TlRel R y (fst <$> ys) ⌝ ∗ I y v }}; (rec : _ → iProto Σ) (ys ++ [(y,v)]))
+  Definition tail_protocol_aux (xs : list A)
+      (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ ys,
+    ((<?> y v, MSG v {{ ⌜ TlRel R y ys ⌝ ∗ I y v }}; (rec : _ → iProto Σ) (ys ++ [y]))
      <&{⌜ ys ≡ₚ xs ⌝}> END)%proto.
 
   Instance tail_protocol_aux_contractive xs : Contractive (tail_protocol_aux xs).
   Proof. solve_proto_contractive. Qed.
-  Definition tail_protocol (xs : list (A * val)) : list (A * val) → iProto Σ :=
+  Definition tail_protocol (xs : list A) : list A → iProto Σ :=
     fixpoint (tail_protocol_aux xs).
   Global Instance tail_protocol_unfold xs ys :
     ProtoUnfold (tail_protocol xs ys) (tail_protocol_aux xs (tail_protocol xs) ys).
   Proof. apply proto_unfold_eq, (fixpoint_unfold (tail_protocol_aux _)). Qed.
 
   Definition head_protocol_aux
-      (rec : list (A * val) -d> iProto Σ) : list (A * val) -d> iProto Σ := λ xs,
-    ((<!> x v, MSG v {{ I x v }}; (rec : _ → iProto Σ) (xs ++ [(x,v)]))
+      (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ xs,
+    ((<!> x v, MSG v {{ I x v }}; (rec : _ → iProto Σ) (xs ++ [x]))
      <+> tail_protocol xs [])%proto.
 
   Instance head_protocol_aux_contractive : Contractive head_protocol_aux.
   Proof. solve_proto_contractive. Qed.
 
-  Definition head_protocol : list (A * val) → iProto Σ := fixpoint head_protocol_aux.
+  Definition head_protocol : list A → iProto Σ := fixpoint head_protocol_aux.
   Global Instance head_protocol_unfold xs :
     ProtoUnfold (head_protocol xs) (head_protocol_aux head_protocol xs) | 100.
   Proof. apply proto_unfold_eq, (fixpoint_unfold head_protocol_aux). Qed.
@@ -111,8 +111,8 @@ Section list_sort_elem.
   Lemma list_sort_elem_service_move_spec c p cin xs ys zs xs' ys' :
     xs ≡ₚ xs' ++ zs →
     ys ≡ₚ ys' ++ zs →
-    Sorted R (fst <$> ys) →
-    (∀ x, TlRel R x (fst <$> ys') → TlRel R x (fst <$> ys)) →
+    Sorted R ys →
+    (∀ x, TlRel R x ys' → TlRel R x ys) →
     {{{
       c ↣ iProto_dual (tail_protocol xs ys) <++> p @ N ∗
       cin ↣ tail_protocol xs' ys' @ N
@@ -128,8 +128,8 @@ Section list_sort_elem.
       wp_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
       * done.
       * by rewrite Hys -!assoc_L (comm _ zs).
-      * rewrite fmap_app /=. apply Sorted_snoc; auto.
-      * intros x'. rewrite !fmap_app.
+      * auto using Sorted_snoc.
+      * intros x'.
         inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - iDestruct "Hys'" as %Hys'. wp_select with "[]".
       { by rewrite /= Hys Hxs Hys'. }
@@ -139,13 +139,13 @@ Section list_sort_elem.
   Lemma list_sort_elem_service_merge_spec cmp c p c1 c2 xs ys xs1 xs2 y1 w1 ys1 ys2 :
     xs ≡ₚ xs1 ++ xs2 →
     ys ≡ₚ ys1 ++ ys2 →
-    Sorted R (fst <$> ys) →
-    TlRel R y1 (fst <$> ys) →
-    (∀ x, TlRel R x (fst <$> ys2) → R x y1 → TlRel R x (fst <$> ys)) →
+    Sorted R ys →
+    TlRel R y1 ys →
+    (∀ x, TlRel R x ys2 → R x y1 → TlRel R x ys) →
     cmp_spec I R cmp -∗
     {{{
       c ↣ iProto_dual (tail_protocol xs ys) <++> p @ N ∗
-      c1 ↣ tail_protocol xs1 (ys1 ++ [(y1,w1)]) @ N ∗ c2 ↣ tail_protocol xs2 ys2 @ N ∗
+      c1 ↣ tail_protocol xs1 (ys1 ++ [y1]) @ N ∗ c2 ↣ tail_protocol xs2 ys2 @ N ∗
       I y1 w1
     }}}
       list_sort_elem_service_merge cmp c w1 c1 c2
@@ -162,25 +162,25 @@ Section list_sort_elem.
         wp_apply ("IH" with "[%] [%] [%] [%] [%] Hc Hc2 Hc1 HIx HΨ").
         * by rewrite comm.
         * by rewrite assoc (comm _ ys2) Hys.
-        * rewrite fmap_app. by apply Sorted_snoc.
-        * rewrite fmap_app. by constructor.
-        * intros x'. rewrite !fmap_app.
+        * by apply Sorted_snoc.
+        * by constructor.
+        * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
       + wp_select. wp_send with "[$HIx]".
         { iPureIntro. by apply Htl_le, total_not. }
         wp_apply ("IH" with "[% //] [%] [%] [%] [%] Hc Hc1 Hc2 HIy1 HΨ").
         * by rewrite Hys assoc.
-        * rewrite fmap_app. by apply Sorted_snoc, Htl_le, total_not.
-        * rewrite fmap_app. constructor. by apply total_not.
-        * intros x'. rewrite !fmap_app.
+        * by apply Sorted_snoc, Htl_le, total_not.
+        * constructor. by apply total_not.
+        * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - iDestruct "Hys2" as %Hys2.
       wp_select. wp_send with "[$HIy1 //]".
       wp_apply (list_sort_elem_service_move_spec with "[$Hc $Hc1]").
       * done.
       * by rewrite Hys Hys2 -!assoc_L (comm _ xs2).
-      * rewrite fmap_app. by apply Sorted_snoc.
-      * intros x'. rewrite !fmap_app.
+      * by apply Sorted_snoc.
+      * intros x'.
         inversion 1; discriminate_list || simplify_list_eq. by constructor.
       * iIntros "[Hc Hc1]". iApply "HΨ". iFrame.
   Qed.
