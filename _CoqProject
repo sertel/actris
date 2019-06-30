@@ -12,3 +12,4 @@ theories/examples/list_sort.v
 theories/examples/list_sort_instances.v
 theories/examples/list_sort_elem.v
 theories/examples/loop_sort.v
+theories/examples/list_sort_elem_client.v
