@@ -390,7 +390,7 @@ Section proto.
 
   Global Instance proto_normalize_end d d' p pas q :
     ProtoNormalize d p pas q →
-    ProtoNormalize d' END ((d,p) :: pas) q | 1.
+    ProtoNormalize d' END ((d,p) :: pas) q | 0.
   Proof.
     rewrite /ProtoNormalize=> -> /=.
     destruct d'; by rewrite /= ?iProto_dual_end left_id.
@@ -398,12 +398,12 @@ Section proto.
 
   Global Instance proto_normalize_app_r d p1 p2 pas q :
     ProtoNormalize d p2 pas q →
-    ProtoNormalize false p1 ((d,p2) :: pas) (p1 <++> q) | 10.
+    ProtoNormalize false p1 ((d,p2) :: pas) (p1 <++> q) | 0.
   Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
 
   Global Instance proto_normalize_app_r_dual d p1 p2 pas q :
     ProtoNormalize d p2 pas q →
-    ProtoNormalize true p1 ((d,p2) :: pas) (iProto_dual p1 <++> q) | 10.
+    ProtoNormalize true p1 ((d,p2) :: pas) (iProto_dual p1 <++> q) | 0.
   Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
 
   Global Instance proto_cont_normalize_O d v P p q pas :
