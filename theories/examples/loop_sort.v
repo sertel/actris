@@ -25,9 +25,9 @@ Section loop_sort.
     f_contractive; f_equiv=> //. apply iProto_message_ne=> c /=; by repeat f_equiv.
   Qed.
   Definition loop_sort_protocol : iProto Σ := fixpoint loop_sort_protocol_aux.
-  Lemma loop_sort_protocol_unfold :
-    loop_sort_protocol ≡ loop_sort_protocol_aux loop_sort_protocol.
-  Proof. apply (fixpoint_unfold loop_sort_protocol_aux). Qed.
+  Global Instance loop_sort_protocol_unfold :
+    ProtoUnfold loop_sort_protocol (loop_sort_protocol_aux loop_sort_protocol).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold loop_sort_protocol_aux). Qed.
 
   Lemma loop_sort_service_spec c :
     {{{ c ↣ iProto_dual loop_sort_protocol @ N }}}
@@ -35,8 +35,7 @@ Section loop_sort.
     {{{ RET #(); c ↣ END @ N }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
-    wp_rec. rewrite {2}loop_sort_protocol_unfold.
-    wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
+    wp_rec. wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
     { wp_apply (list_sort_service_spec with "Hc"); iIntros "Hc".
       by wp_apply ("IH" with "Hc"). }
     wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.

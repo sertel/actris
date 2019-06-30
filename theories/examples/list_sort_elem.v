@@ -63,9 +63,9 @@ Section list_sort_elem.
   Qed.
   Definition tail_protocol (xs : list (A * val)) : list (A * val) → iProto Σ :=
     fixpoint (tail_protocol_aux xs).
-  Lemma tail_protocol_unfold xs ys:
-    tail_protocol xs ys ≡ tail_protocol_aux xs (tail_protocol xs) ys.
-  Proof. apply (fixpoint_unfold (tail_protocol_aux _)). Qed.
+  Global Instance tail_protocol_unfold xs ys :
+    ProtoUnfold (tail_protocol xs ys) (tail_protocol_aux xs (tail_protocol xs) ys).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold (tail_protocol_aux _)). Qed.
 
   Definition head_protocol_aux
       (rec : list (A * val) -d> iProto Σ) : list (A * val) -d> iProto Σ := λ xs,
@@ -79,9 +79,9 @@ Section list_sort_elem.
   Qed.
 
   Definition head_protocol : list (A * val) → iProto Σ := fixpoint head_protocol_aux.
-  Lemma head_protocol_unfold xs :
-    head_protocol xs ≡ head_protocol_aux head_protocol xs.
-  Proof. apply (fixpoint_unfold head_protocol_aux). Qed.
+  Global Instance head_protocol_unfold xs :
+    ProtoUnfold (head_protocol xs) (head_protocol_aux head_protocol xs).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold head_protocol_aux). Qed.
 
   Definition list_sort_elem_protocol : iProto Σ := head_protocol [].
 
@@ -98,11 +98,8 @@ Section list_sort_elem.
     }}}.
   Proof.
     iIntros (Ψ) "(Hc & Hc1 & Hc2) HΨ". iLöb as "IH" forall (c c1 c2 xs xs1 xs2 Ψ).
-    wp_rec.
-    rewrite head_protocol_unfold.
-    wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
+    wp_rec. wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
     - wp_apply (recv_proto_spec with "Hc"); iIntros (x v) "/= Hc HI".
-      rewrite (head_protocol_unfold xs1).
       wp_apply (select_spec with "[$Hc1]")=> //=; iIntros "Hc1".
       wp_apply (send_proto_spec with "Hc1"); simpl.
       iExists x, v. iSplit; [done|]. iIntros "{$HI} !> Hc1".
@@ -110,8 +107,7 @@ Section list_sort_elem.
       iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hc2 & Hc1)".
       rewrite -!(assoc_L (++)).
       iApply "HΨ". iFrame "Hc Hc1 Hc2". by rewrite Hxs' (comm (++) xs1') assoc_L.
-    - rewrite (head_protocol_unfold xs1) (head_protocol_unfold xs2).
-      wp_apply (select_spec with "[$Hc1]")=> //=; iIntros "Hc1".
+    - wp_apply (select_spec with "[$Hc1]")=> //=; iIntros "Hc1".
       wp_apply (select_spec with "[$Hc2]")=> //=; iIntros "Hc2".
       iApply ("HΨ" $! [] [] []). rewrite !right_id_L. by iFrame.
   Qed.
@@ -130,13 +126,10 @@ Section list_sort_elem.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
     iLöb as "IH" forall (c cin xs ys xs' ys' Hxs Hys Hsorted Hrel).
-    wp_rec.
-    rewrite (tail_protocol_unfold xs').
-    wp_apply (branch_spec with "Hcin"); iIntros ([]) "[Hcin Hys']".
+    wp_rec. wp_apply (branch_spec with "Hcin"); iIntros ([]) "[Hcin Hys']".
     - iClear "Hys'".
       wp_apply (recv_proto_spec with "Hcin"); iIntros (x v) "/= Hcin".
       iDestruct 1 as (Hx) "HI".
-      rewrite (tail_protocol_unfold xs).
       wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
       wp_apply (send_proto_spec with "Hc"); simpl.
       iExists x, v. iFrame "HI". do 2 (iSplit; [by auto|]); iIntros "!> Hc".
@@ -146,8 +139,7 @@ Section list_sort_elem.
       { rewrite fmap_app /=. apply Sorted_snoc; auto. }
       { intros x'. rewrite !fmap_app.
         inversion 1; discriminate_list || simplify_list_eq. by constructor. }
-    - iDestruct "Hys'" as %Hys'. rewrite (tail_protocol_unfold xs).
-      wp_apply (select_spec with "[$Hc]")=> //=.
+    - iDestruct "Hys'" as %Hys'. wp_apply (select_spec with "[$Hc]")=> //=.
       { by rewrite Hys Hxs Hys'. }
       iIntros "Hc". iApply "HΨ". iFrame.
   Qed.
@@ -170,9 +162,7 @@ Section list_sort_elem.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
     iIntros (Ψ) "(Hc & Hc1 & Hc2 & HIy1) HΨ".
     iLöb as "IH" forall (c1 c2 xs1 xs2 ys y1 w1 ys1 ys2 Hxs Hys Hsort Htl Htl_le).
-    wp_rec.
-    rewrite (tail_protocol_unfold xs) (tail_protocol_unfold xs2).
-    wp_apply (branch_spec with "[$Hc2]"); iIntros ([]) "[Hc2 Hys2]".
+    wp_rec. wp_apply (branch_spec with "[$Hc2]"); iIntros ([]) "[Hc2 Hys2]".
     - iClear "Hys2".
       wp_apply (recv_proto_spec with "Hc2"); iIntros (x v) "/= Hc2".
       iDestruct 1 as (Htl2) "HIx".
@@ -220,10 +210,9 @@ Section list_sort_elem.
     {{{ RET #(); c ↣ END @ N }}}.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
-    wp_rec; wp_pures. rewrite /list_sort_elem_protocol {2}head_protocol_unfold.
+    wp_rec; wp_pures.
     wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
     - wp_apply (recv_proto_spec with "Hc"); iIntros (x1 v1) "/= Hc HIx1".
-      rewrite (head_protocol_unfold [_]).
       wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
       + wp_apply (recv_proto_spec with "Hc"); iIntros (x2 v2) "/= Hc HIx2".
         wp_apply (start_chan_proto_spec N list_sort_elem_protocol).
@@ -232,7 +221,6 @@ Section list_sort_elem.
         wp_apply (start_chan_proto_spec N list_sort_elem_protocol).
         { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz".
-        rewrite /list_sort_elem_protocol {2 3}(head_protocol_unfold []).
         wp_apply (select_spec with "[$Hcy]")=> //; iIntros "Hcy".
         wp_apply (send_proto_spec with "Hcy")=> //=.
         iExists x1, v1. iFrame "HIx1". iSplit; [done|]; iIntros "!> Hcy".
@@ -241,7 +229,6 @@ Section list_sort_elem.
         iExists x2, v2. iFrame "HIx2". iSplit; [done|]; iIntros "!> Hcz".
         wp_apply (list_sort_elem_service_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
-        rewrite (tail_protocol_unfold (_ :: xs1')).
         wp_apply (branch_spec with "Hcy"); iIntros (b) "[Hcy Hnil]".
         destruct b; last first.
         { by iDestruct "Hnil" as %?%Permutation_nil_cons. }
@@ -251,14 +238,10 @@ Section list_sort_elem.
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
         { by rewrite Hxs' Permutation_middle. }
         iIntros "(Hc & Hcy & Hcz)". by iApply "HΨ".
-      + rewrite (tail_protocol_unfold [_]).
-        wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
+      + wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
         wp_apply (send_proto_spec with "Hc"); simpl.
         iExists x1, v1. iFrame "HIx1". do 2 (iSplit; [by auto using TlRel_nil|]).
-        iIntros "!> Hc".
-        rewrite (tail_protocol_unfold [_]).
-        by wp_apply (select_spec with "[$Hc]").
-    - rewrite (tail_protocol_unfold []).
-      by wp_apply (select_spec with "[$Hc]").
+        iIntros "!> Hc". by wp_apply (select_spec with "[$Hc]").
+    - by wp_apply (select_spec with "[$Hc]").
   Qed.
 End list_sort_elem.

@@ -4,7 +4,6 @@ From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth excl.
 From osiris.utils Require Import auth_excl.
-Set Default Proof Using "Type*".
 Export action.
 
 Definition start_chan : val := λ: "f",
@@ -180,6 +179,9 @@ Class ProtoContNormalize {Σ TT} (d : bool) (pc : TT → val * iProp Σ * iProto
     ProtoNormalize d ((pc x).2) pas ((qc x).2).
 Hint Mode ProtoContNormalize ! ! ! ! ! - : typeclass_instances.
 
+Notation ProtoUnfold p1 p2 := (∀ d pas q,
+  ProtoNormalize d p2 pas q → ProtoNormalize d p1 pas q).
+
 (** Auxiliary definitions and invariants *)
 Fixpoint proto_eval `{!proto_chanG Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   match vs with
@@ -295,6 +297,10 @@ Section proto.
   Proof. solve_proper. Qed.
   Global Instance iProto_dual_proper : Proper ((≡) ==> (≡)) (@iProto_dual Σ).
   Proof. apply (ne_proper _). Qed.
+  Global Instance iProto_dual_if_ne d : NonExpansive (@iProto_dual_if Σ d).
+  Proof. solve_proper. Qed.
+  Global Instance iProto_dual_if_proper d : Proper ((≡) ==> (≡)) (@iProto_dual_if Σ d).
+  Proof. apply (ne_proper _). Qed.
 
   Global Instance iProto_dual_involutive : Involutive (≡) (@iProto_dual Σ).
   Proof.
@@ -357,6 +363,9 @@ Section proto.
   Proof. by rewrite /iProto_dual /iProto_app proto_map_app. Qed.
 
   (** Classes *)
+  Lemma proto_unfold_eq p1 p2 : p1 ≡ p2 → ProtoUnfold p1 p2.
+  Proof. rewrite /ProtoNormalize=> Hp d pas q ->. by rewrite Hp. Qed.
+
   Global Instance proto_normalize_done p : ProtoNormalize false p [] p | 0.
   Proof. by rewrite /ProtoNormalize /= right_id. Qed. 
   Global Instance proto_normalize_done_dual p :
