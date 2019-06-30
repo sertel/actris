@@ -89,8 +89,8 @@ Section list_sort.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ).
     wp_lam.
-    wp_recv (A I R ?? cmp) with "#Hcmp".
-    wp_recv (xs l vs) with "[Hl HI]".
+    wp_recv (A I R ?? cmp) as "#Hcmp".
+    wp_recv (xs l vs) as "[Hl HI]".
     wp_load. wp_apply (llength_spec (A:=val) with "[//]"); iIntros (_).
     iDestruct (big_sepL2_length with "HI") as %<-.
     wp_op; case_bool_decide as Hlen; wp_if.
@@ -110,8 +110,8 @@ Section list_sort.
     wp_send with "[$Hl1 $HI1]".
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl2 $HI2]".
-    wp_recv (ys1 ws1) with (??) "[Hl1 HI1]".
-    wp_recv (ys2 ws2) with (??) "[Hl2 HI2]".
+    wp_recv (ys1 ws1) as (??) "[Hl1 HI1]".
+    wp_recv (ys2 ws2) as (??) "[Hl2 HI2]".
     do 2 wp_load.
     wp_apply (lmerge_spec with "Hcmp [$HI1 $HI2]"). iIntros (ws) "HI".
     wp_store.
@@ -136,7 +136,7 @@ Section list_sort.
       wp_apply (list_sort_service_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
-    wp_recv (ys ws) with "(Hsorted & Hperm & Hl & HI)".
+    wp_recv (ys ws) as "(Hsorted & Hperm & Hl & HI)".
     wp_pures. iApply "HΦ"; iFrame.
   Qed.
 End list_sort.

@@ -92,16 +92,13 @@ Section list_sort_elem.
     }}}.
   Proof.
     iIntros (Ψ) "(Hc & Hc1 & Hc2) HΨ". iLöb as "IH" forall (c c1 c2 xs xs1 xs2 Ψ).
-    wp_rec. wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
-    - wp_recv (x v) with "HI".
-      wp_apply (select_spec with "[$Hc1]")=> //=; iIntros "Hc1".
-      wp_send with "[$HI]".
+    wp_rec. wp_branch; wp_pures.
+    - wp_recv (x v) as "HI". wp_select. wp_send with "[$HI]".
       wp_apply ("IH" with "Hc Hc2 Hc1").
       iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hc2 & Hc1)".
       rewrite -!(assoc_L (++)).
       iApply "HΨ". iFrame "Hc Hc1 Hc2". by rewrite Hxs' (comm (++) xs1') assoc_L.
-    - wp_apply (select_spec with "[$Hc1]")=> //=; iIntros "Hc1".
-      wp_apply (select_spec with "[$Hc2]")=> //=; iIntros "Hc2".
+    - wp_select. wp_select.
       iApply ("HΨ" $! [] [] []). rewrite !right_id_L. by iFrame.
   Qed.
 
@@ -119,19 +116,18 @@ Section list_sort_elem.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
     iLöb as "IH" forall (c cin xs ys xs' ys' Hxs Hys Hsorted Hrel).
-    wp_rec. wp_apply (branch_spec with "Hcin"); iIntros ([]) "[Hcin Hys']".
-    - iClear "Hys'". wp_recv (x v) with (Htl) "HI".
-      wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
-      wp_send with "[$HI]"; first by auto.
+    wp_rec. wp_branch as "_" "Hys'".
+    - wp_recv (x v) as (Htl) "HI".
+      wp_select. wp_send with "[$HI]"; first by auto.
       wp_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
       { done. }
       { by rewrite Hys -!assoc_L (comm _ zs). }
       { rewrite fmap_app /=. apply Sorted_snoc; auto. }
       { intros x'. rewrite !fmap_app.
         inversion 1; discriminate_list || simplify_list_eq. by constructor. }
-    - iDestruct "Hys'" as %Hys'. wp_apply (select_spec with "[$Hc]")=> //=.
-      { by rewrite Hys Hxs Hys'. }
-      iIntros "Hc". iApply "HΨ". iFrame.
+    - iDestruct "Hys'" as %Hys'. wp_select with "[]".
+      { by rewrite /= Hys Hxs Hys'. }
+      iApply "HΨ". iFrame.
   Qed.
 
   Lemma list_sort_elem_service_merge_spec cmp c c1 c2 xs ys xs1 xs2 y1 w1 ys1 ys2 :
@@ -152,13 +148,11 @@ Section list_sort_elem.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
     iIntros (Ψ) "(Hc & Hc1 & Hc2 & HIy1) HΨ".
     iLöb as "IH" forall (c1 c2 xs1 xs2 ys y1 w1 ys1 ys2 Hxs Hys Hsort Htl Htl_le).
-    wp_rec. wp_apply (branch_spec with "[$Hc2]"); iIntros ([]) "[Hc2 Hys2]".
-    - iClear "Hys2".
-      wp_recv (x v) with (Htl2) "HIx".
+    wp_rec. wp_branch as "_" "Hys2".
+    - wp_recv (x v) as (Htl2) "HIx".
       wp_pures. wp_apply ("Hcmp" with "[$HIy1 $HIx]"); iIntros "[HIy1 HIx]".
       case_bool_decide.
-      + wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
-        wp_send with "[$HIy1 //]".
+      + wp_select. wp_send with "[$HIy1 //]".
         wp_apply ("IH" with "[%] [%] [%] [%] [%] Hc Hc2 Hc1 HIx").
         { by rewrite comm. }
         { by rewrite assoc (comm _ ys2) Hys. }
@@ -167,8 +161,7 @@ Section list_sort_elem.
         { intros x'. rewrite !fmap_app.
           inversion 1; discriminate_list || simplify_list_eq. by constructor. }
         iIntros "(?&?&?)". iApply "HΨ"; iFrame.
-      + wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
-        wp_send with "[$HIx]".
+      + wp_select. wp_send with "[$HIx]".
         { iPureIntro. by apply Htl_le, total_not. }
         wp_apply ("IH" with "[% //] [%] [%] [%] [%] Hc Hc1 Hc2 HIy1 HΨ").
         { by rewrite Hys assoc. }
@@ -177,8 +170,7 @@ Section list_sort_elem.
         { intros x'. rewrite !fmap_app.
           inversion 1; discriminate_list || simplify_list_eq. by constructor. }
     - iDestruct "Hys2" as %Hys2.
-      wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
-      wp_send with "[$HIy1 //]".
+      wp_select. wp_send with "[$HIy1 //]".
       wp_apply (list_sort_elem_service_move_spec with "[$Hc $Hc1]").
       { done. }
       { by rewrite Hys Hys2 -!assoc_L (comm _ xs2). }
@@ -195,34 +187,27 @@ Section list_sort_elem.
     {{{ RET #(); c ↣ END @ N }}}.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
-    wp_rec; wp_pures.
-    wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
-    - wp_recv (x1 v1) with "HIx1".
-      wp_apply (branch_spec with "Hc"); iIntros ([]) "[Hc _]"; wp_pures.
-      + wp_recv (x2 v2) with "HIx2".
+    wp_rec; wp_pures. wp_branch; wp_pures.
+    - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
+      + wp_recv (x2 v2) as "HIx2".
         wp_apply (start_chan_proto_spec N list_sort_elem_protocol).
         { iIntros (cy) "Hcy". wp_apply ("IH" with "Hcy"); auto. }
         iIntros (cy) "Hcy".
         wp_apply (start_chan_proto_spec N list_sort_elem_protocol).
         { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz".
-        wp_apply (select_spec with "[$Hcy]")=> //; iIntros "Hcy".
-        wp_send with "[$HIx1]".
-        wp_apply (select_spec with "[$Hcz]")=> //; iIntros "Hcz".
-        wp_send with "[$HIx2]".
+        wp_select. wp_send with "[$HIx1]".
+        wp_select. wp_send with "[$HIx2]".
         wp_apply (list_sort_elem_service_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
-        wp_apply (branch_spec with "Hcy"); iIntros (b) "[Hcy Hnil]".
-        destruct b; last first.
+        wp_branch as "_" "Hnil"; last first.
         { by iDestruct "Hnil" as %?%Permutation_nil_cons. }
-        iClear "Hnil".
-        wp_recv (x v) with "[_ HIx]".
+        wp_recv (x v) as "[_ HIx]".
         wp_apply (list_sort_elem_service_merge_spec _ _ _ _ _ [] _ _ _ _ [] []
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
         { by rewrite Hxs' Permutation_middle. }
         iIntros "(Hc & Hcy & Hcz)". by iApply "HΨ".
-      + wp_apply (select_spec with "[$Hc]")=> //=; iIntros "Hc".
-        wp_send with "[$HIx1]"; first by auto using TlRel_nil.
+      + wp_select. wp_send with "[$HIx1]"; first by auto using TlRel_nil.
         by wp_apply (select_spec with "[$Hc]").
     - by wp_apply (select_spec with "[$Hc]").
   Qed.
