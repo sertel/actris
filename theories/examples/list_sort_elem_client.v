@@ -42,23 +42,23 @@ Section list_sort_elem_client.
     by rewrite -assoc_L.
   Qed.
 
-  Lemma recv_all_spec c p xs ys :
-    Sorted R ys →
-    {{{ c ↣ tail_protocol I R xs ys <++> p @ N }}}
+  Lemma recv_all_spec c p xs ys' :
+    Sorted R ys' →
+    {{{ c ↣ tail_protocol I R xs ys' <++> p @ N }}}
       recv_all c
-    {{{ ys' ws, RET (val_encode ws);
-        ⌜Sorted R (ys ++ ys')⌝ ∗ ⌜ys ++ ys' ≡ₚ xs⌝ ∗
-        c ↣ p @ N ∗ [∗ list] y;w ∈ ys';ws, I y w
+    {{{ ys ws, RET (val_encode ws);
+        ⌜Sorted R (ys' ++ ys)⌝ ∗ ⌜ys' ++ ys ≡ₚ xs⌝ ∗
+        c ↣ p @ N ∗ [∗ list] y;w ∈ ys;ws, I y w
     }}}.
   Proof.
     iIntros (Hsort Φ) "Hc HΦ".
-    iLöb as "IH" forall (xs ys Φ Hsort).
+    iLöb as "IH" forall (xs ys' Φ Hsort).
     wp_lam. wp_branch as "_" "Hperm"; wp_pures.
     - wp_recv (y v) as (Htl) "HIxv".
       wp_apply ("IH" with "[] Hc"); first by auto using Sorted_snoc.
-      iIntros (ys' ws). rewrite -!assoc_L. iDestruct 1 as (??) "[Hc HI]".
+      iIntros (ys ws). rewrite -!assoc_L. iDestruct 1 as (??) "[Hc HI]".
       wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
-      iApply ("HΦ" $! (y :: ys')). simpl; iFrame; auto.
+      iApply ("HΦ" $! (y :: ys)). simpl; iFrame; auto.
     - wp_apply (lnil_spec with "[//]"); iIntros (_).
       iApply ("HΦ" $! [] []); rewrite /= right_id_L; by iFrame.
   Qed.
