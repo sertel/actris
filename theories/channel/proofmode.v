@@ -194,7 +194,7 @@ Proof.
   rewrite envs_app_sound //; simpl. by rewrite right_id HΦ.
 Qed.
 
-Tactic Notation "wp_branch" "as" constr(pat1) constr(pat2) :=
+Tactic Notation "wp_branch_core" "as" tactic3(tac1) tactic3(tac2) :=
   let solve_mapsto _ :=
     let c := match goal with |- _ = Some (_, (?c ↣ _ @ _)%I) => c end in
     iAssumptionCore || fail "wp_branch: cannot find" c "↣ ? @ ?" in
@@ -207,12 +207,19 @@ Tactic Notation "wp_branch" "as" constr(pat1) constr(pat2) :=
       |fail 1 "wp_branch: cannot find 'recv' in" e];
     [solve_mapsto ()
        |iSolveTC || fail 1 "wp_send: protocol not of the shape <&>"
-    |pm_reduce; intros [];
-       [iDestructHyp Hnew as pat1|iDestructHyp Hnew as pat2]; wp_finish]
+    |pm_reduce; intros []; [tac1 Hnew|tac2 Hnew]; wp_finish]
   | _ => fail "wp_branch: not a 'wp'"
   end.
 
-Tactic Notation "wp_branch" := wp_branch as "_" "_".
+Tactic Notation "wp_branch" "as" constr(pat1) "|" constr(pat2) :=
+  wp_branch_core as (fun H => iDestructHyp H as pat1) (fun H => iDestructHyp H as pat2).
+Tactic Notation "wp_branch" "as" "%" intropattern(pat1) "|" constr(pat2) :=
+  wp_branch_core as (fun H => iPure H as pat1) (fun H => iDestructHyp H as pat2).
+Tactic Notation "wp_branch" "as" constr(pat1) "|" "%" intropattern(pat2) :=
+  wp_branch_core as (fun H => iDestructHyp H as pat1) (fun H => iPure H as pat2).
+Tactic Notation "wp_branch" "as" "%" intropattern(pat1) "|" "%" intropattern(pat2) :=
+  wp_branch_core as (fun H => iPure H as pat1) (fun H => iPure H as pat2).
+Tactic Notation "wp_branch" := wp_branch as %_ | %_.
 
 Lemma tac_wp_select `{!proto_chanG Σ, !heapG Σ} Δ neg i js K N
     c (b : bool) p P1 P2 (p1 p2 : iProto Σ) Φ :

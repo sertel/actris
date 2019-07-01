@@ -53,7 +53,7 @@ Section list_sort_elem_client.
   Proof.
     iIntros (Hsort Φ) "Hc HΦ".
     iLöb as "IH" forall (xs ys' Φ Hsort).
-    wp_lam. wp_branch as "_" "Hperm"; wp_pures.
+    wp_lam. wp_branch as %_ | %Hperm; wp_pures.
     - wp_recv (y v) as (Htl) "HIxv".
       wp_apply ("IH" with "[] Hc"); first by auto using Sorted_snoc.
       iIntros (ys ws). rewrite -!assoc_L. iDestruct 1 as (??) "[Hc HI]".

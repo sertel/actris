@@ -122,7 +122,7 @@ Section list_sort_elem.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
     iLöb as "IH" forall (c cin xs ys xs' ys' Hxs Hys Hsorted Hrel).
-    wp_rec. wp_branch as "_" "Hys'".
+    wp_rec. wp_branch as %_ | %Hys'.
     - wp_recv (x v) as (Htl) "HI".
       wp_select. wp_send with "[$HI]"; first by auto.
       wp_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
@@ -131,7 +131,7 @@ Section list_sort_elem.
       * auto using Sorted_snoc.
       * intros x'.
         inversion 1; discriminate_list || simplify_list_eq. by constructor.
-    - iDestruct "Hys'" as %Hys'. wp_select with "[]".
+    - wp_select with "[]".
       { by rewrite /= Hys Hxs Hys'. }
       iApply "HΨ". iFrame.
   Qed.
@@ -154,7 +154,7 @@ Section list_sort_elem.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
     iIntros (Ψ) "(Hc & Hc1 & Hc2 & HIy1) HΨ".
     iLöb as "IH" forall (c1 c2 xs1 xs2 ys y1 w1 ys1 ys2 Hxs Hys Hsort Htl Htl_le).
-    wp_rec. wp_branch as "_" "Hys2".
+    wp_rec. wp_branch as %_ | %Hys2.
     - wp_recv (x v) as (Htl2) "HIx".
       wp_pures. wp_apply ("Hcmp" with "[$HIy1 $HIx]"); iIntros "[HIy1 HIx]".
       case_bool_decide.
@@ -174,8 +174,7 @@ Section list_sort_elem.
         * constructor. by apply total_not.
         * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
-    - iDestruct "Hys2" as %Hys2.
-      wp_select. wp_send with "[$HIy1 //]".
+    - wp_select. wp_send with "[$HIy1 //]".
       wp_apply (list_sort_elem_service_move_spec with "[$Hc $Hc1]").
       * done.
       * by rewrite Hys Hys2 -!assoc_L (comm _ xs2).
@@ -205,8 +204,7 @@ Section list_sort_elem.
         wp_select. wp_send with "[$HIx2]".
         wp_apply (list_sort_elem_service_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
-        wp_branch as "_" "Hnil"; last first.
-        { by iDestruct "Hnil" as %?%Permutation_nil_cons. }
+        wp_branch as %_ | %[]%Permutation_nil_cons.
         wp_recv (x v) as "[_ HIx]".
         wp_apply (list_sort_elem_service_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
