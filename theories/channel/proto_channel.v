@@ -697,15 +697,14 @@ Section proto.
   Qed.
 
   (** Specifications of send and receive *)
-  Lemma new_chan_proto_spec p :
+  Lemma new_chan_proto_spec :
     {{{ True }}}
       new_chan #()
-    {{{ c1 c2, RET (c1,c2); c1 ↣ p @ N ∗ c2 ↣ iProto_dual p @ N }}}.
+    {{{ c1 c2, RET (c1,c2); (∀ p, |={⊤}=> c1 ↣ p @ N ∗ c2 ↣ iProto_dual p @ N) }}}.
   Proof.
     iIntros (Ψ _) "HΨ". iApply wp_fupd. wp_apply new_chan_spec=> //.
-    iIntros (c1 c2 γ) "(Hc & Hl & Hr)".
-    iMod (proto_init ⊤ γ c1 c2 p with "Hc Hl Hr") as "[Hp Hdp]".
-    iApply "HΨ". by iFrame.
+    iIntros (c1 c2 γ) "(Hc & Hl & Hr)". iApply "HΨ"; iIntros "!>" (p).
+    iApply (proto_init ⊤ γ c1 c2 p with "Hc Hl Hr").
   Qed.
 
   Lemma start_chan_proto_spec p Ψ (f : val) :
@@ -714,7 +713,8 @@ Section proto.
     WP start_chan f {{ Ψ }}.
   Proof.
     iIntros "Hfork HΨ". wp_lam.
-    wp_apply (new_chan_proto_spec p with "[//]"); iIntros (c1 c2) "[Hc1 Hc2]".
+    wp_apply (new_chan_proto_spec with "[//]"); iIntros (c1 c2) "Hc".
+    iMod ("Hc" $! p) as "[Hc1 Hc2]".
     wp_apply (wp_fork with "[Hfork Hc2]").
     { iNext. wp_apply ("Hfork" with "Hc2"). }
     wp_pures. iApply ("HΨ" with "Hc1").
