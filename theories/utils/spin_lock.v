@@ -6,7 +6,7 @@ From iris.base_logic.lib Require Import cancelable_invariants.
 From iris.bi.lib Require Import fractional.
 Set Default Proof Using "Type".
 
-Definition newlock : val := λ: <>, ref #false.
+Definition new_lock : val := λ: <>, ref #false.
 Definition try_acquire : val := λ: "l", CAS "l" #false #true.
 Definition acquire : val :=
   rec: "acquire" "l" := if: try_acquire "l" then #() else "acquire" "l".
@@ -63,21 +63,33 @@ Section proof.
   Global Instance unlocked_timeless lk q : Timeless (unlocked lk q).
   Proof. apply _. Qed.
 
-  Lemma newlock_spec (R : iProp Σ):
-    {{{ R }}}
-      newlock #()
-    {{{ lk, RET #lk; is_lock lk R ∗ unlocked lk 1 }}}.
+  Lemma lock_cancel E lk R : ↑ N ⊆ E → is_lock lk R -∗ unlocked lk 1 ={E}=∗ ▷ R.
   Proof.
-    iIntros (Φ) "HR HΦ". rewrite -wp_fupd /newlock /=.
-    wp_lam. wp_apply (wp_alloc with "[//]"); iIntros (l) "[Hl Hm]".
+    intros. iDestruct 1 as (γ γi) "#[Hm Hinv]". iDestruct 1 as (γ' γi') "[Hm' Hq]".
+    iDestruct (meta_agree with "Hm Hm'") as %[= <- <-]; iClear "Hm'".
+    iMod (cinv_open_strong with "[$] [$]") as "(HR & Hq & Hclose)"; first done.
+    iDestruct "HR" as ([]) "[Hl HR]".
+    - iDestruct "HR" as (p) "[_ Hq']". iDestruct (cinv_own_1_l with "Hq Hq'") as ">[]".
+    - iDestruct "HR" as "[_ $]". iApply "Hclose"; auto.
+  Qed.
+
+  Lemma new_lock_spec :
+    {{{ True }}}
+      new_lock #()
+    {{{ lk, RET #lk; unlocked lk 1 ∗ (∀ R, R ={⊤}=∗ is_lock lk R) }}}.
+  Proof.
+    iIntros (Φ) "_ HΦ". iApply wp_fupd. wp_lam.
+    wp_apply (wp_alloc with "[//]"); iIntros (l) "[Hl Hm]".
     iDestruct (meta_token_difference _ (↑N) with "Hm") as "[Hm1 Hm2]"; first done.
     iMod (own_alloc (● None)) as (γ) "Hγ"; first by apply auth_auth_valid.
     iMod (cinv_alloc_strong (λ _, True))
       as (γi _) "[Hγi H]"; first by apply pred_infinite_True.
     iMod (meta_set _ _ (γ,γi) with "Hm1") as "#Hm1"; first done.
+    iApply "HΦ"; iSplitL "Hγi"; first by (iExists γ, γi; auto).
+    iIntros "!>" (R) "HR".
     iMod ("H" $! (lock_inv γ γi l R) with "[HR Hl Hγ]") as "#?".
     { iIntros "!>". iExists false. by iFrame. }
-    iModIntro. iApply "HΦ". iSplit; iExists γ, γi; auto.
+    iModIntro. iExists γ, γi; auto.
   Qed.
 
   Lemma try_acquire_spec lk R q :
