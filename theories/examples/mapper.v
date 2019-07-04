@@ -26,7 +26,7 @@ Definition start_mappers : val :=
     Fork (mapper "f" "l" "c");;
     "go" ("n" - #1) "f" "l" "c".
 
-Definition loop_mappers : val :=
+Definition mapper_service_loop : val :=
   rec: "go" "n" "c" "xs" "ys" :=
     if: "n" = #0 then "ys" else
     if: recv "c" then
@@ -45,7 +45,7 @@ Definition mapper_service : val := λ: "n" "f" "xs",
   let: "l" := new_lock #() in
   let: "c" := start_chan (λ: "c",
     start_mappers "n" "f" "l" "c") in
-  loop_mappers "n" "c" "xs" (lnil #()).
+  mapper_service_loop "n" "c" "xs" (lnil #()).
 
 Class map_sortG Σ A `{Countable A} := {
   map_sort_contributionG :> contributionG Σ (gmultisetUR A);
@@ -135,19 +135,19 @@ Section mapper.
     wp_apply ("IH" with "[$] [$] [$]").
   Qed.
 
-  Lemma loop_mappers_spec (n : nat) c vs xs ws X_send xs_recv :
+  Lemma mapper_service_loop_spec (n : nat) c vs xs ws X_send xs_recv :
     (n = 0 → X_send = ∅ ∧ xs = []) →
     {{{
       c ↣ mapper_protocol n (X_send : gmultiset A) @ N ∗
       ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] x;w ∈ xs_recv;ws, IB (f x) w)
     }}}
-      loop_mappers #n c (val_encode vs) (val_encode ws)
+      mapper_service_loop #n c (val_encode vs) (val_encode ws)
     {{{ ys ws, RET (val_encode ws);
-       ⌜ys ++ (f <$> xs_recv) ≡ₚ f <$> (elements X_send ++ xs ++ xs_recv)⌝ ∗
+       ⌜ys ≡ₚ f <$> elements X_send ++ xs⌝ ∗
        [∗ list] y;w ∈ ys ++ (f <$> xs_recv);ws, IB y w
     }}}.
   Proof.
-    iIntros (Hn Φ) "(Hc & Hxs & Hxs_recv) HΦ".
+    iIntros (Hn Φ) "(Hc & HIA & HIB) HΦ".
     iLöb as "IH" forall (n vs xs ws X_send xs_recv Hn Φ); wp_rec; wp_pures; simpl.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
@@ -157,26 +157,25 @@ Section mapper.
       destruct vs as [|v vs], xs as [|x xs]; csimpl; try done; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" with "[] Hc [//] [$] HΦ"). iPureIntro; naive_solver.
-      + iDestruct "Hxs" as "[Hx Hxs]". wp_select.
+      + iDestruct "HIA" as "[HIAx HIA]". wp_select.
         wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
-        wp_send with "[$Hx]".
+        wp_send with "[$HIAx]".
         wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
-        wp_apply ("IH" with "[] Hc Hxs Hxs_recv"); first done.
+        wp_apply ("IH" with "[] Hc HIA HIB"); first done.
         iIntros (ys ws').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton -!assoc_L.
         iApply "HΦ".
-    - wp_recv (x w) as (HH) "HIfx".
+    - wp_recv (x w) as (HH) "HIBfx".
       wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
-      wp_apply ("IH" $! _ _ _ _ _ (_ :: _) with "[] Hc Hxs [HIfx Hxs_recv]"); first done.
+      wp_apply ("IH" $! _ _ _ _ _ (_ :: _) with "[] Hc HIA [HIBfx HIB]"); first done.
       { simpl; iFrame. }
-      iIntros (ys ws'); iDestruct 1 as (Hys) "H"; simplify_eq/=.
+      iIntros (ys ws'); iDestruct 1 as (Hys) "HIB"; simplify_eq/=.
       iApply ("HΦ" $! (ys ++ [f x])). iSplit.
-      + iPureIntro. rewrite -assoc_L /= Hys.
-        rewrite {2}(gmultiset_disj_union_difference {[ x ]} X_send)
+      + iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X_send)
           -?gmultiset_elem_of_singleton_subseteq //.
         rewrite (comm disj_union) gmultiset_elements_disj_union.
-        rewrite gmultiset_elements_singleton.
-        by rewrite -assoc_L (assoc_L _ [x]) (comm _ [x]) -!assoc_L.
+        rewrite gmultiset_elements_singleton -assoc_L (comm _ [x]) assoc_L.
+        by rewrite fmap_app -Hys.
       + by rewrite -assoc_L.
   Qed.
 
@@ -198,7 +197,7 @@ Section mapper.
       { iExists n, ∅. iFrame. }
       wp_apply (start_mappers_spec with "Hf [$Hlk $Hu $Hγs]"); auto. }
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (_).
-    wp_apply (loop_mappers_spec _ _ _ _ [] ∅ [] with "[$Hc $HI //]"); first lia.
+    wp_apply (mapper_service_loop_spec _ _ _ _ [] ∅ [] with "[$Hc $HI //]"); first lia.
     iIntros (ys ws). rewrite /= !right_id_L gmultiset_elements_empty. iApply "HΦ".
   Qed.
 End mapper.
