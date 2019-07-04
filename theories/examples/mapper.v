@@ -3,7 +3,6 @@ From osiris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
 From osiris.utils Require Import list compare spin_lock contribution.
-From osiris.examples Require Import sort_elem.
 From iris.algebra Require Import gmultiset.
 
 Definition mapper : val :=
@@ -47,14 +46,14 @@ Definition mapper_service : val := λ: "n" "f" "xs",
     start_mappers "n" "f" "l" "c") in
   mapper_service_loop "n" "c" "xs" (lnil #()).
 
-Class map_sortG Σ A `{Countable A} := {
-  map_sort_contributionG :> contributionG Σ (gmultisetUR A);
-  map_sort_lockG :> lockG Σ;
+Class mapperG Σ A `{Countable A} := {
+  mapper_contributionG :> contributionG Σ (gmultisetUR A);
+  mapper_lockG :> lockG Σ;
 }.
 
 Section mapper.
   Context `{Countable A, Countable B}.
-  Context `{!heapG Σ, !proto_chanG Σ, map_sortG Σ A} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ, mapperG Σ A} (N : namespace).
   Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (f : A → B).
   Local Open Scope nat_scope.
 
