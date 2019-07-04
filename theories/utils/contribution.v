@@ -1,6 +1,7 @@
 From iris.base_logic Require Export base_logic lib.iprop lib.own.
 From iris.proofmode Require Export tactics.
 From iris.algebra Require Import excl auth csum gmultiset frac_auth.
+From iris.algebra Require Export local_updates.
 
 Class contributionG Σ (A : ucmraT) `{!CmraDiscrete A} := {
   contribution_inG :> inG Σ
@@ -18,6 +19,12 @@ Definition client `{contributionG Σ A} (γ : gname) (x : A) : iProp Σ :=
   own γ (◯ (Some (Cinl (1%positive, x)))).
 Typeclasses Opaque client.
 Instance: Params (@client) 5.
+
+(** MOVE *)
+Fixpoint bi_mult {PROP : bi} (n : nat) (P : PROP) : PROP :=
+  match n with O => emp | S n => P ∗ bi_mult n P end%I.
+Arguments bi_mult {_} _ _%I.
+Notation "n * P" := (bi_mult n P) : bi_scope.
 
 Section contribution.
   Context `{contributionG Σ A}.
@@ -77,11 +84,10 @@ Section contribution.
       by destruct n.
   Qed.
 
-  Lemma alloc_client γ n x x' y' :
-    (x,ε) ~l~> (x',y') →
-    server γ n x ==∗ server γ (S n) x' ∗ client γ y'.
+  Lemma alloc_client γ n x :
+    server γ n x ==∗ server γ (S n) x ∗ client γ ε.
   Proof.
-    intros Hup. rewrite /server /client.
+    rewrite /server /client.
     destruct (decide (n = 0)) as [->|?]; case_decide; try done.
     - iDestruct 1 as (Hx) "[Hs Hc]"; setoid_subst.
       iMod (own_update_2 with "Hs Hc") as "[$ $]"; last done.
@@ -99,27 +105,23 @@ Section contribution.
       by apply option_local_update, csum_local_update_l, prod_local_update_2.
   Qed.
 
-  Lemma dealloc_client γ n x y :
-    Cancelable y →
-    server γ n (x ⋅ y) -∗ client γ y ==∗ server γ (pred n) x.
+  Lemma dealloc_client γ n x :
+    server γ n x -∗ client γ ε ==∗ server γ (pred n) x.
   Proof.
-    iIntros (?) "Hs Hc". iDestruct (server_valid with "Hs") as %Hv.
+    iIntros "Hs Hc". iDestruct (server_valid with "Hs") as %Hv.
     destruct (decide (n = 1)) as [->|]; simpl.
-    - iDestruct (server_1_agree with "Hs Hc") as %Hxy.
-      move: Hxy. rewrite {1}(comm _ x) -{2}(right_id ε _ y)=> /cancelable.
-      rewrite {1}comm=> /(_ Hv) ->. rewrite left_id.
+    - iDestruct (server_1_agree with "Hs Hc") as %->.
       rewrite /server /client; repeat case_decide=> //.
       iMod (own_update_2 with "Hs Hc") as "[$ $]"; last done.
       by apply auth_update, option_local_update, (replace_local_update _ _).
-    - iDestruct (server_agree with "Hs Hc") as %[? [z Hxy]].
-      move: Hxy. rewrite (comm _ x)=> /cancelable.
-      rewrite {1}comm=> /(_ Hv) ->.
+    - iDestruct (server_agree with "Hs Hc") as %[? [z ->]].
       rewrite /server /client. destruct n as [|[|n]]; case_decide=>//=.
       iApply (own_update_2 with "Hs Hc"). apply auth_update_dealloc.
       rewrite -(right_id _ _ (Some (Cinl (1%positive, _)))).
       rewrite Nat2Pos.inj_succ // -Pos.add_1_l.
-      rewrite -pair_op -Cinl_op Some_op. apply (cancel_local_update _ _ _).
+      rewrite -pair_op -Cinl_op Some_op left_id. apply (cancel_local_update _ _ _).
   Qed.
+
 
   Lemma update_client γ n x y x' y' :
     (x,y) ~l~> (x',y') →
@@ -136,5 +138,13 @@ Section contribution.
       iMod (own_update_2 with "Hs Hc") as "[$ $]"; last done.
       by apply auth_update, option_local_update,
         csum_local_update_l, prod_local_update_2.
+  Qed.
+
+  (** Derived *)
+  Lemma contribution_initN n : (|==> ∃ γ, server γ n ε ∗ n * client γ ε)%I.
+  Proof.
+    iMod (contribution_init) as (γ) "Hs". iExists γ.
+    iInduction n as [|n] "IH"; first by iFrame.
+    iMod ("IH" with "Hs") as "[Hs $]". by iApply alloc_client.
   Qed.
 End contribution.
