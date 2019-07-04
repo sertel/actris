@@ -54,36 +54,34 @@ Definition llength : val :=
     | SOME "p" => #1 + "go" (Snd "p")
     end.
 
-Definition lsnoc : val :=
-  rec: "go" "l" "x" :=
+Definition lapp : val :=
+  rec: "go" "l" "k" :=
     match: "l" with
-      SOME "p" => (lcons (Fst "p") ("go" (Snd "p") "x"))
-    | NONE => lcons "x" NONE
+      NONE => "k"
+    | SOME "p" => lcons (Fst "p") ("go" (Snd "p") "k")
     end.
+
+Definition lsnoc : val := λ: "l" "x", lapp "l" (lcons "x" (lnil #())).
 
 Definition ltake : val :=
   rec: "go" "l" "n" :=
-  if: "n" ≤ #0
-  then NONEV
-  else match: "l" with
-         SOME "l" => lcons (Fst "l") ("go" (Snd "l") ("n"-#1))
-       | NONE => NONEV
-       end.
+    if: "n" ≤ #0 then NONEV else
+    match: "l" with
+      NONE => NONEV
+    | SOME "l" => lcons (Fst "l") ("go" (Snd "l") ("n"-#1))
+    end.
 
 Definition ldrop : val :=
   rec: "go" "l" "n" :=
-    if: "n" ≤ #0 then "l"
-    else match: "l" with
-         SOME "l" => "go" (Snd "l") ("n"-#1)
-       | NONE => NONEV
-         end.
+    if: "n" ≤ #0 then "l" else
+    match: "l" with
+      NONE => NONEV
+    | SOME "l" => "go" (Snd "l") ("n"-#1)
+    end.
 
-Definition lsplit_at : val :=
-  λ: "l" "n",
-  (ltake "l" "n", ldrop "l" "n").
+Definition lsplit_at : val := λ: "l" "n", (ltake "l" "n", ldrop "l" "n").
 
-Definition lsplit : val :=
-  λ: "l", lsplit_at "l" ((llength "l") `quot` #2).
+Definition lsplit : val := λ: "l", lsplit_at "l" (llength "l" `quot` #2).
 
 Section lists.
 Context `{heapG Σ}.
@@ -164,13 +162,21 @@ Proof.
   rewrite (Nat2Z.inj_add 1). by iApply "HΦ".
 Qed.
 
+Lemma lapp_spec vs1 vs2 :
+  {{{ True }}} lapp (llist vs1) (llist vs2) {{{ RET (llist (vs1 ++ vs2)); True }}}.
+Proof.
+  iIntros (Φ _) "HΦ".
+  iInduction vs1 as [|v1 vs1] "IH" forall (Φ); simpl.
+  { wp_rec. wp_pures. by iApply "HΦ". }
+  wp_rec. wp_pures. wp_apply "IH". iIntros (_). by wp_apply lcons_spec.
+Qed.
+
 Lemma lsnoc_spec vs v :
   {{{ True }}} lsnoc (llist vs) v {{{ RET (llist (vs ++ [v])); True }}}.
 Proof.
-  iIntros (Φ _) "HΦ".
-  iInduction vs as [|v' vs] "IH" forall (Φ).
-  { wp_rec. wp_pures. wp_lam. wp_pures. by iApply "HΦ". }
-  wp_rec. wp_apply "IH"; iIntros (_). by wp_apply lcons_spec=> //.
+  iIntros (Φ _) "HΦ". wp_lam. wp_apply (lnil_spec with "[//]"); iIntros (_).
+  wp_apply (lcons_spec with "[//]"); iIntros (_).
+  wp_apply (lapp_spec with "[//]"); iIntros (_). by iApply "HΦ".
 Qed.
 
 Lemma ltake_spec vs (n : nat) :
