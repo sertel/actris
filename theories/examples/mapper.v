@@ -37,8 +37,8 @@ Definition mapper_service_loop : val :=
         send "c" (lhead "xs");;
         "go" "n" "c" (ltail "xs") "ys"
     else
-      let: "y" := recv "c" in
-      "go" "n" "c" "xs" (lcons "y" "ys").
+      let: "zs" := recv "c" in
+      "go" "n" "c" "xs" (lapp "zs" "ys").
 
 Definition mapper_service : val := λ: "n" "f" "xs",
   let: "l" := new_lock #() in
@@ -54,7 +54,7 @@ Class mapperG Σ A `{Countable A} := {
 Section mapper.
   Context `{Countable A, Countable B}.
   Context `{!heapG Σ, !proto_chanG Σ, mapperG Σ A} (N : namespace).
-  Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (f : A → B).
+  Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (f : A → list B).
   Local Open Scope nat_scope.
 
   Definition mapper_protocol_aux (rec : nat -d> gmultiset A -d> iProto Σ) :
@@ -65,7 +65,8 @@ Section mapper.
         <+>
       rec (pred i) X
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
-         <?> x w, MSG w {{ ⌜ x ∈ X ⌝ ∧ IB (f x) w }}; rec i (X ∖ {[ x ]}))%proto.
+         <?> x ws, MSG llist ws {{ ⌜ x ∈ X ⌝ ∧ [∗ list] y;w ∈ f x;ws, IB y w }};
+         rec i (X ∖ {[ x ]}))%proto.
   Instance mapper_protocol_aux_contractive : Contractive mapper_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.
   Definition mapper_protocol := fixpoint mapper_protocol_aux.
@@ -77,7 +78,8 @@ Section mapper.
     (∃ i X, server γ i X ∗ c ↣ iProto_dual (mapper_protocol i X) @ N)%I.
 
   Lemma mapper_spec γ (ff : val) lk c q :
-    (∀ x v, {{{ IA x v }}} ff v {{{ w, RET w; IB (f x) w }}}) -∗
+    (∀ x v,
+      {{{ IA x v }}} ff v {{{ ws, RET (llist ws); [∗ list] y;w ∈ f x;ws, IB y w }}}) -∗
     {{{ is_lock N lk (mapper_lock_inv γ c) ∗
         unlocked N lk q ∗ client γ (∅ : gmultiset A) }}}
       mapper ff #lk c
@@ -118,7 +120,8 @@ Section mapper.
   Qed.
 
   Lemma start_mappers_spec γ (n : nat) (ff : val) lk c q :
-    (∀ x v, {{{ IA x v }}} ff v {{{ w, RET w; IB (f x) w }}}) -∗
+    (∀ x v,
+      {{{ IA x v }}} ff v {{{ ws, RET (llist ws); [∗ list] y;w ∈ f x;ws, IB y w }}}) -∗
     {{{ is_lock N lk (mapper_lock_inv γ c) ∗ unlocked N lk q ∗
         n * client γ (∅:gmultiset A) }}}
       start_mappers #n ff #lk c
@@ -138,52 +141,52 @@ Section mapper.
     (n = 0 → X_send = ∅ ∧ xs = []) →
     {{{
       c ↣ mapper_protocol n (X_send : gmultiset A) @ N ∗
-      ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] x;w ∈ xs_recv;ws, IB (f x) w)
+      ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] y;w ∈ xs_recv ≫= f;ws, IB y w)
     }}}
       mapper_service_loop #n c (llist vs) (llist ws)
     {{{ ys ws, RET (llist ws);
-       ⌜ys ≡ₚ f <$> elements X_send ++ xs⌝ ∗
-       [∗ list] y;w ∈ ys ++ (f <$> xs_recv);ws, IB y w
+       ⌜ys ≡ₚ (xs ++ elements X_send) ≫= f⌝ ∗
+       [∗ list] y;w ∈ ys ++ (xs_recv ≫= f);ws, IB y w
     }}}.
   Proof.
     iIntros (Hn Φ) "(Hc & HIA & HIB) HΦ".
     iLöb as "IH" forall (n vs xs ws X_send xs_recv Hn Φ); wp_rec; wp_pures; simpl.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
-      iApply ("HΦ" $! []); simpl. rewrite big_sepL2_fmap_l. auto. }
+      iApply ("HΦ" $! []); simpl; auto. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
     - wp_apply (lisnil_spec with "[//]"); iIntros (_).
       destruct vs as [|v vs], xs as [|x xs]; csimpl; try done; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-        iApply ("IH" with "[] Hc [//] [$] HΦ"). iPureIntro; naive_solver.
+        iApply ("IH" with "[%] Hc [//] [$] HΦ"); naive_solver.
       + iDestruct "HIA" as "[HIAx HIA]". wp_select.
         wp_apply (lhead_spec with "[//]"); iIntros (_).
         wp_send with "[$HIAx]".
         wp_apply (ltail_spec with "[//]"); iIntros (_).
         wp_apply ("IH" with "[] Hc HIA HIB"); first done.
         iIntros (ys ws').
-        rewrite gmultiset_elements_disj_union gmultiset_elements_singleton -!assoc_L.
-        iApply "HΦ".
+        rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
+        rewrite assoc_L -(comm _ [x]). iApply "HΦ".
     - wp_recv (x w) as (HH) "HIBfx".
-      wp_apply (lcons_spec with "[//]"); iIntros (_).
+      wp_apply (lapp_spec with "[//]"); iIntros (_).
       wp_apply ("IH" $! _ _ _ _ _ (_ :: _) with "[] Hc HIA [HIBfx HIB]"); first done.
       { simpl; iFrame. }
       iIntros (ys ws'); iDestruct 1 as (Hys) "HIB"; simplify_eq/=.
-      iApply ("HΦ" $! (ys ++ [f x])). iSplit.
+      iApply ("HΦ" $! (ys ++ f x)). iSplit.
       + iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X_send)
           -?gmultiset_elem_of_singleton_subseteq //.
         rewrite (comm disj_union) gmultiset_elements_disj_union.
-        rewrite gmultiset_elements_singleton -assoc_L (comm _ [x]) assoc_L.
-        by rewrite fmap_app -Hys.
+        by rewrite gmultiset_elements_singleton assoc_L bind_app -Hys /= right_id_L.
       + by rewrite -assoc_L.
   Qed.
 
   Lemma mapper_service_spec (n : nat) (ff : val) vs xs :
     0 < n →
-    (∀ x v, {{{ IA x v }}} ff v {{{ w, RET w; IB (f x) w }}}) -∗
+    (∀ x v,
+      {{{ IA x v }}} ff v {{{ ws, RET (llist ws); [∗ list] y;w ∈ f x;ws, IB y w }}}) -∗
     {{{ [∗ list] x;v ∈ xs;vs, IA x v }}}
       mapper_service #n ff (llist vs)
-    {{{ ys ws, RET (llist ws); ⌜ys ≡ₚ f <$> xs⌝ ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
+    {{{ ys ws, RET (llist ws); ⌜ys ≡ₚ xs ≫= f⌝ ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
   Proof.
     iIntros (?) "#Hf !>"; iIntros (Φ) "HI HΦ". wp_lam; wp_pures.
     wp_apply (new_lock_spec N with "[//]"); iIntros (lk) "[Hu Hlk]".
@@ -196,6 +199,6 @@ Section mapper.
       wp_apply (start_mappers_spec with "Hf [$Hlk $Hu $Hγs]"); auto. }
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (_).
     wp_apply (mapper_service_loop_spec _ _ _ _ [] ∅ [] with "[$Hc $HI //]"); first lia.
-    iIntros (ys ws). rewrite /= !right_id_L gmultiset_elements_empty. iApply "HΦ".
+    iIntros (ys ws). rewrite /= gmultiset_elements_empty !right_id_L . iApply "HΦ".
   Qed.
 End mapper.
