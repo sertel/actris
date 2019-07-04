@@ -43,42 +43,42 @@ Section sort.
          `{!RelDecision R, !Total R} (cmp : val),
        MSG cmp {{ cmp_spec I R cmp }};
      <!> (xs : list A) (l : loc) (vs : list val),
-       MSG #l {{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }};
+       MSG #l {{ l ↦ llist vs ∗ [∗ list] x;v ∈ xs;vs, I x v }};
      <?> (xs' : list A) (vs' : list val),
        MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗
-                  l ↦ val_encode vs' ∗ [∗ list] x;v ∈ xs';vs', I x v }};
+                  l ↦ llist vs' ∗ [∗ list] x;v ∈ xs';vs', I x v }};
      END)%proto.
 
   Lemma lmerge_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
       `{!RelDecision R, !Total R} (cmp : val) xs1 xs2 vs1 vs2 :
     cmp_spec I R cmp -∗
     {{{ ([∗ list] x;v ∈ xs1;vs1, I x v) ∗ ([∗ list] x;v ∈ xs2;vs2, I x v) }}}
-      lmerge cmp (val_encode vs1) (val_encode vs2)
-    {{{ ws, RET val_encode ws; [∗ list] x;v ∈ list_merge R xs1 xs2;ws, I x v }}}.
+      lmerge cmp (llist vs1) (llist vs2)
+    {{{ ws, RET llist ws; [∗ list] x;v ∈ list_merge R xs1 xs2;ws, I x v }}}.
   Proof.
     iIntros "#Hcmp" (Ψ) "!> [HI1 HI2] HΨ". iLöb as "IH" forall (xs1 xs2 vs1 vs2 Ψ).
-    wp_lam. wp_apply (lisnil_spec (A:=val) with "[//]"); iIntros (_).
+    wp_lam. wp_apply (lisnil_spec with "[//]"); iIntros (_).
     destruct xs1 as [|x1 xs1], vs1 as [|v1 vs1]; simpl; done || wp_pures.
     { iApply "HΨ". by rewrite list_merge_nil_l. }
-    wp_apply (lisnil_spec (A:=val) with "[//]"); iIntros (_).
+    wp_apply (lisnil_spec with "[//]"); iIntros (_).
     destruct xs2 as [|x2 xs2], vs2 as [|v2 vs2]; simpl; done || wp_pures.
     { iApply "HΨ". iFrame. }
-    wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
-    wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
+    wp_apply (lhead_spec with "[//]"); iIntros (_).
+    wp_apply (lhead_spec with "[//]"); iIntros (_).
     iDestruct "HI1" as "[HI1 HI1']"; iDestruct "HI2" as "[HI2 HI2']".
     wp_apply ("Hcmp" with "[$HI1 $HI2]"); iIntros "[HI1 HI2]".
     case_bool_decide; wp_pures.
     - rewrite decide_True //.
-      wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (ltail_spec with "[//]"); iIntros (_).
       wp_apply ("IH" $! _ (x2 :: _) with "HI1'[HI2 HI2']"); [simpl; iFrame|].
       iIntros (ws) "HI".
-      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (lcons_spec with "[//]"); iIntros (_).
       iApply "HΨ". iFrame.
     - rewrite decide_False //.
-      wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (ltail_spec with "[//]"); iIntros (_).
       wp_apply ("IH" $! (x1 :: _) with "[HI1 HI1'] HI2'"); [simpl; iFrame|].
       iIntros (ws) "HI".
-      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (lcons_spec with "[//]"); iIntros (_).
       iApply "HΨ". iFrame.
   Qed.
 
@@ -91,13 +91,13 @@ Section sort.
     wp_lam.
     wp_recv (A I R ?? cmp) as "#Hcmp".
     wp_recv (xs l vs) as "[Hl HI]".
-    wp_load. wp_apply (llength_spec (A:=val) with "[//]"); iIntros (_).
+    wp_load. wp_apply (llength_spec with "[//]"); iIntros (_).
     iDestruct (big_sepL2_length with "HI") as %<-.
     wp_op; case_bool_decide as Hlen; wp_if.
     { assert (Sorted R xs).
       { destruct xs as [|x1 [|x2 xs]]; simpl in *; eauto with lia. }
       wp_send with "[$Hl $HI]"; first by auto. by iApply "HΨ". }
-    wp_load. wp_apply (lsplit_spec (A:=val) with "[//]"); iIntros (vs1 vs2 <-).
+    wp_load. wp_apply (lsplit_spec with "[//]"); iIntros (vs1 vs2 ->).
     wp_alloc l1 as "Hl1"; wp_alloc l2 as "Hl2".
     iDestruct (big_sepL2_app_inv_r with "HI") as (xs1 xs2 ->) "[HI1 HI2]".
     wp_apply (start_chan_proto_spec N sort_protocol); iIntros (cy) "Hcy".
@@ -125,10 +125,10 @@ Section sort.
   Lemma sort_client_spec {A} (I : A → val → iProp Σ) R
        `{!RelDecision R, !Total R} cmp l (vs : list val) (xs : list A) :
     cmp_spec I R cmp -∗
-    {{{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
+    {{{ l ↦ llist vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
       sort_client cmp #l
     {{{ ys ws, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
-               l ↦ val_encode ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
+               l ↦ llist ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
     wp_apply (start_chan_proto_spec N sort_protocol); iIntros (c) "Hc".

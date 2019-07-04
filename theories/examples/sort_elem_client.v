@@ -31,7 +31,7 @@ Section sort_elem_client.
 
   Lemma send_all_spec c p xs' xs vs :
     {{{ c ↣ sort_elem_head_protocol I R xs' <++> p @ N ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
-      send_all c (val_encode vs)
+      send_all c (llist vs)
     {{{ RET #(); c ↣ sort_elem_tail_protocol I R (xs' ++ xs) [] <++> p @ N }}}.
   Proof.
     iIntros (Φ) "[Hc HI] HΦ".
@@ -46,7 +46,7 @@ Section sort_elem_client.
     Sorted R ys' →
     {{{ c ↣ sort_elem_tail_protocol I R xs ys' <++> p @ N }}}
       recv_all c
-    {{{ ys ws, RET (val_encode ws);
+    {{{ ys ws, RET (llist ws);
         ⌜Sorted R (ys' ++ ys)⌝ ∗ ⌜ys' ++ ys ≡ₚ xs⌝ ∗
         c ↣ p @ N ∗ [∗ list] y;w ∈ ys;ws, I y w
     }}}.
@@ -57,7 +57,7 @@ Section sort_elem_client.
     - wp_recv (y v) as (Htl) "HIxv".
       wp_apply ("IH" with "[] Hc"); first by auto using Sorted_snoc.
       iIntros (ys ws). rewrite -!assoc_L. iDestruct 1 as (??) "[Hc HI]".
-      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (lcons_spec with "[//]"); iIntros (_).
       iApply ("HΦ" $! (y :: ys)). simpl; iFrame; auto.
     - wp_apply (lnil_spec with "[//]"); iIntros (_).
       iApply ("HΦ" $! [] []); rewrite /= right_id_L; by iFrame.
@@ -66,8 +66,8 @@ Section sort_elem_client.
   Lemma sort_client_spec cmp vs xs :
     cmp_spec I R cmp -∗
     {{{ [∗ list] x;v ∈ xs;vs, I x v }}}
-      sort_elem_client cmp (val_encode vs)
-    {{{ ys ws, RET (val_encode ws); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
+      sort_elem_client cmp (llist vs)
+    {{{ ys ws, RET (llist ws); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
                [∗ list] y;w ∈ ys;ws, I y w }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "HI HΦ". wp_lam.

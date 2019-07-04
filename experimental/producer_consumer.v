@@ -4,10 +4,8 @@ From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
 From osiris.utils Require Import list compare spin_lock.
 
-Definition qnew : val := λ: <>, #().
 Definition qenqueue : val := λ: "q" "v", #().
 Definition qdequeue : val := λ: "q", #().
-Definition qis_empty : val := λ: "q", #().
 
 Definition enq := true.
 Definition deq := false.
@@ -23,10 +21,11 @@ Definition pd_loop : val :=
     if: "cc" ≤ #0 then #() else 
     if: recv "c" then (* enq/deq *)
       if: recv "c" then (* cont/stop *)
-        "go" (qenqueue "q" (recv "c")) "pc" "cc" "c"
+        let: "x" := recv "x" in
+        "go" (qenqueue "q" "x") "pc" "cc" "c"
       else "go" "q" ("pc"-#1) "cc" "c"
     else
-      if: (qis_empty "q") then
+      if: lisnil "q" then
         if: "pc" ≤ #0 then
           send "c" #stop;;
           "go" "q" "pc" ("cc"-#1) "c"
@@ -40,7 +39,7 @@ Definition pd_loop : val :=
         "go" (Fst "qv") "pc" "cc" "c".
 
 Definition new_pd : val := λ: "pc" "cc",
-  let: "q" := qnew #() in
+  let: "q" := lnil #() in
   let: "c" := start_chan (λ: "c", pd_loop "q" "pc" "cc" "c") in
   let: "l" := new_lock #() in
   ("c", "l").

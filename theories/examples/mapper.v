@@ -140,8 +140,8 @@ Section mapper.
       c ↣ mapper_protocol n (X_send : gmultiset A) @ N ∗
       ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] x;w ∈ xs_recv;ws, IB (f x) w)
     }}}
-      mapper_service_loop #n c (val_encode vs) (val_encode ws)
-    {{{ ys ws, RET (val_encode ws);
+      mapper_service_loop #n c (llist vs) (llist ws)
+    {{{ ys ws, RET (llist ws);
        ⌜ys ≡ₚ f <$> elements X_send ++ xs⌝ ∗
        [∗ list] y;w ∈ ys ++ (f <$> xs_recv);ws, IB y w
     }}}.
@@ -152,20 +152,20 @@ Section mapper.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []); simpl. rewrite big_sepL2_fmap_l. auto. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
-    - wp_apply (lisnil_spec (A:=val) with "[//]"); iIntros (_).
+    - wp_apply (lisnil_spec with "[//]"); iIntros (_).
       destruct vs as [|v vs], xs as [|x xs]; csimpl; try done; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" with "[] Hc [//] [$] HΦ"). iPureIntro; naive_solver.
       + iDestruct "HIA" as "[HIAx HIA]". wp_select.
-        wp_apply (lhead_spec (A:=val) with "[//]"); iIntros (_).
+        wp_apply (lhead_spec with "[//]"); iIntros (_).
         wp_send with "[$HIAx]".
-        wp_apply (ltail_spec (A:=val) with "[//]"); iIntros (_).
+        wp_apply (ltail_spec with "[//]"); iIntros (_).
         wp_apply ("IH" with "[] Hc HIA HIB"); first done.
         iIntros (ys ws').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton -!assoc_L.
         iApply "HΦ".
     - wp_recv (x w) as (HH) "HIBfx".
-      wp_apply (lcons_spec (A:=val) with "[//]"); iIntros (_).
+      wp_apply (lcons_spec with "[//]"); iIntros (_).
       wp_apply ("IH" $! _ _ _ _ _ (_ :: _) with "[] Hc HIA [HIBfx HIB]"); first done.
       { simpl; iFrame. }
       iIntros (ys ws'); iDestruct 1 as (Hys) "HIB"; simplify_eq/=.
@@ -182,9 +182,8 @@ Section mapper.
     0 < n →
     (∀ x v, {{{ IA x v }}} ff v {{{ w, RET w; IB (f x) w }}}) -∗
     {{{ [∗ list] x;v ∈ xs;vs, IA x v }}}
-      mapper_service #n ff (val_encode vs)
-    {{{ ys ws, RET (val_encode ws); ⌜ys ≡ₚ f <$> xs⌝ ∗
-                                    [∗ list] y;w ∈ ys;ws, IB y w }}}.
+      mapper_service #n ff (llist vs)
+    {{{ ys ws, RET (llist ws); ⌜ys ≡ₚ f <$> xs⌝ ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
   Proof.
     iIntros (?) "#Hf !>"; iIntros (Φ) "HI HΦ". wp_lam; wp_pures.
     wp_apply (new_lock_spec N with "[//]"); iIntros (lk) "[Hu Hlk]".

@@ -56,7 +56,7 @@ Section channel.
   Context `{!heapG Σ, !chanG Σ} (N : namespace).
 
   Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
-    (∃ l' : loc, ⌜l = #l'⌝ ∧ l' ↦ val_encode xs)%I.
+    (∃ l' : loc, ⌜l = #l'⌝ ∧ l' ↦ llist xs)%I.
 
   Record chan_name := Chan_name {
     chan_lock_name : gname;
@@ -139,7 +139,7 @@ Section channel.
       (vs ws) "(Href & Hvs & Href' & Hws)".
     iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
     wp_load.
-    wp_apply (lsnoc_spec (A:=val))=> //; iIntros (_).
+    wp_apply (lsnoc_spec with "[//]"); iIntros (_).
     wp_bind (_ <- _)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
