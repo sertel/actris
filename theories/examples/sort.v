@@ -13,7 +13,7 @@ Definition lmerge : val :=
     then lcons "y" ("go" "cmp" (ltail "ys") "zs")
     else lcons "z" ("go" "cmp" "ys" (ltail "zs")).
 
-Definition list_sort_service : val :=
+Definition sort_service : val :=
   rec: "go" "c" :=
     let: "cmp" := recv "c" in
     let: "xs" := recv "c" in
@@ -30,12 +30,12 @@ Definition list_sort_service : val :=
     "xs" <- lmerge "cmp" !"ys" !"zs";;
     send "c" #().
 
-Definition list_sort_client : val := λ: "cmp" "xs",
-  let: "c" := start_chan list_sort_service in
+Definition sort_client : val := λ: "cmp" "xs",
+  let: "c" := start_chan sort_service in
   send "c" "cmp";; send "c" "xs";;
   recv "c".
 
-Section list_sort.
+Section sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
   Definition sort_protocol : iProto Σ :=
@@ -82,9 +82,9 @@ Section list_sort.
       iApply "HΨ". iFrame.
   Qed.
 
-  Lemma list_sort_service_spec p c :
+  Lemma sort_service_spec p c :
     {{{ c ↣ iProto_dual sort_protocol <++> p @ N }}}
-      list_sort_service c
+      sort_service c
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ).
@@ -122,21 +122,21 @@ Section list_sort.
     - by iApply "HΨ".
   Qed.
 
-  Lemma list_sort_client_spec {A} (I : A → val → iProp Σ) R
+  Lemma sort_client_spec {A} (I : A → val → iProp Σ) R
        `{!RelDecision R, !Total R} cmp l (vs : list val) (xs : list A) :
     cmp_spec I R cmp -∗
     {{{ l ↦ val_encode vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
-      list_sort_client cmp #l
+      sort_client cmp #l
     {{{ ys ws, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
                l ↦ val_encode ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
     wp_apply (start_chan_proto_spec N sort_protocol); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
-      wp_apply (list_sort_service_spec with "Hc"); auto. }
+      wp_apply (sort_service_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
     wp_recv (ys ws) as "(Hsorted & Hperm & Hl & HI)".
     wp_pures. iApply "HΦ"; iFrame.
   Qed.
-End list_sort.
+End sort.

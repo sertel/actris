@@ -2,22 +2,22 @@ From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
 From osiris.utils Require Import list compare.
-From osiris.examples Require Import list_sort.
+From osiris.examples Require Import sort.
 
-Section list_sort_instances.
+Section sort_client.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
   Local Arguments val_encode _ _ !_ /.
 
-  Lemma list_sort_client_le_spec l (xs : list Z) :
+  Lemma sort_client_le_spec l (xs : list Z) :
     {{{ l ↦ val_encode xs }}}
-      list_sort_client cmpZ #l
+      sort_client cmpZ #l
     {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ val_encode ys }}}.
   Proof.
     assert (∀ zs : list Z, val_encode zs = val_encode (LitV ∘ LitInt <$> zs)) as Henc.
     { intros zs. induction zs; f_equal/=; auto with f_equal. }
     iIntros (Φ) "Hl HΦ".
-    iApply (list_sort_client_spec N IZ (≤) _ _ (LitV ∘ LitInt <$> xs) xs with "[] [Hl] [HΦ]").
+    iApply (sort_client_spec N IZ (≤) _ _ (LitV ∘ LitInt <$> xs) xs with "[] [Hl] [HΦ]").
     { iApply cmpZ_spec. }
     { rewrite -Henc. iFrame "Hl".
       iInduction xs as [|x xs] "IH"; csimpl; first by iFrame.
@@ -30,4 +30,4 @@ Section list_sort_instances.
       by iDestruct ("IH" with "HI2") as %->. }
     rewrite -Henc. iApply ("HΦ" $! ys with "[$]").
   Qed.
-End list_sort_instances.
+End sort_client.

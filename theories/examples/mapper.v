@@ -3,7 +3,7 @@ From osiris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
 From osiris.utils Require Import list compare spin_lock contribution.
-From osiris.examples Require Import list_sort_elem.
+From osiris.examples Require Import sort_elem.
 From iris.algebra Require Import gmultiset.
 
 Definition mapper : val :=

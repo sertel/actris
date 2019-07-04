@@ -2,9 +2,7 @@ From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
-From iris.heap_lang.lib Require Import spin_lock.
-From osiris.utils Require Import list compare.
-
+From osiris.utils Require Import list compare spin_lock.
 
 Definition qnew : val := λ: <>, #().
 Definition qenqueue : val := λ: "q" "v", #().
@@ -20,55 +18,55 @@ Definition stop := false.
 Definition some := true.
 Definition none := false.
 
-Definition dist_queue : val :=
+Definition pd_loop : val :=
   rec: "go" "q" "pc" "cc" "c" :=
     if: "cc" ≤ #0 then #() else 
-    if: recv "c"                (* enq/deq *)
-    then if: recv "c"           (* cont/stop *)
-         then "go" (qenqueue "q" (recv "c")) "pc" "cc" "c"
-         else "go" "q" ("pc"-#1) "cc" "c"
-    else if: (qis_empty "q")
-         then if: "pc" ≤ #0
-              then send "c" #stop;; "go" "q" "pc" ("cc"-#1) "c"
-              else send "c" #cont;; send "c" #none;; "go" "q" "pc" "cc" "c"
-         else send "c" #cont;; send "c" #some;;
-              let: "qv" := qdequeue "q" in
-              send "c" (Snd "qv");; "go" (Fst "qv") "pc" "cc" "c".
+    if: recv "c" then (* enq/deq *)
+      if: recv "c" then (* cont/stop *)
+        "go" (qenqueue "q" (recv "c")) "pc" "cc" "c"
+      else "go" "q" ("pc"-#1) "cc" "c"
+    else
+      if: (qis_empty "q") then
+        if: "pc" ≤ #0 then
+          send "c" #stop;;
+          "go" "q" "pc" ("cc"-#1) "c"
+        else
+          send "c" #cont;; send "c" #none;;
+          "go" "q" "pc" "cc" "c"
+      else
+        send "c" #cont;; send "c" #some;;
+        let: "qv" := qdequeue "q" in
+        send "c" (Snd "qv");;
+        "go" (Fst "qv") "pc" "cc" "c".
 
-Definition producer : val :=
-  rec: "go" "c" "l" "produce" :=
-    (* acquire "l";; *)
-    match: "produce" #() with
-      SOME "v" =>
-        acquire "l";;
-        send "c" #enq;; send "c" #cont;; send "c" "v";;
-        release "l";;
-        "go" "c" "l" "produce"
-     | NONE =>
-        acquire "l";;
-        send "c" #enq;; send "c" #stop
-        release "l"
-    end.
+Definition new_pd : val := λ: "pc" "cc",
+  let: "q" := qnew #() in
+  let: "c" := start_chan (λ: "c", pd_loop "q" "pc" "cc" "c") in
+  let: "l" := new_lock #() in
+  ("c", "l").
 
-Definition consumer : val :=
-  rec: "go" "c" "l" "consume" :=
-    acquire "l";;
-    send "c" #deq;;
-    if: recv "c"             (* cont/stop *)
-    then if: recv "c"        (* some/none *)
-         then let: "v" := SOME (recv "c") in
-              release "l";; "consume" "v";; "go" "c" "l" "consume"
-              (* "consume" "v";; release "l";; "go" "c" "l" "consume" *)
-         else release "l";; "go" "c" "l" "consume"
-    else "consume" NONE;; release "l";; #().
-    (* else release "l";; "consume" NONE;; #(). *)
+Definition pd_send : val := λ: "cl" "x",
+  acquire (Snd "cl");;
+  send (Fst "cl") #enq;; send (Fst "cl") #cont;; send (Fst "cl") "x";;
+  release (Snd "cl").
 
-(* Makes n producers and m consumers *)
-Definition produce_consume : val :=
-  λ: "produce" "consume" "pc" "cc",
-  #().
+Definition pd_stop : val := λ: "cl",
+  acquire (Fst "cl");;
+  send (Snd "cl") #enq;; send (Snd "cl") #stop;;
+  release (Fst "cl").
 
-Section list_sort_elem.
+Definition pd_recv : val :=
+  rec: "go" "cl" :=
+    acquire (Fst "cl");;
+    send (Snd "cl") #deq;;
+    if: recv (Snd "cl") then    (* cont/stop *)
+       if: recv (Snd "cl") then (* some/none *)
+         let: "v" := recv (Snd "cl") in
+         release (Fst "cl");; SOME "v"
+       else release (Fst "cl");; "go" "c" "l"
+    else release (Fst "cl");; NONE.
+
+Section sort_elem.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
   Definition queue_prot : iProto Σ := (END)%proto.

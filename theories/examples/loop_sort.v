@@ -2,11 +2,11 @@ From stdpp Require Import sorting.
 From osiris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
 From osiris.utils Require Import list.
-From osiris.examples Require Import list_sort.
+From osiris.examples Require Import sort.
 
 Definition loop_sort_service : val :=
   rec: "go" "c" :=
-    if: recv "c" then list_sort_service "c";; "go" "c"
+    if: recv "c" then sort_service "c";; "go" "c"
     else if: recv "c" then
       let: "d" := start_chan "go" in
       send "c" "d";;
@@ -33,7 +33,7 @@ Section loop_sort.
   Proof.
     iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
     wp_rec. wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
-    { wp_apply (list_sort_service_spec with "Hc"); iIntros "Hc".
+    { wp_apply (sort_service_spec with "Hc"); iIntros "Hc".
       by wp_apply ("IH" with "Hc"). }
     wp_apply (branch_spec with "Hc"); iIntros ([]) "/= [Hc _]"; wp_if.
     - wp_apply (start_chan_proto_spec N loop_sort_protocol); iIntros (d) "Hd".

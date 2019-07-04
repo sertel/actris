@@ -7,25 +7,25 @@ From osiris.utils Require Import list compare.
 Definition cont := true.
 Definition stop := false.
 
-Definition list_sort_elem_service_split : val :=
+Definition sort_elem_service_split : val :=
   rec: "go" "c" "c1" "c2" :=
     if: ~(recv "c") then send "c1" #stop;; send "c2" #stop else
     let: "x" := recv "c" in
     send "c1" #cont;; send "c1" "x";;
     "go" "c" "c2" "c1".
 
-Definition list_sort_elem_service_move : val :=
+Definition sort_elem_service_move : val :=
   rec: "go" "c" "cin" :=
     if: ~(recv "cin") then send "c" #stop else
     let: "x" := recv "cin" in
     send "c" #cont;; send "c" "x";;
     "go" "c" "cin".
 
-Definition list_sort_elem_service_merge : val :=
+Definition sort_elem_service_merge : val :=
   rec: "go" "cmp" "c" "x1" "c1" "c2" :=
     if: ~recv "c2" then
       send "c" #cont;; send "c" "x1";;
-      list_sort_elem_service_move "c" "c1"
+      sort_elem_service_move "c" "c1"
     else
       let: "x2" := recv "c2" in
       if: "cmp" "x1" "x2" then
@@ -33,7 +33,7 @@ Definition list_sort_elem_service_merge : val :=
       else
         send "c" #cont;; send "c" "x2";; "go" "cmp" "c" "x1" "c1" "c2".
 
-Definition list_sort_elem_service : val :=
+Definition sort_elem_service : val :=
   rec: "go" "cmp" "c" :=
     if: ~(recv "c") then send "c" #stop else
     let: "x" := recv "c" in
@@ -45,59 +45,65 @@ Definition list_sort_elem_service : val :=
     let: "c2" := Fst "cc2" in let: "c2'" := Snd "cc2" in
     send "c1" #cont;; send "c1" "x";;
     send "c2" #cont;; send "c2" "y";;
-    list_sort_elem_service_split "c" "c1" "c2";;
+    sort_elem_service_split "c" "c1" "c2";;
     Fork ("go" "cmp" "c1'");; Fork ("go" "cmp" "c2'");;
     let: "x" := (if: recv "c1" then recv "c1" else assert #false) in
-    list_sort_elem_service_merge "cmp" "c" "x" "c1" "c2".
+    sort_elem_service_merge "cmp" "c" "x" "c1" "c2".
 
-Definition list_sort_elem_service_top : val := λ: "c",
+Definition sort_elem_service_top : val := λ: "c",
   let: "cmp" := recv "c" in
-  list_sort_elem_service "cmp" "c".
+  sort_elem_service "cmp" "c".
 
-Section list_sort_elem.
+Section sort_elem.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
-  Section list_sort_elem_inner.
+  Section sort_elem_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
 
-  Definition tail_protocol_aux (xs : list A)
+  Definition sort_elem_tail_protocol_aux (xs : list A)
       (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ ys,
     ((<?> y v, MSG v {{ ⌜ TlRel R y ys ⌝ ∗ I y v }}; (rec : _ → iProto Σ) (ys ++ [y]))
      <&{⌜ ys ≡ₚ xs ⌝}> END)%proto.
 
-  Instance tail_protocol_aux_contractive xs : Contractive (tail_protocol_aux xs).
+  Instance sort_elem_tail_protocol_aux_contractive xs :
+    Contractive (sort_elem_tail_protocol_aux xs).
   Proof. solve_proto_contractive. Qed.
-  Definition tail_protocol (xs : list A) : list A → iProto Σ :=
-    fixpoint (tail_protocol_aux xs).
-  Global Instance tail_protocol_unfold xs ys :
-    ProtoUnfold (tail_protocol xs ys) (tail_protocol_aux xs (tail_protocol xs) ys).
-  Proof. apply proto_unfold_eq, (fixpoint_unfold (tail_protocol_aux _)). Qed.
+  Definition sort_elem_tail_protocol (xs : list A) : list A → iProto Σ :=
+    fixpoint (sort_elem_tail_protocol_aux xs).
+  Global Instance sort_elem_tail_protocol_unfold xs ys :
+    ProtoUnfold (sort_elem_tail_protocol xs ys)
+      (sort_elem_tail_protocol_aux xs (sort_elem_tail_protocol xs) ys).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold (sort_elem_tail_protocol_aux _)). Qed.
 
-  Definition head_protocol_aux
+  Definition sort_elem_head_protocol_aux
       (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ xs,
     ((<!> x v, MSG v {{ I x v }}; (rec : _ → iProto Σ) (xs ++ [x]))
-     <+> tail_protocol xs [])%proto.
+     <+> sort_elem_tail_protocol xs [])%proto.
 
-  Instance head_protocol_aux_contractive : Contractive head_protocol_aux.
+  Instance sort_elem_head_protocol_aux_contractive :
+    Contractive sort_elem_head_protocol_aux.
   Proof. solve_proto_contractive. Qed.
 
-  Definition head_protocol : list A → iProto Σ := fixpoint head_protocol_aux.
-  Global Instance head_protocol_unfold xs :
-    ProtoUnfold (head_protocol xs) (head_protocol_aux head_protocol xs) | 100.
-  Proof. apply proto_unfold_eq, (fixpoint_unfold head_protocol_aux). Qed.
+  Definition sort_elem_head_protocol : list A → iProto Σ :=
+    fixpoint sort_elem_head_protocol_aux.
+  Global Instance sort_elem_head_protocol_unfold xs :
+    ProtoUnfold (sort_elem_head_protocol xs)
+      (sort_elem_head_protocol_aux sort_elem_head_protocol xs).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold sort_elem_head_protocol_aux). Qed.
 
-  Definition list_sort_elem_protocol : iProto Σ := head_protocol [].
+  Definition sort_elem_protocol : iProto Σ := sort_elem_head_protocol [].
 
-  Lemma list_sort_elem_service_split_spec c p c1 c2 xs xs1 xs2 :
+  Lemma sort_elem_service_split_spec c p c1 c2 xs xs1 xs2 :
     {{{
-      c ↣ iProto_dual (head_protocol xs) <++> p @ N ∗
-      c1 ↣ head_protocol xs1 @ N ∗ c2 ↣ head_protocol xs2 @ N
+      c ↣ iProto_dual (sort_elem_head_protocol xs) <++> p @ N ∗
+      c1 ↣ sort_elem_head_protocol xs1 @ N ∗ c2 ↣ sort_elem_head_protocol xs2 @ N
     }}}
-      list_sort_elem_service_split c c1 c2
+      sort_elem_service_split c c1 c2
     {{{ xs' xs1' xs2', RET #();
       ⌜xs' ≡ₚ xs1' ++ xs2'⌝ ∗
-      c ↣ iProto_dual (tail_protocol (xs ++ xs') []) <++> p @ N ∗
-      c1 ↣ tail_protocol (xs1 ++ xs1') [] @ N ∗ c2 ↣ tail_protocol (xs2 ++ xs2') [] @ N
+      c ↣ iProto_dual (sort_elem_tail_protocol (xs ++ xs') []) <++> p @ N ∗
+      c1 ↣ sort_elem_tail_protocol (xs1 ++ xs1') [] @ N ∗
+      c2 ↣ sort_elem_tail_protocol (xs2 ++ xs2') [] @ N
     }}}.
   Proof.
     iIntros (Ψ) "(Hc & Hc1 & Hc2) HΨ". iLöb as "IH" forall (c c1 c2 xs xs1 xs2 Ψ).
@@ -111,16 +117,16 @@ Section list_sort_elem.
       iApply ("HΨ" $! [] [] []). rewrite !right_id_L. by iFrame.
   Qed.
 
-  Lemma list_sort_elem_service_move_spec c p cin xs ys zs xs' ys' :
+  Lemma sort_elem_service_move_spec c p cin xs ys zs xs' ys' :
     xs ≡ₚ xs' ++ zs →
     ys ≡ₚ ys' ++ zs →
     Sorted R ys →
     (∀ x, TlRel R x ys' → TlRel R x ys) →
     {{{
-      c ↣ iProto_dual (tail_protocol xs ys) <++> p @ N ∗
-      cin ↣ tail_protocol xs' ys' @ N
+      c ↣ iProto_dual (sort_elem_tail_protocol xs ys) <++> p @ N ∗
+      cin ↣ sort_elem_tail_protocol xs' ys' @ N
     }}}
-      list_sort_elem_service_move c cin
+      sort_elem_service_move c cin
     {{{ RET #(); c ↣ p @ N ∗ cin ↣ END @ N }}}.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
@@ -139,7 +145,7 @@ Section list_sort_elem.
       iApply "HΨ". iFrame.
   Qed.
 
-  Lemma list_sort_elem_service_merge_spec cmp c p c1 c2 xs ys xs1 xs2 y1 w1 ys1 ys2 :
+  Lemma sort_elem_service_merge_spec cmp c p c1 c2 xs ys xs1 xs2 y1 w1 ys1 ys2 :
     xs ≡ₚ xs1 ++ xs2 →
     ys ≡ₚ ys1 ++ ys2 →
     Sorted R ys →
@@ -147,11 +153,12 @@ Section list_sort_elem.
     (∀ x, TlRel R x ys2 → R x y1 → TlRel R x ys) →
     cmp_spec I R cmp -∗
     {{{
-      c ↣ iProto_dual (tail_protocol xs ys) <++> p @ N ∗
-      c1 ↣ tail_protocol xs1 (ys1 ++ [y1]) @ N ∗ c2 ↣ tail_protocol xs2 ys2 @ N ∗
+      c ↣ iProto_dual (sort_elem_tail_protocol xs ys) <++> p @ N ∗
+      c1 ↣ sort_elem_tail_protocol xs1 (ys1 ++ [y1]) @ N ∗
+      c2 ↣ sort_elem_tail_protocol xs2 ys2 @ N ∗
       I y1 w1
     }}}
-      list_sort_elem_service_merge cmp c w1 c1 c2
+      sort_elem_service_merge cmp c w1 c1 c2
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
@@ -178,7 +185,7 @@ Section list_sort_elem.
         * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - wp_select. wp_send with "[$HIy1 //]".
-      wp_apply (list_sort_elem_service_move_spec with "[$Hc $Hc1]").
+      wp_apply (sort_elem_service_move_spec with "[$Hc $Hc1]").
       * done.
       * by rewrite Hys Hys2 -!assoc_L (comm _ xs2).
       * by apply Sorted_snoc.
@@ -187,10 +194,10 @@ Section list_sort_elem.
       * iIntros "[Hc Hc1]". iApply "HΨ". iFrame.
   Qed.
 
-  Lemma list_sort_elem_service_spec cmp c p :
+  Lemma sort_elem_service_spec cmp c p :
     cmp_spec I R cmp -∗
-    {{{ c ↣ iProto_dual list_sort_elem_protocol <++> p @ N }}}
-      list_sort_elem_service cmp c
+    {{{ c ↣ iProto_dual sort_elem_protocol <++> p @ N }}}
+      sort_elem_service cmp c
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c p Ψ).
@@ -199,12 +206,12 @@ Section list_sort_elem.
       + wp_recv (x2 v2) as "HIx2".
         wp_apply (new_chan_proto_spec N with "[//]"); iIntros (cy1 cy2) "Hcy".
         wp_apply (new_chan_proto_spec N with "[//]"); iIntros (cz1 cz2) "Hcz".
-        iMod ("Hcy" $! (list_sort_elem_protocol <++> END)%proto) as "[Hcy1 Hcy2]".
-        iMod ("Hcz" $! (list_sort_elem_protocol <++> END)%proto) as "[Hcz1 Hcz2]".
+        iMod ("Hcy" $! (sort_elem_protocol <++> END)%proto) as "[Hcy1 Hcy2]".
+        iMod ("Hcz" $! (sort_elem_protocol <++> END)%proto) as "[Hcz1 Hcz2]".
         iEval (rewrite right_id) in "Hcy1 Hcz1".
         wp_select. wp_send with "[$HIx1]".
         wp_select. wp_send with "[$HIx2]".
-        wp_apply (list_sort_elem_service_split_spec with "[$Hc $Hcy1 $Hcz1]").
+        wp_apply (sort_elem_service_split_spec with "[$Hc $Hcy1 $Hcz1]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
         wp_apply (wp_fork with "[Hcy2]").
         { iNext. wp_apply ("IH" with "Hcy2"); auto. }
@@ -212,28 +219,28 @@ Section list_sort_elem.
         { iNext. wp_apply ("IH" with "Hcz2"); auto. }
         wp_branch as %_ | %[]%Permutation_nil_cons.
         wp_recv (x v) as "[_ HIx]".
-        wp_apply (list_sort_elem_service_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
+        wp_apply (sort_elem_service_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
         by rewrite Hxs' Permutation_middle.
       + wp_select. wp_send with "[$HIx1]"; first by auto using TlRel_nil.
         wp_select. by iApply "HΨ".
     - wp_select. by iApply "HΨ".
   Qed.
-  End list_sort_elem_inner.
+  End sort_elem_inner.
 
-  Definition list_sort_elem_top_protocol : iProto Σ :=
+  Definition sort_elem_top_protocol : iProto Σ :=
     (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
          `{!RelDecision R, !Total R} (cmp : val),
        MSG cmp {{ cmp_spec I R cmp }};
-     head_protocol I R [])%proto.
+     sort_elem_head_protocol I R [])%proto.
 
-  Lemma list_sort_elem_service_top_spec c p :
-    {{{ c ↣ iProto_dual list_sort_elem_top_protocol <++> p @ N }}}
-      list_sort_elem_service_top c
+  Lemma sort_elem_service_top_spec c p :
+    {{{ c ↣ iProto_dual sort_elem_top_protocol <++> p @ N }}}
+      sort_elem_service_top c
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". wp_lam.
-    wp_recv (? I R ? ? cmp) as "#Hcmp".
-    by wp_apply (list_sort_elem_service_spec with "Hcmp Hc").
+    wp_recv (A I R ? ? cmp) as "#Hcmp".
+    by wp_apply (sort_elem_service_spec with "Hcmp Hc").
   Qed.
-End list_sort_elem.
+End sort_elem.

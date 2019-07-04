@@ -10,8 +10,8 @@ theories/channel/channel.v
 theories/channel/proto_model.v
 theories/channel/proto_channel.v
 theories/channel/proofmode.v
-theories/examples/list_sort.v
-theories/examples/list_sort_instances.v
-theories/examples/list_sort_elem.v
+theories/examples/sort.v
+theories/examples/sort_client.v
+theories/examples/sort_elem.v
 theories/examples/loop_sort.v
-theories/examples/list_sort_elem_client.v
+theories/examples/sort_elem_client.v
