@@ -39,14 +39,11 @@ Definition sort_elem_service : val :=
     let: "x" := recv "c" in
     if: ~(recv "c") then send "c" #cont;; send "c" "x";; send "c" #stop else
     let: "y" := recv "c" in
-    let: "cc1" := new_chan #() in
-    let: "c1" := Fst "cc1" in let: "c1'" := Snd "cc1" in
-    let: "cc2" := new_chan #() in
-    let: "c2" := Fst "cc2" in let: "c2'" := Snd "cc2" in
+    let: "c1" := start_chan (λ: "c", "go" "cmp" "c") in
+    let: "c2" := start_chan (λ: "c", "go" "cmp" "c") in
     send "c1" #cont;; send "c1" "x";;
     send "c2" #cont;; send "c2" "y";;
     sort_elem_service_split "c" "c1" "c2";;
-    Fork ("go" "cmp" "c1'");; Fork ("go" "cmp" "c2'");;
     let: "x" := (if: recv "c1" then recv "c1" else assert #false) in
     sort_elem_service_merge "cmp" "c" "x" "c1" "c2".
 
@@ -204,19 +201,16 @@ Section sort_elem.
     wp_rec; wp_pures. wp_branch; wp_pures.
     - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
       + wp_recv (x2 v2) as "HIx2".
-        wp_apply (new_chan_proto_spec N with "[//]"); iIntros (cy1 cy2) "Hcy".
-        wp_apply (new_chan_proto_spec N with "[//]"); iIntros (cz1 cz2) "Hcz".
-        iMod ("Hcy" $! (sort_elem_protocol <++> END)%proto) as "[Hcy1 Hcy2]".
-        iMod ("Hcz" $! (sort_elem_protocol <++> END)%proto) as "[Hcz1 Hcz2]".
-        iEval (rewrite right_id) in "Hcy1 Hcz1".
+        wp_apply (start_chan_proto_spec N (sort_elem_protocol <++> END)%proto).
+        { iIntros (cy) "Hcy". wp_apply ("IH" with "Hcy"). auto. }
+        iIntros (cy) "Hcy".
+        wp_apply (start_chan_proto_spec N (sort_elem_protocol <++> END)%proto).
+        { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
+        iIntros (cz) "Hcz". rewrite !right_id.
         wp_select. wp_send with "[$HIx1]".
         wp_select. wp_send with "[$HIx2]".
-        wp_apply (sort_elem_service_split_spec with "[$Hc $Hcy1 $Hcz1]").
+        wp_apply (sort_elem_service_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
-        wp_apply (wp_fork with "[Hcy2]").
-        { iNext. wp_apply ("IH" with "Hcy2"); auto. }
-        wp_apply (wp_fork with "[Hcz2]").
-        { iNext. wp_apply ("IH" with "Hcz2"); auto. }
         wp_branch as %_ | %[]%Permutation_nil_cons.
         wp_recv (x v) as "[_ HIx]".
         wp_apply (sort_elem_service_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
