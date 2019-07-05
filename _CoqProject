@@ -14,5 +14,5 @@ theories/examples/sort_client.v
 theories/examples/sort_elem.v
 theories/examples/loop_sort.v
 theories/examples/sort_elem_client.v
-theories/examples/mapper.v
+theories/examples/map.v
 theories/examples/map_reduce.v
