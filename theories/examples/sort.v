@@ -17,8 +17,7 @@ Definition sort_service : val :=
   rec: "go" "c" :=
     let: "cmp" := recv "c" in
     let: "xs" := recv "c" in
-    if: llength !"xs" ≤ #1 then
-      send "c" #() else
+    if: llength !"xs" ≤ #1 then send "c" #() else
     let: "ys_zs" := lsplit !"xs" in
     let: "ys" := ref (Fst "ys_zs") in
     let: "zs" := ref (Snd "ys_zs") in

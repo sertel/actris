@@ -21,10 +21,10 @@ Typeclasses Opaque client.
 Instance: Params (@client) 5.
 
 (** MOVE *)
-Fixpoint bi_mult {PROP : bi} (n : nat) (P : PROP) : PROP :=
-  match n with O => emp | S n => P ∗ bi_mult n P end%I.
-Arguments bi_mult {_} _ _%I.
-Notation "n * P" := (bi_mult n P) : bi_scope.
+Fixpoint bi_pow {PROP : bi} (n : nat) (P : PROP) : PROP :=
+  match n with O => emp | S n => P ∗ bi_pow n P end%I.
+Arguments bi_pow {_} _ _%I.
+Notation "P ^ n" := (bi_pow n P) : bi_scope.
 
 Section contribution.
   Context `{contributionG Σ A}.
@@ -122,7 +122,6 @@ Section contribution.
       rewrite -pair_op -Cinl_op Some_op left_id. apply (cancel_local_update _ _ _).
   Qed.
 
-
   Lemma update_client γ n x y x' y' :
     (x,y) ~l~> (x',y') →
     server γ n x -∗ client γ y ==∗ server γ n x' ∗ client γ y'.
@@ -141,7 +140,7 @@ Section contribution.
   Qed.
 
   (** Derived *)
-  Lemma contribution_initN n : (|==> ∃ γ, server γ n ε ∗ n * client γ ε)%I.
+  Lemma contribution_init_pow n : (|==> ∃ γ, server γ n ε ∗ (client γ ε)^n)%I.
   Proof.
     iMod (contribution_init) as (γ) "Hs". iExists γ.
     iInduction n as [|n] "IH"; first by iFrame.

@@ -9,7 +9,7 @@ Definition send_all : val :=
   rec: "go" "c" "xs" :=
     match: "xs" with
       SOME "p" => send "c" #cont;; send "c" (Fst "p");; "go" "c" (Snd "p")
-    | NONE => send "c" #stop
+    | NONE => #()
     end.
 
 Definition recv_all : val :=
@@ -23,6 +23,7 @@ Definition sort_elem_client : val :=
     let: "c" := start_chan sort_elem_service_top in
     send "c" "cmp";;
     send_all "c" "xs";;
+    send "c" #stop;;
     recv_all "c".
 
 Section sort_elem_client.
@@ -32,11 +33,11 @@ Section sort_elem_client.
   Lemma send_all_spec c p xs' xs vs :
     {{{ c ↣ sort_elem_head_protocol I R xs' <++> p @ N ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
       send_all c (llist vs)
-    {{{ RET #(); c ↣ sort_elem_tail_protocol I R (xs' ++ xs) [] <++> p @ N }}}.
+    {{{ RET #(); c ↣ sort_elem_head_protocol I R (xs' ++ xs) <++> p @ N }}}.
   Proof.
     iIntros (Φ) "[Hc HI] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs' vs); destruct vs as [|v vs]=>//.
-    { wp_lam; wp_pures. wp_select. iApply "HΦ". rewrite right_id_L. iFrame. }
+    { wp_lam; wp_pures. iApply "HΦ". rewrite right_id_L. iFrame. }
     iDestruct "HI" as "[HIxv HI]". wp_lam; wp_pures.
     wp_select. wp_send with "[$HIxv]". wp_apply ("IH" with "Hc HI").
     by rewrite -assoc_L.
@@ -77,6 +78,7 @@ Section sort_elem_client.
     rewrite /sort_elem_top_protocol.
     wp_send (A I R) with "[$Hcmp]".
     wp_apply (send_all_spec with "[$HI $Hc]"); iIntros "Hc".
+    wp_select.
     wp_apply (recv_all_spec _ _ _ [] with "[$Hc]"); auto.
     iIntros (ys ws) "/=". iDestruct 1 as (??) "[_ HI]".
     iApply "HΦ"; auto.
