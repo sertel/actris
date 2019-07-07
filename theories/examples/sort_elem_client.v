@@ -1,9 +1,9 @@
 From stdpp Require Import sorting.
-From osiris.channel Require Import proto_channel proofmode.
+From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
-From osiris.utils Require Import list compare.
-From osiris.examples Require Import sort_elem.
+From actris.utils Require Import list compare.
+From actris.examples Require Import sort_elem.
 
 Definition send_all : val :=
   rec: "go" "c" "xs" :=

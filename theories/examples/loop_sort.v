@@ -1,8 +1,8 @@
 From stdpp Require Import sorting.
-From osiris.channel Require Import proto_channel.
+From actris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.utils Require Import list.
-From osiris.examples Require Import sort.
+From actris.utils Require Import list.
+From actris.examples Require Import sort.
 
 Definition loop_sort_service : val :=
   rec: "go" "c" :=

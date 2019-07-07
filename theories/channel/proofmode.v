@@ -1,6 +1,6 @@
 From iris.heap_lang Require Export proofmode notation.
 From iris.proofmode Require Export tactics.
-From osiris Require Export proto_channel.
+From actris Require Export proto_channel.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 
 (* TODO: strip laters *)

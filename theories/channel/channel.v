@@ -1,7 +1,7 @@
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
-From osiris.utils Require Import auth_excl list.
+From actris.utils Require Import auth_excl list.
 Set Default Proof Using "Type".
 
 Inductive side := Left | Right.

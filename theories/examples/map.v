@@ -1,6 +1,6 @@
-From osiris.channel Require Import proto_channel proofmode.
+From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation lib.spin_lock.
-From osiris.utils Require Import list contribution.
+From actris.utils Require Import list contribution.
 From iris.algebra Require Import gmultiset.
 
 Definition map_worker : val :=

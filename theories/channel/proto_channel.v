@@ -1,9 +1,9 @@
-From osiris.channel Require Export channel.
-From osiris.channel Require Import proto_model.
+From actris.channel Require Export channel.
+From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import proofmode notation.
 From iris.algebra Require Import auth excl.
-From osiris.utils Require Import auth_excl.
+From actris.utils Require Import auth_excl.
 Export action.
 
 Definition start_chan : val := λ: "f",

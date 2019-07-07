@@ -1,8 +1,8 @@
 From stdpp Require Import sorting.
-From osiris.channel Require Import proto_channel proofmode.
+From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
-From osiris.utils Require Import list compare contribution.
-From osiris.examples Require Import map sort_elem sort_elem_client.
+From actris.utils Require Import list compare contribution.
+From actris.examples Require Import map sort_elem sort_elem_client.
 From iris.algebra Require Import gmultiset.
 From Coq Require Import SetoidPermutation.
 

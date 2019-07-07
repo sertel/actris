@@ -1,4 +1,4 @@
--Q theories osiris
+-Q theories actris
 -arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
 theories/utils/auth_excl.v
 theories/utils/list.v
