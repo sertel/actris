@@ -45,6 +45,9 @@ Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
   | _ => fail "wp_recv: not a 'wp'"
   end.
 
+Tactic Notation "wp_recv" "as" constr(pat) :=
+  wp_recv_core (idtac) as (fun H => iDestructHyp H as pat).
+
 Tactic Notation "wp_recv" "(" intropattern_list(xs) ")" "as" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as pat).
 Tactic Notation "wp_recv" "(" intropattern_list(xs) ")" "as" "(" simple_intropattern(x1) ")"
