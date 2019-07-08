@@ -10,8 +10,8 @@ Definition lmerge : val :=
     let: "y" := lhead "ys" in
     let: "z" := lhead "zs" in
     if: "cmp" "y" "z"
-    then lpop "ys";; "go" "cmp" "ys" "zs";; lcons "y" "ys";; #()
-    else lpop "zs";; "go" "cmp" "ys" "zs";; lcons "z" "ys";; #().
+    then lpop "ys";; "go" "cmp" "ys" "zs";; lcons "y" "ys"
+    else lpop "zs";; "go" "cmp" "ys" "zs";; lcons "z" "ys".
 
 Definition sort_service : val :=
   rec: "go" "c" :=
@@ -69,14 +69,12 @@ Section sort.
       wp_apply (lpop_spec with "Hl1"); iIntros "Hl1".
       wp_apply ("IH" $! _ _ (x2 :: _) with "Hl1 Hl2 HI1' [$HI2 $HI2']").
       iIntros (ws) "[Hl1 HI]".
-      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1".
-      wp_pures. iApply "HΨ". iFrame.
+      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1". iApply "HΨ". iFrame.
     - rewrite decide_False //.
       wp_apply (lpop_spec with "Hl2"); iIntros "Hl2".
       wp_apply ("IH" $! _ (x1 :: _) with "Hl1 Hl2 [$HI1 $HI1'] HI2'").
       iIntros (ws) "[Hl1 HI]".
-      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1".
-      wp_pures. iApply "HΨ". iFrame.
+      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1". iApply "HΨ". iFrame.
   Qed.
 
   Lemma sort_service_spec p c :
@@ -84,8 +82,7 @@ Section sort.
       sort_service c
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
-    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ).
-    wp_lam.
+    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ). wp_lam.
     wp_recv (A I R ?? cmp) as "#Hcmp".
     wp_recv (xs l vs) as "[Hl HI]".
     wp_apply (llength_spec with "Hl"); iIntros "Hl".

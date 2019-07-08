@@ -10,7 +10,7 @@ Fixpoint llist `{heapG Σ} (l : loc) (vs : list val) : iProp Σ :=
 Arguments llist : simpl never.
 
 Definition lnil : val := λ: <>, ref NONE.
-Definition lcons : val := λ: "x" "l", "l" <- SOME ("x", ref (!"l"));; "l".
+Definition lcons : val := λ: "x" "l", "l" <- SOME ("x", ref (!"l")).
 
 Definition lisnil : val := λ: "l",
   match: !"l" with
@@ -83,7 +83,7 @@ Lemma lnil_spec :
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_alloc l. by iApply "HΦ". Qed.
 
 Lemma lcons_spec l v vs :
-  {{{ llist l vs }}} lcons v #l {{{ RET #l; llist l (v :: vs) }}}.
+  {{{ llist l vs }}} lcons v #l {{{ RET #(); llist l (v :: vs) }}}.
 Proof.
   iIntros (Φ) "Hll HΦ". wp_lam. destruct vs as [|v' vs]; simpl; wp_pures.
   - wp_load. wp_alloc k. wp_store. iApply "HΦ"; eauto with iFrame.

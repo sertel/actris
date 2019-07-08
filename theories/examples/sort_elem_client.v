@@ -13,7 +13,8 @@ Definition send_all : val :=
 Definition recv_all : val :=
   rec: "go" "c" :=
     if: ~recv "c" then lnil #() else
-    let: "x" := recv "c" in lcons "x" ("go" "c").
+    let: "x" := recv "c" in
+    let: "l" := "go" "c" in lcons "x" "l";; "l".
 
 Definition sort_elem_client : val :=
   λ: "cmp" "xs",
@@ -57,7 +58,7 @@ Section sort_elem_client.
     - wp_recv (y v) as (Htl) "HIxv".
       wp_apply ("IH" with "[] Hc"); first by auto using Sorted_snoc.
       iIntros (l ys ws). rewrite -!assoc_L. iDestruct 1 as (??) "(Hl & Hc & HI)".
-      wp_apply (lcons_spec with "Hl"); iIntros "Hl".
+      wp_apply (lcons_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply ("HΦ" $! _ (y :: ys)); simpl; eauto with iFrame.
     - wp_apply (lnil_spec with "[//]"); iIntros (l) "Hl".
       iApply ("HΦ" $! _ [] []); rewrite /= right_id_L; by iFrame.

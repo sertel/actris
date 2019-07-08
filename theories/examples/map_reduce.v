@@ -65,7 +65,7 @@ Definition par_map_reduce_reduce_server : val :=
          send "cred" #false;; "go" ("n" - #1) "csort" "cred" NONE "zs"
       | SOME "acc" =>
          (* Read subsequent items with the same key *)
-         let: "ys" := lcons (Snd "acc") (lnil #()) in
+         let: "ys" := lnil #() in lcons (Snd "acc") "ys";;
          let: "new_acc" := par_map_reduce_collect "csort" (Fst "acc") "ys" in
          send "cred" #true;;
          send "cred" (Fst "acc", "ys");;
