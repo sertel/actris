@@ -1,6 +1,6 @@
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation lib.spin_lock.
-From actris.utils Require Import list contribution.
+From actris.utils Require Import llist contribution.
 From iris.algebra Require Import gmultiset.
 
 Definition map_worker : val :=
@@ -30,22 +30,25 @@ Definition start_map_service : val := λ: "n" "map",
 
 Definition par_map_server : val :=
   rec: "go" "n" "c" "xs" "ys" :=
-    if: "n" = #0 then "ys" else
+    if: "n" = #0 then #() else
     if: recv "c" then (* send item to map_worker *)
       if: lisnil "xs" then
         send "c" #false;;
         "go" ("n" - #1) "c" "xs" "ys"
       else
         send "c" #true;;
-        send "c" (lhead "xs");;
-        "go" "n" "c" (ltail "xs") "ys"
+        send "c" (lpop "xs");;
+        "go" "n" "c" "xs" "ys"
     else (* receive item from map_worker *)
       let: "zs" := recv "c" in
-      "go" "n" "c" "xs" (lapp "zs" "ys").
+      lprep "ys" "zs";;
+      "go" "n" "c" "xs" "ys".
 
 Definition par_map : val := λ: "n" "map" "xs",
   let: "c" := start_map_service "n" "map" in
-  par_map_server "n" "c" "xs" (lnil #()).
+  let: "ys" := lnil #() in
+  par_map_server "n" "c" "xs" "ys";;
+  "ys".
 
 Class mapG Σ A `{Countable A} := {
   map_contributionG :> contributionG Σ (gmultisetUR A);
@@ -62,7 +65,7 @@ Section map.
   Definition map_spec (vmap : val) : iProp Σ := (∀ x v,
     {{{ IA x v }}}
       vmap v
-    {{{ ws, RET (llist ws); [∗ list] y;w ∈ map x;ws, IB y w }}})%I.
+    {{{ l ws, RET #l; llist l ws ∗ [∗ list] y;w ∈ map x;ws, IB y w }}})%I.
 
   Definition map_worker_protocol_aux (rec : nat -d> gmultiset A -d> iProto Σ) :
       nat -d> gmultiset A -d> iProto Σ := λ i X,
@@ -72,7 +75,7 @@ Section map.
         <+>
       rec (pred i) X
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
-         <?> x ws, MSG llist ws {{ ⌜ x ∈ X ⌝ ∧ [∗ list] y;w ∈ map x;ws, IB y w }};
+         <?> x (l : loc) ws, MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist l ws ∗ [∗ list] y;w ∈ map x;ws, IB y w }};
          rec i (X ∖ {[ x ]}))%proto.
   Instance map_worker_protocol_aux_contractive : Contractive map_worker_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.
@@ -109,7 +112,7 @@ Section map.
     rewrite left_id_L.
     wp_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
-    clear dependent i X. iIntros "Hu". wp_apply ("Hmap" with "HI"); iIntros (w) "HI".
+    clear dependent i X. iIntros "Hu". wp_apply ("Hmap" with "HI"); iIntros (l ws) "HI".
     wp_apply (acquire_spec with "[$Hlk $Hu]"); iIntros "[Hl H]".
     iDestruct "H" as (i X) "[Hs Hc]".
     iDestruct (@server_agree with "Hs Hγ")
@@ -156,38 +159,39 @@ Section map.
     wp_apply (start_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
   Qed.
 
-  Lemma par_map_server_spec n c vs xs ws X ys :
+  Lemma par_map_server_spec n c l k vs xs ws X ys :
     (n = 0 → X = ∅ ∧ xs = []) →
     {{{
+      llist l vs ∗ llist k ws ∗
       c ↣ map_worker_protocol n X @ N ∗
       ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] y;w ∈ ys;ws, IB y w)
     }}}
-      par_map_server #n c (llist vs) (llist ws)
-    {{{ ys' ws', RET (llist ws');
-       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗ [∗ list] y;w ∈ ys' ++ ys;ws', IB y w
+      par_map_server #n c #l #k
+    {{{ ys' ws', RET #();
+       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗
+       llist k ws' ∗ [∗ list] y;w ∈ ys' ++ ys;ws', IB y w
     }}}.
   Proof.
-    iIntros (Hn Φ) "(Hc & HIA & HIB) HΦ".
-    iLöb as "IH" forall (n vs xs ws X ys Hn Φ); wp_rec; wp_pures; simpl.
+    iIntros (Hn Φ) "(Hl & Hk & Hc & HIA & HIB) HΦ".
+    iLöb as "IH" forall (n l vs xs ws X ys Hn Φ); wp_rec; wp_pures; simpl.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
-      iApply ("HΦ" $! []); simpl; auto. }
+      iApply ("HΦ" $! []); simpl; auto with iFrame. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
-    - wp_apply (lisnil_spec with "[//]"); iIntros (_).
+    - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct vs as [|v vs], xs as [|x xs]; csimpl; try done; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-        iApply ("IH" with "[%] Hc [//] [$] HΦ"); naive_solver.
+        iApply ("IH" with "[%] Hl Hk Hc [//] [$] HΦ"); naive_solver.
       + iDestruct "HIA" as "[HIAx HIA]". wp_select.
-        wp_apply (lhead_spec with "[//]"); iIntros (_).
+        wp_apply (lpop_spec with "Hl"); iIntros "Hl".
         wp_send with "[$HIAx]".
-        wp_apply (ltail_spec with "[//]"); iIntros (_).
-        wp_apply ("IH" with "[] Hc HIA HIB"); first done.
+        wp_apply ("IH" with "[] Hl Hk Hc HIA HIB"); first done.
         iIntros (ys' ws').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
         rewrite assoc_L -(comm _ [x]). iApply "HΦ".
-    - wp_recv (x w) as (Hx) "HIBx".
-      wp_apply (lapp_spec with "[//]"); iIntros (_).
-      wp_apply ("IH" $! _ _ _ _ _ (_ ++ _) with "[] Hc HIA [HIBx HIB]"); first done.
+    - wp_recv (x l' w) as (Hx) "[Hl' HIBx]".
+      wp_apply (lprep_spec with "[$Hk $Hl']"); iIntros "[Hk _]".
+      wp_apply ("IH" $! _ _ _ _ _ _ (_ ++ _) with "[] Hl Hk Hc HIA [HIBx HIB]"); first done.
       { simpl; iFrame. }
       iIntros (ys' ws'); iDestruct 1 as (Hys) "HIB"; simplify_eq/=.
       iApply ("HΦ" $! (ys' ++ map x)). iSplit.
@@ -198,17 +202,18 @@ Section map.
       + by rewrite -assoc_L.
   Qed.
 
-  Lemma par_map_spec n vmap vs xs :
+  Lemma par_map_spec n vmap l vs xs :
     0 < n →
     map_spec vmap -∗
-    {{{ [∗ list] x;v ∈ xs;vs, IA x v }}}
-      par_map #n vmap (llist vs)
-    {{{ ys ws, RET (llist ws); ⌜ys ≡ₚ xs ≫= map⌝ ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
+    {{{ llist l vs ∗ [∗ list] x;v ∈ xs;vs, IA x v }}}
+      par_map #n vmap #l
+    {{{ k ys ws, RET #k; ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist k ws ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
   Proof.
-    iIntros (?) "#Hmap !>"; iIntros (Φ) "HI HΦ". wp_lam; wp_pures.
+    iIntros (?) "#Hmap !>"; iIntros (Φ) "[Hl HI] HΦ". wp_lam; wp_pures.
     wp_apply (start_map_service_spec with "Hmap [//]"); iIntros (c) "Hc".
-    wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (_).
-    wp_apply (par_map_server_spec _ _ _ _ [] ∅ [] with "[$Hc $HI //]"); first lia.
-    iIntros (ys ws). rewrite /= gmultiset_elements_empty !right_id_L . iApply "HΦ".
+    wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
+    wp_apply (par_map_server_spec _ _ _ _ _ _ [] ∅ [] with "[$Hl $Hk $Hc $HI //]"); first lia.
+    iIntros (ys ws) "H". rewrite /= gmultiset_elements_empty !right_id_L .
+    wp_pures. by iApply "HΦ".
   Qed.
 End map.

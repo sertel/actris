@@ -1,7 +1,6 @@
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
-From actris.utils Require Import list compare.
 From actris.examples Require Import sort.
 
 Definition sort_client : val := λ: "cmp" "xs",
@@ -15,10 +14,10 @@ Section sort_client.
   Lemma sort_client_spec {A} (I : A → val → iProp Σ) R
        `{!RelDecision R, !Total R} cmp l (vs : list val) (xs : list A) :
     cmp_spec I R cmp -∗
-    {{{ l ↦ llist vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
+    {{{ llist l vs ∗ [∗ list] x;v ∈ xs;vs, I x v }}}
       sort_client cmp #l
     {{{ ys ws, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
-               l ↦ llist ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
+               llist l ws ∗ [∗ list] y;w ∈ ys;ws, I y w }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
     wp_apply (start_chan_proto_spec N sort_protocol); iIntros (c) "Hc".
@@ -31,9 +30,9 @@ Section sort_client.
   Qed.
 
   Lemma sort_client_Zle_spec l (xs : list Z) :
-    {{{ l ↦ llist (LitV ∘ LitInt <$> xs) }}}
+    {{{ llist l (LitV ∘ LitInt <$> xs) }}}
       sort_client cmpZ #l
-    {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ l ↦ llist (LitV ∘ LitInt <$> ys) }}}.
+    {{{ ys, RET #(); ⌜Sorted (≤) ys⌝ ∗ ⌜ ys ≡ₚ xs⌝ ∗ llist l (LitV ∘ LitInt <$> ys) }}}.
   Proof.
     iIntros (Φ) "Hl HΦ".
     iApply (sort_client_spec IZ (≤) _ _ (LitV ∘ LitInt <$> xs) xs with "[] [Hl] [HΦ]").

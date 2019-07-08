@@ -1,7 +1,6 @@
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel.
 From iris.heap_lang Require Import proofmode notation.
-From actris.utils Require Import list.
 From actris.examples Require Import sort.
 
 Definition loop_sort_service : val :=

@@ -1,7 +1,7 @@
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
-From actris.utils Require Import auth_excl list.
+From actris.utils Require Import auth_excl llist.
 Set Default Proof Using "Type".
 
 Inductive side := Left | Right.
@@ -11,8 +11,8 @@ Definition side_elim {A} (s : side) (l r : A) : A :=
 
 Definition new_chan : val :=
   λ: <>,
-     let: "l" := ref (lnil #()) in
-     let: "r" := ref (lnil #()) in
+     let: "l" := lnil #() in
+     let: "r" := lnil #() in
      let: "lk" := newlock #() in
      ((("l","r"),"lk"), (("r","l"),"lk")).
 
@@ -21,7 +21,7 @@ Definition send : val :=
     let: "lk" := Snd "c" in
     acquire "lk";;
     let: "l" := Fst (Fst "c") in
-    "l" <- lsnoc !"l" "v";;
+    lsnoc "l" "v";;
     release "lk".
 
 Definition try_recv : val :=
@@ -29,11 +29,7 @@ Definition try_recv : val :=
     let: "lk" := Snd "c" in
     acquire "lk";;
     let: "l" := Snd (Fst "c") in
-    let: "ret" :=
-      match: !"l" with
-        SOME "p" => "l" <- Snd "p";; SOME (Fst "p")
-      | NONE => NONE
-      end in
+    let: "ret" := if: lisnil "l" then NONE else SOME (lpop "l") in
     release "lk";; "ret".
 
 Definition recv : val :=
@@ -52,11 +48,16 @@ Definition chanΣ : gFunctors :=
 Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
 Proof. solve_inG. Qed.
 
+(** MOVE TO IRIS *)
+Global Instance fst_atomic a v1 v2 : Atomic a (Fst (v1,v2)%V).
+Proof.
+  apply strongly_atomic_atomic, ectx_language_atomic;
+    [inversion 1; naive_solver
+    |apply ectxi_language_sub_redexes_are_values; intros [] **; naive_solver].
+Qed.
+
 Section channel.
   Context `{!heapG Σ, !chanG Σ} (N : namespace).
-
-  Definition is_list_ref (l : val) (xs : list val) : iProp Σ :=
-    (∃ l' : loc, ⌜l = #l'⌝ ∧ l' ↦ llist xs)%I.
 
   Record chan_name := Chan_name {
     chan_lock_name : gname;
@@ -64,15 +65,15 @@ Section channel.
     chan_r_name : gname
   }.
 
-  Definition chan_inv (γ : chan_name) (l r : val) : iProp Σ :=
+  Definition chan_inv (γ : chan_name) (l r : loc) : iProp Σ :=
     (∃ ls rs,
-      is_list_ref l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
-      is_list_ref r rs ∗ own (chan_r_name γ) (● to_auth_excl rs))%I.
+      llist l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
+      llist r rs ∗ own (chan_r_name γ) (● to_auth_excl rs))%I.
   Typeclasses Opaque chan_inv.
 
   Definition is_chan (γ : chan_name) (c1 c2 : val) : iProp Σ :=
-    (∃ l r lk : val,
-      ⌜ c1 = ((l, r), lk)%V ∧ c2 = ((r, l), lk)%V ⌝ ∗
+    (∃ (l r : loc) (lk : val),
+      ⌜ c1 = ((#l, #r), lk)%V ∧ c2 = ((#r, #l), lk)%V ⌝ ∗
       is_lock N (chan_lock_name γ) lk (chan_inv γ l r))%I.
 
   Global Instance is_chan_persistent : Persistent (is_chan γ c1 c2).
@@ -91,20 +92,15 @@ Section channel.
   Proof.
     iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_own.
     wp_lam.
-    wp_apply (lnil_spec with "[//]"); iIntros (ls). wp_alloc l as "Hl".
-    wp_apply (lnil_spec with "[//]"); iIntros (rs). wp_alloc r as "Hr".
+    wp_apply (lnil_spec with "[//]"); iIntros (l) "Hl".
+    wp_apply (lnil_spec with "[//]"); iIntros (r) "Hr".
     iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
     { by apply auth_both_valid. }
     iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
     { by apply auth_both_valid. }
-    iAssert (is_list_ref #l []) with "[Hl]" as "Hl".
-    { rewrite /is_list_ref; eauto. }
-    iAssert (is_list_ref #r []) with "[Hr]" as "Hr".
-    { rewrite /is_list_ref; eauto. }
     wp_apply (newlock_spec N (∃ ls rs,
-      is_list_ref #l ls ∗ own lsγ (● to_auth_excl ls) ∗
-      is_list_ref #r rs ∗ own rsγ (● to_auth_excl rs))%I
-                with "[Hl Hr Hls Hrs]").
+      llist l ls ∗ own lsγ (● to_auth_excl ls) ∗
+      llist r rs ∗ own rsγ (● to_auth_excl rs))%I with "[Hl Hr Hls Hrs]").
     { eauto 10 with iFrame. }
     iIntros (lk γlk) "#Hlk". wp_pures.
     iApply ("HΦ" $! _ _ (Chan_name γlk lsγ rsγ)); simpl.
@@ -113,9 +109,9 @@ Section channel.
 
   Lemma chan_inv_alt s γ l r :
     chan_inv γ l r ⊣⊢ ∃ ls rs,
-      is_list_ref (side_elim s l r) ls ∗
+      llist (side_elim s l r) ls ∗
       own (side_elim s chan_l_name chan_r_name γ) (● to_auth_excl ls) ∗
-      is_list_ref (side_elim s r l) rs ∗
+      llist (side_elim s r l) rs ∗
       own (side_elim s chan_r_name chan_l_name γ) (● to_auth_excl rs).
   Proof.
     destruct s; rewrite /chan_inv //=.
@@ -131,24 +127,20 @@ Section channel.
   Proof.
     iIntros "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
-    assert (side_elim s (l, r, lk)%V (r, l, lk)%V =
-      ((side_elim s l r, side_elim s r l), lk)%V) as -> by (by destruct s).
+    assert (side_elim s (#l, #r, lk)%V (#r, #l, lk)%V =
+      ((#(side_elim s l r), #(side_elim s r l)), lk)%V) as -> by (by destruct s).
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
-    wp_pures.
     iDestruct (chan_inv_alt s with "Hinv") as
-      (vs ws) "(Href & Hvs & Href' & Hws)".
-    iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
-    wp_load.
-    wp_apply (lsnoc_spec with "[//]"); iIntros (_).
-    wp_bind (_ <- _)%E.
+      (vs ws) "(Hll & Hvs & Href' & Hws)".
+    wp_seq. wp_bind (Fst (_,_)%V)%E.
     iMod "HΦ" as (vs') "[Hchan HΦ]".
     iDestruct (excl_eq with "Hvs Hchan") as %<-%leibniz_equiv.
     iMod (excl_update _ _ _ (vs ++ [v]) with "Hvs Hchan") as "[Hvs Hchan]".
-    wp_store. iMod ("HΦ" with "Hchan") as "HΦ".
-    iModIntro.
+    wp_pures. iMod ("HΦ" with "Hchan") as "HΦ"; iModIntro.
+    wp_apply (lsnoc_spec with "Hll"); iIntros "Hll".
     wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]"); last eauto.
     iApply (chan_inv_alt s).
-    rewrite /is_list_ref. eauto 20 with iFrame.
+    rewrite /llist. eauto 20 with iFrame.
   Qed.
 
   Lemma try_recv_spec Φ E γ c1 c2 s :
@@ -162,28 +154,27 @@ Section channel.
   Proof.
     iIntros "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
-    assert (side_elim s (r, l, lk)%V (l, r, lk)%V =
-      ((side_elim s r l, side_elim s l r), lk)%V) as -> by (by destruct s).
+    assert (side_elim s (#r, #l, lk)%V (#l, #r, lk)%V =
+      ((#(side_elim s r l), #(side_elim s l r)), lk)%V) as -> by (by destruct s).
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
-    wp_pures.
     iDestruct (chan_inv_alt s with "Hinv")
-      as (vs ws) "(Href & Hvs & Href' & Hws)".
-    iDestruct "Href" as (ll Hslr) "Hll". rewrite Hslr.
-    wp_bind (! _)%E. destruct vs as [|v vs]; simpl.
-    - iDestruct "HΦ" as "[>HΦ _]". wp_load. iMod "HΦ"; iModIntro.
+      as (vs ws) "(Hll & Hvs & Href' & Hws)".
+    wp_seq. wp_bind (Fst (_,_)%V)%E. destruct vs as [|v vs]; simpl.
+    - iDestruct "HΦ" as "[>HΦ _]". wp_pures. iMod "HΦ"; iModIntro.
+      wp_apply (lisnil_spec with "Hll"); iIntros "Hll". wp_pures.
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
       { iApply (chan_inv_alt s).
-        rewrite /is_list_ref. eauto 10 with iFrame. }
+        rewrite /llist. eauto 10 with iFrame. }
       iIntros (_). by wp_pures.
     - iDestruct "HΦ" as "[_ >HΦ]". iDestruct "HΦ" as (vs') "[Hvs' HΦ]".
       iDestruct (excl_eq with "Hvs Hvs'") as %<-%leibniz_equiv.
       iMod (excl_update _ _ _ vs with "Hvs Hvs'") as "[Hvs Hvs']".
-      wp_load.
-      iMod ("HΦ" with "[//] Hvs'") as "HΦ"; iModIntro.
-      wp_store; wp_pures.
+      wp_pures. iMod ("HΦ" with "[//] Hvs'") as "HΦ"; iModIntro.
+      wp_apply (lisnil_spec with "Hll"); iIntros "Hll".
+      wp_apply (lpop_spec with "Hll"); iIntros "Hll".
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
       { iApply (chan_inv_alt s).
-        rewrite /is_list_ref. eauto 10 with iFrame. }
+        rewrite /llist. eauto 10 with iFrame. }
       iIntros (_). by wp_pures.
   Qed.
 
