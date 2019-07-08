@@ -1,5 +1,6 @@
 From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation.
+From iris.heap_lang Require Import proofmode notation lib.spin_lock.
+From actris.utils Require Import contribution.
 
 Definition prog1 : val := λ: <>,
   let: "c" := start_chan (λ: "c'", send "c'" #42) in
@@ -29,6 +30,13 @@ Definition prog5 : val := λ: <>,
   send "c" (λ: <>, !"r");;
   recv "c" #().
 
+Definition prog_lock : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    let: "l" := newlock #() in
+    Fork (acquire "l";; send "c'" #21;; release "l");;
+    acquire "l";; send "c'" #21;; release "l") in
+  recv "c" + recv "c".
+
 Section proofs.
 Context `{heapG Σ, proto_chanG Σ}.
 
@@ -50,6 +58,12 @@ Definition prot5 : iProto Σ :=
    <?> (vg : val),
      MSG vg {{ {{{ P }}} vg #() {{{ x, RET #(x + 2); Φ x }}} }};
    END)%proto.
+
+Fixpoint prot_lock (n : nat) : iProto Σ :=
+  match n with
+  | 0 => END
+  | S n' => <?> MSG #21; prot_lock n'
+  end%proto.
 
 Lemma prog1_spec : {{{ True }}} prog1 #() {{{ RET #42; True }}}.
 Proof.
@@ -98,5 +112,31 @@ Proof.
     wp_recv (vg) as "#Hg". wp_apply ("Hg" with "Hl"); iIntros (x) "[-> Hl]".
     by iApply "HΦ".
 Qed.
-End proofs.
 
+Lemma prog_lock_spec `{!lockG Σ, contributionG Σ unitUR} :
+  {{{ True }}} prog_lock #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_proto_spec nroot (prot_lock 2)); iIntros (c) "Hc".
+  - iMod (contribution_init) as (γ) "Hs".
+    iMod (alloc_client with "Hs") as "[Hs Hcl1]".
+    iMod (alloc_client with "Hs") as "[Hs Hcl2]".
+    wp_apply (newlock_spec nroot (∃ n, server γ n ε ∗
+      c ↣ iProto_dual (prot_lock n) @ nroot)%I
+      with "[Hc Hs]"); first by eauto with iFrame.
+    iIntros (lk γlk) "#Hlk".
+    iAssert (□ (client γ ε -∗
+      WP acquire lk;; send c #21;; release lk {{ _, True }}))%I as "#Hhelp".
+    { iIntros "!> Hcl".
+      wp_apply (acquire_spec with "[$]"); iIntros "[Hl H]".
+      iDestruct "H" as (n) "[Hs Hc]".
+      iDestruct (server_agree with "Hs Hcl") as %[? _].
+      destruct n as [|n]=> //=. wp_send with "[//]".
+      iMod (dealloc_client with "Hs Hcl") as "Hs /=".
+      wp_apply (release_spec with "[$Hlk $Hl Hc Hs]"); eauto with iFrame. }
+    wp_apply (wp_fork with "[Hcl1]").
+    { iNext. by iApply "Hhelp". }
+    by wp_apply "Hhelp".
+  - wp_recv as "_". wp_recv as "_". wp_pures. by iApply "HΦ".
+Qed.
+End proofs.
