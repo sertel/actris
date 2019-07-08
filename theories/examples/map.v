@@ -63,9 +63,7 @@ Section map.
   Implicit Types n : nat.
 
   Definition map_spec (vmap : val) : iProp Σ := (∀ x v,
-    {{{ IA x v }}}
-      vmap v
-    {{{ l ws, RET #l; llist l ws ∗ [∗ list] y;w ∈ map x;ws, IB y w }}})%I.
+    {{{ IA x v }}} vmap v {{{ l, RET #l; llist IB l (map x) }}})%I.
 
   Definition map_worker_protocol_aux (rec : nat -d> gmultiset A -d> iProto Σ) :
       nat -d> gmultiset A -d> iProto Σ := λ i X,
@@ -75,7 +73,7 @@ Section map.
         <+>
       rec (pred i) X
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
-         <?> x (l : loc) ws, MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist l ws ∗ [∗ list] y;w ∈ map x;ws, IB y w }};
+         <?> x (l : loc), MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist IB l (map x) }};
          rec i (X ∖ {[ x ]}))%proto.
   Instance map_worker_protocol_aux_contractive : Contractive map_worker_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.
@@ -112,7 +110,7 @@ Section map.
     rewrite left_id_L.
     wp_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
-    clear dependent i X. iIntros "Hu". wp_apply ("Hmap" with "HI"); iIntros (l ws) "HI".
+    clear dependent i X. iIntros "Hu". wp_apply ("Hmap" with "HI"); iIntros (l) "HI".
     wp_apply (acquire_spec with "[$Hlk $Hu]"); iIntros "[Hl H]".
     iDestruct "H" as (i X) "[Hs Hc]".
     iDestruct (@server_agree with "Hs Hγ")
@@ -159,41 +157,31 @@ Section map.
     wp_apply (start_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
   Qed.
 
-  Lemma par_map_server_spec n c l k vs xs ws X ys :
+  Lemma par_map_server_spec n c l k xs X ys :
     (n = 0 → X = ∅ ∧ xs = []) →
-    {{{
-      llist l vs ∗ llist k ws ∗
-      c ↣ map_worker_protocol n X @ N ∗
-      ([∗ list] x;v ∈ xs;vs, IA x v) ∗ ([∗ list] y;w ∈ ys;ws, IB y w)
-    }}}
+    {{{ llist IA l xs ∗ llist IB k ys ∗ c ↣ map_worker_protocol n X @ N }}}
       par_map_server #n c #l #k
-    {{{ ys' ws', RET #();
-       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗
-       llist k ws' ∗ [∗ list] y;w ∈ ys' ++ ys;ws', IB y w
-    }}}.
+    {{{ ys', RET #(); ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗ llist IB k (ys' ++ ys) }}}.
   Proof.
-    iIntros (Hn Φ) "(Hl & Hk & Hc & HIA & HIB) HΦ".
-    iLöb as "IH" forall (n l vs xs ws X ys Hn Φ); wp_rec; wp_pures; simpl.
+    iIntros (Hn Φ) "(Hl & Hk & Hc) HΦ".
+    iLöb as "IH" forall (n l xs X ys Hn Φ); wp_rec; wp_pures; simpl.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []); simpl; auto with iFrame. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
     - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
-      destruct vs as [|v vs], xs as [|x xs]; csimpl; try done; wp_pures.
+      destruct xs as [|x xs]; csimpl; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-        iApply ("IH" with "[%] Hl Hk Hc [//] [$] HΦ"); naive_solver.
-      + iDestruct "HIA" as "[HIAx HIA]". wp_select.
-        wp_apply (lpop_spec with "Hl"); iIntros "Hl".
-        wp_send with "[$HIAx]".
-        wp_apply ("IH" with "[] Hl Hk Hc HIA HIB"); first done.
-        iIntros (ys' ws').
+        iApply ("IH" with "[%] Hl Hk Hc [$]"); naive_solver.
+      + wp_select. wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+        wp_send with "[$HIx]".
+        wp_apply ("IH" with "[] Hl Hk Hc"); first done. iIntros (ys').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
         rewrite assoc_L -(comm _ [x]). iApply "HΦ".
-    - wp_recv (x l' w) as (Hx) "[Hl' HIBx]".
+    - wp_recv (x l') as (Hx) "Hl'".
       wp_apply (lprep_spec with "[$Hk $Hl']"); iIntros "[Hk _]".
-      wp_apply ("IH" $! _ _ _ _ _ _ (_ ++ _) with "[] Hl Hk Hc HIA [HIBx HIB]"); first done.
-      { simpl; iFrame. }
-      iIntros (ys' ws'); iDestruct 1 as (Hys) "HIB"; simplify_eq/=.
+      wp_apply ("IH" with "[] Hl Hk Hc"); first done.
+      iIntros (ys'); iDestruct 1 as (Hys) "Hk"; simplify_eq/=.
       iApply ("HΦ" $! (ys' ++ map x)). iSplit.
       + iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X)
           -?gmultiset_elem_of_singleton_subseteq //.
@@ -202,18 +190,18 @@ Section map.
       + by rewrite -assoc_L.
   Qed.
 
-  Lemma par_map_spec n vmap l vs xs :
+  Lemma par_map_spec n vmap l xs :
     0 < n →
     map_spec vmap -∗
-    {{{ llist l vs ∗ [∗ list] x;v ∈ xs;vs, IA x v }}}
+    {{{ llist IA l xs }}}
       par_map #n vmap #l
-    {{{ k ys ws, RET #k; ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist k ws ∗ [∗ list] y;w ∈ ys;ws, IB y w }}}.
+    {{{ k ys, RET #k; ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB k ys }}}.
   Proof.
-    iIntros (?) "#Hmap !>"; iIntros (Φ) "[Hl HI] HΦ". wp_lam; wp_pures.
+    iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
     wp_apply (start_map_service_spec with "Hmap [//]"); iIntros (c) "Hc".
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
-    wp_apply (par_map_server_spec _ _ _ _ _ _ [] ∅ [] with "[$Hl $Hk $Hc $HI //]"); first lia.
-    iIntros (ys ws) "H". rewrite /= gmultiset_elements_empty !right_id_L .
-    wp_pures. by iApply "HΦ".
+    wp_apply (par_map_server_spec with "[$Hl $Hk $Hc //]"); first lia.
+    iIntros (ys) "[??]". rewrite /= gmultiset_elements_empty !right_id_L .
+    wp_pures. iApply "HΦ"; auto.
   Qed.
 End map.
