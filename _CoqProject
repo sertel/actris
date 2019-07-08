@@ -10,10 +10,9 @@ theories/channel/proto_model.v
 theories/channel/proto_channel.v
 theories/channel/proofmode.v
 theories/examples/sort.v
-theories/examples/sort_client.v
-theories/examples/sort_elem.v
 theories/examples/loop_sort.v
-theories/examples/sort_elem_client.v
+theories/examples/sort_fg.v
+theories/examples/sort_fg_client.v
 theories/examples/map.v
 theories/examples/map_reduce.v
 theories/examples/basics.v

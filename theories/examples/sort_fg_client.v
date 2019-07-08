@@ -3,7 +3,7 @@ From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
 From actris.utils Require Import llist compare.
-From actris.examples Require Import sort_elem.
+From actris.examples Require Export sort_fg.
 
 Definition send_all : val :=
   rec: "go" "c" "xs" :=
@@ -16,22 +16,20 @@ Definition recv_all : val :=
     let: "x" := recv "c" in
     let: "l" := "go" "c" in lcons "x" "l";; "l".
 
-Definition sort_elem_client : val :=
-  λ: "cmp" "xs",
-    let: "c" := start_chan sort_elem_service_top in
-    send "c" "cmp";;
-    send_all "c" "xs";;
-    send "c" #stop;;
-    recv_all "c".
+Definition sort_client_fg : val := λ: "cmp" "xs",
+  let: "c" := start_chan (λ: "c", sort_service_fg "cmp" "c") in
+  send_all "c" "xs";;
+  send "c" #stop;;
+  recv_all "c".
 
-Section sort_elem_client.
+Section sort_fg_client.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
 
   Lemma send_all_spec c p xs' l xs :
-    {{{ llist I l xs ∗ c ↣ sort_elem_head_protocol I R xs' <++> p @ N }}}
+    {{{ llist I l xs ∗ c ↣ sort_fg_head_protocol I R xs' <++> p @ N }}}
       send_all c #l
-    {{{ RET #(); c ↣ sort_elem_head_protocol I R (xs' ++ xs) <++> p @ N }}}.
+    {{{ RET #(); c ↣ sort_fg_head_protocol I R (xs' ++ xs) <++> p @ N }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
@@ -44,7 +42,7 @@ Section sort_elem_client.
 
   Lemma recv_all_spec c p xs ys' :
     Sorted R ys' →
-    {{{ c ↣ sort_elem_tail_protocol I R xs ys' <++> p @ N }}}
+    {{{ c ↣ sort_fg_tail_protocol I R xs ys' <++> p @ N }}}
       recv_all c
     {{{ l ys, RET #l;
         ⌜Sorted R (ys' ++ ys)⌝ ∗ ⌜ys' ++ ys ≡ₚ xs⌝ ∗ llist I l ys ∗ c ↣ p @ N
@@ -62,22 +60,20 @@ Section sort_elem_client.
       iApply ("HΦ" $! _ []); rewrite /= right_id_L; by iFrame.
   Qed.
 
-  Lemma sort_client_spec cmp l xs :
+  Lemma sort_client_fg_spec cmp l xs :
     cmp_spec I R cmp -∗
     {{{ llist I l xs }}}
-      sort_elem_client cmp #l
+      sort_client_fg cmp #l
     {{{ k ys, RET #k; ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I k ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_proto_spec N (sort_elem_top_protocol <++> END)%proto);
+    wp_apply (start_chan_proto_spec N (sort_fg_protocol I R <++> END)%proto);
       iIntros (c) "Hc".
-    { wp_apply (sort_elem_service_top_spec N with "Hc"); auto. }
-    rewrite /sort_elem_top_protocol.
-    wp_send (A I R) with "[$Hcmp]".
+    { wp_apply (sort_service_fg_spec N with "Hcmp Hc"); auto. }
     wp_apply (send_all_spec with "[$Hl $Hc]"); iIntros "Hc".
     wp_select.
     wp_apply (recv_all_spec with "Hc"); auto.
     iIntros (k ys) "/=". iDestruct 1 as (??) "[Hk _]".
     iApply "HΦ"; auto with iFrame.
   Qed.
-End sort_elem_client.
+End sort_fg_client.

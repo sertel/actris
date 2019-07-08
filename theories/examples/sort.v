@@ -14,29 +14,41 @@ Definition lmerge : val :=
     else lpop "zs";; "go" "cmp" "ys" "zs";; lcons "z" "ys".
 
 Definition sort_service : val :=
-  rec: "go" "c" :=
-    let: "cmp" := recv "c" in
+  rec: "go" "cmp" "c" :=
     let: "xs" := recv "c" in
     if: llength "xs" ≤ #1 then send "c" #() else
     let: "zs" := lsplit "xs" in
-    let: "cy" := start_chan "go" in
-    let: "cz" := start_chan "go" in
-    send "cy" "cmp";; send "cy" "xs";;
-    send "cz" "cmp";; send "cz" "zs";;
+    let: "cy" := start_chan (λ: "c", "go" "cmp" "c") in
+    let: "cz" := start_chan (λ: "c", "go" "cmp" "c") in
+    send "cy" "xs";;
+    send "cz" "zs";;
     recv "cy";; recv "cz";;
     lmerge "cmp" "xs" "zs";;
     send "c" #().
 
+Definition sort_service_func : val := λ: "c",
+  let: "cmp" := recv "c" in
+  sort_service "cmp" "c".
+
+Definition sort_client_func : val := λ: "cmp" "xs",
+  let: "c" := start_chan sort_service_func in
+  send "c" "cmp";; send "c" "xs";;
+  recv "c".
+
 Section sort.
   Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
 
-  Definition sort_protocol : iProto Σ :=
+  Definition sort_protocol {A} (I : A → val → iProp Σ) (R : A → A → Prop)
+      `{!RelDecision R, !Total R} : iProto Σ :=
+    (<!> (xs : list A) (l : loc), MSG #l {{ llist I l xs }};
+     <?> (xs' : list A), MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗ llist I l xs' }};
+     END)%proto.
+
+  Definition sort_protocol_func : iProto Σ :=
     (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
          `{!RelDecision R, !Total R} (cmp : val),
        MSG cmp {{ cmp_spec I R cmp }};
-     <!> (xs : list A) (l : loc), MSG #l {{ llist I l xs }};
-     <?> (xs' : list A), MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗ llist I l xs' }};
-     END)%proto.
+     sort_protocol I R)%proto.
 
   Lemma lmerge_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
       `{!RelDecision R, !Total R} (cmp : val) l1 l2 xs1 xs2 :
@@ -72,13 +84,14 @@ Section sort.
       wp_apply (lcons_spec with "[$Hl1 $HIx2]"); iIntros "Hl1". iApply "HΨ". iFrame.
   Qed.
 
-  Lemma sort_service_spec p c :
-    {{{ c ↣ iProto_dual sort_protocol <++> p @ N }}}
-      sort_service c
+  Lemma sort_service_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
+      `{!RelDecision R, !Total R} (cmp : val) p c :
+    cmp_spec I R cmp -∗
+    {{{ c ↣ iProto_dual (sort_protocol I R) <++> p @ N }}}
+      sort_service cmp c
     {{{ RET #(); c ↣ p @ N }}}.
   Proof.
-    iIntros (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ). wp_lam.
-    wp_recv (A I R ?? cmp) as "#Hcmp".
+    iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ). wp_lam.
     wp_recv (xs l) as "Hl".
     wp_apply (llength_spec with "Hl"); iIntros "Hl".
     wp_op; case_bool_decide as Hlen; wp_if.
@@ -87,15 +100,13 @@ Section sort.
       wp_send with "[$Hl]"; first by auto. by iApply "HΨ". }
     wp_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
       iDestruct 1 as (->) "[Hl1 Hl2]".
-    wp_apply (start_chan_proto_spec N sort_protocol); iIntros (cy) "Hcy".
+    wp_apply (start_chan_proto_spec N (sort_protocol I R)); iIntros (cy) "Hcy".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcy"); auto. }
-    wp_apply (start_chan_proto_spec N sort_protocol); iIntros (cz) "Hcz".
+    wp_apply (start_chan_proto_spec N (sort_protocol I R)); iIntros (cz) "Hcz".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcz"); auto. }
-    wp_send with "[$Hcmp]".
     wp_send with "[$Hl1]".
-    wp_send with "[$Hcmp]".
     wp_send with "[$Hl2]".
     wp_recv (ys1) as (??) "Hl1".
     wp_recv (ys2) as (??) "Hl2".
@@ -105,5 +116,32 @@ Section sort.
       + by apply (Sorted_list_merge _).
       + rewrite (merge_Permutation R). by f_equiv.
     - by iApply "HΨ".
+  Qed.
+
+  Lemma sort_service_func_spec p c :
+    {{{ c ↣ iProto_dual sort_protocol_func <++> p @ N }}}
+      sort_service_func c
+    {{{ RET #(); c ↣ p @ N }}}.
+  Proof.
+    iIntros (Ψ) "Hc HΨ". wp_lam.
+    wp_recv (A I R ?? cmp) as "#Hcmp".
+    by wp_apply (sort_service_spec with "Hcmp Hc").
+  Qed.
+
+  Lemma sort_client_func_spec {A} (I : A → val → iProp Σ) R
+       `{!RelDecision R, !Total R} cmp l (xs : list A) :
+    cmp_spec I R cmp -∗
+    {{{ llist I l xs }}}
+      sort_client_func cmp #l
+    {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
+  Proof.
+    iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
+    wp_apply (start_chan_proto_spec N sort_protocol_func); iIntros (c) "Hc".
+    { rewrite -(right_id END%proto _ (iProto_dual _)).
+      wp_apply (sort_service_func_spec with "Hc"); auto. }
+    wp_send with "[$Hcmp]".
+    wp_send with "[$Hl]".
+    wp_recv (ys) as "(Hsorted & Hperm & Hl)".
+    wp_pures. iApply "HΦ"; iFrame.
   Qed.
 End sort.
