@@ -140,7 +140,7 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
         | |- ∃ _, _ => eexists _
         end;
         lazymatch goal with
-        | |- False => fail "wp_send:" Hs' "not fresh"
+        | |- False => fail "wp_send:" Hs' "not found"
         | _ => split; [try fast_done|split;[iFrame Hs_frame; solve_done d|wp_finish]]
         end]
      | _ => fail "wp_send: not a 'wp'"
