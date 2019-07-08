@@ -3,16 +3,15 @@ From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From actris.utils Require Export llist compare.
 
-Definition lmerge : val. (*
+Definition lmerge : val :=
   rec: "go" "cmp" "ys" "zs" :=
-    if: lisnil "ys" then "zs" else
-    if: lisnil "zs" then "ys" else
+    if: lisnil "ys" then lapp "ys" "zs" else
+    if: lisnil "zs" then #() else
     let: "y" := lhead "ys" in
     let: "z" := lhead "zs" in
     if: "cmp" "y" "z"
-    then lcons "y" ("go" "cmp" (ltail "ys") "zs")
-    else lcons "z" ("go" "cmp" "ys" (ltail "zs")).
-*) Admitted.
+    then lpop "ys";; "go" "cmp" "ys" "zs";; lcons "y" "ys";; #()
+    else lpop "zs";; "go" "cmp" "ys" "zs";; lcons "z" "ys";; #().
 
 Definition sort_service : val :=
   rec: "go" "c" :=
@@ -51,32 +50,34 @@ Section sort.
     }}}
       lmerge cmp #l1 #l2
     {{{ ws, RET #(); llist l1 ws ∗ [∗ list] x;v ∈ list_merge R xs1 xs2;ws, I x v }}}.
-  Proof. (*
-    iIntros "#Hcmp" (Ψ) "!> [HI1 HI2] HΨ". iLöb as "IH" forall (xs1 xs2 vs1 vs2 Ψ).
-    wp_lam. wp_apply (lisnil_spec with "[//]"); iIntros (_).
+  Proof.
+    iIntros "#Hcmp" (Ψ) "!> (Hl1 & Hl2 & HI1 & HI2) HΨ".
+    iLöb as "IH" forall (l2 xs1 xs2 vs1 vs2 Ψ).
+    wp_lam. wp_apply (lisnil_spec with "Hl1"); iIntros "Hl1".
     destruct xs1 as [|x1 xs1], vs1 as [|v1 vs1]; simpl; done || wp_pures.
-    { iApply "HΨ". by rewrite list_merge_nil_l. }
-    wp_apply (lisnil_spec with "[//]"); iIntros (_).
+    { wp_apply (lapp_spec with "[$Hl1 $Hl2]"); iIntros "[Hl1 _] /=".
+      iApply "HΨ". iFrame. by rewrite list_merge_nil_l. }
+    wp_apply (lisnil_spec with "Hl2"); iIntros "Hl2".
     destruct xs2 as [|x2 xs2], vs2 as [|v2 vs2]; simpl; done || wp_pures.
     { iApply "HΨ". iFrame. }
-    wp_apply (lhead_spec with "[//]"); iIntros (_).
-    wp_apply (lhead_spec with "[//]"); iIntros (_).
+    wp_apply (lhead_spec with "Hl1"); iIntros "Hl1".
+    wp_apply (lhead_spec with "Hl2"); iIntros "Hl2".
     iDestruct "HI1" as "[HI1 HI1']"; iDestruct "HI2" as "[HI2 HI2']".
     wp_apply ("Hcmp" with "[$HI1 $HI2]"); iIntros "[HI1 HI2]".
     case_bool_decide; wp_pures.
     - rewrite decide_True //.
-      wp_apply (ltail_spec with "[//]"); iIntros (_).
-      wp_apply ("IH" $! _ (x2 :: _) with "HI1'[HI2 HI2']"); [simpl; iFrame|].
-      iIntros (ws) "HI".
-      wp_apply (lcons_spec with "[//]"); iIntros (_).
-      iApply "HΨ". iFrame.
+      wp_apply (lpop_spec with "Hl1"); iIntros "Hl1".
+      wp_apply ("IH" $! _ _ (x2 :: _) with "Hl1 Hl2 HI1' [$HI2 $HI2']").
+      iIntros (ws) "[Hl1 HI]".
+      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1".
+      wp_pures. iApply "HΨ". iFrame.
     - rewrite decide_False //.
-      wp_apply (ltail_spec with "[//]"); iIntros (_).
-      wp_apply ("IH" $! (x1 :: _) with "[HI1 HI1'] HI2'"); [simpl; iFrame|].
-      iIntros (ws) "HI".
-      wp_apply (lcons_spec with "[//]"); iIntros (_).
-      iApply "HΨ". iFrame.
-  Qed. *) Admitted.
+      wp_apply (lpop_spec with "Hl2"); iIntros "Hl2".
+      wp_apply ("IH" $! _ (x1 :: _) with "Hl1 Hl2 [$HI1 $HI1'] HI2'").
+      iIntros (ws) "[Hl1 HI]".
+      wp_apply (lcons_spec with "Hl1"); iIntros "Hl1".
+      wp_pures. iApply "HΨ". iFrame.
+  Qed.
 
   Lemma sort_service_spec p c :
     {{{ c ↣ iProto_dual sort_protocol <++> p @ N }}}
