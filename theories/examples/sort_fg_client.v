@@ -23,13 +23,13 @@ Definition sort_client_fg : val := λ: "cmp" "xs",
   recv_all "c" "xs".
 
 Section sort_fg_client.
-  Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ}.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
 
   Lemma send_all_spec c p xs' l xs :
-    {{{ llist I l xs ∗ c ↣ sort_fg_head_protocol I R xs' <++> p @ N }}}
+    {{{ llist I l xs ∗ c ↣ (sort_fg_head_protocol I R xs' <++> p) }}}
       send_all c #l
-    {{{ RET #(); llist I l [] ∗ c ↣ sort_fg_head_protocol I R (xs' ++ xs) <++> p @ N }}}.
+    {{{ RET #(); llist I l [] ∗ c ↣ (sort_fg_head_protocol I R (xs' ++ xs) <++> p) }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
@@ -42,10 +42,10 @@ Section sort_fg_client.
 
   Lemma recv_all_spec c p l xs ys' :
     Sorted R ys' →
-    {{{ llist I l [] ∗ c ↣ sort_fg_tail_protocol I R xs ys' <++> p @ N }}}
+    {{{ llist I l [] ∗ c ↣ (sort_fg_tail_protocol I R xs ys' <++> p) }}}
       recv_all c #l
     {{{ ys, RET #();
-        ⌜Sorted R (ys' ++ ys)⌝ ∗ ⌜ys' ++ ys ≡ₚ xs⌝ ∗ llist I l ys ∗ c ↣ p @ N
+        ⌜Sorted R (ys' ++ ys)⌝ ∗ ⌜ys' ++ ys ≡ₚ xs⌝ ∗ llist I l ys ∗ c ↣ p
     }}}.
   Proof.
     iIntros (Hsort Φ) "[Hl Hc] HΦ".
@@ -66,9 +66,9 @@ Section sort_fg_client.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_proto_spec N (sort_fg_protocol I R <++> END)%proto);
+    wp_apply (start_chan_proto_spec (sort_fg_protocol I R <++> END)%proto);
       iIntros (c) "Hc".
-    { wp_apply (sort_service_fg_spec N with "Hcmp Hc"); auto. }
+    { wp_apply (sort_service_fg_spec with "Hcmp Hc"); auto. }
     wp_apply (send_all_spec with "[$Hl $Hc]"); iIntros "[Hl Hc]".
     wp_select.
     wp_apply (recv_all_spec with "[$Hl $Hc]"); auto.

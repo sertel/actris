@@ -48,7 +48,7 @@ Notation ProtoUnfold p1 p2 := (∀ d pas q,
   ProtoNormalize d p2 pas q → ProtoNormalize d p1 pas q).
 
 Section classes.
-  Context `{!proto_chanG Σ, !heapG Σ} (N : namespace).
+  Context `{!proto_chanG Σ, !heapG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
@@ -139,14 +139,14 @@ Section classes.
   (** Automatically perform normalization of protocols in the proof mode *)
   Global Instance mapsto_proto_from_assumption q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
-    FromAssumption q (c ↣ p1 @ N) (c ↣ p2 @ N).
+    FromAssumption q (c ↣ p1) (c ↣ p2).
   Proof.
     rewrite /FromAssumption /ProtoNormalize=> ->.
     by rewrite /= right_id bi.intuitionistically_if_elim.
   Qed.
   Global Instance mapsto_proto_from_frame q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
-    Frame q (c ↣ p1 @ N) (c ↣ p2 @ N) True.
+    Frame q (c ↣ p1) (c ↣ p2) True.
   Proof.
     rewrite /Frame /ProtoNormalize=> ->.
     by rewrite /= !right_id bi.intuitionistically_if_elim.
@@ -155,14 +155,14 @@ End classes.
 
 (** Symbolic execution tactics *)
 (* TODO: strip laters *)
-Lemma tac_wp_recv `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ i j K N
+Lemma tac_wp_recv `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ i j K
     c p (pc : TT → val * iProp Σ * iProto Σ) Φ :
-  envs_lookup i Δ = Some (false, c ↣ p @ N)%I →
+  envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (iProto_message Receive pc) →
   let Δ' := envs_delete false i false Δ in
   (∀.. x : TT,
     match envs_app false
-        (Esnoc (Esnoc Enil j ((pc x).1.2)) i (c ↣ (pc x).2 @ N)) Δ' with
+        (Esnoc (Esnoc Enil j ((pc x).1.2)) i (c ↣ (pc x).2)) Δ' with
     | Some Δ'' => envs_entails Δ'' (WP fill K (of_val (pc x).1.1) {{ Φ }})
     | None => False
     end) →
@@ -179,7 +179,7 @@ Qed.
 
 Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
   let solve_mapsto _ :=
-    let c := match goal with |- _ = Some (_, (?c ↣ _ @ _)%I) => c end in
+    let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_recv: cannot find" c "↣ ? @ ?" in
   wp_pures;
   let Hnew := iFresh in
@@ -233,15 +233,15 @@ Tactic Notation "wp_recv" "(" intropattern_list(xs) ")" "as" "(" simple_intropat
     simple_intropattern(x8) ")" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat).
 
-Lemma tac_wp_send `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K N
+Lemma tac_wp_send `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K
     c v p (pc : TT → val * iProp Σ * iProto Σ) Φ :
-  envs_lookup i Δ = Some (false, c ↣ p @ N)%I →
+  envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (iProto_message Send pc) →
   let Δ' := envs_delete false i false Δ in
   (∃.. x : TT,
     match envs_split (if neg is true then Right else Left) js Δ' with
     | Some (Δ1,Δ2) =>
-       match envs_app false (Esnoc Enil i (c ↣ (pc x).2 @ N)) Δ2 with
+       match envs_app false (Esnoc Enil i (c ↣ (pc x).2)) Δ2 with
        | Some Δ2' =>
           v = (pc x).1.1 ∧
           envs_entails Δ1 (pc x).1.2 ∧
@@ -265,7 +265,7 @@ Qed.
 
 Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
   let solve_mapsto _ :=
-    let c := match goal with |- _ = Some (_, (?c ↣ _ @ _)%I) => c end in
+    let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_send: cannot find" c "↣ ? @ ?" in
   let solve_done d :=
     lazymatch d with
@@ -327,14 +327,14 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-Lemma tac_wp_branch `{!proto_chanG Σ, !heapG Σ} Δ i j K N
+Lemma tac_wp_branch `{!proto_chanG Σ, !heapG Σ} Δ i j K
     c p P1 P2 (p1 p2 : iProto Σ) Φ :
-  envs_lookup i Δ = Some (false, c ↣ p @ N)%I →
+  envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}&{P2}> p2) →
   let Δ' := envs_delete false i false Δ in
   (∀ b : bool,
     match envs_app false
-        (Esnoc (Esnoc Enil j (if b then P1 else P2)) i (c ↣ (if b then p1 else p2) @ N)) Δ' with
+        (Esnoc (Esnoc Enil j (if b then P1 else P2)) i (c ↣ (if b then p1 else p2))) Δ' with
     | Some Δ'' => envs_entails Δ'' (WP fill K (of_val #b) {{ Φ }})
     | None => False
     end) →
@@ -350,7 +350,7 @@ Qed.
 
 Tactic Notation "wp_branch_core" "as" tactic3(tac1) tactic3(tac2) :=
   let solve_mapsto _ :=
-    let c := match goal with |- _ = Some (_, (?c ↣ _ @ _)%I) => c end in
+    let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_branch: cannot find" c "↣ ? @ ?" in
   wp_pures;
   let Hnew := iFresh in
@@ -375,14 +375,14 @@ Tactic Notation "wp_branch" "as" "%" intropattern(pat1) "|" "%" intropattern(pat
   wp_branch_core as (fun H => iPure H as pat1) (fun H => iPure H as pat2).
 Tactic Notation "wp_branch" := wp_branch as %_ | %_.
 
-Lemma tac_wp_select `{!proto_chanG Σ, !heapG Σ} Δ neg i js K N
+Lemma tac_wp_select `{!proto_chanG Σ, !heapG Σ} Δ neg i js K
     c (b : bool) p P1 P2 (p1 p2 : iProto Σ) Φ :
-  envs_lookup i Δ = Some (false, c ↣ p @ N)%I →
+  envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}+{P2}> p2) →
   let Δ' := envs_delete false i false Δ in
   match envs_split (if neg is true then Right else Left) js Δ' with
   | Some (Δ1,Δ2) =>
-     match envs_app false (Esnoc Enil i (c ↣ if b then p1 else p2 @ N)) Δ2 with
+     match envs_app false (Esnoc Enil i (c ↣ if b then p1 else p2)) Δ2 with
      | Some Δ2' =>
         envs_entails Δ1 (if b then P1 else P2) ∧
         envs_entails Δ2' (WP fill K (of_val #()) {{ Φ }})
@@ -404,7 +404,7 @@ Qed.
 
 Tactic Notation "wp_select" "with" constr(pat) :=
   let solve_mapsto _ :=
-    let c := match goal with |- _ = Some (_, (?c ↣ _ @ _)%I) => c end in
+    let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_select: cannot find" c "↣ ? @ ?" in
   let solve_done d :=
     lazymatch d with

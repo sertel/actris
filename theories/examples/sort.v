@@ -36,7 +36,7 @@ Definition sort_client_func : val := λ: "cmp" "xs",
   recv "c".
 
 Section sort.
-  Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ}.
 
   Definition sort_protocol {A} (I : A → val → iProp Σ) (R : A → A → Prop)
       `{!RelDecision R, !Total R} : iProto Σ :=
@@ -87,9 +87,9 @@ Section sort.
   Lemma sort_service_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
       `{!RelDecision R, !Total R} (cmp : val) p c :
     cmp_spec I R cmp -∗
-    {{{ c ↣ iProto_dual (sort_protocol I R) <++> p @ N }}}
+    {{{ c ↣ (iProto_dual (sort_protocol I R) <++> p) }}}
       sort_service cmp c
-    {{{ RET #(); c ↣ p @ N }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ). wp_lam.
     wp_recv (xs l) as "Hl".
@@ -100,10 +100,10 @@ Section sort.
       wp_send with "[$Hl]"; first by auto. by iApply "HΨ". }
     wp_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
       iDestruct 1 as (->) "[Hl1 Hl2]".
-    wp_apply (start_chan_proto_spec N (sort_protocol I R)); iIntros (cy) "Hcy".
+    wp_apply (start_chan_proto_spec (sort_protocol I R)); iIntros (cy) "Hcy".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcy"); auto. }
-    wp_apply (start_chan_proto_spec N (sort_protocol I R)); iIntros (cz) "Hcz".
+    wp_apply (start_chan_proto_spec (sort_protocol I R)); iIntros (cz) "Hcz".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcz"); auto. }
     wp_send with "[$Hl1]".
@@ -119,9 +119,9 @@ Section sort.
   Qed.
 
   Lemma sort_service_func_spec p c :
-    {{{ c ↣ iProto_dual sort_protocol_func <++> p @ N }}}
+    {{{ c ↣ (iProto_dual sort_protocol_func <++> p) }}}
       sort_service_func c
-    {{{ RET #(); c ↣ p @ N }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". wp_lam.
     wp_recv (A I R ?? cmp) as "#Hcmp".
@@ -136,7 +136,7 @@ Section sort.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_proto_spec N sort_protocol_func); iIntros (c) "Hc".
+    wp_apply (start_chan_proto_spec sort_protocol_func); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
       wp_apply (sort_service_func_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".

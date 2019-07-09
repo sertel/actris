@@ -95,7 +95,7 @@ Class map_reduceG Σ A B `{Countable A, Countable B} := {
 
 Section mapper.
   Context `{Countable A, Countable B} {C : Type}.
-  Context `{!heapG Σ, !proto_chanG Σ, !map_reduceG Σ A B} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ, !map_reduceG Σ A B}.
   Context (IA : A → val → iProp Σ) (IB : Z → B → val → iProp Σ) (IC : C → val → iProp Σ).
   Context (map : A → list (Z * B)) (red : Z → list B → list C).
   Context `{!∀ j, Proper ((≡ₚ) ==> (≡ₚ)) (red j)}.
@@ -127,13 +127,13 @@ Section mapper.
     (n = 0 → X = ∅ ∧ xs = []) →
     {{{
       llist IA l xs ∗
-      cmap ↣ par_map_protocol IA IZB map n (X : gmultiset A) @ N ∗
-      csort ↣ sort_fg_head_protocol IZB RZB ys @ N
+      cmap ↣ par_map_protocol IA IZB map n (X : gmultiset A) ∗
+      csort ↣ sort_fg_head_protocol IZB RZB ys
     }}}
       par_map_reduce_map #n cmap csort #l
     {{{ ys', RET #();
       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗
-      llist IA l [] ∗ csort ↣ sort_fg_head_protocol IZB RZB (ys ++ ys') @ N
+      llist IA l [] ∗ csort ↣ sort_fg_head_protocol IZB RZB (ys ++ ys')
     }}}.
   Proof.
     iIntros (Hn Φ) "(Hl & Hcmap & Hcsort) HΦ".
@@ -172,7 +172,7 @@ Section mapper.
     i ∉ iys_sorted.*1 →
     {{{
       llist (IB i) l (reverse ys) ∗
-      csort ↣ sort_fg_tail_protocol IZB RZB iys (iys_sorted ++ ((i,) <$> ys)) @ N
+      csort ↣ sort_fg_tail_protocol IZB RZB iys (iys_sorted ++ ((i,) <$> ys))
     }}}
       par_map_reduce_collect csort #i #l
     {{{ ys' miy, RET accv miy;
@@ -181,7 +181,7 @@ Section mapper.
                     (iys_sorted ++ ((i,) <$> ys ++ ys') ≡ₚ iys) miy ⌝ ∗
       llist (IB i) l (reverse (ys ++ ys')) ∗
       csort ↣ from_option (λ _, sort_fg_tail_protocol IZB RZB iys
-        ((iys_sorted ++ ((i,) <$> ys ++ ys')) ++ acc miy)) END%proto miy @ N ∗
+        ((iys_sorted ++ ((i,) <$> ys ++ ys')) ++ acc miy)) END%proto miy ∗
       from_option (λ '(i,y,w), IB i y w) True miy
     }}}.
   Proof.
@@ -222,8 +222,8 @@ Section mapper.
     {{{
       llist IC l zs ∗
       csort ↣ from_option (λ _, sort_fg_tail_protocol IZB RZB iys
-        (iys_sorted ++ acc miy)) END%proto miy @ N ∗
-      cred ↣ par_map_protocol IZBs IC (curry red) n (Y : gmultiset (Z * list B)) @ N ∗
+        (iys_sorted ++ acc miy)) END%proto miy ∗
+      cred ↣ par_map_protocol IZBs IC (curry red) n (Y : gmultiset (Z * list B)) ∗
       from_option (λ '(i,y,w), IB i y w) True miy
     }}}
       par_map_reduce_reduce #n csort cred (accv miy) #l
@@ -280,18 +280,18 @@ Section mapper.
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
     iIntros (?) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_proto_spec N (par_map_protocol IA IZB map n ∅));
+    wp_apply (start_chan_proto_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
     { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
-    wp_apply (start_chan_proto_spec N (sort_fg_protocol IZB RZB <++> END)%proto);
+    wp_apply (start_chan_proto_spec (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
-    { wp_apply (sort_service_fg_spec N with "[] Hcsort"); last by auto.
+    { wp_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.
       iApply RZB_cmp_spec. }
     rewrite right_id.
     wp_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_apply (start_chan_proto_spec N (par_map_protocol IZBs IC (curry red) n ∅));
+    wp_apply (start_chan_proto_spec (par_map_protocol IZBs IC (curry red) n ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.

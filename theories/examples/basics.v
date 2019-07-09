@@ -47,7 +47,7 @@ Definition prot2 : iProto Σ :=
   (<?> l : loc, MSG #l {{ l ↦ #42 }}; END)%proto.
 
 Definition prot3 : iProto Σ :=
-  (<?> c : val, MSG c {{ c ↣ prot1 @ nroot }}; END)%proto.
+  (<?> c : val, MSG c {{ c ↣ prot1 }}; END)%proto.
 
 Definition prot4 : iProto Σ :=
   (<!> x : Z, MSG #x; <?> MSG #(x + 2); END)%proto.
@@ -68,7 +68,7 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
 Lemma prog1_spec : {{{ True }}} prog1 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot prot1); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot1); iIntros (c) "Hc".
   - by wp_send with "[]".
   - wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -76,7 +76,7 @@ Qed.
 Lemma prog2_spec : {{{ True }}} prog2 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot prot2); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot2); iIntros (c) "Hc".
   - wp_alloc l as "Hl". by wp_send with "[$Hl]".
   - wp_recv (l) as "Hl". wp_load. by iApply "HΦ".
 Qed.
@@ -84,8 +84,8 @@ Qed.
 Lemma prog3_spec : {{{ True }}} prog3 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot prot3); iIntros (c) "Hc".
-  - wp_apply (new_chan_proto_spec nroot with "[//]").
+  wp_apply (start_chan_proto_spec prot3); iIntros (c) "Hc".
+  - wp_apply (new_chan_proto_spec with "[//]").
     iIntros (c2 c2') "Hcc2". iMod ("Hcc2" $! prot1) as "[Hc2 Hc2']".
     wp_send with "[$Hc2]". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_recv as "_". by iApply "HΦ".
@@ -94,7 +94,7 @@ Qed.
 Lemma prog4_spec : {{{ True }}} prog4 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot prot4); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot4); iIntros (c) "Hc".
   - wp_recv (x) as "_". by wp_send with "[]".
   - wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -102,7 +102,7 @@ Qed.
 Lemma prog5_spec : {{{ True }}} prog5 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot prot5); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot5); iIntros (c) "Hc".
   - wp_recv (P Ψ vf) as "#Hf". wp_send with "[]"; last done.
     iIntros "!>" (Ψ') "HP HΨ'". wp_apply ("Hf" with "HP"); iIntros (x) "HΨ".
     wp_pures. by iApply "HΨ'".
@@ -117,12 +117,12 @@ Lemma prog_lock_spec `{!lockG Σ, contributionG Σ unitUR} :
   {{{ True }}} prog_lock #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec nroot (prot_lock 2)); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec (prot_lock 2)); iIntros (c) "Hc".
   - iMod (contribution_init) as (γ) "Hs".
     iMod (alloc_client with "Hs") as "[Hs Hcl1]".
     iMod (alloc_client with "Hs") as "[Hs Hcl2]".
     wp_apply (newlock_spec nroot (∃ n, server γ n ε ∗
-      c ↣ iProto_dual (prot_lock n) @ nroot)%I
+      c ↣ iProto_dual (prot_lock n))%I
       with "[Hc Hs]"); first by eauto with iFrame.
     iIntros (lk γlk) "#Hlk".
     iAssert (□ (client γ ε -∗

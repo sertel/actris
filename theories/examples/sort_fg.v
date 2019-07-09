@@ -52,7 +52,7 @@ Definition sort_service_fg_func : val := λ: "c",
   sort_service_fg "cmp" "c".
 
 Section sort_fg.
-  Context `{!heapG Σ, !proto_chanG Σ} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ}.
 
   Section sort_fg_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
@@ -92,15 +92,15 @@ Section sort_fg.
 
   Lemma sort_service_fg_split_spec c p c1 c2 xs xs1 xs2 :
     {{{
-      c ↣ iProto_dual (sort_fg_head_protocol xs) <++> p @ N ∗
-      c1 ↣ sort_fg_head_protocol xs1 @ N ∗ c2 ↣ sort_fg_head_protocol xs2 @ N
+      c ↣ (iProto_dual (sort_fg_head_protocol xs) <++> p) ∗
+      c1 ↣ sort_fg_head_protocol xs1 ∗ c2 ↣ sort_fg_head_protocol xs2
     }}}
       sort_service_fg_split c c1 c2
     {{{ xs' xs1' xs2', RET #();
       ⌜xs' ≡ₚ xs1' ++ xs2'⌝ ∗
-      c ↣ iProto_dual (sort_fg_tail_protocol (xs ++ xs') []) <++> p @ N ∗
-      c1 ↣ sort_fg_tail_protocol (xs1 ++ xs1') [] @ N ∗
-      c2 ↣ sort_fg_tail_protocol (xs2 ++ xs2') [] @ N
+      c ↣ (iProto_dual (sort_fg_tail_protocol (xs ++ xs') []) <++> p) ∗
+      c1 ↣ sort_fg_tail_protocol (xs1 ++ xs1') [] ∗
+      c2 ↣ sort_fg_tail_protocol (xs2 ++ xs2') []
     }}}.
   Proof.
     iIntros (Ψ) "(Hc & Hc1 & Hc2) HΨ". iLöb as "IH" forall (c c1 c2 xs xs1 xs2 Ψ).
@@ -120,11 +120,11 @@ Section sort_fg.
     Sorted R ys →
     (∀ x, TlRel R x ys' → TlRel R x ys) →
     {{{
-      c ↣ iProto_dual (sort_fg_tail_protocol xs ys) <++> p @ N ∗
-      cin ↣ sort_fg_tail_protocol xs' ys' @ N
+      c ↣ (iProto_dual (sort_fg_tail_protocol xs ys) <++> p) ∗
+      cin ↣ sort_fg_tail_protocol xs' ys'
     }}}
       sort_service_fg_forward c cin
-    {{{ RET #(); c ↣ p @ N ∗ cin ↣ END @ N }}}.
+    {{{ RET #(); c ↣ p ∗ cin ↣ END }}}.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
     iLöb as "IH" forall (c cin xs ys xs' ys' Hxs Hys Hsorted Hrel).
@@ -150,13 +150,13 @@ Section sort_fg.
     (∀ x, TlRel R x ys2 → R x y1 → TlRel R x ys) →
     cmp_spec I R cmp -∗
     {{{
-      c ↣ iProto_dual (sort_fg_tail_protocol xs ys) <++> p @ N ∗
-      c1 ↣ sort_fg_tail_protocol xs1 (ys1 ++ [y1]) @ N ∗
-      c2 ↣ sort_fg_tail_protocol xs2 ys2 @ N ∗
+      c ↣ (iProto_dual (sort_fg_tail_protocol xs ys) <++> p) ∗
+      c1 ↣ sort_fg_tail_protocol xs1 (ys1 ++ [y1]) ∗
+      c2 ↣ sort_fg_tail_protocol xs2 ys2 ∗
       I y1 w1
     }}}
       sort_service_fg_merge cmp c w1 c1 c2
-    {{{ RET #(); c ↣ p @ N }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
     iIntros (Ψ) "(Hc & Hc1 & Hc2 & HIy1) HΨ".
@@ -193,18 +193,18 @@ Section sort_fg.
 
   Lemma sort_service_fg_spec cmp c p :
     cmp_spec I R cmp -∗
-    {{{ c ↣ iProto_dual sort_fg_protocol <++> p @ N }}}
+    {{{ c ↣ (iProto_dual sort_fg_protocol <++> p) }}}
       sort_service_fg cmp c
-    {{{ RET #(); c ↣ p @ N }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c p Ψ).
     wp_rec; wp_pures. wp_branch; wp_pures.
     - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
       + wp_recv (x2 v2) as "HIx2".
-        wp_apply (start_chan_proto_spec N (sort_fg_protocol <++> END)%proto).
+        wp_apply (start_chan_proto_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cy) "Hcy". wp_apply ("IH" with "Hcy"). auto. }
         iIntros (cy) "Hcy".
-        wp_apply (start_chan_proto_spec N (sort_fg_protocol <++> END)%proto).
+        wp_apply (start_chan_proto_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz". rewrite !right_id.
         wp_select. wp_send with "[$HIx1]".
@@ -229,9 +229,9 @@ Section sort_fg.
      sort_fg_head_protocol I R [])%proto.
 
   Lemma sort_service_fg_func_spec c p :
-    {{{ c ↣ iProto_dual sort_fg_func_protocol <++> p @ N }}}
+    {{{ c ↣ (iProto_dual sort_fg_func_protocol <++> p) }}}
       sort_service_fg_func c
-    {{{ RET #(); c ↣ p @ N }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     iIntros (Ψ) "Hc HΨ". wp_lam.
     wp_recv (A I R ? ? cmp) as "#Hcmp".

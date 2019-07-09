@@ -191,22 +191,24 @@ Definition proto_inv `{!proto_chanG Σ} (γ : proto_name) : iProp Σ :=
     ▷ ((⌜r = []⌝ ∗ proto_eval l pl pr) ∨
        (⌜l = []⌝ ∗ proto_eval r pr pl)))%I.
 
-Definition mapsto_proto_def `{!proto_chanG Σ, !heapG Σ} (N : namespace)
+Definition protoN := nroot .@ "proto".
+
+Definition mapsto_proto_def `{!proto_chanG Σ, !heapG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   (∃ s (c1 c2 : val) γ,
     ⌜ c = side_elim s c1 c2 ⌝ ∗
-    proto_own_frag γ s p ∗ is_chan N (proto_c_name γ) c1 c2 ∗ inv N (proto_inv γ))%I.
+    proto_own_frag γ s p ∗ is_chan protoN (proto_c_name γ) c1 c2 ∗ inv protoN (proto_inv γ))%I.
 Definition mapsto_proto_aux : seal (@mapsto_proto_def). by eexists. Qed.
 Definition mapsto_proto {Σ pΣ hΣ} := mapsto_proto_aux.(unseal) Σ pΣ hΣ.
 Definition mapsto_proto_eq : @mapsto_proto = @mapsto_proto_def := mapsto_proto_aux.(seal_eq).
-Arguments mapsto_proto {_ _ _} _ _ _%proto.
-Instance: Params (@mapsto_proto) 5 := {}.
+Arguments mapsto_proto {_ _ _} _ _%proto.
+Instance: Params (@mapsto_proto) 4 := {}.
 
-Notation "c ↣ p @ N" := (mapsto_proto N c p)
-  (at level 20, N at level 50, format "c  ↣  p  @  N").
+Notation "c ↣ p" := (mapsto_proto c p)
+  (at level 20, format "c  ↣  p").
 
 Section proto.
-  Context `{!proto_chanG Σ, !heapG Σ} (N : namespace).
+  Context `{!proto_chanG Σ, !heapG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
@@ -344,9 +346,9 @@ Section proto.
   Proof. solve_proper. Qed.
   Global Instance proto_own_ne γ s : NonExpansive (proto_own_frag γ s).
   Proof. solve_proper. Qed.
-  Global Instance mapsto_proto_ne c : NonExpansive (mapsto_proto N c).
+  Global Instance mapsto_proto_ne c : NonExpansive (mapsto_proto c).
   Proof. rewrite mapsto_proto_eq. solve_proper. Qed.
-  Global Instance mapsto_proto_proper c : Proper ((≡) ==> (≡)) (mapsto_proto N c).
+  Global Instance mapsto_proto_proper c : Proper ((≡) ==> (≡)) (mapsto_proto c).
   Proof. apply (ne_proper _). Qed.
 
   Lemma proto_own_auth_agree γ s p p' :
@@ -416,9 +418,9 @@ Section proto.
 
   (** The actual specs *)
   Lemma proto_init E cγ c1 c2 p :
-    is_chan N cγ c1 c2 -∗
+    is_chan protoN cγ c1 c2 -∗
     chan_own cγ Left [] -∗ chan_own cγ Right [] ={E}=∗
-    c1 ↣ p @ N ∗ c2 ↣ iProto_dual p @ N.
+    c1 ↣ p ∗ c2 ↣ iProto_dual p.
   Proof.
     iIntros "#Hcctx Hcol Hcor".
     iMod (own_alloc (● (to_proto_auth_excl p) ⋅
@@ -428,7 +430,7 @@ Section proto.
                      ◯ (to_proto_auth_excl (iProto_dual p)))) as (rγ) "[Hrsta Hrstf]".
     { by apply auth_both_valid_2. }
     pose (ProtName cγ lγ rγ) as pγ.
-    iMod (inv_alloc N _ (proto_inv pγ) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
+    iMod (inv_alloc protoN _ (proto_inv pγ) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
     { iNext. rewrite /proto_inv. eauto 10 with iFrame. }
     iModIntro. rewrite mapsto_proto_eq. iSplitL "Hlstf".
     - iExists Left, c1, c2, pγ; iFrame; auto.
@@ -437,20 +439,20 @@ Section proto.
 
   (** Accessor style lemmas *)
   Lemma proto_send_acc {TT} E c (pc : TT → val * iProp Σ * iProto Σ) :
-    ↑N ⊆ E →
-    c ↣ iProto_message Send pc @ N -∗ ∃ s c1 c2 γ,
+    ↑protoN ⊆ E →
+    c ↣ iProto_message Send pc -∗ ∃ s c1 c2 γ,
       ⌜ c = side_elim s c1 c2 ⌝ ∗
-      is_chan N (proto_c_name γ) c1 c2 ∗ |={E,E∖↑N}=> ∃ vs,
+      is_chan protoN (proto_c_name γ) c1 c2 ∗ |={E,E∖↑protoN}=> ∃ vs,
         chan_own (proto_c_name γ) s vs ∗
         ▷ ∀ (x : TT),
            (pc x).1.2 -∗
-           chan_own (proto_c_name γ) s (vs ++ [(pc x).1.1]) ={E∖↑N,E}=∗
-           c ↣ (pc x).2 @ N.
+           chan_own (proto_c_name γ) s (vs ++ [(pc x).1.1]) ={E∖↑protoN,E}=∗
+           c ↣ (pc x).2.
   Proof.
     iIntros (?). rewrite {1}mapsto_proto_eq iProto_message_eq.
     iDestruct 1 as (s c1 c2 γ ->) "[Hstf #[Hcctx Hinv]]".
     iExists s, c1, c2, γ. iSplit; first done. iFrame "Hcctx".
-    iInv N as (l r pl pr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
+    iInv protoN as (l r pl pr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
     (* TODO: refactor to avoid twice nearly the same proof *)
     iModIntro. destruct s.
     - iExists _.
@@ -494,23 +496,23 @@ Section proto.
   Qed.
 
   Lemma proto_recv_acc {TT} E c (pc : TT → val * iProp Σ * iProto Σ) :
-    ↑N ⊆ E →
-    c ↣ iProto_message Receive pc @ N -∗ ∃ s c1 c2 γ,
+    ↑protoN ⊆ E →
+    c ↣ iProto_message Receive pc -∗ ∃ s c1 c2 γ,
       ⌜ c = side_elim s c2 c1 ⌝ ∗
-      is_chan N (proto_c_name γ) c1 c2 ∗ |={E,E∖↑N}=> ∃ vs,
+      is_chan protoN (proto_c_name γ) c1 c2 ∗ |={E,E∖↑protoN}=> ∃ vs,
         chan_own (proto_c_name γ) s vs ∗
-        ▷ ((chan_own (proto_c_name γ) s vs ={E∖↑N,E}=∗
-             c ↣ iProto_message Receive pc @ N) ∧
+        ▷ ((chan_own (proto_c_name γ) s vs ={E∖↑protoN,E}=∗
+             c ↣ iProto_message Receive pc) ∧
            (∀ v vs',
              ⌜ vs = v :: vs' ⌝ -∗
-             chan_own (proto_c_name γ) s vs' ={E∖↑N,E}=∗ ▷ ▷ ∃ x : TT,
-             ⌜ v = (pc x).1.1 ⌝ ∗ c ↣ (pc x).2 @ N ∗ (pc x).1.2)).
+             chan_own (proto_c_name γ) s vs' ={E∖↑protoN,E}=∗ ▷ ▷ ∃ x : TT,
+             ⌜ v = (pc x).1.1 ⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2)).
   Proof.
     iIntros (?). rewrite {1}mapsto_proto_eq iProto_message_eq.
     iDestruct 1 as (s c1 c2 γ ->) "[Hstf #[Hcctx Hinv]]".
     iExists (side_elim s Right Left), c1, c2, γ. iSplit; first by destruct s.
     iFrame "Hcctx".
-    iInv N as (l r pl pr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
+    iInv protoN as (l r pl pr) "(>Hclf & >Hcrf & Hstla & Hstra & Hinv')" "Hclose".
     iExists (side_elim s r l). iModIntro.
     (* TODO: refactor to avoid twice nearly the same proof *)
     destruct s; simpl.
@@ -533,7 +535,7 @@ Section proto.
         iMod ("Hclose" with "[-Hstlf Hf]") as %_.
         { iExists _, _,_ ,_. eauto 10 with iFrame. }
         iIntros "!> !>".
-        set (f lp := (∃ q, lp ≡ Next q ∧ c1 ↣ q @ N)%I).
+        set (f lp := (∃ q, lp ≡ Next q ∧ c1 ↣ q)%I).
         assert (NonExpansive f) by solve_proper.
         iDestruct ("Hf" $! (OfeMor f) with "[Hstlf]") as (x) "(Hv & HP & Hf) /=".
         { iExists q. iSplit; first done. rewrite mapsto_proto_eq.
@@ -559,7 +561,7 @@ Section proto.
         iMod ("Hclose" with "[-Hstrf Hf]") as %_.
         { iExists _, _, _, _. eauto 10 with iFrame. }
         iIntros "!> !>".
-        set (f lp := (∃ q, lp ≡ Next q ∧ c2 ↣ q @ N)%I).
+        set (f lp := (∃ q, lp ≡ Next q ∧ c2 ↣ q)%I).
         assert (NonExpansive f) by solve_proper.
         iDestruct ("Hf" $! (OfeMor f) with "[Hstrf]") as (x) "(Hv & HP & Hf) /=".
         { iExists q. iSplit; first done. rewrite mapsto_proto_eq.
@@ -572,7 +574,7 @@ Section proto.
   Lemma new_chan_proto_spec :
     {{{ True }}}
       new_chan #()
-    {{{ c1 c2, RET (c1,c2); (∀ p, |={⊤}=> c1 ↣ p @ N ∗ c2 ↣ iProto_dual p @ N) }}}.
+    {{{ c1 c2, RET (c1,c2); (∀ p, |={⊤}=> c1 ↣ p ∗ c2 ↣ iProto_dual p) }}}.
   Proof.
     iIntros (Ψ _) "HΨ". iApply wp_fupd. wp_apply new_chan_spec=> //.
     iIntros (c1 c2 γ) "(Hc & Hl & Hr)". iApply "HΨ"; iIntros "!>" (p).
@@ -580,8 +582,8 @@ Section proto.
   Qed.
 
   Lemma start_chan_proto_spec p Ψ (f : val) :
-    ▷ (∀ c, c ↣ iProto_dual p @ N -∗ WP f c {{ _, True }}) -∗
-    ▷ (∀ c, c ↣ p @ N -∗ Ψ c) -∗
+    ▷ (∀ c, c ↣ iProto_dual p -∗ WP f c {{ _, True }}) -∗
+    ▷ (∀ c, c ↣ p -∗ Ψ c) -∗
     WP start_chan f {{ Ψ }}.
   Proof.
     iIntros "Hfork HΨ". wp_lam.
@@ -593,9 +595,9 @@ Section proto.
   Qed.
 
   Lemma send_proto_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
-    {{{ c ↣ iProto_message Send pc @ N ∗ (pc x).1.2 }}}
+    {{{ c ↣ iProto_message Send pc ∗ (pc x).1.2 }}}
       send c (pc x).1.1
-    {{{ RET #(); c ↣ (pc x).2 @ N }}}.
+    {{{ RET #(); c ↣ (pc x).2 }}}.
   Proof.
     iIntros (Ψ) "[Hp Hf] HΨ".
     iDestruct (proto_send_acc ⊤ with "Hp") as (γ s c1 c2 ->) "[#Hc Hvs]"; first done.
@@ -606,9 +608,9 @@ Section proto.
   Qed.
 
   Lemma send_proto_spec {TT} Ψ c v (pc : TT → val * iProp Σ * iProto Σ) :
-    c ↣ iProto_message Send pc @ N -∗
+    c ↣ iProto_message Send pc -∗
     (∃.. x : TT,
-      ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 @ N -∗ Ψ #())) -∗
+      ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 -∗ Ψ #())) -∗
     WP send c v {{ Ψ }}.
   Proof.
     iIntros "Hc H". iDestruct (bi_texist_exist with "H") as (x ->) "[HP HΨ]".
@@ -616,10 +618,10 @@ Section proto.
   Qed.
 
   Lemma try_recv_proto_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Receive pc @ N }}}
+    {{{ c ↣ iProto_message Receive pc }}}
       try_recv c
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Receive pc @ N) ∨
-                  (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 @ N ∗ (pc x).1.2) }}}.
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Receive pc) ∨
+                  (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2) }}}.
   Proof.
     iIntros (Ψ) "Hp HΨ".
     iDestruct (proto_recv_acc ⊤ with "Hp") as (γ s c1 c2 ->) "[#Hc Hvs]"; first done.
@@ -633,9 +635,9 @@ Section proto.
   Qed.
 
   Lemma recv_proto_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Receive pc @ N }}}
+    {{{ c ↣ iProto_message Receive pc }}}
       recv c
-    {{{ x, RET (pc x).1.1; c ↣ (pc x).2 @ N ∗ (pc x).1.2 }}}.
+    {{{ x, RET (pc x).1.1; c ↣ (pc x).2 ∗ (pc x).1.2 }}}.
   Proof.
     iIntros (Ψ) "Hp HΨ".
     iDestruct (proto_recv_acc ⊤ with "Hp") as (γ s c1 c2 ->) "[#Hc Hvs]"; first done.
@@ -646,8 +648,8 @@ Section proto.
   Qed.
 
   Lemma recv_proto_spec {TT} Ψ c (pc : TT → val * iProp Σ * iProto Σ) :
-    c ↣ iProto_message Receive pc @ N -∗
-    ▷ (∀.. x : TT, c ↣ (pc x).2 @ N -∗ (pc x).1.2 -∗ Ψ (pc x).1.1) -∗
+    c ↣ iProto_message Receive pc -∗
+    ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Ψ (pc x).1.1) -∗
     WP recv c {{ Ψ }}.
   Proof.
     iIntros "Hc H". iApply (recv_proto_spec_packed with "[$]").
@@ -657,18 +659,18 @@ Section proto.
 
   (** Branching *)
   Lemma select_spec c (b : bool) P1 P2 p1 p2 :
-    {{{ c ↣ p1 <{P1}+{P2}> p2 @ N ∗ if b then P1 else P2 }}}
+    {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}}
       send c #b
-    {{{ RET #(); c ↣ (if b then p1 else p2) @ N }}}.
+    {{{ RET #(); c ↣ (if b then p1 else p2) }}}.
   Proof.
     rewrite /iProto_branch. iIntros (Ψ) "[Hc HP] HΨ".
     iApply (send_proto_spec with "Hc"); simpl; eauto with iFrame.
   Qed.
 
   Lemma branch_spec c P1 P2 p1 p2 :
-    {{{ c ↣ p1 <{P1}&{P2}> p2 @ N }}}
+    {{{ c ↣ (p1 <{P1}&{P2}> p2) }}}
       recv c
-    {{{ b, RET #b; c ↣ if b : bool then p1 else p2 @ N ∗ if b then P1 else P2 }}}.
+    {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}.
   Proof.
     rewrite /iProto_branch. iIntros (Ψ) "Hc HΨ".
     iApply (recv_proto_spec with "Hc"); simpl.

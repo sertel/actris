@@ -56,7 +56,7 @@ Class mapG Σ A `{Countable A} := {
 
 Section map.
   Context `{Countable A} {B : Type}.
-  Context `{!heapG Σ, !proto_chanG Σ, !mapG Σ A} (N : namespace).
+  Context `{!heapG Σ, !proto_chanG Σ, !mapG Σ A}.
   Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (map : A → list B).
   Local Open Scope nat_scope.
   Implicit Types n : nat.
@@ -82,11 +82,11 @@ Section map.
   Proof. apply proto_unfold_eq, (fixpoint_unfold par_map_protocol_aux). Qed.
 
   Definition map_worker_lock_inv (γ : gname) (c : val) : iProp Σ :=
-    (∃ i X, server γ i X ∗ c ↣ iProto_dual (par_map_protocol i X) @ N)%I.
+    (∃ i X, server γ i X ∗ c ↣ iProto_dual (par_map_protocol i X))%I.
 
   Lemma par_map_worker_spec γl γ vmap lk c :
     map_spec vmap -∗
-    {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗ client γ (∅ : gmultiset A) }}}
+    {{{ is_lock nroot γl lk (map_worker_lock_inv γ c) ∗ client γ (∅ : gmultiset A) }}}
       par_map_worker vmap lk c
     {{{ RET #(); True }}}.
   Proof.
@@ -126,7 +126,7 @@ Section map.
 
   Lemma par_map_workers_spec γl γ n vmap lk c :
     map_spec vmap -∗
-    {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗
+    {{{ is_lock nroot γl lk (map_worker_lock_inv γ c) ∗
         [∗] replicate n (client γ (∅:gmultiset A)) }}}
       par_map_workers #n vmap lk c
     {{{ RET #(); True }}}.
@@ -143,13 +143,13 @@ Section map.
 
   Lemma par_map_service_spec n vmap c :
     map_spec vmap -∗
-    {{{ c ↣ iProto_dual (par_map_protocol n ∅) @ N }}}
+    {{{ c ↣ iProto_dual (par_map_protocol n ∅) }}}
       par_map_service #n vmap c
     {{{ RET #(); True }}}.
   Proof.
     iIntros "#Hf !>"; iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iMod (contribution_init_pow (A:=gmultisetUR A) n) as (γ) "[Hs Hγs]".
-    wp_apply (newlock_spec N (map_worker_lock_inv γ c) with "[Hc Hs]").
+    wp_apply (newlock_spec nroot (map_worker_lock_inv γ c) with "[Hc Hs]").
     { iExists n, ∅. iFrame. }
     iIntros (lk γl) "#Hlk".
     wp_apply (par_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
@@ -157,7 +157,7 @@ Section map.
 
   Lemma par_map_client_loop_spec n c l k xs X ys :
     (n = 0 → X = ∅ ∧ xs = []) →
-    {{{ llist IA l xs ∗ llist IB k ys ∗ c ↣ par_map_protocol n X @ N }}}
+    {{{ llist IA l xs ∗ llist IB k ys ∗ c ↣ par_map_protocol n X }}}
       par_map_client_loop #n c #l #k
     {{{ ys', RET #();
       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗ llist IA l [] ∗ llist IB k (ys' ++ ys)
@@ -198,7 +198,7 @@ Section map.
     {{{ ys, RET #(); ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB l ys }}}.
   Proof.
     iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_proto_spec N (par_map_protocol n ∅)); iIntros (c) "// Hc".
+    wp_apply (start_chan_proto_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
     { wp_apply (par_map_service_spec with "Hmap Hc"); auto. }
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
     wp_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.
