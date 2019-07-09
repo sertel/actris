@@ -1,4 +1,4 @@
-From stdpp Require Import sorting.
+From stdpp Require Export sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang Require Import assert.
