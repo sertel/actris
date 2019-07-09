@@ -154,34 +154,6 @@ Arguments iProto_app {_} _%proto _%proto.
 Instance: Params (@iProto_app) 1.
 Infix "<++>" := iProto_app (at level 60) : proto_scope.
 
-(** Classes *)
-Class ActionDualIf (d : bool) (a1 a2 : action) :=
-  dual_action_if : a2 = if d then action_dual a1 else a1.
-Hint Mode ActionDualIf ! ! - : typeclass_instances.
-
-Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
-Instance action_dual_if_true_send : ActionDualIf true Send Receive := eq_refl.
-Instance action_dual_if_true_receive : ActionDualIf true Receive Send := eq_refl.
-
-Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
-    (pas : list (bool * iProto Σ)) (q : iProto Σ) :=
-  proto_normalize :
-    q ≡ (iProto_dual_if d p <++>
-         foldr (iProto_app ∘ curry iProto_dual_if) END pas)%proto.
-Hint Mode ProtoNormalize ! ! ! ! - : typeclass_instances.
-Arguments ProtoNormalize {_} _ _%proto _%proto _%proto.
-
-Class ProtoContNormalize {Σ TT} (d : bool) (pc : TT → val * iProp Σ * iProto Σ)
-    (pas : list (bool * iProto Σ)) (qc : TT → val * iProp Σ * iProto Σ) :=
-  proto_cont_normalize x :
-    (qc x).1.1 = (pc x).1.1 ∧
-    (qc x).1.2 ≡ (pc x).1.2 ∧
-    ProtoNormalize d ((pc x).2) pas ((qc x).2).
-Hint Mode ProtoContNormalize ! ! ! ! ! - : typeclass_instances.
-
-Notation ProtoUnfold p1 p2 := (∀ d pas q,
-  ProtoNormalize d p2 pas q → ProtoNormalize d p1 pas q).
-
 (** Auxiliary definitions and invariants *)
 Fixpoint proto_eval `{!proto_chanG Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   match vs with
@@ -362,90 +334,6 @@ Section proto.
     iProto_dual (p1 <++> p2) ≡ (iProto_dual p1 <++> iProto_dual p2)%proto.
   Proof. by rewrite /iProto_dual /iProto_app proto_map_app. Qed.
 
-  (** Classes *)
-  Lemma proto_unfold_eq p1 p2 : p1 ≡ p2 → ProtoUnfold p1 p2.
-  Proof. rewrite /ProtoNormalize=> Hp d pas q ->. by rewrite Hp. Qed.
-
-  Global Instance proto_normalize_done p : ProtoNormalize false p [] p | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id. Qed. 
-  Global Instance proto_normalize_done_dual p :
-    ProtoNormalize true p [] (iProto_dual p) | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id. Qed.
-  Global Instance proto_normalize_done_dual_end :
-    ProtoNormalize (Σ:=Σ) true END [] END | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id iProto_dual_end. Qed.
-
-  Global Instance proto_normalize_dual d p pas q :
-    ProtoNormalize (negb d) p pas q →
-    ProtoNormalize d (iProto_dual p) pas q.
-  Proof. rewrite /ProtoNormalize=> ->. by destruct d; rewrite /= ?involutive. Qed.
-
-  Global Instance proto_normalize_app_l d p1 p2 pas q :
-    ProtoNormalize d p1 ((d,p2) :: pas) q →
-    ProtoNormalize d (p1 <++> p2) pas q.
-  Proof.
-    rewrite /ProtoNormalize=> -> /=. rewrite assoc.
-    by destruct d; by rewrite /= ?iProto_dual_app.
-  Qed.
-
-  Global Instance proto_normalize_end d d' p pas q :
-    ProtoNormalize d p pas q →
-    ProtoNormalize d' END ((d,p) :: pas) q | 0.
-  Proof.
-    rewrite /ProtoNormalize=> -> /=.
-    destruct d'; by rewrite /= ?iProto_dual_end left_id.
-  Qed.
-
-  Global Instance proto_normalize_app_r d p1 p2 pas q :
-    ProtoNormalize d p2 pas q →
-    ProtoNormalize false p1 ((d,p2) :: pas) (p1 <++> q) | 0.
-  Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
-
-  Global Instance proto_normalize_app_r_dual d p1 p2 pas q :
-    ProtoNormalize d p2 pas q →
-    ProtoNormalize true p1 ((d,p2) :: pas) (iProto_dual p1 <++> q) | 0.
-  Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
-
-  Global Instance proto_cont_normalize_O d v P p q pas :
-    ProtoNormalize d p pas q →
-    ProtoContNormalize d (tele_app (TT:=TeleO) (v,P,p)) pas
-                         (tele_app (TT:=TeleO) (v,P,q)).
-  Proof. rewrite /ProtoContNormalize=> ?. by apply tforall_forall. Qed.
-
-  Global Instance proto_cont_normalize_S {A} {TT : A → tele} d
-      (pc qc : ∀ a, TT a -t> val * iProp Σ * iProto Σ) pas :
-    (∀ a, ProtoContNormalize d (tele_app (pc a)) pas (tele_app (qc a))) →
-    ProtoContNormalize d (tele_app (TT:=TeleS TT) pc) pas (tele_app (TT:=TeleS TT) qc).
-  Proof.
-    rewrite /ProtoContNormalize=> H. apply tforall_forall=> /= x.
-    apply tforall_forall, (H x).
-  Qed.
-
-  Global Instance proto_normalize_message {TT} d a1 a2
-      (pc qc : TT → val * iProp Σ * iProto Σ) pas :
-    ActionDualIf d a1 a2 →
-    ProtoContNormalize d pc pas qc →
-    ProtoNormalize d (iProto_message a1 pc) pas
-                     (iProto_message a2 qc).
-  Proof.
-    rewrite /ActionDualIf /ProtoContNormalize /ProtoNormalize=> -> H.
-    destruct d; simpl.
-    - rewrite iProto_dual_message iProto_app_message.
-      apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
-    - rewrite iProto_app_message.
-      apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
-  Qed.
-
-  Global Instance proto_normalize_branch d a1 a2 P1 P2 p1 p2 q1 q2 pas :
-    ActionDualIf d a1 a2 →
-    ProtoNormalize d p1 pas q1 → ProtoNormalize d p2 pas q2 →
-    ProtoNormalize d (iProto_branch a1 P1 P2 p1 p2) pas
-                     (iProto_branch a2 P1 P2 q1 q2).
-  Proof.
-    rewrite /ActionDualIf /ProtoNormalize=> -> -> ->.
-    destruct d; by rewrite /= -?iProto_app_branch -?iProto_dual_branch.
-  Qed.
-
   (** Auxiliary definitions and invariants *)
   Global Instance proto_eval_ne : NonExpansive2 (proto_eval vs).
   Proof. induction vs; solve_proper. Qed.
@@ -525,22 +413,6 @@ Section proto.
   Proof. done. Qed.
 
   Arguments proto_eval : simpl never.
-
-  (** Automatically perform normalization of protocols in the proof mode *)
-  Global Instance mapsto_proto_from_assumption q c p1 p2 :
-    ProtoNormalize false p1 [] p2 →
-    FromAssumption q (c ↣ p1 @ N) (c ↣ p2 @ N).
-  Proof.
-    rewrite /FromAssumption /ProtoNormalize=> ->.
-    by rewrite /= right_id bi.intuitionistically_if_elim.
-  Qed.
-  Global Instance mapsto_proto_from_frame q c p1 p2 :
-    ProtoNormalize false p1 [] p2 →
-    Frame q (c ↣ p1 @ N) (c ↣ p2 @ N) True.
-  Proof.
-    rewrite /Frame /ProtoNormalize=> ->.
-    by rewrite /= !right_id bi.intuitionistically_if_elim.
-  Qed.
 
   (** The actual specs *)
   Lemma proto_init E cγ c1 c2 p :
@@ -803,17 +675,3 @@ Section proto.
     iIntros "!>" (b) "Hc HP". iApply "HΨ". iFrame.
   Qed.
 End proto.
-
-Ltac f_proto_contractive :=
-  match goal with
-  | _ => apply iProto_branch_contractive
-  | _ => apply iProto_message_contractive; simpl; intros; [reflexivity|..]
-  | H : _ ≡{?n}≡ _ |- _ ≡{?n'}≡ _ => apply (dist_le n); [apply H|lia]
-  end;
-  try match goal with
-  | |- @dist_later ?A _ ?n ?x ?y =>
-         destruct n as [|n]; simpl in *; [exact Logic.I|change (@dist A _ n x y)]
-  end.
-
-Ltac solve_proto_contractive :=
-  solve_proper_core ltac:(fun _ => first [f_contractive | f_proto_contractive | f_equiv]).
