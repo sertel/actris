@@ -14,7 +14,7 @@ Definition sort_service_fg_split : val :=
     send "c1" #cont;; send "c1" "x";;
     "go" "c" "c2" "c1".
 
-Definition sort_service_fg_move : val :=
+Definition sort_service_fg_forward : val :=
   rec: "go" "c" "cin" :=
     if: ~(recv "cin") then send "c" #stop else
     let: "x" := recv "cin" in
@@ -25,7 +25,7 @@ Definition sort_service_fg_merge : val :=
   rec: "go" "cmp" "c" "x1" "c1" "c2" :=
     if: ~recv "c2" then
       send "c" #cont;; send "c" "x1";;
-      sort_service_fg_move "c" "c1"
+      sort_service_fg_forward "c" "c1"
     else
       let: "x2" := recv "c2" in
       if: "cmp" "x1" "x2" then
@@ -114,7 +114,7 @@ Section sort_fg.
       iApply ("HΨ" $! [] [] []). rewrite !right_id_L. by iFrame.
   Qed.
 
-  Lemma sort_service_fg_move_spec c p cin xs ys zs xs' ys' :
+  Lemma sort_service_fg_forward_spec c p cin xs ys zs xs' ys' :
     xs ≡ₚ xs' ++ zs →
     ys ≡ₚ ys' ++ zs →
     Sorted R ys →
@@ -123,7 +123,7 @@ Section sort_fg.
       c ↣ iProto_dual (sort_fg_tail_protocol xs ys) <++> p @ N ∗
       cin ↣ sort_fg_tail_protocol xs' ys' @ N
     }}}
-      sort_service_fg_move c cin
+      sort_service_fg_forward c cin
     {{{ RET #(); c ↣ p @ N ∗ cin ↣ END @ N }}}.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
@@ -182,7 +182,7 @@ Section sort_fg.
         * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - wp_select. wp_send with "[$HIy1 //]".
-      wp_apply (sort_service_fg_move_spec with "[$Hc $Hc1]").
+      wp_apply (sort_service_fg_forward_spec with "[$Hc $Hc1]").
       * done.
       * by rewrite Hys Hys2 -!assoc_L (comm _ xs2).
       * by apply Sorted_snoc.
