@@ -79,6 +79,15 @@ Implicit Types xs : list A.
 Implicit Types l : loc.
 Local Arguments llist {_ _ _} _ _ !_ /.
 
+Lemma llist_fmap {B} (J : B → val → iProp Σ) (f : A → B) l xs :
+  □ (∀ x v, I x v -∗ J (f x) v) -∗
+  llist I l xs -∗ llist J l (f <$> xs).
+Proof.
+  iIntros "#Hf Hll". iInduction xs as [|x xs] "IH" forall (l); csimpl; auto.
+  iDestruct "Hll" as (v l') "(Hx & Hl & Hll)". iExists _, _. iFrame "Hl".
+  iSplitL "Hx". by iApply "Hf". by iApply "IH".
+Qed.
+
 Lemma lnil_spec :
   {{{ True }}} lnil #() {{{ l, RET #l; llist I l [] }}}.
 Proof. iIntros (Φ _) "HΦ". wp_lam. wp_alloc l. by iApply "HΦ". Qed.
