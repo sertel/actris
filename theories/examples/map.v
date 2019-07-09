@@ -3,7 +3,7 @@ From iris.heap_lang Require Import proofmode notation lib.spin_lock.
 From actris.utils Require Import llist contribution.
 From iris.algebra Require Import gmultiset.
 
-Definition map_worker : val :=
+Definition par_map_worker : val :=
   rec: "go" "map" "l" "c" :=
     acquire "l";;
       send "c" #true;;
@@ -17,18 +17,17 @@ Definition map_worker : val :=
     release "l";;
     "go" "map" "l" "c".
 
-Definition start_map_workers : val :=
+Definition par_map_workers : val :=
   rec: "go" "n" "map" "l" "c" :=
     if: "n" = #0 then #() else
-    Fork (map_worker "map" "l" "c");;
+    Fork (par_map_worker "map" "l" "c");;
     "go" ("n" - #1) "map" "l" "c".
 
-Definition start_map_service : val := λ: "n" "map",
-  start_chan (λ: "c",
-    let: "l" := newlock #() in
-    start_map_workers "n" "map" "l" "c").
+Definition par_map_service : val := λ: "n" "map" "c",
+  let: "l" := newlock #() in
+  par_map_workers "n" "map" "l" "c".
 
-Definition par_map_server : val :=
+Definition par_map_client_loop : val :=
   rec: "go" "n" "c" "xs" "ys" :=
     if: "n" = #0 then #() else
     if: recv "c" then (* send item to map_worker *)
@@ -44,11 +43,11 @@ Definition par_map_server : val :=
       lprep "ys" "zs";;
       "go" "n" "c" "xs" "ys".
 
-Definition par_map : val := λ: "n" "map" "xs",
-  let: "c" := start_map_service "n" "map" in
+Definition par_map_client : val := λ: "n" "map" "xs",
+  let: "c" := start_chan (λ: "c", par_map_service "n" "map" "c") in
   let: "ys" := lnil #() in
-  par_map_server "n" "c" "xs" "ys";;
-  "ys".
+  par_map_client_loop "n" "c" "xs" "ys";;
+  lapp "xs" "ys".
 
 Class mapG Σ A `{Countable A} := {
   map_contributionG :> contributionG Σ (gmultisetUR A);
@@ -65,7 +64,7 @@ Section map.
   Definition map_spec (vmap : val) : iProp Σ := (∀ x v,
     {{{ IA x v }}} vmap v {{{ l, RET #l; llist IB l (map x) }}})%I.
 
-  Definition map_worker_protocol_aux (rec : nat -d> gmultiset A -d> iProto Σ) :
+  Definition par_map_protocol_aux (rec : nat -d> gmultiset A -d> iProto Σ) :
       nat -d> gmultiset A -d> iProto Σ := λ i X,
     let rec : nat → gmultiset A → iProto Σ := rec in
     (if i is 0 then END else
@@ -75,20 +74,20 @@ Section map.
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
          <?> x (l : loc), MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist IB l (map x) }};
          rec i (X ∖ {[ x ]}))%proto.
-  Instance map_worker_protocol_aux_contractive : Contractive map_worker_protocol_aux.
+  Instance par_map_protocol_aux_contractive : Contractive par_map_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.
-  Definition map_worker_protocol := fixpoint map_worker_protocol_aux.
-  Global Instance map_worker_protocol_unfold n X :
-    ProtoUnfold (map_worker_protocol n X) (map_worker_protocol_aux map_worker_protocol n X).
-  Proof. apply proto_unfold_eq, (fixpoint_unfold map_worker_protocol_aux). Qed.
+  Definition par_map_protocol := fixpoint par_map_protocol_aux.
+  Global Instance par_map_protocol_unfold n X :
+    ProtoUnfold (par_map_protocol n X) (par_map_protocol_aux par_map_protocol n X).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold par_map_protocol_aux). Qed.
 
   Definition map_worker_lock_inv (γ : gname) (c : val) : iProp Σ :=
-    (∃ i X, server γ i X ∗ c ↣ iProto_dual (map_worker_protocol i X) @ N)%I.
+    (∃ i X, server γ i X ∗ c ↣ iProto_dual (par_map_protocol i X) @ N)%I.
 
-  Lemma map_worker_spec γl γ vmap lk c :
+  Lemma par_map_worker_spec γl γ vmap lk c :
     map_spec vmap -∗
     {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗ client γ (∅ : gmultiset A) }}}
-      map_worker vmap lk c
+      par_map_worker vmap lk c
     {{{ RET #(); True }}}.
   Proof.
     iIntros "#Hmap !>" (Φ) "[#Hlk Hγ] HΦ". iLöb as "IH".
@@ -125,10 +124,10 @@ Section map.
     iIntros "Hu". by wp_apply ("IH" with "[$] [$]").
   Qed.
 
-  Lemma start_map_workers_spec γl γ n vmap lk c :
+  Lemma par_map_workers_spec γl γ n vmap lk c :
     map_spec vmap -∗
     {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗ client γ (∅:gmultiset A) ^ n }}}
-      start_map_workers #n vmap lk c
+      par_map_workers #n vmap lk c
     {{{ RET #(); True }}}.
   Proof.
     iIntros "#Hmap !>" (Φ) "[#Hlk Hγs] HΦ".
@@ -136,32 +135,32 @@ Section map.
     { by iApply "HΦ". }
     iDestruct "Hγs" as "[Hγ Hγs]".
     wp_apply (wp_fork with "[Hγ]").
-    { iNext. wp_apply (map_worker_spec with "Hmap [$]"); auto. }
+    { iNext. wp_apply (par_map_worker_spec with "Hmap [$]"); auto. }
     wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
     wp_apply ("IH" with "[$] [$]").
   Qed.
 
-  Lemma start_map_service_spec n vmap :
+  Lemma par_map_service_spec n vmap c :
     map_spec vmap -∗
-    {{{ True }}}
-      start_map_service #n vmap
-    {{{ c, RET c; c ↣ map_worker_protocol n ∅ @ N }}}.
+    {{{ c ↣ iProto_dual (par_map_protocol n ∅) @ N }}}
+      par_map_service #n vmap c
+    {{{ RET #(); True }}}.
   Proof.
-    iIntros "#Hf !>"; iIntros (Φ _) "HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_proto_spec N (map_worker_protocol n ∅)); iIntros (c) "// Hc".
-    wp_lam.
+    iIntros "#Hf !>"; iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iMod (contribution_init_pow (A:=gmultisetUR A) n) as (γ) "[Hs Hγs]".
     wp_apply (newlock_spec N (map_worker_lock_inv γ c) with "[Hc Hs]").
     { iExists n, ∅. iFrame. }
     iIntros (lk γl) "#Hlk".
-    wp_apply (start_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
+    wp_apply (par_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
   Qed.
 
-  Lemma par_map_server_spec n c l k xs X ys :
+  Lemma par_map_client_loop_spec n c l k xs X ys :
     (n = 0 → X = ∅ ∧ xs = []) →
-    {{{ llist IA l xs ∗ llist IB k ys ∗ c ↣ map_worker_protocol n X @ N }}}
-      par_map_server #n c #l #k
-    {{{ ys', RET #(); ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗ llist IB k (ys' ++ ys) }}}.
+    {{{ llist IA l xs ∗ llist IB k ys ∗ c ↣ par_map_protocol n X @ N }}}
+      par_map_client_loop #n c #l #k
+    {{{ ys', RET #();
+      ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗ llist IA l [] ∗ llist IB k (ys' ++ ys)
+    }}}.
   Proof.
     iIntros (Hn Φ) "(Hl & Hk & Hc) HΦ".
     iLöb as "IH" forall (n l xs X ys Hn Φ); wp_rec; wp_pures; simpl.
@@ -190,18 +189,20 @@ Section map.
       + by rewrite -assoc_L.
   Qed.
 
-  Lemma par_map_spec n vmap l xs :
+  Lemma par_map_client_spec n vmap l xs :
     0 < n →
     map_spec vmap -∗
     {{{ llist IA l xs }}}
-      par_map #n vmap #l
-    {{{ k ys, RET #k; ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB k ys }}}.
+      par_map_client #n vmap #l
+    {{{ ys, RET #(); ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB l ys }}}.
   Proof.
     iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_map_service_spec with "Hmap [//]"); iIntros (c) "Hc".
+    wp_apply (start_chan_proto_spec N (par_map_protocol n ∅)); iIntros (c) "// Hc".
+    { wp_apply (par_map_service_spec with "Hmap Hc"); auto. }
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
-    wp_apply (par_map_server_spec with "[$Hl $Hk $Hc //]"); first lia.
-    iIntros (ys) "[??]". rewrite /= gmultiset_elements_empty !right_id_L .
+    wp_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.
+    iIntros (ys) "(?&Hl&Hk)". rewrite /= gmultiset_elements_empty !right_id_L.
+    wp_apply (lapp_spec IB _ _ [] with "[$Hl $Hk]"); iIntros "[Hk _] /=".
     wp_pures. iApply "HΦ"; auto.
   Qed.
 End map.

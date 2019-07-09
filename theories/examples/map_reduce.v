@@ -31,7 +31,7 @@ Instance: Params (@group) 7.
 
 
 (** Distributed version *)
-Definition par_map_reduce_map_server : val :=
+Definition par_map_reduce_map : val :=
   rec: "go" "n" "cmap" "csort" "xs" :=
     if: "n" = #0 then #() else
     if: recv "cmap" then (* send item to mapper *)
@@ -55,7 +55,7 @@ Definition par_map_reduce_collect : val :=
     if: "i" = "j" then lcons "y" "ys";; "go" "csort" "j" "ys" else
     SOME ("j", "y").
 
-Definition par_map_reduce_reduce_server : val :=
+Definition par_map_reduce_reduce : val :=
   rec: "go" "n" "csort" "cred" "acc" "zs" :=
     if: "n" = #0 then #() else
     if: recv "cred" then (* Send item to mapper *)
@@ -79,16 +79,15 @@ Definition par_map_reduce_reduce_server : val :=
 Definition cmpZfst : val := λ: "x" "y", Fst "x" ≤ Fst "y".
 
 Definition par_map_reduce : val := λ: "n" "map" "red" "xs",
-  let: "cmap" := start_map_service "n" "map" in
+  let: "cmap" := start_chan (λ: "c", par_map_service "n" "map" "c") in
   let: "csort" := start_chan (λ: "c", sort_service_fg cmpZfst "c") in
-  par_map_reduce_map_server "n" "cmap" "csort" "xs";;
+  par_map_reduce_map "n" "cmap" "csort" "xs";;
   send "csort" #stop;;
-  let: "cred" := start_map_service "n" "red" in
+  let: "cred" := start_chan (λ: "c", par_map_service "n" "red" "c") in
   (* We need the first sorted element in the loop to compare subsequent elements *)
-  if: ~recv "csort" then lnil #() else (* Handle the empty case *)
+  if: ~recv "csort" then #() else (* Handle the empty case *)
   let: "jy" := recv "csort" in
-  let: "zs" := lnil #() in
-  par_map_reduce_reduce_server "n" "csort" "cred" (SOME "jy") "zs";; "zs".
+  par_map_reduce_reduce "n" "csort" "cred" (SOME "jy") "xs".
 
 
 (** Properties about the functional version *)
@@ -240,24 +239,24 @@ Section mapper.
     repeat case_bool_decide=> //; unfold RZB, prod_relation in *; naive_solver.
   Qed.
 
-  Lemma par_map_reduce_map_server_spec n cmap csort l xs X ys :
+  Lemma par_map_reduce_map_spec n cmap csort l xs X ys :
     (n = 0 → X = ∅ ∧ xs = []) →
     {{{
       llist IA l xs ∗
-      cmap ↣ map_worker_protocol IA IZB map n (X : gmultiset A) @ N ∗
+      cmap ↣ par_map_protocol IA IZB map n (X : gmultiset A) @ N ∗
       csort ↣ sort_fg_head_protocol IZB RZB ys @ N
     }}}
-      par_map_reduce_map_server #n cmap csort #l
+      par_map_reduce_map #n cmap csort #l
     {{{ ys', RET #();
       ⌜ys' ≡ₚ (xs ++ elements X) ≫= map⌝ ∗
-      csort ↣ sort_fg_head_protocol IZB RZB (ys ++ ys') @ N
+      llist IA l [] ∗ csort ↣ sort_fg_head_protocol IZB RZB (ys ++ ys') @ N
     }}}.
   Proof.
     iIntros (Hn Φ) "(Hl & Hcmap & Hcsort) HΦ".
     iLöb as "IH" forall (n xs X ys Hn Φ); wp_rec; wp_pures; simpl.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
-      iApply ("HΦ" $! []). rewrite right_id_L. auto. }
+      iApply ("HΦ" $! []). rewrite right_id_L. auto with iFrame. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
     - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct xs as [|x xs]; csimpl; wp_pures.
@@ -270,7 +269,7 @@ Section mapper.
         rewrite assoc_L -(comm _ [x]). iApply "HΦ".
     - wp_recv (x k) as (Hx) "Hk".
       rewrite -(right_id END%proto _ (sort_fg_head_protocol _ _ _)).
-      wp_apply (send_all_spec with "[$Hk $Hcsort]"); iIntros "Hcsort".
+      wp_apply (send_all_spec with "[$Hk $Hcsort]"); iIntros "[_ Hcsort]".
       rewrite right_id.
       wp_apply ("IH" with "[] Hl Hcmap Hcsort"); first done.
       iIntros (ys'). iDestruct 1 as (Hys) "Hcsort"; simplify_eq/=.
@@ -330,7 +329,7 @@ Section mapper.
       eapply elem_of_StronglySorted_app; set_solver.
   Qed.
 
-  Lemma par_map_reduce_reduce_server_spec n iys iys_sorted miy zs l Y csort cred :
+  Lemma par_map_reduce_reduce_spec n iys iys_sorted miy zs l Y csort cred :
     let acc := from_option (λ '(i,y,w), [(i,y)]) [] in
     let accv := from_option (λ '(i,y,w), SOMEV (#(i:Z),w)) NONEV in
     (n = 0 → miy = None ∧ Y = ∅) →
@@ -340,10 +339,10 @@ Section mapper.
       llist IC l zs ∗
       csort ↣ from_option (λ _, sort_fg_tail_protocol IZB RZB iys
         (iys_sorted ++ acc miy)) END%proto miy @ N ∗
-      cred ↣ map_worker_protocol IZBs IC (curry red) n (Y : gmultiset (Z * list B)) @ N ∗
+      cred ↣ par_map_protocol IZBs IC (curry red) n (Y : gmultiset (Z * list B)) @ N ∗
       from_option (λ '(i,y,w), IB i y w) True miy
     }}}
-      par_map_reduce_reduce_server #n csort cred (accv miy) #l
+      par_map_reduce_reduce #n csort cred (accv miy) #l
     {{{ zs', RET #();
        ⌜ (group iys_sorted ≫= curry red) ++ zs' ≡ₚ (group iys ++ elements Y) ≫= curry red ⌝ ∗
        llist IC l (zs' ++ zs)
@@ -394,27 +393,29 @@ Section mapper.
     map_spec IZBs IC (curry red) vred -∗
     {{{ llist IA l xs }}}
       par_map_reduce #n vmap vred #l
-    {{{ k zs, RET #k; ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC k zs }}}.
+    {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
     iIntros (?) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_map_service_spec with "Hmap [//]"); iIntros (cmap) "Hcmap".
+    wp_apply (start_chan_proto_spec N (par_map_protocol IA IZB map n ∅));
+      iIntros (cmap) "// Hcmap".
+    { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
     wp_apply (start_chan_proto_spec N (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
     { wp_apply (sort_service_fg_spec N with "[] Hcsort"); last by auto.
       iApply RZB_cmp_spec. }
     rewrite right_id.
-    wp_apply (par_map_reduce_map_server_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
+    wp_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
-    iDestruct 1 as (Hiys) "Hcsort /=". wp_select; wp_pures; simpl.
-    wp_apply (start_map_service_spec with "Hred [//]"); iIntros (cred) "Hcred".
+    iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
+    wp_apply (start_chan_proto_spec N (par_map_protocol IZBs IC (curry red) n ∅));
+      iIntros (cred) "// Hcred".
+    { wp_pures. wp_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.
-    { wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
-      iApply ("HΦ" $! k [] with "[$Hk]"); simpl.
+    { wp_pures. iApply ("HΦ" $! [] with "[$Hl]"); simpl.
       by rewrite /map_reduce /= -Hiys -Hnil. }
     wp_recv ([i y] ?) as (_ w ->) "HIB /="; wp_pures.
-    wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
-    wp_apply (par_map_reduce_reduce_server_spec _ _ [] (Some (i, y, w))
-      with "[$Hk $Hcsort $Hcred $HIB]"); simpl; auto; [lia|set_solver|].
+    wp_apply (par_map_reduce_reduce_spec _ _ [] (Some (i, y, w)) []
+      with "[$Hl $Hcsort $Hcred $HIB]"); simpl; auto; [lia|set_solver|].
     iIntros (zs). rewrite /= gmultiset_elements_empty !right_id.
     iDestruct 1 as (Hzs) "Hk". wp_pures.
     iApply ("HΦ" with "[$Hk]"). by rewrite Hzs Hiys.
