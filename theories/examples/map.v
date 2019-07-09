@@ -126,7 +126,8 @@ Section map.
 
   Lemma par_map_workers_spec γl γ n vmap lk c :
     map_spec vmap -∗
-    {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗ client γ (∅:gmultiset A) ^ n }}}
+    {{{ is_lock N γl lk (map_worker_lock_inv γ c) ∗
+        [∗] replicate n (client γ (∅:gmultiset A)) }}}
       par_map_workers #n vmap lk c
     {{{ RET #(); True }}}.
   Proof.

@@ -20,12 +20,6 @@ Definition client `{contributionG Σ A} (γ : gname) (x : A) : iProp Σ :=
 Typeclasses Opaque client.
 Instance: Params (@client) 5.
 
-(** MOVE *)
-Fixpoint bi_pow {PROP : bi} (n : nat) (P : PROP) : PROP :=
-  match n with O => emp | S n => P ∗ bi_pow n P end%I.
-Arguments bi_pow {_} _ _%I.
-Notation "P ^ n" := (bi_pow n P) : bi_scope.
-
 Section contribution.
   Context `{contributionG Σ A}.
   Implicit Types x y : A.
@@ -140,10 +134,11 @@ Section contribution.
   Qed.
 
   (** Derived *)
-  Lemma contribution_init_pow n : (|==> ∃ γ, server γ n ε ∗ (client γ ε)^n)%I.
+  Lemma contribution_init_pow n :
+    (|==> ∃ γ, server γ n ε ∗ [∗] replicate n (client γ ε))%I.
   Proof.
     iMod (contribution_init) as (γ) "Hs". iExists γ.
-    iInduction n as [|n] "IH"; first by iFrame.
+    iInduction n as [|n] "IH"; simpl; first by iFrame.
     iMod ("IH" with "Hs") as "[Hs $]". by iApply alloc_client.
   Qed.
 End contribution.
