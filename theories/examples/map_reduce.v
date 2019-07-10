@@ -58,16 +58,16 @@ Definition par_map_reduce_reduce : val :=
 
 Definition cmpZfst : val := λ: "x" "y", Fst "x" ≤ Fst "y".
 
-Definition par_map_reduce : val := λ: "n" "map" "red" "xs",
+Definition par_map_reduce : val := λ: "n" "m" "map" "red" "xs",
   let: "cmap" := start_chan (λ: "c", par_map_service "n" "map" "c") in
   let: "csort" := start_chan (λ: "c", sort_service_fg cmpZfst "c") in
   par_map_reduce_map "n" "cmap" "csort" "xs";;
   send "csort" #stop;;
-  let: "cred" := start_chan (λ: "c", par_map_service "n" "red" "c") in
+  let: "cred" := start_chan (λ: "c", par_map_service "m" "red" "c") in
   (* We need the first sorted element in the loop to compare subsequent elements *)
   if: ~recv "csort" then #() else (* Handle the empty case *)
   let: "jy" := recv "csort" in
-  par_map_reduce_reduce "n" "csort" "cred" (SOME "jy") "xs".
+  par_map_reduce_reduce "m" "csort" "cred" (SOME "jy") "xs".
 
 
 (** Properties about the functional version *)
@@ -271,15 +271,15 @@ Section mapper.
       by rewrite right_id_L !assoc_L.
   Qed.
 
-  Lemma par_map_reduce_spec n vmap vred l xs :
-    0 < n →
+  Lemma par_map_reduce_spec n m vmap vred l xs :
+    0 < n → 0 < m →
     map_spec IA IZB map vmap -∗
     map_spec IZBs IC (curry red) vred -∗
     {{{ llist IA l xs }}}
-      par_map_reduce #n vmap vred #l
+      par_map_reduce #n #m vmap vred #l
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
-    iIntros (?) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
+    iIntros (??) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
     wp_apply (start_chan_proto_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
     { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
@@ -291,7 +291,7 @@ Section mapper.
     wp_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_apply (start_chan_proto_spec (par_map_protocol IZBs IC (curry red) n ∅));
+    wp_apply (start_chan_proto_spec (par_map_protocol IZBs IC (curry red) m ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.
