@@ -42,10 +42,10 @@ mechanization in Coq:
 * 2. Tour of Actris
   * 2.3 Basic, sort: `theories/examples/sort.v`
   * 2.4 Higher-Order Functions, sort_func: `theories/examples/sort.v`
-  * 2.5 Branching: `theories/examples/loop_sort.v`
-  * 2.6 Recursion: `theories/examples/loop_sort.v`
-  * 2.7 Delegation: `theories/examples/loop_sort.v`
-  * 2.8 Dependent: `theories/examples/sort_elem.v`
+  * 2.5 Branching: `theories/examples/sort_br_del.v`
+  * 2.6 Recursion: `theories/examples/sort_br_del.v`
+  * 2.7 Delegation: `theories/examples/sort_br_del.v`
+  * 2.8 Dependent: `theories/examples/sort_fg.v`
 * 3. Manifest sharing via locks
   * 3.1 Sample program: `theories/examples/basics.v`
   * 3.2 Distributed mapper: `theories/examples/map.v`
