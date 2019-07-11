@@ -1,7 +1,7 @@
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From actris.utils Require Import llist compare contribution group.
-From actris.examples Require Import map sort_fg_client.
+From actris.examples Require Import map sort_fg.
 From iris.algebra Require Import gmultiset.
 
 (** Functional version of map reduce (aka the specification) *)
