@@ -7,9 +7,9 @@ It has been built and tested with the following dependencies
 
  - Coq 8.9.1
  - [std++](https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp) at
-   commit 5f2a6b77.
+   commit f9830af6.
  - [iris](https://gitlab.mpi-sws.org/iris/iris) at
-   commit 4a624063.
+   commit 0c4e2984.
 
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.

@@ -94,7 +94,7 @@ Section contribution.
         with (Some (Cinl (Pos.of_nat (S n), x)), Some (Cinl (1%positive, ε))).
       { rewrite Nat2Pos.inj_succ // -Pos.add_1_l -{2}(left_id ε op x).
         rewrite -(right_id _ _ (Some (Cinl (1%positive, _)))).
-        rewrite -pair_op -Cinl_op Some_op. apply op_local_update_discrete.
+        rewrite pair_op Cinl_op Some_op. apply op_local_update_discrete.
         intros [??]; split=> //=. by rewrite left_id. }
       by apply option_local_update, csum_local_update_l, prod_local_update_2.
   Qed.
@@ -113,7 +113,7 @@ Section contribution.
       iApply (own_update_2 with "Hs Hc"). apply auth_update_dealloc.
       rewrite -(right_id _ _ (Some (Cinl (1%positive, _)))).
       rewrite Nat2Pos.inj_succ // -Pos.add_1_l.
-      rewrite -pair_op -Cinl_op Some_op left_id. apply (cancel_local_update _ _ _).
+      rewrite pair_op Cinl_op Some_op left_id. apply (cancel_local_update _ _ _).
   Qed.
 
   Lemma update_client γ n x y x' y' :
