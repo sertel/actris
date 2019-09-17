@@ -160,7 +160,7 @@ Section mapper.
       rewrite -assoc_L. iApply ("HΦ" $! (map x ++ ys') with "[$Hcsort]").
       iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X)
         -?gmultiset_elem_of_singleton_subseteq //.
-      rewrite (comm disj_union) gmultiset_elements_disj_union.
+      rewrite (comm_L disj_union) gmultiset_elements_disj_union.
       by rewrite gmultiset_elements_singleton assoc_L bind_app -Hys /= right_id_L comm.
   Qed.
 
@@ -266,7 +266,7 @@ Section mapper.
       iApply ("HΦ" $! (zs' ++ red i ys)). iSplit; last by rewrite -assoc_L.
       iPureIntro. rewrite (gmultiset_disj_union_difference {[ i,ys ]} Y)
         -?gmultiset_elem_of_singleton_subseteq //.
-      rewrite (comm disj_union) gmultiset_elements_disj_union.
+      rewrite (comm_L disj_union) gmultiset_elements_disj_union.
       rewrite gmultiset_elements_singleton assoc_L Hzs !bind_app /=.
       by rewrite right_id_L !assoc_L.
   Qed.
