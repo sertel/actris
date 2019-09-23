@@ -168,20 +168,20 @@ Section mapper.
     let acc := from_option (λ '(i,y,w), [(i,y)]) [] in
     let accv := from_option (λ '(i,y,w), SOMEV (#(i:Z),w)) NONEV in
     ys ≠ [] →
-    Sorted RZB (iys_sorted ++ ((i,) <$> ys)) →
+    Sorted RZB (iys_sorted ++ ((i,.) <$> ys)) →
     i ∉ iys_sorted.*1 →
     {{{
       llist (IB i) l (reverse ys) ∗
-      csort ↣ sort_fg_tail_protocol IZB RZB iys (iys_sorted ++ ((i,) <$> ys))
+      csort ↣ sort_fg_tail_protocol IZB RZB iys (iys_sorted ++ ((i,.) <$> ys))
     }}}
       par_map_reduce_collect csort #i #l
     {{{ ys' miy, RET accv miy;
-      ⌜ Sorted RZB ((iys_sorted ++ ((i,) <$> ys ++ ys')) ++ acc miy) ⌝ ∗
+      ⌜ Sorted RZB ((iys_sorted ++ ((i,.) <$> ys ++ ys')) ++ acc miy) ⌝ ∗
       ⌜ from_option (λ '(j,_,_), i ≠ j ∧ j ∉ iys_sorted.*1)
-                    (iys_sorted ++ ((i,) <$> ys ++ ys') ≡ₚ iys) miy ⌝ ∗
+                    (iys_sorted ++ ((i,.) <$> ys ++ ys') ≡ₚ iys) miy ⌝ ∗
       llist (IB i) l (reverse (ys ++ ys')) ∗
       csort ↣ from_option (λ _, sort_fg_tail_protocol IZB RZB iys
-        ((iys_sorted ++ ((i,) <$> ys ++ ys')) ++ acc miy)) END%proto miy ∗
+        ((iys_sorted ++ ((i,.) <$> ys ++ ys')) ++ acc miy)) END%proto miy ∗
       from_option (λ '(i,y,w), IB i y w) True miy
     }}}.
   Proof.
@@ -258,7 +258,7 @@ Section mapper.
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
         rewrite group_snoc // reverse_Permutation.
         rewrite !bind_app /= right_id_L -!assoc_L -(comm _ zs') !assoc_L.
-        apply (inj (++ _)).
+        apply (inj (.++ _)).
     - wp_recv ([i ys] k) as (Hy) "Hk".
       wp_apply (lprep_spec with "[$Hl $Hk]"); iIntros "[Hl _]".
       wp_apply ("IH" with "[ ] [//] [//] Hl Hcsort Hcred HImiy"); first done.

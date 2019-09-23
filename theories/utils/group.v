@@ -90,7 +90,7 @@ Section group.
       first [by etrans|auto using group_insert_perm, group_nodup, group_insert_commute].
   Qed.
 
-  Lemma group_fmap (i : K) xs : xs ≠ [] → group ((i,) <$> xs) ≡ₚₚ [(i, xs)].
+  Lemma group_fmap (i : K) xs : xs ≠ [] → group ((i,.) <$> xs) ≡ₚₚ [(i, xs)].
   Proof.
     induction xs as [|x1 [|x2 xs] IH]; intros; simplify_eq/=; try done.
     etrans.
@@ -105,7 +105,7 @@ Section group.
       repeat (simplify_eq/= || case_decide); repeat constructor; by auto.
   Qed.
   Lemma group_snoc ixs j ys :
-    j ∉ ixs.*1 → ys ≠ [] → group (ixs ++ ((j,) <$> ys)) ≡ₚₚ group ixs ++ [(j,ys)].
+    j ∉ ixs.*1 → ys ≠ [] → group (ixs ++ ((j,.) <$> ys)) ≡ₚₚ group ixs ++ [(j,ys)].
   Proof.
     induction ixs as [|[i x] ixs IH]; csimpl; [by auto using group_fmap|].
     rewrite ?not_elem_of_cons; intros [??]. etrans; [|by apply group_insert_snoc].

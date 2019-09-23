@@ -13,7 +13,7 @@ Definition start_chan : val := λ: "f",
 (** Camera setup *)
 Class proto_chanG Σ := {
   proto_chanG_chanG :> chanG Σ;
-  proto_chanG_authG :> auth_exclG (laterO (proto val (iPreProp Σ) (iPreProp Σ))) Σ;
+  proto_chanG_authG :> auth_exclG (laterO (proto val (iPrePropO Σ) (iPrePropO Σ))) Σ;
 }.
 
 Definition proto_chanΣ := #[
@@ -24,7 +24,7 @@ Instance subG_chanΣ {Σ} : subG proto_chanΣ Σ → proto_chanG Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
 (** Types *)
-Definition iProto Σ := proto val (iProp Σ) (iProp Σ).
+Definition iProto Σ := proto val (iPropO Σ) (iPropO Σ).
 Delimit Scope proto_scope with proto.
 Bind Scope proto_scope with iProto.
 
@@ -160,7 +160,7 @@ Fixpoint proto_interp `{!proto_chanG Σ} (vs : list val) (p1 p2 : iProto Σ) : i
   | [] => p1 ≡ iProto_dual p2
   | v :: vs => ∃ pc p2',
      p2 ≡ (proto_message Receive pc)%proto ∗
-     (∀ f : laterO (iProto Σ) -n> iProp Σ, f (Next p2') -∗ pc v f) ∗
+     (∀ f : laterO (iProto Σ) -n> iPropO Σ, f (Next p2') -∗ pc v f) ∗
      ▷ proto_interp vs p1 p2'
   end%I.
 Arguments proto_interp {_ _} _ _%proto _%proto : simpl nomatch.
@@ -378,7 +378,7 @@ Section proto.
 
   Lemma proto_interp_send v vs pc p1 p2 :
     proto_interp vs (proto_message Send pc) p2 -∗
-    (∀ f : laterO (iProto Σ) -n> iProp Σ, f (Next p1) -∗ pc v f) -∗
+    (∀ f : laterO (iProto Σ) -n> iPropO Σ, f (Next p1) -∗ pc v f) -∗
     proto_interp (vs ++ [v]) p1 p2.
   Proof.
     iIntros "Heval Hc". iInduction vs as [|v' vs] "IH" forall (p2); simpl.
@@ -395,7 +395,7 @@ Section proto.
 
   Lemma proto_interp_recv v vs p1 pc :
      proto_interp (v :: vs) p1 (proto_message Receive pc) -∗ ∃ p2,
-       (∀ f : laterO (iProto Σ) -n> iProp Σ, f (Next p2) -∗ pc v f) ∗
+       (∀ f : laterO (iProto Σ) -n> iPropO Σ, f (Next p2) -∗ pc v f) ∗
        ▷ proto_interp vs p1 p2.
   Proof.
     simpl. iDestruct 1 as (pc' p2) "(Heq & Hc & Hp2)". iExists p2. iFrame "Hp2".

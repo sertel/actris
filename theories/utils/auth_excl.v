@@ -11,7 +11,7 @@ Definition auth_exclΣ (F : oFunctor) `{!oFunctorContractive F} : gFunctors :=
   #[GFunctor (authRF (optionURF (exclRF F)))].
 
 Instance subG_auth_exclG (F : oFunctor) `{!oFunctorContractive F} {Σ} :
-  subG (auth_exclΣ F) Σ → auth_exclG (F (iPreProp Σ) _) Σ.
+  subG (auth_exclΣ F) Σ → auth_exclG (F (iPrePropO Σ) _) Σ.
 Proof. solve_inG. Qed.
 
 Definition to_auth_excl {A : ofeT} (a : A) : option (excl A) :=
