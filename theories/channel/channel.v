@@ -9,13 +9,14 @@ determines the polarity of the endpoints.
 
 The [send] primitive takes such an endpoint abstraction and adds an element to
 the first buffer under the lock. Conversely [recv] loops until there is
-something in the second, locking during each peek.
+something in the second buffer, which it pops and returns, locking during
+each peek.
 
 The specifications are defined in terms of the logical connectives [is_chan]
-and [chan_own], which respectively determines the contents of a channel and
-the ownership of it.
+and [chan_own], which respectively determines the contents of a channel using
+a lock over an invariant and the ownership of it using ghost fragments
+over buffers.
 *)
-
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.

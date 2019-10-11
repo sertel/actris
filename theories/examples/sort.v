@@ -1,5 +1,7 @@
 (** This file implements a distributed Merge Sort,
-a specification thereof and its proofs. *)
+a specification thereof and its proofs, including
+a variant in which the comparison function is sent
+over the channel. *)
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.

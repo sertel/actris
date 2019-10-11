@@ -1,6 +1,6 @@
 (** This file defines the model of Dependent Separation Protocols,
 along with various operations on the connective, such as append
-and map.
+and map and the necessary typeclass instances.
 
 Dependent Separation Protocols can ultimately be expressed as:
 proto := 1 + (B * (V -> (▶ proto -> PROP) -> PROP))
@@ -10,9 +10,9 @@ Here the left-hand side of the sum is the terminal protocol
 where B is the canonical representation of actions determining
 whether the protocol sends or receives, and
 (V -> (▶ proto -> PROP) -> PROP) is a continuation that
-depends on a communicated value V and the dependent tail
-(▶ proto -> PROP) from protocols guarded under laters,
- to the propositions of the logic.
+depends on the communicated value V and the dependent tail
+(▶ proto -> PROP) from protocols guarded under laters to the
+propositions of the logic.
 
 The type is defined as a solution to a recursive domain
 equation, as it is self-referential under the guard of ▶.
