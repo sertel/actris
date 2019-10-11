@@ -1,22 +1,20 @@
-(** This file contains the definition of the Channel language encoding,
-being a pair of buffers, with the three message-passing primitives
-[new_chan], [send] and [receive], along with their respective specifications.
+(** This file contains the definition of the channels, encoded as a pair of
+lock-protected buffers, on which we define the three message-passing primitives:
 
-The abstract representation of a channel endpoint is two buffer references
-and a lock. [new_chan] creates references to two empty buffers and a lock, and
-returns a pair of such endpoints, where the order of the two references
-determines the polarity of the endpoints.
-
-The [send] primitive takes such an endpoint abstraction and adds an element to
-the first buffer under the lock. Conversely [recv] loops until there is
-something in the second buffer, which it pops and returns, locking during
-each peek.
+- [new_chan] creates references to two empty buffers and a lock, and returns a
+  pair of endpoints, where the order of the two references determines the
+  polarity of the endpoints.
+- [send] takes an endpoint and adds an element to the first buffer.
+- [recv] performs a busy loop until there is something in the second buffer,
+  which it pops and returns, locking during each peek.
 
 The specifications are defined in terms of the logical connectives [is_chan]
-and [chan_own], which respectively determines the contents of a channel using
-a lock over an invariant and the ownership of it using ghost fragments
-over buffers.
-*)
+and [chan_own]:
+
+- [is_chan γ v1 v2] is a persistent proposition expressing that [v1] and [v2]
+  are the endpoints of a channel with logical name [γ].
+- [chan_own γ s vs] is an exclusive proposition expressing the buffer of side
+  [s] ([Left] or [Right]) has contents [vs]. *)
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
