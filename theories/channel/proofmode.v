@@ -1,3 +1,11 @@
+(** This file contains tactics for the message-passing
+connectives, as well as the necessary typeclasses.
+
+This includes a way of reducing protocols to a normal
+form, to prepare them for use in the appropriate
+specifications. This normalisation includes e.g.
+resolving duals.
+ *)
 From iris.heap_lang Require Export proofmode notation.
 From iris.proofmode Require Export tactics.
 From actris Require Export proto_channel.

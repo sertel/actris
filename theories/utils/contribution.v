@@ -1,3 +1,15 @@
+(** This file defines a ghost functor for tracking
+"contributions" made to a shared concurrent effort.
+It is ultimately defined as:
+contribution := Auth (Option ((Pos * A) + Excl 1))
+
+Intuitively it allows one to allocate a [server] and
+a number of [client] fragments. The server keeps track
+of the number of active clients, and what resources they
+are currently holding.
+To deallocate a client it must hold no resources.
+To deallocate a server there must be no remaining clients.
+*)
 From iris.base_logic Require Export base_logic lib.iprop lib.own.
 From iris.proofmode Require Export tactics.
 From iris.algebra Require Import excl auth csum gmultiset frac_auth.

@@ -1,3 +1,22 @@
+(** This file contains the instantiation of the
+Dependent Separation Protocols with the encoded messages.
+For starters this means fixing the types of message to the
+language value type [val] and the logic to the iris logic [iProp Σ].
+
+It then defines a convenient way of constructing instances of the type
+via [iProto_end] and [iProto_message] with associated notation,
+as well as type-specific variants of [dual] and [append].
+An encoding of branching behaviour is additionally included, defined
+in terms of sending and receiving boolean flags, along with relevant notation.
+
+The logical connectives of protocol ownership [c >-> prot] are then defined.
+This is achieved through Iris invariants and ghost state along with the
+logical connectives of the channel encodings. 
+
+Lastly, relevant typeclasses are defined for each of the above notions,
+such as contractiveness and non-expansiveness, after which the specifications
+of the message-passing primitives are defined in terms of the protocol connectives.
+*)
 From actris.channel Require Export channel.
 From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.

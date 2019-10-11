@@ -1,3 +1,5 @@
+(** This file provides utility for grouping elements
+based on keys. *)
 From stdpp Require Export prelude.
 From Coq Require Export SetoidPermutation.
 

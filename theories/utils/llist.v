@@ -1,3 +1,5 @@
+(** This file defines an encoding of lists in the [heap_lang]
+language, along with common functions such as append and split. *)
 From iris.heap_lang Require Export proofmode notation.
 From iris.heap_lang Require Import assert.
 

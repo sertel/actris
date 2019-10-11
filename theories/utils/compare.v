@@ -1,3 +1,7 @@
+(** This file includes a definition and specification
+for comparing values based on a given interpretation [I]
+and a relation [R], along with an implementation in the [heap_lang]
+language, given the [≤] relation.*)
 From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import proofmode notation.
 

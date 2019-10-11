@@ -1,3 +1,5 @@
+(** This file implements a map-reduce program,
+a specification thereof and its proofs. *)
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From actris.utils Require Import llist compare contribution group.

@@ -1,3 +1,21 @@
+(** This file contains the definition of the Channel language encoding,
+being a pair of buffers, with the three message-passing primitives
+[new_chan], [send] and [receive], along with their respective specifications.
+
+The abstract representation of a channel endpoint is two buffer references
+and a lock. [new_chan] creates references to two empty buffers and a lock, and
+returns a pair of such endpoints, where the order of the two references
+determines the polarity of the endpoints.
+
+The [send] primitive takes such an endpoint abstraction and adds an element to
+the first buffer under the lock. Conversely [recv] loops until there is
+something in the second, locking during each peek.
+
+The specifications are defined in terms of the logical connectives [is_chan]
+and [chan_own], which respectively determines the contents of a channel and
+the ownership of it.
+*)
+
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
@@ -9,6 +27,7 @@ Instance side_inhabited : Inhabited side := populate Left.
 Definition side_elim {A} (s : side) (l r : A) : A :=
   match s with Left => l | Right => r end.
 
+(** Message-Passing Primitives *)
 Definition new_chan : val :=
   λ: <>,
      let: "l" := lnil #() in
@@ -39,6 +58,7 @@ Definition recv : val :=
     | NONE => "go" "c"
     end.
 
+(** Channel ghost functor *)
 Class chanG Σ := {
   chanG_lockG :> lockG Σ;
   chanG_authG :> auth_exclG (listO valO) Σ;
@@ -65,6 +85,7 @@ Section channel.
     chan_r_name : gname
   }.
 
+  (** The invariant of channels *)
   Definition chan_inv (γ : chan_name) (l r : loc) : iProp Σ :=
     (∃ ls rs,
       llist sbi_internal_eq l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
@@ -79,6 +100,18 @@ Section channel.
   Global Instance is_chan_persistent : Persistent (is_chan γ c1 c2).
   Proof. by apply _. Qed.
 
+  Lemma chan_inv_alt s γ l r :
+    chan_inv γ l r ⊣⊢ ∃ ls rs,
+      llist sbi_internal_eq (side_elim s l r) ls ∗
+      own (side_elim s chan_l_name chan_r_name γ) (● to_auth_excl ls) ∗
+      llist sbi_internal_eq (side_elim s r l) rs ∗
+      own (side_elim s chan_r_name chan_l_name γ) (● to_auth_excl rs).
+  Proof.
+    destruct s; rewrite /chan_inv //=.
+    iSplit; iDestruct 1 as (ls rs) "(?&?&?&?)"; iExists rs, ls; iFrame.
+  Qed.
+
+  (** The ownership of channels *)
   Definition chan_own (γ : chan_name) (s : side) (vs : list val) : iProp Σ :=
     own (side_elim s chan_l_name chan_r_name γ) (◯ to_auth_excl vs)%I.
 
@@ -94,9 +127,9 @@ Section channel.
     wp_lam.
     wp_apply (lnil_spec with "[//]"); iIntros (l) "Hl".
     wp_apply (lnil_spec with "[//]"); iIntros (r) "Hr".
-    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
+    iMod (own_alloc (● (to_auth_excl [])  ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
     { by apply auth_both_valid. }
-    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
+    iMod (own_alloc (● (to_auth_excl [])  ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
     { by apply auth_both_valid. }
     wp_apply (newlock_spec N (∃ ls rs,
       llist sbi_internal_eq l ls ∗ own lsγ (● to_auth_excl ls) ∗
@@ -105,17 +138,6 @@ Section channel.
     iIntros (lk γlk) "#Hlk". wp_pures.
     iApply ("HΦ" $! _ _ (Chan_name γlk lsγ rsγ)); simpl.
     rewrite /chan_inv /=. eauto 20 with iFrame.
-  Qed.
-
-  Lemma chan_inv_alt s γ l r :
-    chan_inv γ l r ⊣⊢ ∃ ls rs,
-      llist sbi_internal_eq (side_elim s l r) ls ∗
-      own (side_elim s chan_l_name chan_r_name γ) (● to_auth_excl ls) ∗
-      llist sbi_internal_eq (side_elim s r l) rs ∗
-      own (side_elim s chan_r_name chan_l_name γ) (● to_auth_excl rs).
-  Proof.
-    destruct s; rewrite /chan_inv //=.
-    iSplit; iDestruct 1 as (ls rs) "(?&?&?&?)"; iExists rs, ls; iFrame.
   Qed.
 
   Lemma send_spec Φ E γ c1 c2 v s :
@@ -194,4 +216,5 @@ Section channel.
       iIntros "!> !>" (v vs' ->) "Hvs".
       iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !> !>". by wp_pures.
   Qed.
+
 End channel.

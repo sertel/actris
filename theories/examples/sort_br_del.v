@@ -1,3 +1,5 @@
+(** This file implements a looping distributed Merge Sort,
+a specification thereof and its proofs. *)
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
