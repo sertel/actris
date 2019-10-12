@@ -7,9 +7,9 @@ It has been built and tested with the following dependencies
 
  - Coq 8.9.1
  - [std++](https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp) at
-   commit f9830af6.
+   commit 9041e6d8.
  - [iris](https://gitlab.mpi-sws.org/iris/iris) at
-   commit 0c4e2984.
+   commit 15f1ac56.
 
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.
@@ -21,12 +21,12 @@ In order to build, install the above dependencies and then run
 The theory can be found in `theories/channel`. Some used utilities can be found
 in `theories/utils`.
 
-The files correspond to the following:
+The files correspond to the following content of the paper:
 
 - `theories/channel/channel.v`: The definitional semantics of bidirectional
   channels in HeapLang.
-- `theories/channel/proto_model.v`: The CPS model of dependent separation
-  protocols.
+- `theories/channel/proto_model.v`: The CPS model of Dependent Separation
+  Protocols.
 - `theories/channel/proto_channel.v`: The definition of the connective `↣` for
   channel ownership and the proof rules of the Actris logic.
 - `theories/channel/proofmode.v`: The Coq tactics for symbolic execution.
@@ -40,8 +40,8 @@ mechanization in Coq:
 
 * 1. Introduction: `theories/examples/basics.v`
 * 2. Tour of Actris
-  * 2.3 Basic, sort: `theories/examples/sort.v`
-  * 2.4 Higher-Order Functions, sort_func: `theories/examples/sort.v`
+  * 2.3 Basic: `theories/examples/sort.v`
+  * 2.4 Higher-Order Functions: `theories/examples/sort.v`
   * 2.5 Branching: `theories/examples/sort_br_del.v`
   * 2.6 Recursion: `theories/examples/sort_br_del.v`
   * 2.7 Delegation: `theories/examples/sort_br_del.v`
