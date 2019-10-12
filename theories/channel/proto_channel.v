@@ -1,22 +1,44 @@
-(** This file contains the instantiation of the
-Dependent Separation Protocols with the encoded messages.
-For starters this means fixing the types of message to the
-language value type [val] and the logic to the iris logic [iProp Σ].
+(** This file contains an instantiation of the
+Dependent Separation Protocols and an integration with the channel encodings.
+For starters this means fixing the types of messages to the
+value type of the language [val] and the logic to the iris logic [iProp Σ].
 
-It then defines a convenient way of constructing instances of the type
-via [iProto_end] and [iProto_message] with associated notation,
-as well as type-specific variants of [dual] and [append].
+In doing so we define way of constructing instances of the instantiated type
+via two constructors:
+- [iProto_end] which is identical to [proto_end]
+- [iProto_message] which takes an action and a continuation to construct
+the corresponding message protocols.
+
+For convenience sake the following notation is provided:
+- [END] which is simply [iProto_end]
+- [<!> x .. y, MSG v; {{ P }}; prot] and
+- [<?> x .. y, MSG v; {{ P }}; prot] which constructs an instance of
+iProto_message with an appropriate continuation.
+
+Said continuation ultimately establishes the following:
+- Existential quantification of variables [x .. y].
+- The equivalence [v = w], where [w] is the value that is eventually sent.
+- Ownership of the predicate P
+- A continuation as [prot]
+
+Futhermore type-specific variants of dual and append are provided:
+- [iProto_dual] which turns all [Send] of a protocol into [Recv] and vice-versa
+- [iProto_app] which appends two protocols as described in proto_model.v
+
 An encoding of branching behaviour is additionally included, defined
-in terms of sending and receiving boolean flags, along with relevant notation.
+in terms of sending and receiving boolean flags:
+- [prot1 {Q1}<+>{Q2} prot2] and
+- [prot1 {Q1}<&>{Q2} prot2] which defines ownership of Q1 or Q2, and continues as
+Q1 or Q2, based on the sent or received flag.
 
-The logical connectives of protocol ownership [c >-> prot] are then defined.
-This is achieved through Iris invariants and ghost state along with the
-logical connectives of the channel encodings. 
+The logical connective of protocol ownership are then defined:
+- [c >-> prot] which describes that channel endpoint [c] adheres
+to protocol [prot], achieved through Iris invariants and ghost state along
+with the logical connectives of the channel encodings [is_chan] and [chan_own]. 
 
 Lastly, relevant typeclasses are defined for each of the above notions,
 such as contractiveness and non-expansiveness, after which the specifications
-of the message-passing primitives are defined in terms of the protocol connectives.
-*)
+of the message-passing primitives are defined in terms of the protocol connectives.*)
 From actris.channel Require Export channel.
 From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.
