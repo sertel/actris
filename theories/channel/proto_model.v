@@ -2,20 +2,40 @@
 along with various operations on the connective, such as append
 and map and the necessary typeclass instances.
 
-Dependent Separation Protocols can ultimately be expressed as:
-proto := 1 + (B * (V -> (▶ proto -> PROP) -> PROP))
+They are designed with inspiration from Session Types, mimicking
+their constructors !T.st, ?T.st and END, respectively representing
+sending and receiving messages of type T or termination.
+The main difference is that the protocols are defined over predicates,
+in place of types.
 
-Here the left-hand side of the sum is the terminal protocol
-[proto_end], while the right-hand side is [proto_message],
-where B is the canonical representation of actions determining
-whether the protocol sends or receives, and
-(V -> (▶ proto -> PROP) -> PROP) is a continuation that
-depends on the communicated value V and the dependent tail
-(▶ proto -> PROP) from protocols guarded under laters to the
-propositions of the logic.
+Dependent Separation Protocols are modelled as the following type:
+- [proto] := 1 + ([action] * (V → (▶ [proto] → PROP) → PROP))
+
+Here the left-hand side of the sum is used for the terminated process,
+while the right-hand side is used for the communication constructors.
+[action] is an inductively defined datatype with two constructors,
+that is used to differentiate between sending and received, rather than
+having two distinct sums in [proto].
+- [action] := [Send] | [Receive]
+
+The remainder (V → (▶ [proto] → PROP) → PROP)) is a continuation that
+depends on the communicated value V and the dependent tail (▶ proto → PROP)
+from protocols guarded under laters to the propositions of the logic.
+
+The constructors of the protocol are then:
+- [proto_end] which constructs the left-side of the sum.
+- [proto_msg] which takes an action and a continuation and constructs the
+right-hand side of the sum accodingly.
 
 The type is defined as a solution to a recursive domain
-equation, as it is self-referential under the guard of ▶.*)
+equation, as it is self-referential under the guard of ▶.
+
+The available functions on [proto] are:
+- [proto_map] which can be used to map the actions, the propositions of
+a given protocol.
+- [proto_app] which appends two protocols [p1] and [p2], by substituting
+ all terminations in [p1] with [p2].
+*)
 
 From iris.base_logic Require Import base_logic.
 From iris.proofmode Require Import tactics.
