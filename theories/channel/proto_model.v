@@ -9,14 +9,14 @@ The main difference is that the protocols are defined over predicates,
 in place of types.
 
 Dependent Separation Protocols are modelled as the following type:
-- [proto] := 1 + ([action] * (V → (▶ [proto] → PROP) → PROP))
+- [proto := 1 + (action * (V → (▶ proto → PROP) → PROP))]
 
 Here the left-hand side of the sum is used for the terminated process,
 while the right-hand side is used for the communication constructors.
 [action] is an inductively defined datatype with two constructors,
 that is used to differentiate between sending and received, rather than
 having two distinct sums in [proto].
-- [action] := [Send] | [Receive]
+- [action := Send | Receive]
 
 The remainder (V → (▶ [proto] → PROP) → PROP)) is a continuation that
 depends on the communicated value V and the dependent tail (▶ proto → PROP)

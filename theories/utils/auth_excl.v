@@ -1,5 +1,11 @@
 (** This file provides utility for defining and using
-the commonly used ghost functor over authoritative exclusive ownership. *)
+a commonly used ghost functor over authoritative exclusive ownership.
+[AuthExcl A := Auth (Option (Excl A))]
+
+This is isomorphic to a half-ownership, with an intuitive
+use-case, being putting the authoritative part in an
+invariant, while giving the other fragment to the client
+with write permissions.  *)
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import excl auth.
 From iris.base_logic.lib Require Import own.
