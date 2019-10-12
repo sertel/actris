@@ -32,7 +32,7 @@ in terms of sending and receiving boolean flags:
 Q1 or Q2, based on the sent or received flag.
 
 The logical connective of protocol ownership are then defined:
-- [c >-> prot] which describes that channel endpoint [c] adheres
+- [c ↣  prot] which describes that channel endpoint [c] adheres
 to protocol [prot], achieved through Iris invariants and ghost state along
 with the logical connectives of the channel encodings [is_chan] and [chan_own]. 
 

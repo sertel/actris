@@ -1,11 +1,33 @@
-(** This file contains tactics for the message-passing
-connectives, as well as the necessary typeclasses.
+(** This file contains tactics for the message-passing connectives,
+as well as the necessary typeclasses.
+This includes a way of reducing protocols to a normal form, to prepare
+them for use in the appropriate specifications.
+This normalisation includes e.g. resolving duals.
 
-This includes a way of reducing protocols to a normal
-form, to prepare them for use in the appropriate
-specifications. This normalisation includes e.g.
-resolving duals.
- *)
+The tactics are:
+- [wp_send (x1 .. xn) with "selpat"] which resolves weakest preconditions of the
+form [wp (send c v) Q], in the presence of an ownership of a send protocol
+[c ↣  <!> x .. y, MSG v; {{ P }}; prot] in the context. That is done by using
+[x1 .. xn] to existentially quantify the variables [x .. y], and "ipat" to
+resolve the predicate [P]. The result is continuing as [Q],
+with [c ↣  prot] in the context.
+
+- [wp_recv (x1 .. xn) as "ipat"] which conversely resolves [wp (recv c) Q] with
+[c ↣  <?> x .. y, MSG v; {{ P }}; prot] in the context, where the variables
+[x .. y] are introduced as [x1 .. xn], and the predicate [P] is introduces based
+on the pattern [ipat].
+
+- [wp_select with "selpat"] which resolves [wp (select c b) Q] with
+[c ↣  prot1 {Q1}<+>{Q2} prot2] in the context. Here [selpat] is used to
+resolve either [Q1] or [Q2], based on the chosen branch. The resulting
+protocol is similarly [c ↣  prot1] or [c ↣  prot2] based on the chosen
+branch.
+
+- [wp_branch as ipat1 | ipat2] which resolves [wp (branch c e1 e2) Q] with
+[c ↣  prot1 {Q1}<&>{Q2} prot2] in the context. The result is two subgoals,
+in which [Q1] and [Q2] are introduced using [ipat1] and [ipat2], and the
+protocol ownership is [c ↣  prot1] and [c ↣  prot2] respectively. *)
+
 From iris.heap_lang Require Export proofmode notation.
 From iris.proofmode Require Export tactics.
 From actris Require Export proto_channel.
