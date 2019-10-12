@@ -5,6 +5,7 @@ theories/utils/llist.v
 theories/utils/compare.v
 theories/utils/contribution.v
 theories/utils/group.v
+theories/utils/misc.v
 theories/channel/channel.v
 theories/channel/proto_model.v
 theories/channel/proto_channel.v

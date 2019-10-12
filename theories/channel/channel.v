@@ -18,7 +18,7 @@ and [chan_own]:
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.algebra Require Import excl auth list.
-From actris.utils Require Import auth_excl llist.
+From actris.utils Require Import auth_excl llist misc.
 Set Default Proof Using "Type".
 
 Inductive side := Left | Right.
@@ -75,6 +75,7 @@ Proof.
     |apply ectxi_language_sub_redexes_are_values; intros [] **; naive_solver].
 Qed.
 
+
 Section channel.
   Context `{!heapG Σ, !chanG Σ} (N : namespace).
 
@@ -126,9 +127,9 @@ Section channel.
     wp_lam.
     wp_apply (lnil_spec with "[//]"); iIntros (l) "Hl".
     wp_apply (lnil_spec with "[//]"); iIntros (r) "Hr".
-    iMod (own_alloc (● (to_auth_excl [])  ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (lsγ) "[Hls Hls']".
     { by apply auth_both_valid. }
-    iMod (own_alloc (● (to_auth_excl [])  ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
+    iMod (own_alloc (● (to_auth_excl []) ⋅ ◯ (to_auth_excl []))) as (rsγ) "[Hrs Hrs']".
     { by apply auth_both_valid. }
     wp_apply (newlock_spec N (∃ ls rs,
       llist sbi_internal_eq l ls ∗ own lsγ (● to_auth_excl ls) ∗

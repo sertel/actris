@@ -15,8 +15,7 @@ depends on the communicated value V and the dependent tail
 propositions of the logic.
 
 The type is defined as a solution to a recursive domain
-equation, as it is self-referential under the guard of ▶.
-*)
+equation, as it is self-referential under the guard of ▶.*)
 
 From iris.base_logic Require Import base_logic.
 From iris.proofmode Require Import tactics.
