@@ -3,11 +3,15 @@
 It is ultimately defined as:
 [contribution := Auth (Option ((Pos * A) + Excl 1))]
 
-Intuitively it allows one to allocate a [server] and a
-number of [client] fragments, where the server keeps
-track of the number of active clients, and what resources
-they are currently holding.
-*)
+Intuitively it allows one to allocate a [server γ n v] and a
+number of [client γ v] fragments that can each hold resources.
+The intended use is to allocate a client for each thread that
+contributes to a channel endpoint, where the resources [v] are
+things that are currently owned by the thread, that is later
+used in the protocol.
+
+The server keeps track of the number of active clients [n],
+and what resources they are currently holding [v].*)
 From iris.base_logic Require Export base_logic lib.iprop lib.own.
 From iris.proofmode Require Export tactics.
 From iris.algebra Require Import excl auth csum gmultiset frac_auth.
