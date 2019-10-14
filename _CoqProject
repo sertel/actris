@@ -1,5 +1,5 @@
 -Q theories actris
--arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
+-arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files,-convert_concl_no_check,-undeclared-scope,-ambiguous-paths
 theories/utils/auth_excl.v
 theories/utils/llist.v
 theories/utils/compare.v

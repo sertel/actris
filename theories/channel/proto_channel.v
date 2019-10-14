@@ -1,9 +1,9 @@
 (** This file contains an instantiation of the
 Dependent Separation Protocols and an integration with the channel encodings.
 For starters this means fixing the types of messages to the
-value type of the language [val] and the logic to the iris logic [iProp Σ].
+value type of the language [val] and the logic to the Iris logic [iProp Σ].
 
-In doing so we define way of constructing instances of the instantiated type
+In doing so we define ways of constructing instances of the instantiated type
 via two constructors:
 - [iProto_end] which is identical to [proto_end]
 - [iProto_message] which takes an action and a continuation to construct
@@ -17,8 +17,8 @@ iProto_message with an appropriate continuation.
 
 Said continuation ultimately establishes the following:
 - Existential quantification of variables [x .. y].
-- The equivalence [v = w], where [w] is the value that is eventually sent.
-- Ownership of the predicate P
+- The equivalence [v = w], where [w] is the value that is eventually exchanged.
+- Ownership of the predicate [P]
 - A continuation as [prot]
 
 Futhermore type-specific variants of dual and append are provided:
@@ -29,9 +29,9 @@ An encoding of branching behaviour is additionally included, defined
 in terms of sending and receiving boolean flags:
 - [prot1 {Q1}<+>{Q2} prot2] and
 - [prot1 {Q1}<&>{Q2} prot2] which defines ownership of Q1 or Q2, and continues as
-Q1 or Q2, based on the sent or received flag.
+Q1 or Q2, based on the exchanged flag.
 
-The logical connective of protocol ownership are then defined:
+The logical connective of protocol ownership is then defined:
 - [c ↣  prot] which describes that channel endpoint [c] adheres
 to protocol [prot], achieved through Iris invariants and ghost state along
 with the logical connectives of the channel encodings [is_chan] and [chan_own]. 
@@ -88,7 +88,7 @@ Definition iProto_message_aux : seal (@iProto_message_def). by eexists. Qed.
 Definition iProto_message := iProto_message_aux.(unseal).
 Definition iProto_message_eq : @iProto_message = @iProto_message_def := iProto_message_aux.(seal_eq).
 Arguments iProto_message {_ _} _ _%proto.
-Instance: Params (@iProto_message) 3.
+Instance: Params (@iProto_message) 3 := {}.
 
 Notation "< a > x1 .. xn , 'MSG' v {{ P } } ; p" :=
   (iProto_message
@@ -167,11 +167,11 @@ Notation "'END'" := iProto_end : proto_scope.
 Definition iProto_dual {Σ} (p : iProto Σ) : iProto Σ :=
   proto_map action_dual cid cid p.
 Arguments iProto_dual {_} _%proto.
-Instance: Params (@iProto_dual) 1.
+Instance: Params (@iProto_dual) 1 := {}.
 Definition iProto_dual_if {Σ} (d : bool) (p : iProto Σ) : iProto Σ :=
   if d then iProto_dual p else p.
 Arguments iProto_dual_if {_} _ _%proto.
-Instance: Params (@iProto_dual_if) 2.
+Instance: Params (@iProto_dual_if) 2 := {}.
 
 (** Branching *)
 Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
@@ -179,7 +179,7 @@ Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
   (<a> (b : bool), MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
 Typeclasses Opaque iProto_branch.
 Arguments iProto_branch {_} _ _%I _%I _%proto _%proto.
-Instance: Params (@iProto_branch) 2.
+Instance: Params (@iProto_branch) 2 := {}.
 Infix "<{ P1 }+{ P2 }>" := (iProto_branch Send P1 P2) (at level 85) : proto_scope.
 Infix "<{ P1 }&{ P2 }>" := (iProto_branch Receive P1 P2) (at level 85) : proto_scope.
 Infix "<+{ P2 }>" := (iProto_branch Send True P2) (at level 85) : proto_scope.
@@ -192,7 +192,7 @@ Infix "<&>" := (iProto_branch Receive True True) (at level 85) : proto_scope.
 (** Append *)
 Definition iProto_app {Σ} (p1 p2 : iProto Σ) : iProto Σ := proto_app p1 p2.
 Arguments iProto_app {_} _%proto _%proto.
-Instance: Params (@iProto_app) 1.
+Instance: Params (@iProto_app) 1 := {}.
 Infix "<++>" := iProto_app (at level 60) : proto_scope.
 
 (** Auxiliary definitions and invariants *)

@@ -4,7 +4,7 @@ and map and the necessary typeclass instances.
 
 They are designed with inspiration from Session Types, mimicking
 their constructors !T.st, ?T.st and END, respectively representing
-sending and receiving messages of type T or termination.
+sending and receiving messages of type T and termination.
 The main difference is that the protocols are defined over predicates,
 in place of types.
 
@@ -22,20 +22,19 @@ The remainder (V → (▶ [proto] → PROP) → PROP)) is a continuation that
 depends on the communicated value V and the dependent tail (▶ proto → PROP)
 from protocols guarded under laters to the propositions of the logic.
 
-The constructors of the protocol are then:
+The constructors of the protocol are:
 - [proto_end] which constructs the left-side of the sum.
 - [proto_msg] which takes an action and a continuation and constructs the
 right-hand side of the sum accodingly.
 
 The type is defined as a solution to a recursive domain
-equation, as it is self-referential under the guard of ▶.
+equation, as it is self-referential under the guard of [▶ ].
 
 The available functions on [proto] are:
-- [proto_map] which can be used to map the actions, the propositions of
+- [proto_map] which can be used to map the actions and the propositions of
 a given protocol.
 - [proto_app] which appends two protocols [p1] and [p2], by substituting
- all terminations in [p1] with [p2].
-*)
+ all terminations in [p1] with [p2].*)
 
 From iris.base_logic Require Import base_logic.
 From iris.proofmode Require Import tactics.
@@ -149,7 +148,7 @@ Definition proto_app_flipped {V} `{!Cofe PROPn, !Cofe PROP}
   fixpoint (proto_app_flipped_aux p2).
 Definition proto_app {V} `{!Cofe PROPn, !Cofe PROP}
   (p1 p2 : proto V PROPn PROP) : proto V PROPn PROP := proto_app_flipped p2 p1.
-Instance: Params (@proto_app) 5.
+Instance: Params (@proto_app) 5 := {}.
 
 Lemma proto_app_flipped_unfold {V} `{!Cofe PROPn, !Cofe PROP} (p1 p2 : proto V PROPn PROP):
   proto_app_flipped p2 p1 ≡ proto_app_flipped_aux p2 (proto_app_flipped p2) p1.

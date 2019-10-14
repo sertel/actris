@@ -24,7 +24,7 @@ Proof. solve_inG. Qed.
 
 Definition to_auth_excl {A : ofeT} (a : A) : option (excl A) :=
   Excl' a.
-Instance: Params (@to_auth_excl) 1.
+Instance: Params (@to_auth_excl) 1 := {}.
 
 Section auth_excl_ofe.
   Context {A : ofeT}.
