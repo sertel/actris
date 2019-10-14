@@ -17,8 +17,9 @@ and [chan_own]:
   [s] ([Left] or [Right]) has contents [vs]. *)
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
+From iris.heap_lang Require Import lifting.
 From iris.algebra Require Import excl auth list.
-From actris.utils Require Import auth_excl llist misc.
+From actris.utils Require Import auth_excl llist.
 Set Default Proof Using "Type".
 
 Inductive side := Left | Right.
