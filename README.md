@@ -31,10 +31,10 @@ correspond to the following parts of the paper:
   + `new_chan_proto_spec`: proof rule for `new_chan`.
   + `send_proto_spec` and `send_proto_spec_packed`: proof rules for `send`, the
     first version is more convenient to use in Coq, but otherwise the same as
-    `send_proto_spec_packed`, which is the rule in the paper.
+    the latter, which is the rule in the paper.
   + `recv_proto_spec` and `recv_proto_spec_packed`: proof rules for `recv`, the
     first version is more convenient to use in Coq, but otherwise the same as
-    `recv_proto_spec_packed`, which is the rule in the paper.
+    the latter, which is the rule in the paper.
   + `select_spec`: proof rule for `select`.
   + `branch_spec`: proof rule for `branch`.
 
