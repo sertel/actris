@@ -111,17 +111,20 @@ mechanization in Coq:
 There are a number of small differences between the paper presentation
 of Actris and the formalization in Coq, that are briefly discussed here.
 
-- **Connectives for physical ownership of channels**  
+- **Connectives for physical ownership of channels**
+
   In the paper, physical ownership of a channel is formalized using a single
   connective `(c1,c2) ↣ (vs1,vs2)`, while the mechanization has two connectives
   for the endpoints and one for connecting them, namely:
   - `chan_own γ Left vs1` and `chan_own γ Right vs1`
   - `is_chan N γ c1 c2`
+  
   Here, `γ` is a ghost name and `N` an invariant name. This setup is less
   intuitive but gives rise to a more practical Jacobs/Piessens-style spec of
   `recv` that does not need a closing view shift (to handle the case that the
   buffer is empty).
-- **Later modalities in primitive rules for channels**  
+- **Later modalities in primitive rules for channels**
+
   The primitive rules for `send` and `recv` (`send_spec` and `recv_spec` in
   [theories/channel/channel.v](theories/channel/channel.v)) contain three later
   (`▷`) modalities, which are omitted for brevity's sake in the paper. These
