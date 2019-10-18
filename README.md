@@ -111,6 +111,10 @@ mechanization in Coq:
 There are a number of small differences between the paper presentation
 of Actris and the formalization in Coq, that are briefly discussed here.
 
+- **Weakest preconditions versus Hoare triples**
+
+  See the section "Weakest preconditions and Coq tactics" above.
+  
 - **Connectives for physical ownership of channels**
 
   In the paper, physical ownership of a channel is formalized using a single
@@ -123,6 +127,7 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   intuitive but gives rise to a more practical Jacobs/Piessens-style spec of
   `recv` that does not need a closing view shift (to handle the case that the
   buffer is empty).
+
 - **Later modalities in primitive rules for channels**
 
   The primitive rules for `send` and `recv` (`send_spec` and `recv_spec` in
