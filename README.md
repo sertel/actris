@@ -82,13 +82,13 @@ Actris tactics are as follows:
 
 The above tactics implicitly perform normalization of the protocol `prot` in
 the hypothesis `H : c ↣ prot`. For example, `wp_send` also works if there is a
-with protocol the `iProto_dual ((<?> y1 .. yn, MSG v; {{ P }}; END) <++> prot)`.
+channel with the protocol `iProto_dual ((<?> y1 .. yn, MSG v; {{ P }}; END) <++> prot)`.
 Concretely, the normalization performs the following actions:
 
 - It re-associates appends (`<++>`), and removes left-identities (`END`) of it.
 - It moves appends (`<++>`) into sends (`<!>`), receives (`<?>`), selections
   (`<+>`) and branches (`<&>`).
-- It distributed duals (`iProto_dual`) over append (`<++>`).
+- It distributes duals (`iProto_dual`) over append (`<++>`).
 - It unfolds `prot1` into `prot2` if there is an instance of the type class
   `ProtoUnfold prot1 prot2`. When defining a recursive protocol, it is
   useful to define a `ProtoUnfold` instance to obtain automatic unfolding
