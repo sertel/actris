@@ -1,18 +1,18 @@
-(** This file implements a map-reduce program,
-a specification thereof and its proofs. *)
+(** This file implements a simple distributed map-reduce function, a
+specification thereof, and its proofs. *)
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
 From actris.utils Require Import llist compare contribution group.
 From actris.examples Require Import map sort_fg.
 From iris.algebra Require Import gmultiset.
 
-(** Functional version of map reduce (aka the specification) *)
+(** * Functional version of map reduce (aka the specification) *)
 Definition map_reduce {A B C} `{EqDecision K}
     (map : A → list (K * B)) (red : K → list B → list C) : list A → list C :=
   mbind (curry red) ∘ group ∘ mbind map.
 Instance: Params (@map_reduce) 7 := {}.
 
-(** Distributed version *)
+(** * Distributed version (aka the implementation) *)
 Definition par_map_reduce_map : val :=
   rec: "go" "n" "cmap" "csort" "xs" :=
     if: "n" = #0 then #() else
@@ -72,7 +72,7 @@ Definition par_map_reduce : val := λ: "n" "m" "map" "red" "xs",
   par_map_reduce_reduce "m" "csort" "cred" (SOME "jy") "xs".
 
 
-(** Properties about the functional version *)
+(** * Properties about the functional version *)
 Section map_reduce.
   Context {A B C} `{EqDecision K} (map : A → list (K * B)) (red : K → list B → list C).
   Context `{!∀ j, Proper ((≡ₚ) ==> (≡ₚ)) (red j)}.
@@ -89,7 +89,7 @@ Section map_reduce.
   Proof. intros xs1 xs2 Hxs. by rewrite /map_reduce /= Hxs. Qed.
 End map_reduce.
 
-(** Correctness proofs of the distributed version *)
+(** * Correctness proofs of the distributed version *)
 Class map_reduceG Σ A B `{Countable A, Countable B} := {
   map_reduce_mapG :> mapG Σ A;
   map_reduce_reduceG :> mapG Σ (Z * list B);

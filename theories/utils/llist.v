@@ -1,9 +1,10 @@
-(** This file defines an encoding of lists in the [heap_lang]
-language, along with common functions such as append and split. *)
+(** This file defines a separation logic representation predicates [llist] for
+mutable linked-lists. It comes with a small library of operations (head, pop,
+lookup, length, append, prepend, snoc, split). *)
 From iris.heap_lang Require Export proofmode notation.
 From iris.heap_lang Require Import assert.
 
-(** Immutable ML-style functional lists *)
+(**  *)
 Fixpoint llist `{heapG Σ} {A} (I : A → val → iProp Σ)
     (l : loc) (xs : list A) : iProp Σ :=
   match xs with

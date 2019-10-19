@@ -1,5 +1,12 @@
-(** This file implements a looping distributed Merge Sort,
-a specification thereof and its proofs. *)
+(** This file provides three wrappers around the distributed version of merge
+sort, demonstrating Actris's support for delegation and branching:
+
+- [sort_service_br]: a service that allows one to sort a series of lists in 
+  sequence. 
+- [sort_service_del]: a service that allows one to sort a series of lists in
+  parallel by delegating a sort service for a single list to a new channel.
+- [sort_service_br_del]: a service that allows one to sort a series of list by
+  forking itself. *)
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.

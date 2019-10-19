@@ -1,17 +1,20 @@
-(** This file defines a ghost functor for tracking
-"contributions" made to a shared concurrent effort.
-It is ultimately defined as:
-[contribution := Auth (Option ((Pos * A) + Excl 1))]
+(** This file defines the "authoritative contribution ghost theory" for tracking
+contributions made by clients towards a shared concurrent effort. Compared to
+the paper, the construction is defined over a user-given carrier camera [A],
+instead of multisets.
 
-Intuitively it allows one to allocate a [server γ n v] and a
-number of [client γ v] fragments that can each hold resources.
-The intended use is to allocate a client for each thread that
-contributes to a channel endpoint, where the resources [v] are
-things that are currently owned by the thread, that is later
-used in the protocol.
+This ghost theory construction exposes two connectives:
 
-The server keeps track of the number of active clients [n],
-and what resources they are currently holding [v].*)
+- [server γ n v]: keeps track of the number of active clients [n] and the total
+  amount of resources hold by all clients [x : A].
+- [client γ x]: keeps track of the resources [x : A] hold by a single client.
+
+The intended use case is to allocate a [client] for each thread that contributes
+to a channel endpoint, where the resources [x] are owned by the thread, that is
+later used in the protocol.
+
+To model this ghost theory construction, we use the camera
+[auth (option (csum (positive * A) (excl unit)))]. *)
 From iris.base_logic Require Export base_logic lib.iprop lib.own.
 From iris.proofmode Require Export tactics.
 From iris.algebra Require Import excl auth csum gmultiset frac_auth.

@@ -1,44 +1,18 @@
-(** This file contains tactics for the message-passing connectives,
-as well as the necessary typeclasses.
-This includes a way of reducing protocols to a normal form, to prepare
-them for use in the appropriate specifications.
-This normalisation includes e.g. resolving duals.
+(** This file contains the definitions of Actris's tactics for symbolic
+execution of message-passing programs. The API of these tactics is documented
+in the [README.md] file. The implementation follows the same pattern for the
+implementation of these tactics that is used in Iris. In addition, it uses a
+standard pattern using type classes to perform the normalization.
 
-The tactics are:
-- [wp_send (x1 .. xn) with "selpat"] which resolves weakest preconditions of the
-form [wp (send c v) Q], in the presence of an ownership of a send protocol
-[c ↣  <!> x .. y, MSG v; {{ P }}; prot] in the context. That is done by using
-[x1 .. xn] to existentially quantify the variables [x .. y], and "ipat" to
-resolve the predicate [P]. The result is continuing as [Q],
-with [c ↣  prot] in the context.
-
-- [wp_recv (x1 .. xn) as "ipat"] which conversely resolves [wp (recv c) Q] with
-[c ↣  <?> x .. y, MSG v; {{ P }}; prot] in the context, where the variables
-[x .. y] are introduced as [x1 .. xn], and the predicate [P] is introduces based
-on the pattern [ipat].
-
-- [wp_select with "selpat"] which resolves [wp (select c b) Q] with
-[c ↣  prot1 {Q1}<+>{Q2} prot2] in the context. Here [selpat] is used to
-resolve either [Q1] or [Q2], based on the chosen branch. The resulting
-protocol is similarly [c ↣  prot1] or [c ↣  prot2] based on the chosen
-branch.
-
-- [wp_branch as ipat1 | ipat2] which resolves [wp (branch c e1 e2) Q] with
-[c ↣  prot1 {Q1}<&>{Q2} prot2] in the context. The result is two subgoals,
-in which [Q1] and [Q2] are introduced using [ipat1] and [ipat2], and the
-protocol ownership is [c ↣  prot1] and [c ↣  prot2] respectively. *)
-
+In addition to the tactics for symbolic execution, this file defines the tactic
+[solve_proto_contractive], which can be used to automatically prove that
+recursive protocols are contractive. *)
 From iris.heap_lang Require Export proofmode notation.
 From iris.proofmode Require Export tactics.
 From actris Require Export proto_channel.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 
-(** Classes *)
-Class ActionDualIf (d : bool) (a1 a2 : action) :=
-  dual_action_if : a2 = if d then action_dual a1 else a1.
-Hint Mode ActionDualIf ! ! - : typeclass_instances.
-
-(** Tactics for proving contractiveness of protocols *)
+(** * Tactics for proving contractiveness of protocols *)
 Ltac f_proto_contractive :=
   match goal with
   | _ => apply iProto_branch_contractive
@@ -53,7 +27,11 @@ Ltac f_proto_contractive :=
 Ltac solve_proto_contractive :=
   solve_proper_core ltac:(fun _ => first [f_contractive | f_proto_contractive | f_equiv]).
 
-(** Normalization of protocols *)
+(** * Normalization of protocols *)
+Class ActionDualIf (d : bool) (a1 a2 : action) :=
+  dual_action_if : a2 = if d then action_dual a1 else a1.
+Hint Mode ActionDualIf ! ! - : typeclass_instances.
+
 Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
 Instance action_dual_if_true_send : ActionDualIf true Send Receive := eq_refl.
 Instance action_dual_if_true_receive : ActionDualIf true Receive Send := eq_refl.
@@ -82,7 +60,6 @@ Section classes.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
-  (** Classes *)
   Lemma proto_unfold_eq p1 p2 : p1 ≡ p2 → ProtoUnfold p1 p2.
   Proof. rewrite /ProtoNormalize=> Hp d pas q ->. by rewrite Hp. Qed.
 
@@ -166,7 +143,8 @@ Section classes.
     destruct d; by rewrite /= -?iProto_app_branch -?iProto_dual_branch.
   Qed.
 
-  (** Automatically perform normalization of protocols in the proof mode *)
+  (** Automatically perform normalization of protocols in the proof mode when
+  using [iAssumption] and [iFrame]. *)
   Global Instance mapsto_proto_from_assumption q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
     FromAssumption q (c ↣ p1) (c ↣ p2).
@@ -183,8 +161,8 @@ Section classes.
   Qed.
 End classes.
 
-(** Symbolic execution tactics *)
-(* TODO: strip laters *)
+(** * Symbolic execution tactics *)
+(* TODO: Maybe strip laters from other hypotheses in the future? *)
 Lemma tac_wp_recv `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ i j K
     c p (pc : TT → val * iProp Σ * iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →

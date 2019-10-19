@@ -1,5 +1,5 @@
-(** This file provides utility for grouping elements
-based on keys. *)
+(** This file provides utility functions for grouping association lists based on
+their keys, as well as basic theorems about them. *)
 From stdpp Require Export prelude.
 From Coq Require Export SetoidPermutation.
 

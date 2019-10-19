@@ -1,7 +1,10 @@
-(** This file implements a distributed Merge Sort,
-a specification thereof and its proofs, including
-a variant in which the comparison function is sent
-over the channel. *)
+(** This file implements a distributed version of merge sort, a specification
+thereof, and its proofs. There are two variants:
+
+- [sort_service]: a service that takes both a comparison function and a channel
+  as its arguments.
+- [sort_service_func]: a service that only takes a channel as its argument. The
+  comparison function is sent over the channel. *)
 From stdpp Require Import sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.

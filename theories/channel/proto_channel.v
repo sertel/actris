@@ -1,44 +1,43 @@
-(** This file contains an instantiation of the
-Dependent Separation Protocols and an integration with the channel encodings.
-For starters this means fixing the types of messages to the
-value type of the language [val] and the logic to the Iris logic [iProp Σ].
+(** This file defines the core of the Actris logic:
+
+- It defines dependent separation protocols and the various operations on it
+  dual, append, branching
+- It defines the connective [c ↣ prot] for ownership of channel endpoints.
+- It proves Actris's specifications of [send] and [receive] w.r.t. dependent
+  separation protocols.
+
+Dependent separation protocols are defined by instanting the parametrized
+version in [proto_model] with type of values [val] of HeapLang and the
+propositions [iProp] of Iris.
 
 In doing so we define ways of constructing instances of the instantiated type
 via two constructors:
-- [iProto_end] which is identical to [proto_end]
-- [iProto_message] which takes an action and a continuation to construct
-the corresponding message protocols.
+- [iProto_end], which is identical to [proto_end].
+- [iProto_message], which takes an action and a continuation to construct
+  the corresponding message protocols.
 
-For convenience sake the following notation is provided:
-- [END] which is simply [iProto_end]
-- [<!> x .. y, MSG v; {{ P }}; prot] and
-- [<?> x .. y, MSG v; {{ P }}; prot] which constructs an instance of
-iProto_message with an appropriate continuation.
+For convenience sake, we provide the following notations:
+- [END], which is simply [iProto_end].
+- [<!> x1 .. xn, MSG v; {{ P }}; prot] and [<?> x1 .. xn, MSG v; {{ P }}; prot],
+  which construct an instance of [iProto_message] with the appropriate
+  continuation.
 
-Said continuation ultimately establishes the following:
-- Existential quantification of variables [x .. y].
-- The equivalence [v = w], where [w] is the value that is eventually exchanged.
-- Ownership of the predicate [P]
-- A continuation as [prot]
+Futhermore, we define the following operations:
+- [iProto_dual], which turns all [Send] of a protocol into [Recv] and vice-versa
+- [iProto_app], which appends two protocols as described in proto_model.v
 
-Futhermore type-specific variants of dual and append are provided:
-- [iProto_dual] which turns all [Send] of a protocol into [Recv] and vice-versa
-- [iProto_app] which appends two protocols as described in proto_model.v
+An encoding of the usual branching connectives [prot1 {Q1}<+>{Q2} prot2] and
+[prot1 {Q1}<&>{Q2} prot2], inspired by session types, is also included in this
+file.
 
-An encoding of branching behaviour is additionally included, defined
-in terms of sending and receiving boolean flags:
-- [prot1 {Q1}<+>{Q2} prot2] and
-- [prot1 {Q1}<&>{Q2} prot2] which defines ownership of Q1 or Q2, and continues as
-Q1 or Q2, based on the exchanged flag.
+The logical connective for protocol ownership is denoted as [c ↣ prot]. It
+describes that channel endpoint [c] adheres to protocol [prot]. This connective
+is modeled using Iris invariants and ghost state along with the logical
+connectives of the channel encodings [is_chan] and [chan_own].
 
-The logical connective of protocol ownership is then defined:
-- [c ↣  prot] which describes that channel endpoint [c] adheres
-to protocol [prot], achieved through Iris invariants and ghost state along
-with the logical connectives of the channel encodings [is_chan] and [chan_own]. 
-
-Lastly, relevant typeclasses are defined for each of the above notions,
-such as contractiveness and non-expansiveness, after which the specifications
-of the message-passing primitives are defined in terms of the protocol connectives.*)
+Lastly, relevant typeclasses are defined for each of the above notions, such as
+contractiveness and non-expansiveness, after which the specifications of the
+message-passing primitives are defined in terms of the protocol connectives. *)
 From actris.channel Require Export channel.
 From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.
@@ -51,7 +50,7 @@ Definition start_chan : val := λ: "f",
   let: "cc" := new_chan #() in
   Fork ("f" (Snd "cc"));; Fst "cc".
 
-(** Camera setup *)
+(** * Setup of Iris's cameras *)
 Class proto_chanG Σ := {
   proto_chanG_chanG :> chanG Σ;
   proto_chanG_authG :> auth_exclG (laterO (proto val (iPrePropO Σ) (iPrePropO Σ))) Σ;
@@ -64,12 +63,12 @@ Definition proto_chanΣ := #[
 Instance subG_chanΣ {Σ} : subG proto_chanΣ Σ → proto_chanG Σ.
 Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
 
-(** Types *)
+(** * Types *)
 Definition iProto Σ := proto val (iPropO Σ) (iPropO Σ).
 Delimit Scope proto_scope with proto.
 Bind Scope proto_scope with iProto.
 
-(** Operators *)
+(** * Operators *)
 Definition iProto_end_def {Σ} : iProto Σ := proto_end.
 Definition iProto_end_aux : seal (@iProto_end_def). by eexists. Qed.
 Definition iProto_end := iProto_end_aux.(unseal).
@@ -79,7 +78,7 @@ Arguments iProto_end {_}.
 Program Definition iProto_message_def {Σ} {TT : tele} (a : action)
     (pc : TT → val * iProp Σ * iProto Σ) : iProto Σ :=
   proto_message a (λ v, λne f, ∃ x : TT,
-    (* Need the laters to make [iProto_message] contractive *)
+    (** We need the later to make [iProto_message] contractive *)
     ⌜ v = (pc x).1.1 ⌝ ∗
     ▷ (pc x).1.2 ∗
     f (Next (pc x).2))%I.
@@ -163,7 +162,7 @@ Notation "<?> 'MSG' v ; p" :=
 
 Notation "'END'" := iProto_end : proto_scope.
 
-(** Dual *)
+(** * Operations *)
 Definition iProto_dual {Σ} (p : iProto Σ) : iProto Σ :=
   proto_map action_dual cid cid p.
 Arguments iProto_dual {_} _%proto.
@@ -173,7 +172,6 @@ Definition iProto_dual_if {Σ} (d : bool) (p : iProto Σ) : iProto Σ :=
 Arguments iProto_dual_if {_} _ _%proto.
 Instance: Params (@iProto_dual_if) 2 := {}.
 
-(** Branching *)
 Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
   (<a> (b : bool), MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
@@ -189,13 +187,12 @@ Infix "<{ P1 }&>" := (iProto_branch Receive P1 True) (at level 85) : proto_scope
 Infix "<+>" := (iProto_branch Send True True) (at level 85) : proto_scope.
 Infix "<&>" := (iProto_branch Receive True True) (at level 85) : proto_scope.
 
-(** Append *)
 Definition iProto_app {Σ} (p1 p2 : iProto Σ) : iProto Σ := proto_app p1 p2.
 Arguments iProto_app {_} _%proto _%proto.
 Instance: Params (@iProto_app) 1 := {}.
 Infix "<++>" := iProto_app (at level 60) : proto_scope.
 
-(** Auxiliary definitions and invariants *)
+(** * Auxiliary definitions and invariants *)
 Fixpoint proto_interp `{!proto_chanG Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   match vs with
   | [] => p1 ≡ iProto_dual p2
@@ -234,6 +231,7 @@ Definition proto_inv `{!proto_chanG Σ} (γ : proto_name) : iProp Σ :=
 
 Definition protoN := nroot .@ "proto".
 
+(** * The connective for ownership of channel ends *)
 Definition mapsto_proto_def `{!proto_chanG Σ, !heapG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   (∃ s (c1 c2 : val) γ,
@@ -248,12 +246,13 @@ Instance: Params (@mapsto_proto) 4 := {}.
 Notation "c ↣ p" := (mapsto_proto c p)
   (at level 20, format "c  ↣  p").
 
+(** * Proofs *)
 Section proto.
   Context `{!proto_chanG Σ, !heapG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
-  (** Non-expansiveness of operators *)
+  (** ** Non-expansiveness of operators *)
   Lemma iProto_message_contractive {TT} a
       (pc1 pc2 : TT → val * iProp Σ * iProto Σ) n :
     (∀.. x, (pc1 x).1.1 = (pc2 x).1.1) →
@@ -307,7 +306,7 @@ Section proto.
     by apply iProto_message_proper=> /= -[].
   Qed.
 
-  (** Dual *)
+  (** ** Dual *)
   Global Instance iProto_dual_ne : NonExpansive (@iProto_dual Σ).
   Proof. solve_proper. Qed.
   Global Instance iProto_dual_proper : Proper ((≡) ==> (≡)) (@iProto_dual Σ).
@@ -341,7 +340,7 @@ Section proto.
     by apply iProto_message_proper=> /= -[].
   Qed.
 
-  (** Append *)
+  (** ** Append *)
   Global Instance iProto_app_ne : NonExpansive2 (@iProto_app Σ).
   Proof. apply _. Qed.
   Global Instance iProto_app_proper : Proper ((≡) ==> (≡) ==> (≡)) (@iProto_app Σ).
@@ -377,7 +376,7 @@ Section proto.
     iProto_dual (p1 <++> p2) ≡ (iProto_dual p1 <++> iProto_dual p2)%proto.
   Proof. by rewrite /iProto_dual /iProto_app proto_map_app. Qed.
 
-  (** Auxiliary definitions and invariants *)
+  (** ** Auxiliary definitions and invariants *)
   Global Instance proto_interp_ne : NonExpansive2 (proto_interp vs).
   Proof. induction vs; solve_proper. Qed.
   Global Instance proto_interp_proper vs : Proper ((≡) ==> (≡) ==> (≡)) (proto_interp vs).
@@ -457,7 +456,7 @@ Section proto.
 
   Arguments proto_interp : simpl never.
 
-  (** The actual specs *)
+  (** ** Initialization of a channel *)
   Lemma proto_init E cγ c1 c2 p :
     is_chan protoN cγ c1 c2 -∗
     chan_own cγ Left [] -∗ chan_own cγ Right [] ={E}=∗
@@ -478,7 +477,7 @@ Section proto.
     - iExists Right, c1, c2, pγ; iFrame; auto.
   Qed.
 
-  (** Accessor style lemmas *)
+  (** ** Accessor style lemmas *)
   Lemma proto_send_acc {TT} E c (pc : TT → val * iProp Σ * iProto Σ) :
     ↑protoN ⊆ E →
     c ↣ iProto_message Send pc -∗ ∃ s c1 c2 γ,
@@ -611,7 +610,7 @@ Section proto.
         iExists x. iFrame "Hv HP". by iRewrite "Hq".
   Qed.
 
-  (** Specifications of send and receive *)
+  (** ** Specifications of [send] and [receive] *)
   Lemma new_chan_proto_spec :
     {{{ True }}}
       new_chan #()
@@ -648,6 +647,8 @@ Section proto.
     iMod ("H" $! x with "Hf Hvs"); auto.
   Qed.
 
+  (** A version written without Texan triples that is more convenient to use
+  (via [iApply] in Coq. *)
   Lemma send_proto_spec {TT} Ψ c v (pc : TT → val * iProp Σ * iProto Σ) :
     c ↣ iProto_message Send pc -∗
     (∃.. x : TT,
@@ -688,6 +689,8 @@ Section proto.
     iDestruct "H" as (x ->) "H". by iApply "HΨ".
   Qed.
 
+  (** A version written without Texan triples that is more convenient to use
+  (via [iApply] in Coq. *)
   Lemma recv_proto_spec {TT} Ψ c (pc : TT → val * iProp Σ * iProto Σ) :
     c ↣ iProto_message Receive pc -∗
     ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Ψ (pc x).1.1) -∗
@@ -698,7 +701,7 @@ Section proto.
     iApply ("H" with "[$] [$]").
   Qed.
 
-  (** Branching *)
+  (** ** Specifications for branching *)
   Lemma select_spec c (b : bool) P1 P2 p1 p2 :
     {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}}
       send c #b

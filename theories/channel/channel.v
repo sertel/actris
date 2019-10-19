@@ -1,5 +1,9 @@
 (** This file contains the definition of the channels, encoded as a pair of
-lock-protected buffers, on which we define the three message-passing primitives:
+lock-protected buffers, and their primitive proof rules. Actris's proof rules
+for channels in terms of dependent separation protocols can be found in the file
+[theories/channel/proto_channel.v].
+
+In this file we define the three message-passing connectives:
 
 - [new_chan] creates references to two empty buffers and a lock, and returns a
   pair of endpoints, where the order of the two references determines the
@@ -8,13 +12,18 @@ lock-protected buffers, on which we define the three message-passing primitives:
 - [recv] performs a busy loop until there is something in the second buffer,
   which it pops and returns, locking during each peek.
 
-The specifications are defined in terms of the logical connectives [is_chan]
-and [chan_own]:
+The logically-atomic basic (i.e. non dependent separation protocol)
+proof rules [new_chan_spec], [send_spec] and [recv_spec] are defined in terms
+of the logical connectives [is_chan] and [chan_own]:
 
 - [is_chan γ v1 v2] is a persistent proposition expressing that [v1] and [v2]
   are the endpoints of a channel with logical name [γ].
 - [chan_own γ s vs] is an exclusive proposition expressing the buffer of side
-  [s] ([Left] or [Right]) has contents [vs]. *)
+  [s] ([Left] or [Right]) has contents [vs].
+
+Note that the specifications include 3 laters [▷] to account for the three
+levels of indirection due to step-indexing in the model of dependent separation
+protocols. *)
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From iris.heap_lang Require Import lifting.
@@ -27,7 +36,7 @@ Instance side_inhabited : Inhabited side := populate Left.
 Definition side_elim {A} (s : side) (l r : A) : A :=
   match s with Left => l | Right => r end.
 
-(** Message-Passing Primitives *)
+(** * The definition of the message-passing connectives *)
 Definition new_chan : val :=
   λ: <>,
      let: "l" := lnil #() in
@@ -58,7 +67,7 @@ Definition recv : val :=
     | NONE => "go" "c"
     end.
 
-(** Channel ghost functor *)
+(** * Setup of Iris's cameras *)
 Class chanG Σ := {
   chanG_lockG :> lockG Σ;
   chanG_authG :> auth_exclG (listO valO) Σ;
@@ -77,7 +86,7 @@ Section channel.
     chan_r_name : gname
   }.
 
-  (** The invariant of channels *)
+  (** * The logical connectives *)
   Definition chan_inv (γ : chan_name) (l r : loc) : iProp Σ :=
     (∃ ls rs,
       llist sbi_internal_eq l ls ∗ own (chan_l_name γ) (● to_auth_excl ls) ∗
@@ -103,10 +112,10 @@ Section channel.
     iSplit; iDestruct 1 as (ls rs) "(?&?&?&?)"; iExists rs, ls; iFrame.
   Qed.
 
-  (** The ownership of channels *)
   Definition chan_own (γ : chan_name) (s : side) (vs : list val) : iProp Σ :=
     own (side_elim s chan_l_name chan_r_name γ) (◯ to_auth_excl vs)%I.
 
+  (** * The proof rules *)
   Global Instance chan_own_timeless γ s vs : Timeless (chan_own γ s vs).
   Proof. by apply _. Qed.
 
@@ -208,5 +217,4 @@ Section channel.
       iIntros "!> !>" (v vs' ->) "Hvs".
       iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !> !>". by wp_pures.
   Qed.
-
 End channel.

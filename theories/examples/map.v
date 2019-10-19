@@ -1,10 +1,11 @@
-(** This file implements a distributed map service,
-a specification thereof and its proofs. *)
+(** This file implements a distributed mapper service, a specification thereof,
+and its proofs. *)
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation lib.spin_lock.
 From actris.utils Require Import llist contribution.
 From iris.algebra Require Import gmultiset.
 
+(** * Distributed version (aka the implementation) *)
 Definition par_map_worker : val :=
   rec: "go" "map" "l" "c" :=
     acquire "l";;
@@ -51,6 +52,7 @@ Definition par_map_client : val := λ: "n" "map" "xs",
   par_map_client_loop "n" "c" "xs" "ys";;
   lapp "xs" "ys".
 
+(** * Correctness proofs of the distributed version *)
 Class mapG Σ A `{Countable A} := {
   map_contributionG :> contributionG Σ (gmultisetUR A);
   map_lockG :> lockG Σ;

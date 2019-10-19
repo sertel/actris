@@ -1,41 +1,44 @@
-(** This file defines the model of Dependent Separation Protocols,
-along with various operations on the connective, such as append
-and map and the necessary typeclass instances.
+(** This file defines the model of dependent separation protocols, along with
+various operations on the connective, such as append and map.
 
-They are designed with inspiration from Session Types, mimicking
-their constructors !T.st, ?T.st and END, respectively representing
-sending and receiving messages of type T and termination.
-The main difference is that the protocols are defined over predicates,
-in place of types.
+Important: This file should not be used directly, but rather the wrappers in
+[proto_channel] should be used.
 
-Dependent Separation Protocols are modelled as the following type:
-- [proto := 1 + (action * (V → (▶ proto → PROP) → PROP))]
+Dependent separation protocols are designed with inspiration from session types,
+mimicking their constructors [!T.st], [?T.st] and [END], respectively,
+representing sending and receiving messages of type [T] and termination. The
+main difference is that the dependent separation protocols are defined over
+separation logic propositions, instead of types.
 
-Here the left-hand side of the sum is used for the terminated process,
-while the right-hand side is used for the communication constructors.
-[action] is an inductively defined datatype with two constructors,
-that is used to differentiate between sending and received, rather than
-having two distinct sums in [proto].
-- [action := Send | Receive]
+Dependent Separation Protocols are modeled as the following type:
 
-The remainder (V → (▶ [proto] → PROP) → PROP)) is a continuation that
-depends on the communicated value V and the dependent tail (▶ proto → PROP)
-from protocols guarded under laters to the propositions of the logic.
+[proto := 1 + (action * (V → (▶ proto → PROP) → PROP))]
 
-The constructors of the protocol are:
-- [proto_end] which constructs the left-side of the sum.
-- [proto_msg] which takes an action and a continuation and constructs the
-right-hand side of the sum accodingly.
+Here, the left-hand side of the sum is used for the terminated process, while
+the right-hand side is used for the communication constructors. The type
+[action] is an inductively defined datatype with two constructors [Send] and
+[Receive]. Compared to having an additional sum in [proto], this makes it
+possible to factorize the code in a better way.
 
-The type is defined as a solution to a recursive domain
-equation, as it is self-referential under the guard of [▶ ].
+The remainder [V → (▶ [proto] → PROP) → PROP)] is a continuation that depends
+on the communicated value [V] and the dependent tail [▶ proto → PROP] from
+protocols guarded under laters to the propositions of the logic.
 
-The available functions on [proto] are:
-- [proto_map] which can be used to map the actions and the propositions of
-a given protocol.
-- [proto_app] which appends two protocols [p1] and [p2], by substituting
- all terminations in [p1] with [p2].*)
+The type [proto] is defined as a solution to a recursive domain equation, as
+it is self-referential under the guard of [▶].
 
+On top of the type [proto], we define the constructors:
+
+- [proto_end], which constructs the left-side of the sum.
+- [proto_msg], which takes an action and a continuation and constructs the
+  right-hand side of the sum accodingly.
+
+The defined functions on the type [proto] are:
+
+- [proto_map], which can be used to map the actions and the propositions of
+  a given protocol.
+- [proto_app], which appends two protocols [p1] and [p2], by substituting
+  all terminations [END] in [p1] with [p2]. *)
 From iris.base_logic Require Import base_logic.
 From iris.proofmode Require Import tactics.
 From iris.algebra Require Import cofe_solver.

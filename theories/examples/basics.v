@@ -1,6 +1,5 @@
-(** This file includes basic examples that each
-encapsulate a feature of the Dependent Separation Protocols.
-*)
+(** This file includes basic examples that each describe a unique feature of 
+dependent separation protocols. *)
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation lib.spin_lock.
 From actris.utils Require Import contribution.
@@ -10,12 +9,12 @@ Definition prog1 : val := λ: <>,
   let: "c" := start_chan (λ: "c'", send "c'" #42) in
   recv "c".
 
-(** References *)
+(** Tranfering References *)
 Definition prog2 : val := λ: <>,
   let: "c" := start_chan (λ: "c'", send "c'" (ref #42)) in
   ! (recv "c").
 
-(** Delegation *)
+(** Delegation, i.e. transfering channels *)
 Definition prog3 : val := λ: <>,
   let: "c1" := start_chan (λ: "c1'",
     let: "cc2" := new_chan #() in
@@ -23,14 +22,14 @@ Definition prog3 : val := λ: <>,
     send (Snd "cc2") #42) in
   recv (recv "c1").
 
-(** Dependent Behaviour *)
+(** Dependent protocols *)
 Definition prog4 : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     let: "x" := recv "c'" in send "c'" ("x" + #2)) in
   send "c" #40;;
   recv "c".
 
-(** Higher-Order *)
+(** Transfering higher-order functions *)
 Definition prog5 : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     let: "f" := recv "c'" in send "c'" (λ: <>, "f" #() + #2)) in
@@ -38,7 +37,7 @@ Definition prog5 : val := λ: <>,
   send "c" (λ: <>, !"r");;
   recv "c" #().
 
-(** Locks *)
+(** Lock protected channel endpoints *)
 Definition prog_lock : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     let: "l" := newlock #() in
@@ -49,7 +48,7 @@ Definition prog_lock : val := λ: <>,
 Section proofs.
 Context `{heapG Σ, proto_chanG Σ}.
 
-(** Protocols for their respective programs *)
+(** Protocols for the respective programs *)
 Definition prot1 : iProto Σ :=
   (<?> MSG #42; END)%proto.
 
@@ -75,7 +74,7 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
   | S n' => <?> MSG #21; prot_lock n'
   end%proto.
 
-(** Specs and proofs of their respective programs *)
+(** Specs and proofs of the respective programs *)
 Lemma prog1_spec : {{{ True }}} prog1 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.

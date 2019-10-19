@@ -1,5 +1,7 @@
-(** This file implements a fine-grained Merge Sort,
-a specification thereof and its proofs. *)
+(** This file implements a "fine-grained" distributed version of merge sort, a
+specification thereof, and its proofs. We call this version fine-grained because
+the lists are not transmitted using a single message, but using a series of
+messages. *)
 From stdpp Require Export sorting.
 From actris.channel Require Import proto_channel proofmode.
 From iris.heap_lang Require Import proofmode notation.
