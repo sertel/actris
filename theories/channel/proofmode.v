@@ -300,7 +300,9 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
         end;
         lazymatch goal with
         | |- False => fail "wp_send:" Hs' "not found"
-        | _ => split; [try fast_done|split;[iFrame Hs_frame; solve_done d|wp_finish]]
+        | _ => notypeclasses refine (conj (eq_refl _) (conj _ _));
+                [iFrame Hs_frame; solve_done d
+                |wp_finish]
         end]
      | _ => fail "wp_send: not a 'wp'"
      end
@@ -436,7 +438,7 @@ Tactic Notation "wp_select" "with" constr(pat) :=
        |pm_reduce;
         lazymatch goal with
         | |- False => fail "wp_select:" Hs' "not fresh"
-        | _ => split;[iFrame Hs_frame; solve_done d|wp_finish]
+        | _ => notypeclasses refine (conj _ _); [iFrame Hs_frame; solve_done d|wp_finish]
         end]
      | _ => fail "wp_select: not a 'wp'"
      end

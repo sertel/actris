@@ -145,8 +145,7 @@ Section sort.
     wp_apply (start_chan_proto_spec sort_protocol_func); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
       wp_apply (sort_service_func_spec with "Hc"); auto. }
-    (* TODO: This needs explicit (A I R) after Coq 8.10. Figure out why *)
-    wp_send (A I R) with "[$Hcmp]".
+    wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
     wp_recv (ys) as "(Hsorted & Hperm & Hl)".
     wp_pures. iApply "HΦ"; iFrame.
