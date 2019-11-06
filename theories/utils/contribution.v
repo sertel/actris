@@ -17,7 +17,7 @@ To model this ghost theory construction, we use the camera
 [auth (option (csum (positive * A) (excl unit)))]. *)
 From iris.base_logic Require Export base_logic lib.iprop lib.own.
 From iris.proofmode Require Export tactics.
-From iris.algebra Require Import excl auth csum gmultiset frac_auth.
+From iris.algebra Require Import excl auth csum gmultiset.
 From iris.algebra Require Export local_updates.
 
 Class contributionG Σ (A : ucmraT) `{!CmraDiscrete A} := {

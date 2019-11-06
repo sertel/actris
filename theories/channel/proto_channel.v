@@ -42,8 +42,7 @@ From actris.channel Require Export channel.
 From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import proofmode notation.
-From iris.algebra Require Import auth excl.
-From actris.utils Require Import auth_excl.
+From iris.algebra Require Import excl_auth.
 Export action.
 
 Definition start_chan : val := λ: "f",
@@ -53,15 +52,15 @@ Definition start_chan : val := λ: "f",
 (** * Setup of Iris's cameras *)
 Class proto_chanG Σ := {
   proto_chanG_chanG :> chanG Σ;
-  proto_chanG_authG :> auth_exclG (laterO (proto val (iPrePropO Σ) (iPrePropO Σ))) Σ;
+  proto_chanG_authG :> inG Σ (excl_authR (laterO (proto val (iPrePropO Σ) (iPrePropO Σ))));
 }.
 
 Definition proto_chanΣ := #[
   chanΣ;
-  GFunctor (authRF(optionURF (exclRF (laterOF (protoOF val idOF idOF)))))
+  GFunctor (authRF (optionURF (exclRF (laterOF (protoOF val idOF idOF)))))
 ].
 Instance subG_chanΣ {Σ} : subG proto_chanΣ Σ → proto_chanG Σ.
-Proof. intros [??%subG_auth_exclG]%subG_inv. constructor; apply _. Qed.
+Proof. intros [??%subG_inG]%subG_inv. constructor; apply _. Qed.
 
 (** * Types *)
 Definition iProto Σ := proto val (iPropO Σ) (iPropO Σ).
@@ -230,16 +229,17 @@ Record proto_name := ProtName {
   proto_r_name : gname
 }.
 
-Definition to_proto_auth_excl {Σ} (p : iProto Σ) :=
-  to_auth_excl (Next (proto_map id iProp_fold iProp_unfold p)).
+Definition to_pre_proto {Σ} (p : iProto Σ) :
+    proto val (iPrePropO Σ) (iPrePropO Σ) :=
+  proto_map id iProp_fold iProp_unfold p.
 
 Definition proto_own_frag `{!proto_chanG Σ} (γ : proto_name) (s : side)
     (p : iProto Σ) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (◯ to_proto_auth_excl p)%I.
+  own (side_elim s proto_l_name proto_r_name γ) (◯E (Next (to_pre_proto p))).
 
 Definition proto_own_auth `{!proto_chanG Σ} (γ : proto_name) (s : side)
     (p : iProto Σ) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (● to_proto_auth_excl p)%I.
+  own (side_elim s proto_l_name proto_r_name γ) (●E (Next (to_pre_proto p))).
 
 Definition proto_inv `{!proto_chanG Σ} (γ : proto_name) : iProp Σ :=
   (∃ l r pl pr,
@@ -537,7 +537,7 @@ Section proto.
     Proper ((≡) ==> (≡) ==> (≡)) (proto_interp (Σ:=Σ) vs).
   Proof. apply (ne_proper_2 _). Qed.
 
-  Global Instance to_proto_auth_excl_ne : NonExpansive (to_proto_auth_excl (Σ:=Σ)).
+  Global Instance to_pre_proto_ne : NonExpansive (to_pre_proto (Σ:=Σ)).
   Proof. solve_proper. Qed.
   Global Instance proto_own_ne γ s : NonExpansive (proto_own_frag γ s).
   Proof. solve_proper. Qed.
@@ -551,9 +551,9 @@ Section proto.
   Proof.
     iIntros "Hauth Hfrag".
     iDestruct (own_valid_2 with "Hauth Hfrag") as "Hvalid".
-    iDestruct (to_auth_excl_valid with "Hvalid") as "Hvalid".
+    iDestruct (excl_auth_agreeI with "Hvalid") as "Hvalid".
     iDestruct (bi.later_eq_1 with "Hvalid") as "Hvalid"; iNext.
-    assert (∀ p,
+    rewrite /to_pre_proto. assert (∀ p,
       proto_map id iProp_unfold iProp_fold (proto_map id iProp_fold iProp_unfold p) ≡ p) as help.
     { intros p''. rewrite -proto_map_compose -{2}(proto_map_id p'').
       apply proto_map_ext=> // pc /=; by rewrite iProp_fold_unfold. }
@@ -566,8 +566,7 @@ Section proto.
   Proof.
     iIntros "Hauth Hfrag".
     iDestruct (own_update_2 with "Hauth Hfrag") as "H".
-    { eapply (auth_update _ _ (to_proto_auth_excl p'') (to_proto_auth_excl p'')).
-      apply option_local_update. by apply exclusive_local_update. }
+    { eapply (excl_auth_update _ _ (Next (to_pre_proto p''))). }
     by rewrite own_op.
   Qed.
 
@@ -626,12 +625,12 @@ Section proto.
     c1 ↣ p ∗ c2 ↣ iProto_dual p.
   Proof.
     iIntros "#Hcctx Hcol Hcor".
-    iMod (own_alloc (● (to_proto_auth_excl p) ⋅
-                     ◯ (to_proto_auth_excl p))) as (lγ) "[Hlsta Hlstf]".
-    { by apply auth_both_valid_2. }
-    iMod (own_alloc (● (to_proto_auth_excl (iProto_dual p)) ⋅
-                     ◯ (to_proto_auth_excl (iProto_dual p)))) as (rγ) "[Hrsta Hrstf]".
-    { by apply auth_both_valid_2. }
+    iMod (own_alloc (●E (Next (to_pre_proto p)) ⋅
+                     ◯E (Next (to_pre_proto p)))) as (lγ) "[Hlsta Hlstf]".
+    { by apply excl_auth_valid. }
+    iMod (own_alloc (●E (Next (to_pre_proto (iProto_dual p))) ⋅
+                     ◯E (Next (to_pre_proto (iProto_dual p))))) as (rγ) "[Hrsta Hrstf]".
+    { by apply excl_auth_valid. }
     pose (ProtName cγ lγ rγ) as pγ.
     iMod (inv_alloc protoN _ (proto_inv pγ) with "[-Hlstf Hrstf Hcctx]") as "#Hinv".
     { iNext. rewrite /proto_inv. eauto 10 with iFrame. }
