@@ -212,6 +212,7 @@ Local Instance iProto_le_aux_contractive {Σ} : Contractive (@iProto_le_aux Σ).
 Proof. solve_contractive. Qed.
 Definition iProto_le {Σ} (p1 p2 : iProto Σ) : iPropO Σ :=
   fixpoint iProto_le_aux p1 p2.
+Arguments iProto_le {_} _%proto _%proto.
 
 Fixpoint proto_interp {Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   match vs with
