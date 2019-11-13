@@ -115,6 +115,16 @@ Proof.
   rewrite /proto_message !proto_unfold_fold bi.option_equivI bi.prod_equivI /=.
   by rewrite bi.discrete_fun_equivI bi.discrete_eq.
 Qed.
+Lemma proto_message_end_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a pc :
+  proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a pc ≡ proto_end ⊢@{SPROP} False.
+Proof.
+  trans (proto_unfold (proto_message a pc) ≡ proto_unfold proto_end : SPROP)%I.
+  { iIntros "Heq". by iRewrite "Heq". }
+  by rewrite /proto_message !proto_unfold_fold bi.option_equivI.
+Qed.
+Lemma proto_end_message_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a pc :
+  proto_end ≡ proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a pc ⊢@{SPROP} False.
+Proof. by rewrite bi.internal_eq_sym proto_message_end_equivI. Qed.
 
 Definition proto_cont_map
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP', !Cofe A, !Cofe B}
