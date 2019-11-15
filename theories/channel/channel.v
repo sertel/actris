@@ -172,7 +172,7 @@ Section channel.
      (|={⊤,E}=> ∃ vs,
        chan_own γ s vs ∗
        ▷ (∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
-                   chan_own γ s vs' ={E,⊤}=∗ ▷ ▷ Φ (SOMEV v)))) -∗
+                   chan_own γ s vs' ={E,⊤,⊤}▷=∗ ▷ Φ (SOMEV v)))) -∗
     WP try_recv (side_elim s c2 c1) {{ Φ }}.
   Proof.
     iIntros "Hc HΦ". wp_lam; wp_pures.
@@ -193,7 +193,7 @@ Section channel.
       iDestruct (excl_eq with "Hvs Hvs'") as %<-%leibniz_equiv.
       iMod (excl_update _ _ _ vs with "Hvs Hvs'") as "[Hvs Hvs']".
       wp_pures. iMod ("HΦ" with "[//] Hvs'") as "HΦ"; iModIntro.
-      wp_apply (lisnil_spec with "Hll"); iIntros "Hll".
+      wp_apply (lisnil_spec with "Hll"); iIntros "Hll". iMod "HΦ".
       wp_apply (lpop_spec with "Hll"); iIntros (v') "[% Hll]"; simplify_eq/=.
       wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
       { iApply (chan_inv_alt s).
@@ -206,7 +206,7 @@ Section channel.
     (|={⊤,E}=> ∃ vs,
       chan_own γ s vs ∗
       ▷ ∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
-                 chan_own γ s vs' ={E,⊤}=∗ ▷ ▷ Φ v) -∗
+                 chan_own γ s vs' ={E,⊤,⊤}▷=∗ ▷ Φ v) -∗
     WP recv (side_elim s c2 c1) {{ Φ }}.
   Proof.
     iIntros "#Hc HΦ". iLöb as "IH". wp_lam.
@@ -215,6 +215,7 @@ Section channel.
       iMod "Hclose" as %_; iIntros "!> !>". wp_pures. by iApply "IH".
     - iMod "HΦ" as (vs) "[Hvs HΦ]". iExists vs; iFrame "Hvs".
       iIntros "!> !>" (v vs' ->) "Hvs".
-      iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !> !>". by wp_pures.
+      iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !>". iMod "HΦ".
+      iIntros "!> !>". by wp_pures.
   Qed.
 End channel.
