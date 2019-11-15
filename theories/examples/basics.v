@@ -10,12 +10,12 @@ Definition prog1 : val := λ: <>,
   recv "c".
 
 (** Tranfering References *)
-Definition prog2 : val := λ: <>,
+Definition prog1_ref : val := λ: <>,
   let: "c" := start_chan (λ: "c'", send "c'" (ref #42)) in
   ! (recv "c").
 
 (** Delegation, i.e. transfering channels *)
-Definition prog3 : val := λ: <>,
+Definition prog1_del : val := λ: <>,
   let: "c1" := start_chan (λ: "c1'",
     let: "cc2" := new_chan #() in
     send "c1'" (Fst "cc2");;
@@ -23,14 +23,26 @@ Definition prog3 : val := λ: <>,
   recv (recv "c1").
 
 (** Dependent protocols *)
-Definition prog4 : val := λ: <>,
+Definition prog2 : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     let: "x" := recv "c'" in send "c'" ("x" + #2)) in
   send "c" #40;;
   recv "c".
 
+Definition prog2_ref : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    let: "l" := recv "c'" in "l" <- !"l" + #2;; send "c'" #()) in
+  let: "l" := ref #40 in send "c" "l";; recv "c";; !"l".
+
+Definition prog2_del : val := λ: <>,
+  let: "c1" := start_chan (λ: "c1'",
+    let: "cc2" := new_chan #() in
+    send "c1'" (Fst "cc2");;
+    let: "x" := recv (Snd "cc2") in send (Snd "cc2") ("x" + #2)) in
+  let: "c2'" := recv "c1" in send "c2'" #40;; recv "c2'".
+
 (** Transfering higher-order functions *)
-Definition prog5 : val := λ: <>,
+Definition prog3 : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     let: "f" := recv "c'" in send "c'" (λ: <>, "f" #() + #2)) in
   let: "r" := ref #40 in
@@ -52,16 +64,24 @@ Context `{heapG Σ, proto_chanG Σ}.
 Definition prot1 : iProto Σ :=
   (<?> MSG #42; END)%proto.
 
-Definition prot2 : iProto Σ :=
+Definition prot1_ref : iProto Σ :=
   (<?> l : loc, MSG #l {{ l ↦ #42 }}; END)%proto.
 
-Definition prot3 : iProto Σ :=
+Definition prot1_del : iProto Σ :=
   (<?> c : val, MSG c {{ c ↣ prot1 }}; END)%proto.
 
-Definition prot4 : iProto Σ :=
+Definition prot2 : iProto Σ :=
   (<!> x : Z, MSG #x; <?> MSG #(x + 2); END)%proto.
 
-Definition prot5 : iProto Σ :=
+Definition prot2_ref : iProto Σ :=
+  (<!> (l : loc) (x : Z), MSG #l {{ l ↦ #x }};
+   <?> MSG #() {{ l ↦ #(x + 2) }};
+   END)%proto.
+
+Definition prot2_del : iProto Σ :=
+  (<?> c : val, MSG c {{ c ↣ prot2 }}; END)%proto.
+
+Definition prot3 : iProto Σ :=
   (<!> (P : iProp Σ) (Φ : Z → iProp Σ) (vf : val),
      MSG vf {{ {{{ P }}} vf #() {{{ x, RET #x; Φ x }}} }};
    <?> (vg : val),
@@ -83,36 +103,56 @@ Proof.
   - wp_recv as "_". by iApply "HΦ".
 Qed.
 
-Lemma prog2_spec : {{{ True }}} prog2 #() {{{ RET #42; True }}}.
+Lemma prog1_ref_spec : {{{ True }}} prog1_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot2); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot1_ref); iIntros (c) "Hc".
   - wp_alloc l as "Hl". by wp_send with "[$Hl]".
   - wp_recv (l) as "Hl". wp_load. by iApply "HΦ".
 Qed.
 
-Lemma prog3_spec : {{{ True }}} prog3 #() {{{ RET #42; True }}}.
+Lemma prog1_del_spec : {{{ True }}} prog1_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot3); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot1_del); iIntros (c) "Hc".
   - wp_apply (new_chan_proto_spec with "[//]").
     iIntros (c2 c2') "Hcc2". iMod ("Hcc2" $! prot1) as "[Hc2 Hc2']".
     wp_send with "[$Hc2]". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
 
-Lemma prog4_spec : {{{ True }}} prog4 #() {{{ RET #42; True }}}.
+Lemma prog2_spec : {{{ True }}} prog2 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot4); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot2); iIntros (c) "Hc".
   - wp_recv (x) as "_". by wp_send with "[]".
   - wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
 Qed.
 
-Lemma prog5_spec : {{{ True }}} prog5 #() {{{ RET #42; True }}}.
+Lemma prog2_ref_spec : {{{ True }}} prog2_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot5); iIntros (c) "Hc".
+  wp_apply (start_chan_proto_spec prot2_ref); iIntros (c) "Hc".
+  - wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[Hl]".
+  - wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
+    by iApply "HΦ".
+Qed.
+
+Lemma prog2_del_spec : {{{ True }}} prog2_del #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_proto_spec prot2_del); iIntros (c) "Hc".
+  - wp_apply (new_chan_proto_spec with "[//]").
+    iIntros (c2 c2') "Hcc2". iMod ("Hcc2" $! prot2) as "[Hc2 Hc2']".
+    wp_send with "[$Hc2]". wp_recv (x) as "_". by wp_send with "[]".
+  - wp_recv (c2) as "Hc2". wp_send with "[//]". wp_recv as "_".
+    by iApply "HΦ".
+Qed.
+
+Lemma prog3_spec : {{{ True }}} prog3 #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_proto_spec prot3); iIntros (c) "Hc".
   - wp_recv (P Ψ vf) as "#Hf". wp_send with "[]"; last done.
     iIntros "!>" (Ψ') "HP HΨ'". wp_apply ("Hf" with "HP"); iIntros (x) "HΨ".
     wp_pures. by iApply "HΨ'".
