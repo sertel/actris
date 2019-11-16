@@ -41,6 +41,19 @@ Definition prog_dep_del : val := λ: <>,
     let: "x" := recv (Snd "cc2") in send (Snd "cc2") ("x" + #2)) in
   let: "c2'" := recv "c1" in send "c2'" #40;; recv "c2'".
 
+(** Loops *)
+Definition prog_loop : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    let: "go" :=
+      rec: "go" <> :=
+        let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" #() in
+    "go" #()) in
+  send "c" #18;;
+  let: "x1" := recv "c" in
+  send "c" #20;;
+  let: "x2" := recv "c" in
+  "x1" + "x2".
+
 (** Transfering higher-order functions *)
 Definition prog_fun : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
@@ -80,6 +93,15 @@ Definition prot_dep_ref : iProto Σ :=
 
 Definition prot_dep_del : iProto Σ :=
   (<?> c : val, MSG c {{ c ↣ prot_dep }}; END)%proto.
+
+Definition prot_loop_aux (rec : iProto Σ) : iProto Σ :=
+  (<!> x : Z, MSG #x; <?> MSG #(x + 2); rec)%proto.
+Instance prot_loop_contractive : Contractive prot_loop_aux.
+Proof. solve_proto_contractive. Qed.
+Definition prot_loop : iProto Σ := fixpoint prot_loop_aux.
+Global Instance prot_loop_unfold :
+  ProtoUnfold prot_loop (prot_loop_aux prot_loop).
+Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
 
 Definition prot_fun : iProto Σ :=
   (<!> (P : iProp Σ) (Φ : Z → iProp Σ) (vf : val),
@@ -147,6 +169,19 @@ Proof.
     wp_send with "[$Hc2]". wp_recv (x) as "_". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_send with "[//]". wp_recv as "_".
     by iApply "HΦ".
+Qed.
+
+Lemma prog_fun_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_proto_spec prot_loop); iIntros (c) "Hc".
+  - iAssert (∀ Ψ, WP (rec: "go" <> := let: "x" := recv c in
+      send c ("x" + #2) ;; "go" #())%V #() {{ Ψ }})%I with "[Hc]" as "H".
+    { iIntros (Ψ). iLöb as "IH". wp_recv (x) as "_". wp_send with "[//]".
+      wp_seq. by iApply "IH". }
+    wp_lam. wp_closure. wp_let. iApply "H".
+  - wp_send with "[//]". wp_recv as "_". wp_send with "[//]". wp_recv as "_".
+    wp_pures. by iApply "HΦ".
 Qed.
 
 Lemma prog_fun_spec : {{{ True }}} prog_fun #() {{{ RET #42; True }}}.
