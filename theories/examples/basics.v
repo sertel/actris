@@ -171,7 +171,7 @@ Proof.
     by iApply "HΦ".
 Qed.
 
-Lemma prog_fun_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
+Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_proto_spec prot_loop); iIntros (c) "Hc".
