@@ -51,11 +51,11 @@ Definition prog_dep_del_2 : val := λ: <>,
 
 Definition prog_dep_del_3 : val := λ: <>,
   let: "c1" := start_chan (λ: "c1'",
-    send (recv "c1'") (recv "c1'");;
-    send "c1'" #()) in
+    let: "c" := recv "c1'" in let: "y" := recv "c1'" in
+    send "c" "y";; send "c1'" #()) in
   let: "c2" := start_chan (λ: "c2'",
     let: "x" := recv "c2'" in send "c2'" ("x" + #2)) in
-  send "c1" #40;; send "c1" "c2";; recv "c1";; recv "c2".
+  send "c1" "c2";; send "c1" #40;; recv "c1";; recv "c2".
 
 (** Loops *)
 Definition prog_loop : val := λ: <>,
@@ -116,9 +116,8 @@ Definition prot_dep_del_2 : iProto Σ :=
    END)%proto.
 
 Definition prot_dep_del_3 : iProto Σ :=
-  (<!> x : Z, MSG #x {{ True }};
-   <!> c : val, MSG c {{ c ↣ prot_dep }};
-   <?> MSG #() {{ c ↣ <?> MSG #(x+2); END }};
+  (<!> c : val, MSG c {{ c ↣ prot_dep }};
+   <!> y : Z, MSG #y; <?> MSG #() {{ c ↣ <?> MSG #(y + 2); END }};
    END)%proto.
 
 Definition prot_loop_aux (rec : iProto Σ) : iProto Σ :=
@@ -212,10 +211,12 @@ Lemma prog_dep_del_3_spec : {{{ True }}} prog_dep_del_3 #() {{{ RET #42; True }}
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_proto_spec prot_dep_del_3); iIntros (c) "Hc".
-  { wp_recv (x) as "_". wp_recv (c2) as "Hc2". wp_send with "[//]". by wp_send with "[$Hc2]". }
+  { wp_recv (c2) as "Hc2". wp_recv (y) as "_".
+    wp_send with "[//]". by wp_send with "[$Hc2]". }
   wp_apply (start_chan_proto_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
-  wp_send with "[//]". wp_send with "[$Hc2]". wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
+  wp_send with "[$Hc2]". wp_send with "[//]".
+  wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
 
 Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
