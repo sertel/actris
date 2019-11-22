@@ -154,3 +154,14 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   1. the `▶` in the CPS encoding of protocols,
   2. the higher-order ghost state used for ownership of protocols, and
   3. the opening of the protocol invariant.
+
+- **Subtyping relation in c↣ prot**
+
+  The mechanisation has introduced the notion of subtyping, which allows one to
+  strengten/weaken the predicates of sends/receives respectively. In particular
+  this means that the endpoint ownership has been extended with `iProto_le p p'`,
+  where `p'` is the original protocol used in the ghost state, and `p` is the
+  protocol denoted by the ownership `c↣ prot`. The effect of this is that the
+  user can update his own view of the protocol, as long as it is consistent
+  with the original protocol in the invariant. As such the fundamental aspect of
+  the ownership still align with that of the paper.
