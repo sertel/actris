@@ -26,8 +26,8 @@ Futhermore, we define the following operations:
 - [iProto_dual], which turns all [Send] of a protocol into [Recv] and vice-versa
 - [iProto_app], which appends two protocols as described in proto_model.v
 
-An encoding of the usual branching connectives [prot1 {Q1}<+>{Q2} prot2] and
-[prot1 {Q1}<&>{Q2} prot2], inspired by session types, is also included in this
+An encoding of the usual branching connectives [prot1 <{Q1}+{Q2}> prot2] and
+[prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in this
 file.
 
 The logical connective for protocol ownership is denoted as [c ↣ prot]. It

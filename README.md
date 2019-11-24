@@ -23,11 +23,15 @@ correspond to the following parts of the paper:
 - [theories/channel/channel.v](theories/channel/channel.v): The definitional
   semantics of bidirectional channels in terms of Iris's HeapLang language.
 - [theories/channel/proto_model.v](theories/channel/proto_model.v): The CPS
-  model of Dependent Separation Protocols.
+  model of Dependent Separation Protocols over arbitrary BI-logics.
 - [theories/channel/proto_channel.v](theories/channel/proto_channel.v): The
-  definition of the connective `↣` for channel ownership, and lemmas
-  corresponding to the Actris proof rules. The relevant proof rules are as
-  follows:
+  instantiation of protocols with the Iris logic, definition of the connective `↣`
+  for channel endpoint ownership, and lemmas corresponding to the Actris proof rules.
+  The relevant definitions and proof rules are as follows:
+  + `iProto Σ`: The type of protocols.
+  + `iProto_message`: The constructor for sends and receives.
+  + `iProto_end`: The constructor for terminated protocols.
+  + `mapsto_proto`: endpoint ownership `↣`.
   + `new_chan_proto_spec`: proof rule for `new_chan`.
   + `send_proto_spec` and `send_proto_spec_packed`: proof rules for `send`, the
     first version is more convenient to use in Coq, but otherwise the same as
@@ -37,6 +41,31 @@ correspond to the following parts of the paper:
     the latter, which is the rule in the paper.
   + `select_spec`: proof rule for `select`.
   + `branch_spec`: proof rule for `branch`.
+
+## Notation
+
+The notation for Dependent Separation Protocols differ between the
+mechanisation and the paper.
+
+The paper uses the following notation:
+
+- Send:   ! x_1 .. x_n < v > { P } . prot
+- Recv:   ? x_1 .. x_n < v > { P } . prot
+- End:    end
+- Select: prot_1 {Q_1} ⊕ {Q_2} prot_2
+- Branch: prot_1 {Q_1} & {Q_2} prot_2
+- Append: prot_1 · prot_2
+- Dual:   An overlined protocol
+
+The mechanisation uses the following notation:
+
+- Send:   <!> x_1 .. x_n, MSG v {{ P }} ; prot
+- Recv:   <?> x_1 .. x_n, MSG v {{ P }} ; prot
+- End:    END
+- Select: prot_1 <{Q_1} + {Q_2}> prot_2
+- Branch: prot_1 <{Q_1} & {Q_2}> prot_2
+- Append: prot_1 <++> prot_2
+- Dual:   Nothing
 
 ## Weakest preconditions and Coq tactics
 
@@ -126,10 +155,14 @@ mechanization in Coq:
 There are a number of small differences between the paper presentation
 of Actris and the formalization in Coq, that are briefly discussed here.
 
+- **Notation**
+
+  See the section "Notation" above.
+
 - **Weakest preconditions versus Hoare triples**
 
   See the section "Weakest preconditions and Coq tactics" above.
-  
+
 - **Connectives for physical ownership of channels**
 
   In the paper, physical ownership of a channel is formalized using a single
