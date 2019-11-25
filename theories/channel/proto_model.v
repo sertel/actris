@@ -1,18 +1,13 @@
 (** This file defines the model of dependent separation protocols, along with
-various operations on the connective, such as append and map.
+various operations, such as append and map.
 
 Important: This file should not be used directly, but rather the wrappers in
 [proto_channel] should be used.
 
-Dependent separation protocols are designed with inspiration from session types,
-mimicking their constructors [!T.st], [?T.st] and [END], respectively,
-representing sending and receiving messages of type [T] and termination. The
-main difference is that the dependent separation protocols are defined over
-separation logic propositions, instead of types.
+Dependent Separation Protocols are modeled as the solution of the following
+recursive domain equation:
 
-Dependent Separation Protocols are modeled as the following type:
-
-[proto := 1 + (action * (V → (▶ proto → PROP) → PROP))]
+[proto = 1 + (action * (V → (▶ proto → PROP) → PROP))]
 
 Here, the left-hand side of the sum is used for the terminated process, while
 the right-hand side is used for the communication constructors. The type
@@ -20,18 +15,16 @@ the right-hand side is used for the communication constructors. The type
 [Receive]. Compared to having an additional sum in [proto], this makes it
 possible to factorize the code in a better way.
 
-The remainder [V → (▶ [proto] → PROP) → PROP)] is a continuation that depends
-on the communicated value [V] and the dependent tail [▶ proto → PROP] from
-protocols guarded under laters to the propositions of the logic.
-
-The type [proto] is defined as a solution to a recursive domain equation, as
-it is self-referential under the guard of [▶].
+The remainder [V → (▶ proto → PROP) → PROP)] is a predicate that ranges over
+the communicated value [V] and the tail protocol [▶ proto → PROP]. Note that in
+order to solve this recursive domain equation using Iris's COFE solver, the
+recursive occurrences of [proto] appear under the guard [▶].
 
 On top of the type [proto], we define the constructors:
 
 - [proto_end], which constructs the left-side of the sum.
-- [proto_msg], which takes an action and a continuation and constructs the
-  right-hand side of the sum accodingly.
+- [proto_msg], which takes an action and a predicate and constructs the
+  right-hand side of the sum accordingly.
 
 The defined functions on the type [proto] are:
 

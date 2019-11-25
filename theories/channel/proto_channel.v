@@ -1,12 +1,12 @@
 (** This file defines the core of the Actris logic:
 
 - It defines dependent separation protocols and the various operations on it
-  dual, append, branching
+  like dual, append, and branching.
 - It defines the connective [c ↣ prot] for ownership of channel endpoints.
 - It proves Actris's specifications of [send] and [receive] w.r.t. dependent
   separation protocols.
 
-Dependent separation protocols are defined by instanting the parametrized
+Dependent separation protocols are defined by instantiating the parameterized
 version in [proto_model] with type of values [val] of HeapLang and the
 propositions [iProp] of Iris.
 
@@ -35,9 +35,10 @@ describes that channel endpoint [c] adheres to protocol [prot]. This connective
 is modeled using Iris invariants and ghost state along with the logical
 connectives of the channel encodings [is_chan] and [chan_own].
 
-Lastly, relevant typeclasses are defined for each of the above notions, such as
-contractiveness and non-expansiveness, after which the specifications of the
-message-passing primitives are defined in terms of the protocol connectives. *)
+Lastly, relevant type classes instances are defined for each of the above
+notions, such as contractiveness and non-expansiveness, after which the
+specifications of the message-passing primitives are defined in terms of the
+protocol connectives. *)
 From actris.channel Require Export channel. 
 From actris.channel Require Import proto_model.
 From iris.base_logic.lib Require Import invariants.
@@ -530,7 +531,7 @@ Section proto.
     by iApply (iProto_le_trans with "Hle").
   Qed.
 
-  (** ** Auxiliary definitions and invariants *)
+  (** ** Lemmas about the auxiliary definitions and invariants *)
   Global Instance proto_interp_ne : NonExpansive2 (proto_interp (Σ:=Σ) vs).
   Proof. induction vs; solve_proper. Qed.
   Global Instance proto_interp_proper vs :
@@ -618,7 +619,7 @@ Section proto.
 
   Arguments proto_interp : simpl never.
 
-  (** ** Initialization of a channel *)
+  (** ** Helper lemma for initialization of a channel *)
   Lemma proto_init E cγ c1 c2 p :
     is_chan protoN cγ c1 c2 -∗
     chan_own cγ Left [] -∗ chan_own cγ Right [] ={E}=∗
@@ -641,7 +642,8 @@ Section proto.
       iFrame "Hrstf Hinv Hcctx". iSplit; [done|]. iApply iProto_le_refl.
   Qed.
 
-  (** ** Accessor style lemmas *)
+  (** ** Accessor style lemmas, used as helpers to prove the specifications of
+  [send] and [recv]. *)
   Lemma proto_send_acc {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
     c ↣ iProto_message Send pc -∗
     (pc x).1.2 -∗
