@@ -16,14 +16,15 @@ In order to build, install the above dependencies and then run
 
 ## Theory of Actris
 
-The theory of Actris (semantics of channels, the CPS model, and the proof rules)
+The theory of Actris (semantics of channels, the model, and the proof rules)
 can be found in the directory [theories/channel](theories/channel). The files
 correspond to the following parts of the paper:
 
 - [theories/channel/channel.v](theories/channel/channel.v): The definitional
   semantics of bidirectional channels in terms of Iris's HeapLang language.
-- [theories/channel/proto_model.v](theories/channel/proto_model.v): The CPS
-  model of Dependent Separation Protocols over arbitrary BI-logics.
+- [theories/channel/proto_model.v](theories/channel/proto_model.v): The
+  construction of the model of Dependent Separation Protocols as the solution of
+  a recursive domain equation.
 - [theories/channel/proto_channel.v](theories/channel/proto_channel.v): The
   instantiation of protocols with the Iris logic, definition of the connective `↣`
   for channel endpoint ownership, and lemmas corresponding to the Actris proof rules.
@@ -44,28 +45,18 @@ correspond to the following parts of the paper:
 
 ## Notation
 
-The notation for Dependent Separation Protocols differ between the
-mechanisation and the paper.
+The notation for Dependent Separation Protocols differ between the paper and
+the Coq mechanization:
 
-The paper uses the following notation:
-
-- Send:   ! x_1 .. x_n < v > { P } . prot
-- Recv:   ? x_1 .. x_n < v > { P } . prot
-- End:    end
-- Select: prot_1 {Q_1} ⊕ {Q_2} prot_2
-- Branch: prot_1 {Q_1} & {Q_2} prot_2
-- Append: prot_1 · prot_2
-- Dual:   An overlined protocol
-
-The mechanisation uses the following notation:
-
-- Send:   <!> x_1 .. x_n, MSG v {{ P }} ; prot
-- Recv:   <?> x_1 .. x_n, MSG v {{ P }} ; prot
-- End:    END
-- Select: prot_1 <{Q_1} + {Q_2}> prot_2
-- Branch: prot_1 <{Q_1} & {Q_2}> prot_2
-- Append: prot_1 <++> prot_2
-- Dual:   Nothing
+|        | Paper                         | Coq mechanization                     |
+|--------|-------------------------------|---------------------------------------|
+| Send   | `! x_1 .. x_n <v>{ P }. prot` | `<!> x_1 .. x_n, MSG v {{ P }}; prot` |
+| Recv   | `? x_1 .. x_n <v>{ P }. prot` | `<?> x_1 .. x_n, MSG v {{ P }}; prot` |
+| End    | `end`                         | `END`                                 |
+| Select | `prot_1 {Q_1}⊕{Q_2} prot_2`   | `prot_1 <{Q_1}+{Q_2}> prot_2`         |
+| Branch | `prot_1 {Q_1}&{Q_2} prot_2`   | `prot_1 <{Q_1}&{Q_2}> prot_2`         |
+| Append | `prot_1 · prot_2`             | `prot_1 <++> prot_2`                  |
+| Dual   | An overlined protocol         | No notation                           |
 
 ## Weakest preconditions and Coq tactics
 
@@ -188,13 +179,11 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   2. the higher-order ghost state used for ownership of protocols, and
   3. the opening of the protocol invariant.
 
-- **Subtyping relation in c↣ prot**
+- **Protocol subtyping**
 
-  The mechanisation has introduced the notion of subtyping, which allows one to
-  strengten/weaken the predicates of sends/receives respectively. In particular
-  this means that the endpoint ownership has been extended with `iProto_le p p'`,
-  where `p'` is the original protocol used in the ghost state, and `p` is the
-  protocol denoted by the ownership `c↣ prot`. The effect of this is that the
-  user can update his own view of the protocol, as long as it is consistent
-  with the original protocol in the invariant. As such the fundamental aspect of
-  the ownership still align with that of the paper.
+  The mechanization has introduced the notion of "protocol subtyping", which
+  allows one to strengthen/weaken the predicates of sends/receives, respectively.
+  This achieved using the relation `iProto_le p p'`, and the additional rule
+  `c ↣ p -∗ iProto_le p p' -∗ c ↣ p'`. To support "protocol subtyping", the
+  definition of `c ↣ p` in the model is changed to be closed under `iProto_le`.
+
