@@ -45,8 +45,8 @@ correspond to the following parts of the paper:
 
 ## Notation
 
-The notation for Dependent Separation Protocols differ between the paper and
-the Coq mechanization:
+The following table gives a mapping between the notation in the paper and the
+Coq mechanization:
 
 |        | Paper                         | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
@@ -175,7 +175,7 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   later modalities expose that these operations perform at least three steps in
   the operational semantics, and are needed to deal with the three levels of
   indirection in the invariant for protocols:
-  1. the `▶` in the CPS encoding of protocols,
+  1. the `▶` in the model of protocols,
   2. the higher-order ghost state used for ownership of protocols, and
   3. the opening of the protocol invariant.
 
