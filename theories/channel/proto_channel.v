@@ -597,9 +597,9 @@ Section proto.
   Qed.
 
   Lemma proto_interp_recv v vs p1 pc :
-     proto_interp (v :: vs) p1 (proto_message Receive pc) -∗ ∃ p2,
-       pc v (proto_eq_next p2) ∗
-       ▷ proto_interp vs p1 p2.
+    proto_interp (v :: vs) p1 (proto_message Receive pc) -∗ ∃ p2,
+      pc v (proto_eq_next p2) ∗
+      proto_interp vs p1 p2.
   Proof.
     simpl. iDestruct 1 as (pc' p2) "(Heq & Hc & Hp2)". iExists p2. iFrame "Hp2".
     iDestruct (@proto_message_equivI with "Heq") as "[_ Heq]".
