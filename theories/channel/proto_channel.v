@@ -220,7 +220,7 @@ Fixpoint proto_interp {Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   | v :: vs => ∃ pc p2',
      p2 ≡ proto_message Receive pc ∗
      pc v (proto_eq_next p2') ∗
-     ▷ proto_interp vs p1 p2'
+     proto_interp vs p1 p2'
   end%I.
 Arguments proto_interp {_} _ _%proto _%proto : simpl nomatch.
 
@@ -593,7 +593,7 @@ Section proto.
       { iRewrite -"Heval". by rewrite /iProto_dual proto_map_message. }
       rewrite /= proto_eq_next_dual; auto.
     - iDestruct "Heval" as (pc' p2') "(Heq & Hc' & Heval)".
-      iExists pc', p2'. iFrame "Heq Hc'". iNext. iApply ("IH" with "Heval Hc").
+      iExists pc', p2'. iFrame "Heq Hc'". iApply ("IH" with "Heval Hc").
   Qed.
 
   Lemma proto_interp_recv v vs p1 pc :
