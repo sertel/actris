@@ -248,8 +248,8 @@ Definition proto_inv `{!proto_chanG Σ} (γ : proto_name) : iProp Σ :=
     chan_own (proto_c_name γ) Right r ∗
     proto_own_auth γ Left pl ∗
     proto_own_auth γ Right pr ∗
-    ▷ ((⌜r = []⌝ ∗ proto_interp l pl pr) ∨
-       (⌜l = []⌝ ∗ proto_interp r pr pl)))%I.
+    ((⌜r = []⌝ ∗ proto_interp l pl pr) ∨
+     (⌜l = []⌝ ∗ proto_interp r pr pl)))%I.
 
 Definition protoN := nroot .@ "proto".
 
@@ -728,7 +728,7 @@ Section proto.
         iFrame "Hcctx Hinv Hst". iSplit; first done.
         rewrite iProto_le_unfold. iRight; auto 10.
       + iIntros (v vs ->) "Hcr".
-        iDestruct "Hinv'" as "[[>% _]|[>-> Heval]]"; first done.
+        iDestruct "Hinv'" as "[[% _]|[-> Heval]]"; first done.
         iAssert (▷ proto_interp (v :: vs) pr (proto_message Receive pc'))%I
           with "[Heval]" as "Heval".
         { iNext. by iRewrite "Heq" in "Heval". }
@@ -751,7 +751,7 @@ Section proto.
         iFrame "Hcctx Hinv Hst". iSplit; first done.
         rewrite iProto_le_unfold. iRight; auto 10.
       + iIntros (v vs ->) "Hcl".
-        iDestruct "Hinv'" as "[[>-> Heval]|[>% _]]"; last done.
+        iDestruct "Hinv'" as "[[-> Heval]|[% _]]"; last done.
         iAssert (▷ proto_interp (v :: vs) pl (proto_message Receive pc'))%I
           with "[Heval]" as "Heval".
         { iNext. by iRewrite "Heq" in "Heval". }
