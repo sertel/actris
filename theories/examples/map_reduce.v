@@ -116,7 +116,7 @@ Section mapper.
   Proof. intros [i1 y1] [i2 y2]. destruct (total (≤)%Z i1 i2); [left|right]; done. Qed.
   Instance RZB_trans : Transitive RZB.
   Proof. by apply (prod_relation_trans _). Qed.
-  Lemma RZB_cmp_spec : cmp_spec IZB RZB cmpZfst.
+  Lemma RZB_cmp_spec : ⊢ cmp_spec IZB RZB cmpZfst.
   Proof.
     iIntros ([i1 y1] [i2 y2] v1 v2) "!>"; iIntros (Φ) "[HI1 HI2] HΦ".
     iDestruct "HI1" as (w1 ->) "HI1". iDestruct "HI2" as (w2 ->) "HI2 /=".

@@ -411,7 +411,7 @@ Section proto.
     iProto_le p1 p2 ≡ iProto_le_aux (fixpoint iProto_le_aux) p1 p2.
   Proof. apply: (fixpoint_unfold iProto_le_aux). Qed.
 
-  Lemma iProto_le_refl p : iProto_le p p.
+  Lemma iProto_le_refl p : ⊢ iProto_le p p.
   Proof.
     iLöb as "IH" forall (p). destruct (proto_case p) as [->|([]&pc&->)].
     - rewrite iProto_le_unfold. iLeft; by auto.

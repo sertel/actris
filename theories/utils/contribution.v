@@ -50,7 +50,7 @@ Section contribution.
   Global Instance client_proper γ : Proper ((≡) ==> (≡)) (client γ).
   Proof. apply (ne_proper _). Qed.
 
-  Lemma contribution_init : (|==> ∃ γ, server γ 0 ε)%I.
+  Lemma contribution_init : ⊢ |==> ∃ γ, server γ 0 ε.
   Proof.
     iMod (own_alloc (● (Some (Cinr (Excl ()))) ⋅ ◯ (Some (Cinr (Excl ())))))
       as (γ) "[Hγ Hγ']"; first by apply auth_both_valid_2.
@@ -152,7 +152,7 @@ Section contribution.
 
   (** Derived *)
   Lemma contribution_init_pow n :
-    (|==> ∃ γ, server γ n ε ∗ [∗] replicate n (client γ ε))%I.
+    ⊢ |==> ∃ γ, server γ n ε ∗ [∗] replicate n (client γ ε).
   Proof.
     iMod (contribution_init) as (γ) "Hs". iExists γ.
     iInduction n as [|n] "IH"; simpl; first by iFrame.
