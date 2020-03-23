@@ -216,6 +216,7 @@ Proof. solve_contractive. Qed.
 Definition iProto_le `{invG Σ} (p1 p2 : iProto Σ) : iProp Σ :=
   fixpoint iProto_le_aux p1 p2.
 Arguments iProto_le {_ _} _%proto _%proto.
+Instance: Params (@iProto_le) 2 := {}.
 
 Fixpoint proto_interp {Σ} (vs : list val) (p1 p2 : iProto Σ) : iProp Σ :=
   match vs with
