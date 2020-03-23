@@ -85,7 +85,8 @@ Program Definition iProto_message_def {Σ} {TT : tele} (a : action)
 Next Obligation. solve_proper. Qed.
 Definition iProto_message_aux : seal (@iProto_message_def). by eexists. Qed.
 Definition iProto_message := iProto_message_aux.(unseal).
-Definition iProto_message_eq : @iProto_message = @iProto_message_def := iProto_message_aux.(seal_eq).
+Definition iProto_message_eq :
+  @iProto_message = @iProto_message_def := iProto_message_aux.(seal_eq).
 Arguments iProto_message {_ _} _ _%proto.
 Instance: Params (@iProto_message) 3 := {}.
 
@@ -94,13 +95,15 @@ Notation "< a > x1 .. xn , 'MSG' v {{ P } } ; p" :=
     a
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
-  (at level 20, a at level 10, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
+  (at level 20, a at level 10, x1 binder, xn binder,
+   v at level 20, P, p at level 200) : proto_scope.
 Notation "< a > x1 .. xn , 'MSG' v ; p" :=
   (iProto_message
     a
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
-  (at level 20, a at level 10, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
+  (at level 20, a at level 10, x1 binder, xn binder,
+   v at level 20, p at level 200) : proto_scope.
 Notation "< a > 'MSG' v {{ P } } ; p" :=
   (iProto_message
     a
@@ -264,7 +267,8 @@ Definition mapsto_proto_def `{!proto_chanG Σ, !heapG Σ}
     inv protoN (proto_inv γ))%I.
 Definition mapsto_proto_aux : seal (@mapsto_proto_def). by eexists. Qed.
 Definition mapsto_proto {Σ pΣ hΣ} := mapsto_proto_aux.(unseal) Σ pΣ hΣ.
-Definition mapsto_proto_eq : @mapsto_proto = @mapsto_proto_def := mapsto_proto_aux.(seal_eq).
+Definition mapsto_proto_eq :
+  @mapsto_proto = @mapsto_proto_def := mapsto_proto_aux.(seal_eq).
 Arguments mapsto_proto {_ _ _} _ _%proto.
 Instance: Params (@mapsto_proto) 4 := {}.
 
@@ -372,7 +376,8 @@ Section proto.
   Proof. apply (ne_proper_2 _). Qed.
 
   Lemma iProto_app_message {TT} a (pc : TT → val * iProp Σ * iProto Σ) p2 :
-    (iProto_message a pc <++> p2)%proto ≡ iProto_message a (prod_map id (flip iProto_app p2) ∘ pc).
+    (iProto_message a pc <++> p2)%proto
+    ≡ iProto_message a (prod_map id (flip iProto_app p2) ∘ pc).
   Proof.
     rewrite /iProto_app iProto_message_eq /iProto_message_def proto_app_message.
     by f_equiv=> v f /=.
