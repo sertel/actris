@@ -243,13 +243,13 @@ Definition proto_own_auth `{!proto_chanG Σ} (γ : proto_name) (s : side)
   own (side_elim s proto_l_name proto_r_name γ) (●E (Next (to_pre_proto p))).
 
 Definition proto_inv `{!proto_chanG Σ} (γ : proto_name) : iProp Σ :=
-  (∃ l r pl pr,
-    chan_own (proto_c_name γ) Left l ∗
-    chan_own (proto_c_name γ) Right r ∗
+  (∃ vsl vsr pl pr,
+    chan_own (proto_c_name γ) Left vsl ∗
+    chan_own (proto_c_name γ) Right vsr ∗
     proto_own_auth γ Left pl ∗
     proto_own_auth γ Right pr ∗
-    ((⌜r = []⌝ ∗ proto_interp l pl pr) ∨
-     (⌜l = []⌝ ∗ proto_interp r pr pl)))%I.
+    ((⌜vsr = []⌝ ∗ proto_interp vsl pl pr) ∨
+     (⌜vsl = []⌝ ∗ proto_interp vsr pr pl)))%I.
 
 Definition protoN := nroot .@ "proto".
 
