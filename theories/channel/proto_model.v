@@ -98,7 +98,7 @@ Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
 
 Lemma proto_message_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a1 a2 pc1 pc2 :
   proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a1 pc1 ≡ proto_message a2 pc2
-  ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧ (∀ v, pc1 v ≡ pc2 v).
+  ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧ (∀ v pc', pc1 v pc' ≡ pc2 v pc').
 Proof.
   trans (proto_unfold (proto_message a1 pc1) ≡ proto_unfold (proto_message a2 pc2) : SPROP)%I.
   { iSplit.
@@ -106,7 +106,7 @@ Proof.
     - iIntros "Heq". rewrite -{2}(proto_fold_unfold (proto_message _ _)).
       iRewrite "Heq". by rewrite proto_fold_unfold. }
   rewrite /proto_message !proto_unfold_fold bi.option_equivI bi.prod_equivI /=.
-  by rewrite bi.discrete_fun_equivI bi.discrete_eq.
+  rewrite bi.discrete_fun_equivI bi.discrete_eq. by setoid_rewrite bi.ofe_morO_equivI.
 Qed.
 Lemma proto_message_end_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a pc :
   proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a pc ≡ proto_end ⊢@{SPROP} False.
