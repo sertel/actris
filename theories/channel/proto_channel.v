@@ -199,6 +199,26 @@ Infix "<++>" := iProto_app (at level 60) : proto_scope.
 Definition proto_eq_next {Σ} (p : iProto Σ) : laterO (iProto Σ) -n> iPropO Σ :=
   OfeMor (sbi_internal_eq (Next p)).
 
+(*
+The definition [iProto_le] generalizes the following inductive definition
+for subtyping on session types:
+
+                 p1 <: p2           p1 <: p2
+----------   ----------------   ----------------
+end <: end    !A.p1 <: !A.p2     ?A.p1 <: ?A.p2
+
+ p1 <: !B.p3    ?A.p3 <: p2
+----------------------------
+       ?A.p1 <: !B.p2
+
+Example:
+
+!R <: !R  ?Q <: ?Q      ?Q <: ?Q
+-------------------  --------------
+?Q.!R <: !R.?Q       ?P.?Q <: ?P.?Q
+------------------------------------
+   ?P.?Q.!R <: !R.?P.?Q
+*)
 Definition iProto_le_pre {Σ}
     (rec : iProto Σ → iProto Σ → iProp Σ) (p1 p2 : iProto Σ) : iProp Σ :=
   (p1 ≡ proto_end ∗ p2 ≡ proto_end) ∨
@@ -760,12 +780,12 @@ Section proto.
     rewrite !proto_interp_unfold. iIntros "[H|[H|H]]".
     - iClear "IH". iDestruct "H" as (p -> ->) "[Hp Hp'] /=".
       iLeft. iExists (iProto_dual p). rewrite involutive. iFrame; auto.
-    - iDestruct "H" as (vl vsl' pc' pr' ->) "(Hpr & Hpc' & Hinterp)".
+    - iDestruct "H" as (vl vsl' pc' pr' ->) "(Hpr & Hpc' & H)".
       iRight; iRight. iExists vl, vsl', pc', pr'. iSplit; [done|]; iFrame.
-      iApply ("IH" with "[%] [//] Hinterp"); simpl; lia.
-    - iDestruct "H" as (vr vsr' pc' pl' ->) "(Hpl & Hpc' & Hinterp)".
+      iApply ("IH" with "[%] [//] H"); simpl; lia.
+    - iDestruct "H" as (vr vsr' pc' pl' ->) "(Hpl & Hpc' & H)".
       iRight; iLeft. iExists vr, vsr', pc', pl'. iSplit; [done|]; iFrame.
-      iApply ("IH" with "[%] [//] Hinterp"); simpl; lia.
+      iApply ("IH" with "[%] [//] H"); simpl; lia.
   Qed.
 
   Lemma proto_interp_le_l vsl vsr pl pl' pr :
@@ -777,18 +797,18 @@ Section proto.
     - iClear "IH". iDestruct "H" as (p -> ->) "[Hp Hp'] /=".
       iLeft. iExists p. do 2 (iSplit; [done|]). iFrame "Hp'".
       by iApply (iProto_le_trans with "Hp").
-    - iDestruct "H" as (vl vsl' pc' pr' ->) "(Hpr & Hpc' & Hinterp)".
+    - iDestruct "H" as (vl vsl' pc' pr' ->) "(Hpr & Hpc' & H)".
       iRight; iLeft. iExists vl, vsl', pc', pr'. iSplit; [done|]; iFrame.
-      iApply ("IH" with "[%] [//] Hinterp Hle"); simpl; lia.
-    - iClear "IH". iDestruct "H" as (vr vsr' pc' pl'' ->) "(Hpl & Hpc' & Hinterp)".
+      iApply ("IH" with "[%] [//] H Hle"); simpl; lia.
+    - iClear "IH". iDestruct "H" as (vr vsr' pc' pl'' ->) "(Hpl & Hpc' & H)".
       iRight; iRight. iExists vr, vsr', pc', pl''. iSplit; [done|]; iFrame.
       by iApply (iProto_le_trans with "Hpl").
   Qed.
   Lemma proto_interp_le_r vsl vsr pl pr pr' :
     proto_interp vsl vsr pl pr -∗ iProto_le pr pr' -∗ proto_interp vsl vsr pl pr'.
   Proof.
-    iIntros "Hinterp Hle". iApply proto_interp_flip.
-    iApply (proto_interp_le_l with "[Hinterp] Hle"). by iApply proto_interp_flip.
+    iIntros "H Hle". iApply proto_interp_flip.
+    iApply (proto_interp_le_l with "[H] Hle"). by iApply proto_interp_flip.
   Qed.
 
   (*
