@@ -811,18 +811,11 @@ Section proto.
     iApply (proto_interp_le_l with "[H] Hle"). by iApply proto_interp_flip.
   Qed.
 
-  (*
-  Lemma wtf a p1 pc2 :
-    ▷ iProto_le p1 (proto_message a pc2) -∗
-    ◇ ∃ pc2', iProto_le p1 (proto_message a pc2') ∧ ▷ ∀ v pc', pc2 v pc' ≡ pc2' v pc'.
-  Proof. Admitted.
-  *)
-
   Lemma proto_interp_send vl pcl vsl vsr pl pr pl' :
     proto_interp vsl vsr pl pr -∗
     iProto_le pl (proto_message Send pcl) -∗
     pcl vl (proto_eq_next pl') -∗
-    proto_interp (vsl ++ [vl]) vsr pl' pr.
+    ▷^(length vsr) proto_interp (vsl ++ [vl]) vsr pl' pr.
   Proof.
     iIntros "H Hle". iDestruct (proto_interp_le_l with "H Hle") as "H".
     clear pl. iIntros "Hpcl". remember (length vsl + length vsr) as n eqn:Hn.
@@ -837,21 +830,21 @@ Section proto.
       rewrite proto_eq_next_dual. iFrame "Hpcl". iApply proto_interp_nil.
     - iDestruct "H" as (vl' vsl' pc' pr' ->) "(Hpr & Hpc' & H)".
       iDestruct ("IH" with "[%] [//] H Hpcl") as "H"; [simpl; lia|].
-      iApply (proto_interp_le_r with "[-Hpr] Hpr"); clear pr.
+      iNext. iApply (proto_interp_le_r with "[-Hpr] Hpr"); clear pr.
       iApply proto_interp_unfold. iRight; iLeft.
       iExists vl', (vsl' ++ [vl]), pc', pr'. iFrame.
       iSplit; [done|]. iApply iProto_le_refl.
-    - iDestruct "H" as (vr' vsr' pc' pl'' ->) "(Hle & Hpcl' & H)".
+    - iDestruct "H" as (vr' vsr' pc' pl'' ->) "(Hle & Hpcl' & H) /=".
       iDestruct (iProto_le_send_inv with "Hle") as (a pcl') "[Hpc Hle]".
       iDestruct (proto_message_equivI with "Hpc") as (<-) "Hpc".
       iRewrite ("Hpc" $! vr' (proto_eq_next pl'')) in "Hpcl'"; clear pc'.
       iDestruct ("Hle" with "Hpcl' Hpcl")
-        as (pc1 pc2 pc') "(Hpl'' & Hpl' & Hpc1 & Hpc2)".
-(* STUCK HERE
-      iMod (wtf with "Hpl''") as (pc1') "[Hpl'' #Hpc]".
-      iDestruct (proto_interp_le_l with "H Hpl''") as "H".
-      iDestruct ("IH" with "[%] [//] H [Hpc1]") as "H"; [simpl; lia|..].
-  *) Admitted.
+        as (pc1 pc2 pt) "(Hpl'' & Hpl' & Hpc1 & Hpc2)".
+      iNext. iDestruct (proto_interp_le_l with "H Hpl''") as "H".
+      iDestruct ("IH" with "[%] [//] H Hpc1") as "H"; [simpl; lia|..].
+      iNext. iApply proto_interp_unfold. iRight; iRight.
+      iExists vr', vsr', _, pt. iSplit; [done|]. by iFrame.
+  Qed.
 
   Lemma proto_interp_recv vl vsl vsr pl pr pcr :
     proto_interp (vl :: vsl) vsr pl pr -∗
