@@ -3,8 +3,7 @@ specification thereof, and its proofs. We call this version fine-grained because
 the lists are not transmitted using a single message, but using a series of
 messages. *)
 From stdpp Require Export sorting.
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation.
+From actris.channel Require Import proofmode.
 From iris.heap_lang Require Import assert.
 From actris.utils Require Import llist compare.
 
@@ -73,7 +72,7 @@ Definition sort_client_fg : val := λ: "cmp" "xs",
   recv_all "c" "xs".
 
 Section sort_fg.
-  Context `{!heapG Σ, !proto_chanG Σ}.
+  Context `{!heapG Σ, !chanG Σ}.
 
   Section sort_fg_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.
@@ -222,10 +221,10 @@ Section sort_fg.
     wp_rec; wp_pures. wp_branch; wp_pures.
     - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
       + wp_recv (x2 v2) as "HIx2".
-        wp_apply (start_chan_proto_spec (sort_fg_protocol <++> END)%proto).
+        wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cy) "Hcy". wp_apply ("IH" with "Hcy"). auto. }
         iIntros (cy) "Hcy".
-        wp_apply (start_chan_proto_spec (sort_fg_protocol <++> END)%proto).
+        wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz". rewrite !right_id.
         wp_select. wp_send with "[$HIx1]".
@@ -241,7 +240,7 @@ Section sort_fg.
         wp_select. by iApply "HΨ".
     - wp_select. by iApply "HΨ".
   Qed.
-  
+
   Lemma send_all_spec c p xs' l xs :
     {{{ llist I l xs ∗ c ↣ (sort_fg_head_protocol xs' <++> p) }}}
       send_all c #l
@@ -282,8 +281,7 @@ Section sort_fg.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_proto_spec (sort_fg_protocol <++> END)%proto);
-      iIntros (c) "Hc".
+    wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto); iIntros (c) "Hc".
     { wp_apply (sort_service_fg_spec with "Hcmp Hc"); auto. }
     wp_apply (send_all_spec with "[$Hl $Hc]"); iIntros "[Hl Hc]".
     wp_select.

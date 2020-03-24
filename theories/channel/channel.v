@@ -1,7 +1,14 @@
 (** This file contains the definition of the channels, encoded as a pair of
-lock-protected buffers, and their primitive proof rules. Actris's proof rules
-for channels in terms of dependent separation protocols can be found in the file
-[theories/channel/proto_channel.v].
+lock-protected buffers, and their primitive proof rules. Moreover:
+
+- It defines the connective [c ↣ prot] for ownership of channel endpoints,
+  which describes that channel endpoint [c] adheres to protocol [prot].
+- It proves Actris's specifications of [send] and [receive] w.r.t. dependent
+  separation protocols.
+
+An encoding of the usual branching connectives [prot1 <{Q1}+{Q2}> prot2] and
+[prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in this
+file.
 
 In this file we define the three message-passing connectives:
 
@@ -10,31 +17,12 @@ In this file we define the three message-passing connectives:
   polarity of the endpoints.
 - [send] takes an endpoint and adds an element to the first buffer.
 - [recv] performs a busy loop until there is something in the second buffer,
-  which it pops and returns, locking during each peek.
-
-The logically-atomic basic (i.e. non dependent separation protocol)
-proof rules [new_chan_spec], [send_spec] and [recv_spec] are defined in terms
-of the logical connectives [is_chan] and [chan_own]:
-
-- [is_chan γ v1 v2] is a persistent proposition expressing that [v1] and [v2]
-  are the endpoints of a channel with logical name [γ].
-- [chan_own γ s vs] is an exclusive proposition expressing the buffer of side
-  [s] ([Left] or [Right]) has contents [vs].
-
-Note that the specifications include 3 laters [▷] to account for the three
-levels of indirection due to step-indexing in the model of dependent separation
-protocols. *)
+  which it pops and returns, locking during each peek.*)
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
-From iris.heap_lang Require Import lifting.
-From iris.algebra Require Import excl_auth list.
-From actris.utils Require Import llist.
+From actris.channel Require Export proto.
+From actris.utils Require Import llist skip.
 Set Default Proof Using "Type".
-
-Inductive side := Left | Right.
-Instance side_inhabited : Inhabited side := populate Left.
-Definition side_elim {A} (s : side) (l r : A) : A :=
-  match s with Left => l | Right => r end.
 
 (** * The definition of the message-passing connectives *)
 Definition new_chan : val :=
@@ -44,12 +32,17 @@ Definition new_chan : val :=
      let: "lk" := newlock #() in
      ((("l","r"),"lk"), (("r","l"),"lk")).
 
+Definition start_chan : val := λ: "f",
+  let: "cc" := new_chan #() in
+  Fork ("f" (Snd "cc"));; Fst "cc".
+
 Definition send : val :=
   λ: "c" "v",
     let: "lk" := Snd "c" in
     acquire "lk";;
     let: "l" := Fst (Fst "c") in
     lsnoc "l" "v";;
+    skipN (llength (Snd (Fst "c")));; (* Later stripping *)
     release "lk".
 
 Definition try_recv : val :=
@@ -68,156 +61,251 @@ Definition recv : val :=
     end.
 
 (** * Setup of Iris's cameras *)
+Definition chanN := nroot .@ "chan".
+
 Class chanG Σ := {
   chanG_lockG :> lockG Σ;
-  chanG_authG :> inG Σ (excl_authR (listO valO));
+  chanG_protoG :> protoG Σ val;
 }.
-Definition chanΣ : gFunctors :=
-  #[ lockΣ; GFunctor (excl_authR (listO valO)) ].
+Definition chanΣ : gFunctors := #[ lockΣ; protoΣ val ].
 Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
 Proof. solve_inG. Qed.
 
+Record chan_name := ChanName {
+  chan_lock_name : gname;
+  chan_proto_name : proto_name;
+}.
+
+(** * Definition of the mapsto connective *)
+Notation iProto Σ := (iProto Σ val).
+
+Definition iProto_mapsto_def `{!heapG Σ, !chanG Σ}
+    (c : val) (p : iProto Σ) : iProp Σ :=
+  ∃ γ s (l r : loc) (lk : val),
+    ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
+    is_lock chanN (chan_lock_name γ) lk (∃ vsl vsr,
+      llist sbi_internal_eq l vsl ∗
+      llist sbi_internal_eq r vsr ∗
+      iProto_ctx (chan_proto_name γ) vsl vsr) ∗
+    iProto_own (chan_proto_name γ) s p.
+Definition iProto_mapsto_aux : seal (@iProto_mapsto_def). by eexists. Qed.
+Definition iProto_mapsto := iProto_mapsto_aux.(unseal).
+Definition iProto_mapsto_eq :
+  @iProto_mapsto = @iProto_mapsto_def := iProto_mapsto_aux.(seal_eq).
+Arguments iProto_mapsto {_ _ _} _ _%proto.
+Instance: Params (@iProto_mapsto) 4 := {}.
+Notation "c ↣ p" := (iProto_mapsto c p)
+  (at level 20, format "c  ↣  p").
+
+Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
+    (p1 p2 : iProto Σ) : iProto Σ :=
+  (<a> (b : bool), MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
+Typeclasses Opaque iProto_branch.
+Arguments iProto_branch {_} _ _%I _%I _%proto _%proto.
+Instance: Params (@iProto_branch) 2 := {}.
+Infix "<{ P1 }+{ P2 }>" := (iProto_branch Send P1 P2) (at level 85) : proto_scope.
+Infix "<{ P1 }&{ P2 }>" := (iProto_branch Receive P1 P2) (at level 85) : proto_scope.
+Infix "<+{ P2 }>" := (iProto_branch Send True P2) (at level 85) : proto_scope.
+Infix "<&{ P2 }>" := (iProto_branch Receive True P2) (at level 85) : proto_scope.
+Infix "<{ P1 }+>" := (iProto_branch Send P1 True) (at level 85) : proto_scope.
+Infix "<{ P1 }&>" := (iProto_branch Receive P1 True) (at level 85) : proto_scope.
+Infix "<+>" := (iProto_branch Send True True) (at level 85) : proto_scope.
+Infix "<&>" := (iProto_branch Receive True True) (at level 85) : proto_scope.
+
 Section channel.
-  Context `{!heapG Σ, !chanG Σ} (N : namespace).
+  Context `{!heapG Σ, !chanG Σ}.
+  Implicit Types p : iProto Σ.
+  Implicit Types TT : tele.
 
-  Record chan_name := Chan_name {
-    chan_lock_name : gname;
-    chan_l_name : gname;
-    chan_r_name : gname
-  }.
+  Global Instance iProto_mapsto_ne c : NonExpansive (iProto_mapsto c).
+  Proof. rewrite iProto_mapsto_eq. solve_proper. Qed.
+  Global Instance iProto_mapsto_proper c : Proper ((≡) ==> (≡)) (iProto_mapsto c).
+  Proof. apply (ne_proper _). Qed.
 
-  (** * The logical connectives *)
-  Definition chan_inv (γ : chan_name) (l r : loc) : iProp Σ :=
-    (∃ ls rs,
-      llist sbi_internal_eq l ls ∗ own (chan_l_name γ) (●E ls) ∗
-      llist sbi_internal_eq r rs ∗ own (chan_r_name γ) (●E rs))%I.
-  Typeclasses Opaque chan_inv.
-
-  Definition is_chan (γ : chan_name) (c1 c2 : val) : iProp Σ :=
-    (∃ (l r : loc) (lk : val),
-      ⌜ c1 = ((#l, #r), lk)%V ∧ c2 = ((#r, #l), lk)%V ⌝ ∗
-      is_lock N (chan_lock_name γ) lk (chan_inv γ l r))%I.
-
-  Global Instance is_chan_persistent : Persistent (is_chan γ c1 c2).
-  Proof. by apply _. Qed.
-
-  Lemma chan_inv_alt s γ l r :
-    chan_inv γ l r ⊣⊢ ∃ ls rs,
-      llist sbi_internal_eq (side_elim s l r) ls ∗
-      own (side_elim s chan_l_name chan_r_name γ) (●E ls) ∗
-      llist sbi_internal_eq (side_elim s r l) rs ∗
-      own (side_elim s chan_r_name chan_l_name γ) (●E rs).
+  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ iProto_le p1 p2 -∗ c ↣ p2.
   Proof.
-    destruct s; rewrite /chan_inv //=.
-    iSplit; iDestruct 1 as (ls rs) "(?&?&?&?)"; iExists rs, ls; iFrame.
+    rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
+    iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+    by iApply (iProto_own_le with "H").
   Qed.
 
-  Definition chan_own (γ : chan_name) (s : side) (vs : list val) : iProp Σ :=
-    own (side_elim s chan_l_name chan_r_name γ) (◯E vs)%I.
+  Global Instance iProto_branch_contractive n a :
+    Proper (dist_later n ==> dist_later n ==>
+            dist_later n ==> dist_later n ==> dist n) (@iProto_branch Σ a).
+  Proof.
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
+    apply iProto_message_contractive=> /= -[] //.
+  Qed.
+  Global Instance iProto_branch_ne n a :
+    Proper (dist n ==> dist n ==> dist n ==> dist n ==> dist n) (@iProto_branch Σ a).
+  Proof.
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
+    by apply iProto_message_ne=> /= -[].
+  Qed.
+  Global Instance iProto_branch_proper a :
+    Proper ((≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡)) (@iProto_branch Σ a).
+  Proof.
+    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
+    by apply iProto_message_proper=> /= -[].
+  Qed.
 
-  (** * The proof rules *)
-  Global Instance chan_own_timeless γ s vs : Timeless (chan_own γ s vs).
-  Proof. by apply _. Qed.
+  Lemma iProto_dual_branch a P1 P2 p1 p2 :
+    iProto_dual (iProto_branch a P1 P2 p1 p2)
+    ≡ iProto_branch (action_dual a) P1 P2 (iProto_dual p1) (iProto_dual p2).
+  Proof.
+    rewrite /iProto_branch iProto_dual_message /=.
+    by apply iProto_message_proper=> /= -[].
+  Qed.
 
-  Lemma new_chan_spec :
+  Lemma iProto_app_branch a P1 P2 p1 p2 q :
+    (iProto_branch a P1 P2 p1 p2 <++> q)%proto
+    ≡ (iProto_branch a P1 P2 (p1 <++> q) (p2 <++> q))%proto.
+  Proof.
+    rewrite /iProto_branch iProto_app_message.
+    by apply iProto_message_proper=> /= -[].
+  Qed.
+
+  (** ** Specifications of [send] and [recv] *)
+  Lemma new_chan_spec p :
     {{{ True }}}
       new_chan #()
-    {{{ c1 c2 γ, RET (c1,c2); is_chan γ c1 c2 ∗ chan_own γ Left [] ∗ chan_own γ Right [] }}}.
+    {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". rewrite /is_chan /chan_own.
-    wp_lam.
-    wp_apply (lnil_spec with "[//]"); iIntros (l) "Hl".
-    wp_apply (lnil_spec with "[//]"); iIntros (r) "Hr".
-    iMod (own_alloc (●E [] ⋅ ◯E [])) as (lsγ) "[Hls Hls']".
-    { by apply excl_auth_valid. }
-    iMod (own_alloc (●E [] ⋅ ◯E [])) as (rsγ) "[Hrs Hrs']".
-    { by apply excl_auth_valid. }
-    wp_apply (newlock_spec N (∃ ls rs,
-      llist sbi_internal_eq l ls ∗ own lsγ (●E ls) ∗
-      llist sbi_internal_eq r rs ∗ own rsγ (●E rs))%I with "[Hl Hr Hls Hrs]").
-    { eauto 10 with iFrame. }
-    iIntros (lk γlk) "#Hlk". wp_pures.
-    iApply ("HΦ" $! _ _ (Chan_name γlk lsγ rsγ)); simpl.
-    rewrite /chan_inv /=. eauto 20 with iFrame.
+    iIntros (Φ _) "HΦ". wp_lam.
+    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (l) "Hl".
+    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (r) "Hr".
+    iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
+    wp_apply (newlock_spec chanN (∃ vsl vsr,
+      llist sbi_internal_eq l vsl ∗ llist sbi_internal_eq r vsr ∗
+      iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
+    { iExists [], []. iFrame. }
+    iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
+    set (γ := ChanName γlk γp). iSplitL "Hcl".
+    - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
+    - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
   Qed.
 
-  Lemma send_spec Φ E γ c1 c2 v s :
-    is_chan γ c1 c2 -∗
-    (|={⊤,E}=> ∃ vs,
-      chan_own γ s vs ∗
-      ▷ (chan_own γ s (vs ++ [v]) ={E,⊤}=∗ ▷ ▷ Φ #())) -∗
-    WP send (side_elim s c1 c2) v {{ Φ }}.
+  Lemma start_chan_spec p Φ (f : val) :
+    ▷ (∀ c, c ↣ iProto_dual p -∗ WP f c {{ _, True }}) -∗
+    ▷ (∀ c, c ↣ p -∗ Φ c) -∗
+    WP start_chan f {{ Φ }}.
   Proof.
-    iIntros "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
-    assert (side_elim s (#l, #r, lk)%V (#r, #l, lk)%V =
-      ((#(side_elim s l r), #(side_elim s r l)), lk)%V) as -> by (by destruct s).
-    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
-    iDestruct (chan_inv_alt s with "Hinv") as
-      (vs ws) "(Hll & Hvs & Href' & Hws)".
-    wp_seq. wp_bind (Fst (_,_)%V)%E.
-    iMod "HΦ" as (vs') "[Hchan HΦ]".
-    iDestruct (own_valid_2 with "Hvs Hchan") as %<-%excl_auth_agreeL.
-    iMod (own_update_2 _ _ _ (●E (vs ++ [v]) ⋅ _) with "Hvs Hchan") as "[Hvs Hchan]".
-    { apply excl_auth_update. }
-    wp_pures. iMod ("HΦ" with "Hchan") as "HΦ"; iModIntro.
-    wp_apply (lsnoc_spec with "[$Hll //]"); iIntros "Hll".
-    wp_apply (release_spec with "[-HΦ $Hlock $Hlocked]"); last eauto.
-    iApply (chan_inv_alt s).
-    rewrite /llist. eauto 20 with iFrame.
+    iIntros "Hfork HΦ". wp_lam.
+    wp_apply (new_chan_spec p with "[//]"); iIntros (c1 c2) "[Hc1 Hc2]".
+    wp_apply (wp_fork with "[Hfork Hc2]").
+    { iNext. wp_apply ("Hfork" with "Hc2"). }
+    wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
-  Lemma try_recv_spec Φ E γ c1 c2 s :
-    is_chan γ c1 c2 -∗
-    ((|={⊤,E}▷=> ▷ Φ NONEV) ∧
-     (|={⊤,E}=> ∃ vs,
-       chan_own γ s vs ∗
-       ▷ (∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
-                   chan_own γ s vs' ={E,⊤,⊤}▷=∗ ▷ Φ (SOMEV v)))) -∗
-    WP try_recv (side_elim s c2 c1) {{ Φ }}.
+  Lemma send_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
+    {{{ c ↣ iProto_message Send pc ∗ (pc x).1.2 }}}
+      send c (pc x).1.1
+    {{{ RET #(); c ↣ (pc x).2 }}}.
   Proof.
-    iIntros "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (l r lk [-> ->]) "#Hlock"; wp_pures.
-    assert (side_elim s (#r, #l, lk)%V (#l, #r, lk)%V =
-      ((#(side_elim s r l), #(side_elim s l r)), lk)%V) as -> by (by destruct s).
-    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinv]".
-    iDestruct (chan_inv_alt s with "Hinv")
-      as (vs ws) "(Hll & Hvs & Href' & Hws)".
-    wp_seq. wp_bind (Fst (_,_)%V)%E. destruct vs as [|v vs]; simpl.
-    - iDestruct "HΦ" as "[>HΦ _]". wp_pures. iMod "HΦ"; iModIntro.
-      wp_apply (lisnil_spec with "Hll"); iIntros "Hll". wp_pures.
-      wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
-      { iApply (chan_inv_alt s).
-        rewrite /llist. eauto 10 with iFrame. }
-      iIntros (_). by wp_pures.
-    - iDestruct "HΦ" as "[_ >HΦ]". iDestruct "HΦ" as (vs') "[Hvs' HΦ]".
-      iDestruct (own_valid_2 with "Hvs Hvs'") as %<-%excl_auth_agreeL.
-      iMod (own_update_2 _ _ _ (●E vs ⋅ _) with "Hvs Hvs'") as "[Hvs Hvs']".
-      { apply excl_auth_update. }
-      wp_pures. iMod ("HΦ" with "[//] Hvs'") as "HΦ"; iModIntro.
-      wp_apply (lisnil_spec with "Hll"); iIntros "Hll". iMod "HΦ".
-      wp_apply (lpop_spec with "Hll"); iIntros (v') "[% Hll]"; simplify_eq/=.
-      wp_apply (release_spec with "[-HΦ $Hlocked $Hlock]").
-      { iApply (chan_inv_alt s).
-        rewrite /llist. eauto 10 with iFrame. }
-      iIntros (_). by wp_pures.
+    rewrite iProto_mapsto_eq. iIntros (Φ) "[Hc Hpc] HΦ". wp_lam; wp_pures.
+    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
+    - iMod (iProto_send_l with "Hctx H Hpc") as "[Hctx H]".
+      wp_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
+      wp_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
+      wp_apply skipN_spec.
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
+    - iMod (iProto_send_r with "Hctx H Hpc") as "[Hctx H]".
+      wp_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
+      wp_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
+      wp_apply skipN_spec.
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
   Qed.
 
-  Lemma recv_spec Φ E γ c1 c2 s :
-    is_chan γ c1 c2 -∗
-    (|={⊤,E}=> ∃ vs,
-      chan_own γ s vs ∗
-      ▷ ∀ v vs', ⌜ vs = v :: vs' ⌝ -∗
-                 chan_own γ s vs' ={E,⊤,⊤}▷=∗ ▷ Φ v) -∗
-    WP recv (side_elim s c2 c1) {{ Φ }}.
+  (** A version written without Texan triples that is more convenient to use
+  (via [iApply] in Coq. *)
+  Lemma send_proto_spec {TT} Φ c v (pc : TT → val * iProp Σ * iProto Σ) :
+    c ↣ iProto_message Send pc -∗
+    (∃.. x : TT,
+      ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 -∗ Φ #())) -∗
+    WP send c v {{ Φ }}.
   Proof.
-    iIntros "#Hc HΦ". iLöb as "IH". wp_lam.
-    wp_apply (try_recv_spec _ E with "Hc")=> //. iSplit.
-    - iMod (fupd_intro_mask' _ E) as "Hclose"; first done. iIntros "!> !>".
-      iMod "Hclose" as %_; iIntros "!> !>". wp_pures. by iApply "IH".
-    - iMod "HΦ" as (vs) "[Hvs HΦ]". iExists vs; iFrame "Hvs".
-      iIntros "!> !>" (v vs' ->) "Hvs".
-      iMod ("HΦ" with "[//] Hvs") as "HΦ". iIntros "!> !>". iMod "HΦ".
-      iIntros "!> !>". by wp_pures.
+    iIntros "Hc H". iDestruct (bi_texist_exist with "H") as (x ->) "[HP HΦ]".
+    by iApply (send_spec_packed with "[$]").
+  Qed.
+
+  Lemma try_recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
+    {{{ c ↣ iProto_message Receive pc }}}
+      try_recv c
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Receive pc) ∨
+                  (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2) }}}.
+  Proof.
+    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
+    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
+    - wp_apply (lisnil_spec with "Hr"); iIntros "Hr".
+      destruct vsr as [|vr vsr]; wp_pures.
+      { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
+        iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
+      wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
+      iMod (iProto_recv_l with "Hctx H") as "H". wp_pures.
+      iDestruct "H" as (x ->) "(Hctx & H & Hpc)".
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
+      iFrame "Hpc". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
+    - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+      destruct vsl as [|vl vsl]; wp_pures.
+      { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
+        iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
+      wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
+      iMod (iProto_recv_r with "Hctx H") as "H". wp_pures.
+      iDestruct "H" as (x ->) "(Hctx & H & Hpc)".
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
+      iFrame "Hpc". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
+  Qed.
+
+  Lemma recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
+    {{{ c ↣ iProto_message Receive pc }}}
+      recv c
+    {{{ x, RET (pc x).1.1; c ↣ (pc x).2 ∗ (pc x).1.2 }}}.
+  Proof.
+    iIntros (Φ) "Hc HΦ". iLöb as "IH". wp_lam.
+    wp_apply (try_recv_spec_packed with "Hc"); iIntros (v) "[[-> H]|H]".
+    { wp_pures. by iApply ("IH" with "[$]"). }
+    iDestruct "H" as (x ->) "[Hc Hpc]". wp_pures. iApply "HΦ". iFrame.
+  Qed.
+
+  (** A version written without Texan triples that is more convenient to use
+  (via [iApply] in Coq. *)
+  Lemma recv_proto_spec {TT} Φ c (pc : TT → val * iProp Σ * iProto Σ) :
+    c ↣ iProto_message Receive pc -∗
+    ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Φ (pc x).1.1) -∗
+    WP recv c {{ Φ }}.
+  Proof.
+    iIntros "Hc H". iApply (recv_spec_packed with "[$]").
+    iIntros "!>" (x) "[Hc HP]". iDestruct (bi_tforall_forall with "H") as "H".
+    iApply ("H" with "[$] [$]").
+  Qed.
+
+  (** ** Specifications for branching *)
+  Lemma select_spec c (b : bool) P1 P2 p1 p2 :
+    {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}}
+      send c #b
+    {{{ RET #(); c ↣ (if b then p1 else p2) }}}.
+  Proof.
+    rewrite /iProto_branch. iIntros (Φ) "[Hc HP] HΦ".
+    iApply (send_proto_spec with "Hc"); simpl; eauto with iFrame.
+  Qed.
+
+  Lemma branch_spec c P1 P2 p1 p2 :
+    {{{ c ↣ (p1 <{P1}&{P2}> p2) }}}
+      recv c
+    {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}.
+  Proof.
+    rewrite /iProto_branch. iIntros (Φ) "Hc HΦ".
+    iApply (recv_proto_spec with "Hc"); simpl.
+    iIntros "!>" (b) "Hc HP". iApply "HΦ". iFrame.
   Qed.
 End channel.

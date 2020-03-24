@@ -9,7 +9,7 @@ In addition to the tactics for symbolic execution, this file defines the tactic
 recursive protocols are contractive. *)
 From iris.heap_lang Require Export proofmode notation.
 From iris.proofmode Require Export tactics.
-From actris Require Export proto_channel.
+From actris Require Export channel.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 
 (** * Tactics for proving contractiveness of protocols *)
@@ -56,7 +56,7 @@ Notation ProtoUnfold p1 p2 := (∀ d pas q,
   ProtoNormalize d p2 pas q → ProtoNormalize d p1 pas q).
 
 Section classes.
-  Context `{!proto_chanG Σ, !heapG Σ}.
+  Context `{!chanG Σ, !heapG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
@@ -163,7 +163,7 @@ End classes.
 
 (** * Symbolic execution tactics *)
 (* TODO: Maybe strip laters from other hypotheses in the future? *)
-Lemma tac_wp_recv `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ i j K
+Lemma tac_wp_recv `{!chanG Σ, !heapG Σ} {TT : tele} Δ i j K
     c p (pc : TT → val * iProp Σ * iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (iProto_message Receive pc) →
@@ -241,7 +241,7 @@ Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_i
     simple_intropattern(x8) ")" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat).
 
-Lemma tac_wp_send `{!proto_chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K
+Lemma tac_wp_send `{!chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K
     c v p (pc : TT → val * iProp Σ * iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (iProto_message Send pc) →
@@ -337,7 +337,7 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-Lemma tac_wp_branch `{!proto_chanG Σ, !heapG Σ} Δ i j K
+Lemma tac_wp_branch `{!chanG Σ, !heapG Σ} Δ i j K
     c p P1 P2 (p1 p2 : iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}&{P2}> p2) →
@@ -385,7 +385,7 @@ Tactic Notation "wp_branch" "as" "%" simple_intropattern(pat1) "|" "%" simple_in
   wp_branch_core as (fun H => iPure H as pat1) (fun H => iPure H as pat2).
 Tactic Notation "wp_branch" := wp_branch as %_ | %_.
 
-Lemma tac_wp_select `{!proto_chanG Σ, !heapG Σ} Δ neg i js K
+Lemma tac_wp_select `{!chanG Σ, !heapG Σ} Δ neg i js K
     c (b : bool) p P1 P2 (p1 p2 : iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}+{P2}> p2) →

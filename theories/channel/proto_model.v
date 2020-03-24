@@ -1,8 +1,9 @@
-(** This file defines the model of dependent separation protocols, along with
-various operations, such as append and map.
+(** This file defines the model of dependent separation protocols as the
+solution of a recursive domain equation, along with various primitive
+operations, such as append and map.
 
 Important: This file should not be used directly, but rather the wrappers in
-[proto_channel] should be used.
+[proto] should be used.
 
 Dependent Separation Protocols are modeled as the solution of the following
 recursive domain equation:
