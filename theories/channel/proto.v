@@ -520,6 +520,21 @@ Section proto.
     { iIntros "!>". by iRewrite "Heq". }
     iExists x1. iSplit; [done|]. iSplit; [by iApply "Hpc"|done].
   Qed.
+  (* The following derived rule is weaker, but the positions of the laters
+  make more sense intuitively and practically. *)
+  Lemma iProto_le_send' {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
+      (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
+    ▷ (∀.. x2 : TT2, (pc2 x2).1.2 -∗ ∃.. x1 : TT1,
+      ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
+      (pc1 x1).1.2 ∗
+      iProto_le (pc1 x1).2 (pc2 x2).2) -∗
+    iProto_le (iProto_message Send pc1) (iProto_message Send pc2).
+  Proof.
+    iIntros "H". iApply iProto_le_send. iIntros (x2) "Hpc".
+    rewrite bi_tforall_forall. iDestruct ("H" with "Hpc") as "H".
+    rewrite bi_texist_exist bi.later_exist_except_0.
+    iMod "H" as (x1) "(>% & Hpc & Hle)". iExists x1. by iFrame.
+  Qed.
 
   Lemma iProto_le_recv {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
       (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
@@ -535,6 +550,19 @@ Section proto.
     iMod ("H" with "Hpc") as (x2 ?) "[Hpc Hle]". iExists (pc2 x2).2. iSplitL "Hle".
     { iIntros "!> !>". by iRewrite "Heq". }
     iModIntro. iExists x2. iSplit; [done|]. iSplit; [by iApply "Hpc"|done].
+  Qed.
+  Lemma iProto_le_recv' {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
+      (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
+    ▷ (∀.. x1 : TT1, (pc1 x1).1.2 -∗ ∃.. x2 : TT2,
+      ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
+      (pc2 x2).1.2 ∗
+      iProto_le (pc1 x1).2 (pc2 x2).2) -∗
+    iProto_le (iProto_message Receive pc1) (iProto_message Receive pc2).
+  Proof.
+    iIntros "H". iApply iProto_le_recv. iIntros (x2) "Hpc".
+    rewrite bi_tforall_forall. iDestruct ("H" with "Hpc") as "H".
+    rewrite bi_texist_exist bi.later_exist_except_0.
+    iMod "H" as (x1) "(>% & Hpc & Hle)". iExists x1. by iFrame.
   Qed.
 
   Lemma iProto_le_swap {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
@@ -560,6 +588,31 @@ Section proto.
     iModIntro. iExists _, _, (pc3 x3).2. iSplitL "H1"; [iNext; by iRewrite "Heq1"|].
     iSplitL "H2"; [iNext; by iRewrite "Heq2"|]. simpl.
     iSplitL "Hpc1"; [by auto|]. iExists x4. rewrite !bi.later_equivI. auto.
+  Qed.
+  Lemma iProto_le_swap' {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
+      (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
+    ▷ (∀.. (x1 : TT1) (x2 : TT2),
+      (pc1 x1).1.2 -∗ (pc2 x2).1.2 -∗
+      ∃ {TT3 TT4} (pc3 : TT3 → V * iProp Σ * iProto Σ V)
+          (pc4 : TT4 → V * iProp Σ * iProto Σ V), ∃.. (x3 : TT3) (x4 : TT4),
+        ⌜(pc1 x1).1.1 = (pc4 x4).1.1⌝ ∗
+        ⌜(pc2 x2).1.1 = (pc3 x3).1.1⌝ ∗
+        iProto_le (pc1 x1).2 (iProto_message Send pc3) ∗
+        iProto_le (iProto_message Receive pc4) (pc2 x2).2 ∗
+        (pc3 x3).1.2 ∗ (pc4 x4).1.2 ∗
+        ((pc3 x3).2 ≡ (pc4 x4).2)) -∗
+    iProto_le (iProto_message Receive pc1) (iProto_message Send pc2).
+  Proof.
+    iIntros "H". iApply iProto_le_swap. iIntros (x1 x2) "Hpc1 Hpc2".
+    repeat setoid_rewrite bi_tforall_forall. iDestruct ("H" with "Hpc1 Hpc2") as "H".
+    iMod (bi.later_exist_except_0 with "H") as (TT3) "H".
+    iMod (bi.later_exist_except_0 with "H") as (TT4) "H".
+    iMod (bi.later_exist_except_0 with "H") as (pc3) "H".
+    iMod (bi.later_exist_except_0 with "H") as (pc4) "H".
+    rewrite bi_texist_exist bi.later_exist_except_0. iMod "H" as (x3) "H".
+    rewrite bi_texist_exist bi.later_exist_except_0. iMod "H" as (x4) "H".
+    iDestruct "H" as "(>% & >% & H1 & H2 & Hpc1 & Hpc2 & #H)".
+    iExists TT3, TT4, pc3, pc4, x3, x4. iFrame. auto.
   Qed.
 
   Lemma iProto_le_swap_simple {TT1 TT2} (v1 : TT1 → V) (v2 : TT2 → V)
