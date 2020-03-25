@@ -93,6 +93,9 @@ Definition iProto_mapsto_def `{!heapG Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
+    meta l (nroot .@ "side") Left ∗
+    meta r (nroot .@ "side") Right ∗
+    meta l (nroot .@ "name") γ ∗
     is_lock chanN (chan_lock_name γ) lk (∃ vsl vsr,
       llist sbi_internal_eq l vsl ∗
       llist sbi_internal_eq r vsr ∗
@@ -134,8 +137,9 @@ Section channel.
 
   Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ ▷ iProto_le p1 p2 -∗ c ↣ p2.
   Proof.
-    rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
-    iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+    rewrite iProto_mapsto_eq.
+    iDestruct 1 as (γ s l r lk ->) "(Hm1 & Hm2 & Hm3 & Hlk & H)".
+    iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hm1 Hm2 Hm3 Hlk".
     by iApply (iProto_own_le with "H").
   Qed.
 
@@ -197,15 +201,20 @@ Section channel.
     {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
     iIntros (Φ _) "HΦ". wp_lam.
-    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (l) "Hl".
-    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (r) "Hr".
+    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (l) "[Hl Hml]".
+    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (r) "[Hr Hmr]".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_apply (newlock_spec chanN (∃ vsl vsr,
       llist sbi_internal_eq l vsl ∗ llist sbi_internal_eq r vsr ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame. }
-    iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
-    set (γ := ChanName γlk γp). iSplitL "Hcl".
+    iIntros (lk γlk) "#Hlk". set (γ := ChanName γlk γp).
+    iDestruct (meta_token_difference _ (↑ (nroot .@ "side")) with "Hml")
+      as "[Hml Hmγ]"; first solve_ndisj.
+    iMod (meta_set _ _ Left (nroot .@ "side") with "Hml") as "#Hml"; first done.
+    iMod (meta_set _ _ Right (nroot .@ "side") with "Hmr") as "#Hmr"; first done.
+    iMod (meta_set _ _ γ (nroot .@ "name") with "Hmγ") as "#Hmγ"; first solve_ndisj.
+    wp_pures. iApply "HΦ". iSplitL "Hcl".
     - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
     - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
   Qed.
@@ -228,47 +237,38 @@ Section channel.
       send c (pc x).1.1 @ ⊤
     <<< c ↣ (pc x).2, RET #() >>>.
   Proof.
-    rewrite iProto_mapsto_eq.
-    iIntros (Φ) "HAU".
-    wp_lam; wp_pures.
-    iApply fupd_wp.
-    iMod "HAU" as "[[Hp HP] [Habort _]]".
-    iDestruct "Hp" as (γ s l r lk ->) "(#Hlk & Hown)".
+    rewrite iProto_mapsto_eq. iIntros (Φ) "HAU". wp_lam; wp_pures.
+    iApply fupd_wp. iMod "HAU" as "[[Hp Hpc] [Habort _]]".
+    iDestruct "Hp" as (γ s l r lk ->) "(#Hm1 & #Hm2 & #Hm3 & #Hlk & Hown)".
     iMod ("Habort" with "[-]") as "HAU".
-    { iFrame "HP". iExists γ, s, l, r. eauto with iFrame. }
+    { iFrame "Hpc". iExists γ, s, l, r, lk. eauto 10 with iFrame. }
     iModIntro.
     wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
     wp_seq. wp_bind (Fst (_,_)%V)%E.
     iMod "HAU" as "[[Hp Hpc] [_ Hcomm]]".
-    iDestruct "Hp" as (γ' s' l' r' lk' ->) "(#Hlk' & Hown)".
-    replace γ' with γ by admit.
-    replace s' with s by admit.
-    replace l' with l by admit.
-    replace r' with r by admit.
+    iDestruct "Hp" as (γ' s' l' r' lk' ?) "(#Hm1' & #_ & #Hm3' & _ & Hown)".
+    iAssert ⌜ s' = s ∧ l' = l ∧ r' = r ⌝%I with "[]" as %(-> & -> & ->).
+    { destruct s, s'; simplify_eq/=; auto;
+        by iDestruct (meta_agree with "Hm2 Hm1'") as %?. }
+    iDestruct (meta_agree with "Hm3 Hm3'") as %<-. iClear "Hm1' Hm3'".
     destruct s; simpl.
     - iMod (iProto_send_l with "Hctx Hown Hpc") as "[Hctx H]".
-      wp_pures.
-      iMod ("Hcomm" with "[H]") as "Hcomm".
-      { rewrite /iProto_mapsto_def. eauto 10 with iFrame. }
+      wp_pures. iMod ("Hcomm" with "[H]") as "Hcomm".
+      { iExists γ, Left, l, r, lk. by iFrame "H #". }
       iModIntro.
       wp_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply skipN_spec.
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
-      { by eauto with iFrame. }
-      by iIntros "_".
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); eauto with iFrame.
     - iMod (iProto_send_r with "Hctx Hown Hpc") as "[Hctx H]".
-      wp_pures.
-      iMod ("Hcomm" with "[H]") as "Hcomm".
-      { rewrite /iProto_mapsto_def. eauto 10 with iFrame. }
+      wp_pures. iMod ("Hcomm" with "[H]") as "Hcomm".
+      { iExists γ, Right, l, r, lk. by iFrame "H #". }
       wp_pures. iModIntro.
       wp_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply skipN_spec.
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
-      { by eauto with iFrame. }
-      by iIntros "_".
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); eauto with iFrame.
   Qed.
 
   (** A version written without Texan triples that is more convenient to use
