@@ -75,6 +75,15 @@ Record chan_name := ChanName {
   chan_lock_name : gname;
   chan_proto_name : proto_name;
 }.
+Instance chan_name_inhabited : Inhabited chan_name :=
+  populate (ChanName inhabitant inhabitant).
+Instance chan_name_eq_dec : EqDecision chan_name.
+Proof. solve_decision. Qed.
+Instance chan_name_countable : Countable chan_name.
+Proof.
+ refine (inj_countable (λ '(ChanName γl γr), (γl,γr))
+   (λ '(γl, γr), Some (ChanName γl γr)) _); by intros [].
+Qed.
 
 (** * Definition of the mapsto connective *)
 Notation iProto Σ := (iProto Σ val).

@@ -249,9 +249,25 @@ Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp
 Arguments iProto_interp {_ _} _ _ _%proto _%proto : simpl nomatch.
 
 Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
+Instance proto_name_inhabited : Inhabited proto_name :=
+  populate (ProtName inhabitant inhabitant).
+Instance proto_name_eq_dec : EqDecision proto_name.
+Proof. solve_decision. Qed.
+Instance proto_name_countable : Countable proto_name.
+Proof.
+ refine (inj_countable (λ '(ProtName γl γr), (γl,γr))
+   (λ '(γl, γr), Some (ProtName γl γr)) _); by intros [].
+Qed.
 
 Inductive side := Left | Right.
 Instance side_inhabited : Inhabited side := populate Left.
+Instance side_eq_dec : EqDecision side.
+Proof. solve_decision. Qed.
+Instance side_countable : Countable side.
+Proof.
+ refine (inj_countable (λ s, if s is Left then true else false)
+   (λ b, Some (if b then Left else Right)) _); by intros [].
+Qed.
 Definition side_elim {A} (s : side) (l r : A) : A :=
   match s with Left => l | Right => r end.
 
