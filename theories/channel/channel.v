@@ -18,6 +18,7 @@ In this file we define the three message-passing connectives:
 - [send] takes an endpoint and adds an element to the first buffer.
 - [recv] performs a busy loop until there is something in the second buffer,
   which it pops and returns, locking during each peek.*)
+From iris.program_logic Require Import atomic.
 From iris.heap_lang Require Import proofmode notation.
 From iris.heap_lang.lib Require Import spin_lock.
 From actris.channel Require Export proto.
@@ -221,27 +222,53 @@ Section channel.
     wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
-  Lemma send_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
-    {{{ c ↣ iProto_message Send pc ∗ (pc x).1.2 }}}
-      send c (pc x).1.1
-    {{{ RET #(); c ↣ (pc x).2 }}}.
+  Lemma send_spec_packed {TT} (c : val)
+        (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
+    ⊢ <<< c ↣ iProto_message Send pc ∗ (pc x).1.2 >>>
+      send c (pc x).1.1 @ ⊤
+    <<< c ↣ (pc x).2, RET #() >>>.
   Proof.
-    rewrite iProto_mapsto_eq. iIntros (Φ) "[Hc Hpc] HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    rewrite iProto_mapsto_eq.
+    iIntros (Φ) "HAU".
+    wp_lam; wp_pures.
+    iApply fupd_wp.
+    iMod "HAU" as "[[Hp HP] [Habort _]]".
+    iDestruct "Hp" as (γ s l r lk ->) "(#Hlk & Hown)".
+    iMod ("Habort" with "[-]") as "HAU".
+    { iFrame "HP". iExists γ, s, l, r. eauto with iFrame. }
+    iModIntro.
     wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
-    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
-    - iMod (iProto_send_l with "Hctx H Hpc") as "[Hctx H]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
+    wp_seq. wp_bind (Fst (_,_)%V)%E.
+    iMod "HAU" as "[[Hp Hpc] [_ Hcomm]]".
+    iDestruct "Hp" as (γ' s' l' r' lk' ->) "(#Hlk' & Hown)".
+    replace γ' with γ by admit.
+    replace s' with s by admit.
+    replace l' with l by admit.
+    replace r' with r by admit.
+    destruct s; simpl.
+    - iMod (iProto_send_l with "Hctx Hown Hpc") as "[Hctx H]".
+      wp_pures.
+      iMod ("Hcomm" with "[H]") as "Hcomm".
+      { rewrite /iProto_mapsto_def. eauto 10 with iFrame. }
+      iModIntro.
       wp_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply skipN_spec.
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
-    - iMod (iProto_send_r with "Hctx H Hpc") as "[Hctx H]".
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
+      { by eauto with iFrame. }
+      by iIntros "_".
+    - iMod (iProto_send_r with "Hctx Hown Hpc") as "[Hctx H]".
+      wp_pures.
+      iMod ("Hcomm" with "[H]") as "Hcomm".
+      { rewrite /iProto_mapsto_def. eauto 10 with iFrame. }
+      wp_pures. iModIntro.
       wp_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply skipN_spec.
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
+      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
+      { by eauto with iFrame. }
+      by iIntros "_".
   Qed.
 
   (** A version written without Texan triples that is more convenient to use
