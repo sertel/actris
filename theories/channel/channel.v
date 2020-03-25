@@ -222,7 +222,7 @@ Section channel.
 
   (** A version written without Texan triples that is more convenient to use
   (via [iApply] in Coq. *)
-  Lemma send_proto_spec {TT} Φ c v (pc : TT → val * iProp Σ * iProto Σ) :
+  Lemma send_spec {TT} Φ c v (pc : TT → val * iProp Σ * iProto Σ) :
     c ↣ iProto_message Send pc -∗
     (∃.. x : TT,
       ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 -∗ Φ #())) -∗
@@ -279,7 +279,7 @@ Section channel.
 
   (** A version written without Texan triples that is more convenient to use
   (via [iApply] in Coq. *)
-  Lemma recv_proto_spec {TT} Φ c (pc : TT → val * iProp Σ * iProto Σ) :
+  Lemma recv_spec {TT} Φ c (pc : TT → val * iProp Σ * iProto Σ) :
     c ↣ iProto_message Receive pc -∗
     ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Φ (pc x).1.1) -∗
     WP recv c {{ Φ }}.
@@ -296,7 +296,7 @@ Section channel.
     {{{ RET #(); c ↣ (if b then p1 else p2) }}}.
   Proof.
     rewrite /iProto_branch. iIntros (Φ) "[Hc HP] HΦ".
-    iApply (send_proto_spec with "Hc"); simpl; eauto with iFrame.
+    iApply (send_spec with "Hc"); simpl; eauto with iFrame.
   Qed.
 
   Lemma branch_spec c P1 P2 p1 p2 :
@@ -305,7 +305,7 @@ Section channel.
     {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}.
   Proof.
     rewrite /iProto_branch. iIntros (Φ) "Hc HΦ".
-    iApply (recv_proto_spec with "Hc"); simpl.
+    iApply (recv_spec with "Hc"); simpl.
     iIntros "!>" (b) "Hc HP". iApply "HΦ". iFrame.
   Qed.
 End channel.

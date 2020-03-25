@@ -178,7 +178,7 @@ Lemma tac_wp_recv `{!chanG Σ, !heapG Σ} {TT : tele} Δ i j K
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= tforall_forall right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl. rewrite -Hp.
-  rewrite -wp_bind. eapply bi.wand_apply; [by eapply recv_proto_spec|f_equiv].
+  rewrite -wp_bind. eapply bi.wand_apply; [by eapply recv_spec|f_equiv].
   rewrite -bi.later_intro bi_tforall_forall; apply bi.forall_intro=> x.
   specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
   rewrite envs_app_sound //; simpl.
@@ -262,7 +262,7 @@ Lemma tac_wp_send `{!chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= right_id texist_exist=> ? Hp [x HΦ].
   rewrite envs_lookup_sound //; simpl. rewrite -Hp.
-  rewrite -wp_bind. eapply bi.wand_apply; [by eapply send_proto_spec|f_equiv].
+  rewrite -wp_bind. eapply bi.wand_apply; [by eapply send_spec|f_equiv].
   rewrite bi_texist_exist -(bi.exist_intro x).
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
   destruct (envs_app _ _ _) as [Δ2'|] eqn:? => //.
