@@ -504,7 +504,7 @@ Section proto.
       iModIntro. iExists p3'. iIntros "{$Hpc} !>". by iApply ("IH" with "Hle").
   Qed.
 
-  Lemma iProto_send_le {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
+  Lemma iProto_le_send {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
       (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
     (∀.. x2 : TT2, ▷ (pc2 x2).1.2 -∗ ◇ ∃.. x1 : TT1,
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
@@ -521,7 +521,7 @@ Section proto.
     iExists x1. iSplit; [done|]. iSplit; [by iApply "Hpc"|done].
   Qed.
 
-  Lemma iProto_recv_le {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
+  Lemma iProto_le_recv {TT1 TT2} (pc1 : TT1 → V * iProp Σ * iProto Σ V)
       (pc2 : TT2 → V * iProp Σ * iProto Σ V) :
     (∀.. x1 : TT1, ▷ (pc1 x1).1.2 -∗ ◇ ∃.. x2 : TT2,
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
@@ -576,7 +576,7 @@ Section proto.
     do 2 (iSplit; [done|]). do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
-  Lemma iProto_dual_le p1 p2 :
+  Lemma iProto_le_dual p1 p2 :
     iProto_le p2 p1 -∗ iProto_le (iProto_dual p1) (iProto_dual p2).
   Proof.
     iIntros "H". iLöb as "IH" forall (p1 p2).
@@ -745,7 +745,7 @@ Section proto.
     iInduction (lt_wf n) as [n _] "IH" forall (pcl vsl vsr pr pl' Hn); subst.
     rewrite {1}iProto_interp_unfold. iDestruct "H" as "[H|[H|H]]".
     - iClear "IH". iDestruct "H" as (p -> ->) "[Hp Hp'] /=".
-      iDestruct (iProto_dual_le with "Hp") as "Hp".
+      iDestruct (iProto_le_dual with "Hp") as "Hp".
       iDestruct (iProto_le_trans with "Hp Hp'") as "Hp".
       rewrite /iProto_dual proto_map_message /=.
       iApply iProto_interp_unfold. iRight; iLeft.
