@@ -33,8 +33,8 @@ Class ActionDualIf (d : bool) (a1 a2 : action) :=
 Hint Mode ActionDualIf ! ! - : typeclass_instances.
 
 Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
-Instance action_dual_if_true_send : ActionDualIf true Send Receive := eq_refl.
-Instance action_dual_if_true_receive : ActionDualIf true Receive Send := eq_refl.
+Instance action_dual_if_true_send : ActionDualIf true Send Recv := eq_refl.
+Instance action_dual_if_true_recv : ActionDualIf true Recv Send := eq_refl.
 
 Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
     (pas : list (bool * iProto Σ)) (q : iProto Σ) :=
@@ -166,7 +166,7 @@ End classes.
 Lemma tac_wp_recv `{!chanG Σ, !heapG Σ} {TT : tele} Δ i j K
     c p (pc : TT → val * iProp Σ * iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
-  ProtoNormalize false p [] (iProto_message Receive pc) →
+  ProtoNormalize false p [] (iProto_message Recv pc) →
   let Δ' := envs_delete false i false Δ in
   (∀.. x : TT,
     match envs_app false

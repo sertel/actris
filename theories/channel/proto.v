@@ -121,24 +121,24 @@ Notation "<!> 'MSG' v ; p" :=
 
 Notation "<?> x1 .. xn , 'MSG' v {{ P } } ; p" :=
   (iProto_message
-    Receive
+    Recv
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,P%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, P, p at level 200) : proto_scope.
 Notation "<?> x1 .. xn , 'MSG' v ; p" :=
   (iProto_message
-    Receive
+    Recv
     (tele_app (TT:=TeleS (λ x1, .. (TeleS (λ xn, TeleO)) .. )) $
                        λ x1, .. (λ xn, (v%V,True%I,p%proto)) ..))
   (at level 20, x1 binder, xn binder, v at level 20, p at level 200) : proto_scope.
 Notation "<?> 'MSG' v {{ P } } ; p" :=
   (iProto_message
-    Receive
+    Recv
     (tele_app (TT:=TeleO) (v%V,P%I,p%proto)))
   (at level 20, v at level 20, P, p at level 200) : proto_scope.
 Notation "<?> 'MSG' v ; p" :=
   (iProto_message
-    Receive
+    Recv
     (tele_app (TT:=TeleO) (v%V,True%I,p%proto)))
   (at level 20, v at level 20, p at level 200) : proto_scope.
 
@@ -190,21 +190,21 @@ Definition iProto_le_pre {Σ V}
     p1 ≡ proto_message a1 pc1 ∗
     p2 ≡ proto_message a2 pc2 ∗
     match a1, a2 with
-    | Receive, Receive =>
+    | Recv, Recv =>
        ∀ v p1', pc1 v (proto_eq_next p1') -∗
          ◇ ∃ p2', ▷ rec p1' p2' ∗ pc2 v (proto_eq_next p2')
     | Send, Send =>
        ∀ v p2', pc2 v (proto_eq_next p2') -∗
          ◇ ∃ p1', ▷ rec p1' p2' ∗ pc1 v (proto_eq_next p1')
-    | Receive, Send =>
+    | Recv, Send =>
        ∀ v1 v2 p1' p2',
          pc1 v1 (proto_eq_next p1') -∗ pc2 v2 (proto_eq_next p2') -∗
          ◇ ∃ pc1' pc2' pt,
            ▷ rec p1' (proto_message Send pc1') ∗
-           ▷ rec (proto_message Receive pc2') p2' ∗
+           ▷ rec (proto_message Recv pc2') p2' ∗
            pc1' v2 (proto_eq_next pt) ∗
            pc2' v1 (proto_eq_next pt)
-    | Send, Receive => False
+    | Send, Recv => False
     end.
 Instance iProto_le_pre_ne {Σ V} (rec : iProto Σ V → iProto Σ V → iProp Σ) :
   NonExpansive2 (iProto_le_pre rec).
@@ -235,12 +235,12 @@ Fixpoint iProto_interp_aux {Σ V} (n : nat)
   | S n =>
      (∃ vl vsl' pc p2',
        ⌜ vsl = vl :: vsl' ⌝ ∗
-       iProto_le (proto_message Receive pc) pr ∗
+       iProto_le (proto_message Recv pc) pr ∗
        pc vl (proto_eq_next p2') ∗
        iProto_interp_aux n vsl' vsr pl p2') ∨
      (∃ vr vsr' pc p1',
        ⌜ vsr = vr :: vsr' ⌝ ∗
-       iProto_le (proto_message Receive pc) pl ∗
+       iProto_le (proto_message Recv pc) pl ∗
        pc vr (proto_eq_next p1') ∗
        iProto_interp_aux n vsl vsr' p1' pr)
   end.
@@ -431,12 +431,12 @@ Section proto.
       | Send =>
          ∀ v p2', pc2 v (proto_eq_next p2') -∗
            ◇ ∃ p1', ▷ iProto_le p1' p2' ∗ pc1 v (proto_eq_next p1')
-      | Receive =>
+      | Recv =>
          ∀ v1 v2 p1' p2',
            pc1 v1 (proto_eq_next p1') -∗ pc2 v2 (proto_eq_next p2') -∗
            ◇ ∃ pc1' pc2' pt,
              ▷ iProto_le p1' (proto_message Send pc1') ∗
-             ▷ iProto_le (proto_message Receive pc2') p2' ∗
+             ▷ iProto_le (proto_message Recv pc2') p2' ∗
              pc1' v2 (proto_eq_next pt) ∗
              pc2' v1 (proto_eq_next pt)
       end.
@@ -451,8 +451,8 @@ Section proto.
   Qed.
 
   Lemma iProto_le_recv_inv p1 pc2 :
-    iProto_le p1 (proto_message Receive pc2) -∗ ∃ pc1,
-      p1 ≡ proto_message Receive pc1 ∗
+    iProto_le p1 (proto_message Recv pc2) -∗ ∃ pc1,
+      p1 ≡ proto_message Recv pc1 ∗
       ∀ v p1', pc1 v (proto_eq_next p1') -∗
         ◇ ∃ p2', ▷ iProto_le p1' p2' ∗ pc2 v (proto_eq_next p2').
   Proof.
@@ -542,7 +542,7 @@ Section proto.
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
       ▷ (pc2 x2).1.2 ∗
       ▷ iProto_le (pc1 x1).2 (pc2 x2).2) -∗
-    iProto_le (iProto_message Receive pc1) (iProto_message Receive pc2).
+    iProto_le (iProto_message Recv pc1) (iProto_message Recv pc2).
   Proof.
     iIntros "H". rewrite iProto_le_unfold iProto_message_eq.
     iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
@@ -557,7 +557,7 @@ Section proto.
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
       (pc2 x2).1.2 ∗
       iProto_le (pc1 x1).2 (pc2 x2).2) -∗
-    iProto_le (iProto_message Receive pc1) (iProto_message Receive pc2).
+    iProto_le (iProto_message Recv pc1) (iProto_message Recv pc2).
   Proof.
     iIntros "H". iApply iProto_le_recv. iIntros (x2) "Hpc".
     rewrite bi_tforall_forall. iDestruct ("H" with "Hpc") as "H".
@@ -574,10 +574,10 @@ Section proto.
         ⌜(pc1 x1).1.1 = (pc4 x4).1.1⌝ ∗
         ⌜(pc2 x2).1.1 = (pc3 x3).1.1⌝ ∗
         ▷ iProto_le (pc1 x1).2 (iProto_message Send pc3) ∗
-        ▷ iProto_le (iProto_message Receive pc4) (pc2 x2).2 ∗
+        ▷ iProto_le (iProto_message Recv pc4) (pc2 x2).2 ∗
         ▷ (pc3 x3).1.2 ∗ ▷ (pc4 x4).1.2 ∗
         ▷ ((pc3 x3).2 ≡ (pc4 x4).2)) -∗
-    iProto_le (iProto_message Receive pc1) (iProto_message Send pc2).
+    iProto_le (iProto_message Recv pc1) (iProto_message Send pc2).
   Proof.
     iIntros "H". rewrite iProto_le_unfold iProto_message_eq.
     iRight. iExists _, _, _, _; do 2 (iSplit; [done|]); simpl.
@@ -598,10 +598,10 @@ Section proto.
         ⌜(pc1 x1).1.1 = (pc4 x4).1.1⌝ ∗
         ⌜(pc2 x2).1.1 = (pc3 x3).1.1⌝ ∗
         iProto_le (pc1 x1).2 (iProto_message Send pc3) ∗
-        iProto_le (iProto_message Receive pc4) (pc2 x2).2 ∗
+        iProto_le (iProto_message Recv pc4) (pc2 x2).2 ∗
         (pc3 x3).1.2 ∗ (pc4 x4).1.2 ∗
         ((pc3 x3).2 ≡ (pc4 x4).2)) -∗
-    iProto_le (iProto_message Receive pc1) (iProto_message Send pc2).
+    iProto_le (iProto_message Recv pc1) (iProto_message Send pc2).
   Proof.
     iIntros "H". iApply iProto_le_swap. iIntros (x1 x2) "Hpc1 Hpc2".
     repeat setoid_rewrite bi_tforall_forall. iDestruct ("H" with "Hpc1 Hpc2") as "H".
@@ -618,10 +618,10 @@ Section proto.
   Lemma iProto_le_swap_simple {TT1 TT2} (v1 : TT1 → V) (v2 : TT2 → V)
       (P1 : TT1 → iProp Σ) (P2 : TT2 → iProp Σ) (p : TT1 → TT2 → iProto Σ V) :
     ⊢ iProto_le
-        (iProto_message Receive (λ x1,
+        (iProto_message Recv (λ x1,
           (v1 x1, P1 x1, iProto_message Send (λ x2, (v2 x2, P2 x2, p x1 x2)))))
         (iProto_message Send (λ x2,
-          (v2 x2, P2 x2, iProto_message Receive (λ x1, (v1 x1, P1 x1, p x1 x2))))).
+          (v2 x2, P2 x2, iProto_message Recv (λ x1, (v1 x1, P1 x1, p x1 x2))))).
   Proof.
     iApply iProto_le_swap. iIntros (x1 x2) "/= HP1 HP2".
     iExists TT2, TT1, (λ x2, (v2 x2, P2 x2, p x1 x2)),
@@ -717,12 +717,12 @@ Section proto.
         iProto_le (iProto_dual p) pr) ∨
       (∃ vl vsl' pc pr',
         ⌜ vsl = vl :: vsl' ⌝ ∗
-        iProto_le (proto_message Receive pc) pr ∗
+        iProto_le (proto_message Recv pc) pr ∗
         pc vl (proto_eq_next pr') ∗
         iProto_interp vsl' vsr pl pr') ∨
       (∃ vr vsr' pc pl',
         ⌜ vsr = vr :: vsr' ⌝ ∗
-        iProto_le (proto_message Receive pc) pl ∗
+        iProto_le (proto_message Recv pc) pl ∗
         pc vr (proto_eq_next pl') ∗
         iProto_interp vsl vsr' pl' pr).
   Proof.
@@ -824,7 +824,7 @@ Section proto.
 
   Lemma iProto_interp_recv vl vsl vsr pl pr pcr :
     iProto_interp (vl :: vsl) vsr pl pr -∗
-    iProto_le pr (proto_message Receive pcr) -∗
+    iProto_le pr (proto_message Recv pcr) -∗
     ◇ ∃ pr, pcr vl (proto_eq_next pr) ∗ ▷ iProto_interp vsl vsr pl pr.
   Proof.
     iIntros "H Hle". iDestruct (iProto_interp_le_r with "H Hle") as "H".
@@ -916,7 +916,7 @@ Section proto.
 
   Lemma iProto_recv_l {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vr vsr vsl :
     iProto_ctx γ vsl (vr :: vsr) -∗
-    iProto_own γ Left (iProto_message Receive pc) ==∗
+    iProto_own γ Left (iProto_message Recv pc) ==∗
     ▷ ▷ ∃ (x : TT),
       ⌜ vr = (pc x).1.1 ⌝ ∗
       iProto_ctx γ vsl vsr ∗
@@ -938,7 +938,7 @@ Section proto.
 
   Lemma iProto_recv_r {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vl vsr vsl :
     iProto_ctx γ (vl :: vsl) vsr -∗
-    iProto_own γ Right (iProto_message Receive pc) ==∗
+    iProto_own γ Right (iProto_message Recv pc) ==∗
     ▷ ▷ ∃ (x : TT),
       ⌜ vl = (pc x).1.1 ⌝ ∗
       iProto_ctx γ vsl vsr ∗

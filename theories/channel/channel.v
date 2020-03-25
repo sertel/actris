@@ -3,7 +3,7 @@ lock-protected buffers, and their primitive proof rules. Moreover:
 
 - It defines the connective [c ↣ prot] for ownership of channel endpoints,
   which describes that channel endpoint [c] adheres to protocol [prot].
-- It proves Actris's specifications of [send] and [receive] w.r.t. dependent
+- It proves Actris's specifications of [send] and [recv] w.r.t. dependent
   separation protocols.
 
 An encoding of the usual branching connectives [prot1 <{Q1}+{Q2}> prot2] and
@@ -104,13 +104,13 @@ Typeclasses Opaque iProto_branch.
 Arguments iProto_branch {_} _ _%I _%I _%proto _%proto.
 Instance: Params (@iProto_branch) 2 := {}.
 Infix "<{ P1 }+{ P2 }>" := (iProto_branch Send P1 P2) (at level 85) : proto_scope.
-Infix "<{ P1 }&{ P2 }>" := (iProto_branch Receive P1 P2) (at level 85) : proto_scope.
+Infix "<{ P1 }&{ P2 }>" := (iProto_branch Recv P1 P2) (at level 85) : proto_scope.
 Infix "<+{ P2 }>" := (iProto_branch Send True P2) (at level 85) : proto_scope.
-Infix "<&{ P2 }>" := (iProto_branch Receive True P2) (at level 85) : proto_scope.
+Infix "<&{ P2 }>" := (iProto_branch Recv True P2) (at level 85) : proto_scope.
 Infix "<{ P1 }+>" := (iProto_branch Send P1 True) (at level 85) : proto_scope.
-Infix "<{ P1 }&>" := (iProto_branch Receive P1 True) (at level 85) : proto_scope.
+Infix "<{ P1 }&>" := (iProto_branch Recv P1 True) (at level 85) : proto_scope.
 Infix "<+>" := (iProto_branch Send True True) (at level 85) : proto_scope.
-Infix "<&>" := (iProto_branch Receive True True) (at level 85) : proto_scope.
+Infix "<&>" := (iProto_branch Recv True True) (at level 85) : proto_scope.
 
 Section channel.
   Context `{!heapG Σ, !chanG Σ}.
@@ -233,9 +233,9 @@ Section channel.
   Qed.
 
   Lemma try_recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Receive pc }}}
+    {{{ c ↣ iProto_message Recv pc }}}
       try_recv c
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Receive pc) ∨
+    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Recv pc) ∨
                   (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2) }}}.
   Proof.
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
@@ -267,7 +267,7 @@ Section channel.
   Qed.
 
   Lemma recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Receive pc }}}
+    {{{ c ↣ iProto_message Recv pc }}}
       recv c
     {{{ x, RET (pc x).1.1; c ↣ (pc x).2 ∗ (pc x).1.2 }}}.
   Proof.
@@ -280,7 +280,7 @@ Section channel.
   (** A version written without Texan triples that is more convenient to use
   (via [iApply] in Coq. *)
   Lemma recv_spec {TT} Φ c (pc : TT → val * iProp Σ * iProto Σ) :
-    c ↣ iProto_message Receive pc -∗
+    c ↣ iProto_message Recv pc -∗
     ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Φ (pc x).1.1) -∗
     WP recv c {{ Φ }}.
   Proof.

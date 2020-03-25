@@ -13,7 +13,7 @@ recursive domain equation:
 Here, the left-hand side of the sum is used for the terminated process, while
 the right-hand side is used for the communication constructors. The type
 [action] is an inductively defined datatype with two constructors [Send] and
-[Receive]. Compared to having an additional sum in [proto], this makes it
+[Recv]. Compared to having an additional sum in [proto], this makes it
 possible to factorize the code in a better way.
 
 The remainder [V → (▶ proto → PROP) → PROP)] is a predicate that ranges over
@@ -39,10 +39,10 @@ From iris.algebra Require Import cofe_solver.
 Set Default Proof Using "Type".
 
 Module Export action.
-  Inductive action := Send | Receive.
+  Inductive action := Send | Recv.
   Instance action_inhabited : Inhabited action := populate Send.
   Definition action_dual (a : action) : action :=
-    match a with Send => Receive | Receive => Send end.
+    match a with Send => Recv | Recv => Send end.
   Instance action_dual_involutive : Involutive (=) action_dual.
   Proof. by intros []. Qed.
   Canonical Structure actionO := leibnizO action.
