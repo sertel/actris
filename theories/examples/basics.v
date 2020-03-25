@@ -1,7 +1,7 @@
 (** This file includes basic examples that each describe a unique feature of 
 dependent separation protocols. *)
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation lib.spin_lock.
+From actris.channel Require Import proofmode.
+From iris.heap_lang Require Import lib.spin_lock.
 From actris.utils Require Import contribution.
 
 (** Basic *)
@@ -87,7 +87,7 @@ Definition prog_lock : val := λ: <>,
   recv "c" + recv "c".
 
 Section proofs.
-Context `{heapG Σ, proto_chanG Σ}.
+Context `{heapG Σ, chanG Σ}.
 
 (** Protocols for the respective programs *)
 Definition prot : iProto Σ :=
@@ -146,7 +146,7 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
 Lemma prog_spec : {{{ True }}} prog #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot); iIntros (c) "Hc".
   - by wp_send with "[]".
   - wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -154,7 +154,7 @@ Qed.
 Lemma prog_ref_spec : {{{ True }}} prog_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_ref); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_ref); iIntros (c) "Hc".
   - wp_alloc l as "Hl". by wp_send with "[$Hl]".
   - wp_recv (l) as "Hl". wp_load. by iApply "HΦ".
 Qed.
@@ -162,17 +162,16 @@ Qed.
 Lemma prog_del_spec : {{{ True }}} prog_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_del); iIntros (c) "Hc".
-  - wp_apply (new_chan_proto_spec with "[//]").
-    iIntros (c2 c2') "Hcc2". iMod ("Hcc2" $! prot) as "[Hc2 Hc2']".
-    wp_send with "[$Hc2]". by wp_send with "[]".
+  wp_apply (start_chan_spec prot_del); iIntros (c) "Hc".
+  - wp_apply (new_chan_spec prot with "[//]").
+    iIntros (c2 c2') "[Hc2 Hc2']". wp_send with "[$Hc2]". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
 
 Lemma prog_dep_spec : {{{ True }}} prog_dep #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_dep); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_dep); iIntros (c) "Hc".
   - wp_recv (x) as "_". by wp_send with "[]".
   - wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -180,7 +179,7 @@ Qed.
 Lemma prog2_ref_spec : {{{ True }}} prog_dep_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_dep_ref); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_dep_ref); iIntros (c) "Hc".
   - wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[Hl]".
   - wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
     by iApply "HΦ".
@@ -189,9 +188,8 @@ Qed.
 Lemma prog_dep_del_spec : {{{ True }}} prog_dep_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_dep_del); iIntros (c) "Hc".
-  - wp_apply (new_chan_proto_spec with "[//]").
-    iIntros (c2 c2') "Hcc2". iMod ("Hcc2" $! prot_dep) as "[Hc2 Hc2']".
+  wp_apply (start_chan_spec prot_dep_del); iIntros (c) "Hc".
+  - wp_apply (new_chan_spec prot_dep with "[//]"); iIntros (c2 c2') "[Hc2 Hc2']".
     wp_send with "[$Hc2]". wp_recv (x) as "_". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_send with "[//]". wp_recv as "_".
     by iApply "HΦ".
@@ -200,9 +198,9 @@ Qed.
 Lemma prog_dep_del_2_spec : {{{ True }}} prog_dep_del_2 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_dep_del_2); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_dep_del_2); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_apply (start_chan_proto_spec prot_dep); iIntros (c2) "Hc2".
+  wp_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -210,10 +208,10 @@ Qed.
 Lemma prog_dep_del_3_spec : {{{ True }}} prog_dep_del_3 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_dep_del_3); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_dep_del_3); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_recv (y) as "_".
     wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_apply (start_chan_proto_spec prot_dep); iIntros (c2) "Hc2".
+  wp_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_send with "[//]".
   wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
@@ -222,7 +220,7 @@ Qed.
 Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_loop); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
   - iAssert (∀ Ψ, WP (rec: "go" <> := let: "x" := recv c in
       send c ("x" + #2) ;; "go" #())%V #() {{ Ψ }})%I with "[Hc]" as "H".
     { iIntros (Ψ). iLöb as "IH". wp_recv (x) as "_". wp_send with "[//]".
@@ -235,7 +233,7 @@ Qed.
 Lemma prog_fun_spec : {{{ True }}} prog_fun #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec prot_fun); iIntros (c) "Hc".
+  wp_apply (start_chan_spec prot_fun); iIntros (c) "Hc".
   - wp_recv (P Ψ vf) as "#Hf". wp_send with "[]"; last done.
     iIntros "!>" (Ψ') "HP HΨ'". wp_apply ("Hf" with "HP"); iIntros (x) "HΨ".
     wp_pures. by iApply "HΨ'".
@@ -250,8 +248,8 @@ Lemma prog_lock_spec `{!lockG Σ, contributionG Σ unitUR} :
   {{{ True }}} prog_lock #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_proto_spec (prot_lock 2)); iIntros (c) "Hc".
-  - iMod (contribution_init) as (γ) "Hs".
+  wp_apply (start_chan_spec (prot_lock 2)); iIntros (c) "Hc".
+  - iMod contribution_init as (γ) "Hs".
     iMod (alloc_client with "Hs") as "[Hs Hcl1]".
     iMod (alloc_client with "Hs") as "[Hs Hcl2]".
     wp_apply (newlock_spec nroot (∃ n, server γ n ε ∗

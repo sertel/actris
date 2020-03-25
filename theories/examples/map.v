@@ -1,7 +1,7 @@
 (** This file implements a distributed mapper service, a specification thereof,
 and its proofs. *)
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation lib.spin_lock.
+From actris.channel Require Import proofmode.
+From iris.heap_lang Require Import lib.spin_lock.
 From actris.utils Require Import llist contribution.
 From iris.algebra Require Import gmultiset.
 
@@ -60,7 +60,7 @@ Class mapG Σ A `{Countable A} := {
 
 Section map.
   Context `{Countable A} {B : Type}.
-  Context `{!heapG Σ, !proto_chanG Σ, !mapG Σ A}.
+  Context `{!heapG Σ, !chanG Σ, !mapG Σ A}.
   Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (map : A → list B).
   Local Open Scope nat_scope.
   Implicit Types n : nat.
@@ -202,7 +202,7 @@ Section map.
     {{{ ys, RET #(); ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB l ys }}}.
   Proof.
     iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_proto_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
+    wp_apply (start_chan_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
     { wp_apply (par_map_service_spec with "Hmap Hc"); auto. }
     wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
     wp_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.

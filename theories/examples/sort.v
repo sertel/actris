@@ -6,8 +6,7 @@ thereof, and its proofs. There are two variants:
 - [sort_service_func]: a service that only takes a channel as its argument. The
   comparison function is sent over the channel. *)
 From stdpp Require Import sorting.
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation.
+From actris.channel Require Import proofmode.
 From actris.utils Require Export llist compare.
 
 Definition lmerge : val :=
@@ -43,7 +42,7 @@ Definition sort_client_func : val := λ: "cmp" "xs",
   recv "c".
 
 Section sort.
-  Context `{!heapG Σ, !proto_chanG Σ}.
+  Context `{!heapG Σ, !chanG Σ}.
 
   Definition sort_protocol {A} (I : A → val → iProp Σ) (R : A → A → Prop) : iProto Σ :=
     (<!> (xs : list A) (l : loc), MSG #l {{ llist I l xs }};
@@ -106,10 +105,10 @@ Section sort.
       wp_send with "[$Hl]"; first by auto. by iApply "HΨ". }
     wp_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
       iDestruct 1 as (->) "[Hl1 Hl2]".
-    wp_apply (start_chan_proto_spec (sort_protocol I R)); iIntros (cy) "Hcy".
+    wp_apply (start_chan_spec (sort_protocol I R)); iIntros (cy) "Hcy".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcy"); auto. }
-    wp_apply (start_chan_proto_spec (sort_protocol I R)); iIntros (cz) "Hcz".
+    wp_apply (start_chan_spec (sort_protocol I R)); iIntros (cz) "Hcz".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_apply ("IH" with "Hcz"); auto. }
     wp_send with "[$Hl1]".
@@ -142,7 +141,7 @@ Section sort.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_proto_spec sort_protocol_func); iIntros (c) "Hc".
+    wp_apply (start_chan_spec sort_protocol_func); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
       wp_apply (sort_service_func_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".

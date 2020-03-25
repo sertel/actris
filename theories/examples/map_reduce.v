@@ -1,7 +1,6 @@
 (** This file implements a simple distributed map-reduce function, a
 specification thereof, and its proofs. *)
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation.
+From actris.channel Require Import proofmode.
 From actris.utils Require Import llist compare contribution group.
 From actris.examples Require Import map sort_fg.
 From iris.algebra Require Import gmultiset.
@@ -97,7 +96,7 @@ Class map_reduceG Σ A B `{Countable A, Countable B} := {
 
 Section mapper.
   Context `{Countable A, Countable B} {C : Type}.
-  Context `{!heapG Σ, !proto_chanG Σ, !map_reduceG Σ A B}.
+  Context `{!heapG Σ, !chanG Σ, !map_reduceG Σ A B}.
   Context (IA : A → val → iProp Σ) (IB : Z → B → val → iProp Σ) (IC : C → val → iProp Σ).
   Context (map : A → list (Z * B)) (red : Z → list B → list C).
   Context `{!∀ j, Proper ((≡ₚ) ==> (≡ₚ)) (red j)}.
@@ -282,10 +281,10 @@ Section mapper.
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
     iIntros (??) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_proto_spec (par_map_protocol IA IZB map n ∅));
+    wp_apply (start_chan_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
     { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
-    wp_apply (start_chan_proto_spec (sort_fg_protocol IZB RZB <++> END)%proto);
+    wp_apply (start_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
     { wp_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.
       iApply RZB_cmp_spec. }
@@ -293,7 +292,7 @@ Section mapper.
     wp_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_apply (start_chan_proto_spec (par_map_protocol IZBs IC (curry red) m ∅));
+    wp_apply (start_chan_spec (par_map_protocol IZBs IC (curry red) m ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.

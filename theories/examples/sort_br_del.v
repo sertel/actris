@@ -8,8 +8,7 @@ sort, demonstrating Actris's support for delegation and branching:
 - [sort_service_br_del]: a service that allows one to sort a series of list by
   forking itself. *)
 From stdpp Require Import sorting.
-From actris.channel Require Import proto_channel proofmode.
-From iris.heap_lang Require Import proofmode notation.
+From actris.channel Require Import proofmode.
 From actris.examples Require Import sort.
 
 Definition sort_service_br : val :=
@@ -35,7 +34,7 @@ Definition sort_service_br_del : val :=
     else #().
 
 Section sort_service_br_del.
-  Context `{!heapG Σ, !proto_chanG Σ}.
+  Context `{!heapG Σ, !chanG Σ}.
   Context {A} (I : A → val → iProp Σ) (R : A → A → Prop) `{!RelDecision R, !Total R}.
 
   Definition sort_protocol_br_aux (rec : iProto Σ) : iProto Σ :=
@@ -77,8 +76,7 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (Ψ).
     wp_rec. wp_branch; wp_pures.
-    { wp_apply (start_chan_proto_spec (sort_protocol I R <++> END)%proto);
-        iIntros (c') "Hc'".
+    { wp_apply (start_chan_spec (sort_protocol I R <++> END)%proto); iIntros (c') "Hc'".
       { wp_pures. wp_apply (sort_service_spec with "Hcmp Hc'"); auto. }
       wp_send with "[$Hc']". by wp_apply ("IH" with "Hc"). }
     by iApply "HΨ".
@@ -104,7 +102,7 @@ Section sort_service_br_del.
     { wp_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
       by wp_apply ("IH" with "Hc"). }
     wp_branch; wp_pures.
-    { wp_apply (start_chan_proto_spec sort_protocol_br_del); iIntros (c') "Hc'".
+    { wp_apply (start_chan_spec sort_protocol_br_del); iIntros (c') "Hc'".
       { wp_apply ("IH" with "Hc'"); auto. }
       wp_send with "[$Hc']".
       by wp_apply ("IH" with "Hc"). }
