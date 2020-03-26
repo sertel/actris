@@ -249,7 +249,7 @@ Section channel.
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       iMod (iProto_recv_l with "Hctx H") as "H". wp_pures.
-      iDestruct "H" as (x ->) "(Hctx & H & Hpc)".
+      iMod "H" as (x ->) "(Hctx & H & Hpc)".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "Hpc". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
@@ -260,7 +260,7 @@ Section channel.
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       iMod (iProto_recv_r with "Hctx H") as "H". wp_pures.
-      iDestruct "H" as (x ->) "(Hctx & H & Hpc)".
+      iMod "H" as (x ->) "(Hctx & H & Hpc)".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "Hpc". iExists γ, Right, l, r, lk. eauto 10 with iFrame.

@@ -184,7 +184,7 @@ Example:
    ?P.?Q.!R <: !R.?P.?Q
 *)
 Definition iProto_le_pre {Σ V}
-    (rec : iProto Σ V → iProto Σ V→ iProp Σ) (p1 p2 : iProto Σ V) : iProp Σ :=
+    (rec : iProto Σ V → iProto Σ V → iProp Σ) (p1 p2 : iProto Σ V) : iProp Σ :=
   (p1 ≡ proto_end ∗ p2 ≡ proto_end) ∨
   ∃ a1 a2 pc1 pc2,
     p1 ≡ proto_message a1 pc1 ∗
@@ -274,7 +274,7 @@ Definition iProto_ctx `{protoG Σ V}
 (** * The connective for ownership of channel ends *)
 Definition iProto_own `{!protoG Σ V}
     (γ : proto_name) (s : side) (p : iProto Σ V) : iProp Σ :=
-  ∃ p', iProto_le p' p ∗ iProto_own_frag γ s p'.
+  ∃ p', ▷ iProto_le p' p ∗ iProto_own_frag γ s p'.
 Arguments iProto_own {_ _ _} _ _%proto.
 Instance: Params (@iProto_own) 3 := {}.
 
@@ -917,11 +917,11 @@ Section proto.
   Lemma iProto_recv_l {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vr vsr vsl :
     iProto_ctx γ vsl (vr :: vsr) -∗
     iProto_own γ Left (iProto_message Recv pc) ==∗
-    ▷ ▷ ∃ (x : TT),
+    ▷ ◇ ∃ (x : TT),
       ⌜ vr = (pc x).1.1 ⌝ ∗
       iProto_ctx γ vsl vsr ∗
       iProto_own γ Left (pc x).2 ∗
-      (pc x).1.2.
+      ▷ (pc x).1.2.
   Proof.
     rewrite iProto_message_eq. iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
     iDestruct 1 as (p) "[Hle H◯]".
@@ -933,17 +933,17 @@ Section proto.
     iIntros "!> !>". iMod "Hinterp". iMod "Hpc" as (x ->) "[Hpc #Hq] /=".
     iIntros "!>". iExists x. iSplit; [done|]. iFrame "Hpc". iSplitR "H◯".
     - iExists q, pr. iFrame. by iApply iProto_interp_flip.
-    - iRewrite -"Hq". iExists q. iFrame. iApply iProto_le_refl.
+    - iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
   Qed.
 
   Lemma iProto_recv_r {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vl vsr vsl :
     iProto_ctx γ (vl :: vsl) vsr -∗
     iProto_own γ Right (iProto_message Recv pc) ==∗
-    ▷ ▷ ∃ (x : TT),
+    ▷ ◇ ∃ (x : TT),
       ⌜ vl = (pc x).1.1 ⌝ ∗
       iProto_ctx γ vsl vsr ∗
       iProto_own γ Right (pc x).2 ∗
-      (pc x).1.2.
+      ▷ (pc x).1.2.
   Proof.
     rewrite iProto_message_eq. iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
     iDestruct 1 as (p) "[Hle H◯]".
@@ -954,7 +954,7 @@ Section proto.
     iIntros "!> !>". iMod "Hinterp". iMod "Hpc" as (x ->) "[Hpc #Hq] /=".
     iIntros "!>". iExists x. iSplit; [done|]. iFrame "Hpc". iSplitR "H◯".
     - iExists pl, q. iFrame.
-    - iRewrite -"Hq". iExists q. iFrame. iApply iProto_le_refl.
+    - iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
   Qed.
 End proto.
 
