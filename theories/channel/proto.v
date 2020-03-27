@@ -1092,11 +1092,11 @@ Section proto.
   Lemma iProto_recv_l {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vr vsr vsl :
     iProto_ctx γ vsl (vr :: vsr) -∗
     iProto_own γ Left (iProto_message Recv pc) ==∗
-    ▷ ◇ ∃ (x : TT),
-      ⌜ vr = (pc x).1.1 ⌝ ∗
-      iProto_ctx γ vsl vsr ∗
-      iProto_own γ Left (pc x).2 ∗
-      ▷ (pc x).1.2.
+    ▷ ◇ (iProto_ctx γ vsl vsr ∗
+         ∃ (x : TT),
+           ⌜ vr = (pc x).1.1 ⌝ ∗
+           iProto_own γ Left (pc x).2 ∗
+           ▷ (pc x).1.2).
   Proof.
     rewrite iProto_message_eq. iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
     iDestruct 1 as (p) "[Hle H◯]".
@@ -1106,19 +1106,21 @@ Section proto.
     { iNext. by iRewrite "Hp". }
     iMod (iProto_own_auth_update _ _ _ _ q with "H●l H◯") as "[H●l H◯]".
     iIntros "!> !>". iMod "Hinterp". iMod "Hpc" as (x ->) "[Hpc #Hq] /=".
-    iIntros "!>". iExists x. iSplit; [done|]. iFrame "Hpc". iSplitR "H◯".
+    iIntros "!>".
+    iSplitR "H◯ Hpc".
     - iExists q, pr. iFrame. by iApply iProto_interp_flip.
-    - iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
+    - iExists x. iSplit; [done|]. iFrame "Hpc".
+      iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
   Qed.
 
   Lemma iProto_recv_r {TT} γ (pc : TT → V * iProp Σ * iProto Σ V) vl vsr vsl :
     iProto_ctx γ (vl :: vsl) vsr -∗
     iProto_own γ Right (iProto_message Recv pc) ==∗
-    ▷ ◇ ∃ (x : TT),
-      ⌜ vl = (pc x).1.1 ⌝ ∗
-      iProto_ctx γ vsl vsr ∗
-      iProto_own γ Right (pc x).2 ∗
-      ▷ (pc x).1.2.
+    ▷ ◇ (iProto_ctx γ vsl vsr ∗
+         ∃ (x : TT),
+           ⌜ vl = (pc x).1.1 ⌝ ∗
+           iProto_own γ Right (pc x).2 ∗
+           ▷ (pc x).1.2).
   Proof.
     rewrite iProto_message_eq. iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
     iDestruct 1 as (p) "[Hle H◯]".
@@ -1127,9 +1129,11 @@ Section proto.
     { iNext. by iRewrite "Hp". }
     iMod (iProto_own_auth_update _ _ _ _ q with "H●r H◯") as "[H●r H◯]".
     iIntros "!> !>". iMod "Hinterp". iMod "Hpc" as (x ->) "[Hpc #Hq] /=".
-    iIntros "!>". iExists x. iSplit; [done|]. iFrame "Hpc". iSplitR "H◯".
+    iIntros "!>".
+    iSplitR "H◯ Hpc".
     - iExists pl, q. iFrame.
-    - iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
+    - iExists x. iSplit; [done|]. iFrame "Hpc".
+      iExists q. iIntros "{$H◯} !>". iRewrite "Hq". iApply iProto_le_refl.
   Qed.
 End proto.
 
