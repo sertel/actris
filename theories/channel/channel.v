@@ -302,10 +302,11 @@ Section channel.
 
   Lemma try_recv_spec_packed_atomic
         {TT} (c : val) (pc : TT → val * iProp Σ * iProto Σ) :
-    ⊢ <<< c ↣ iProto_message Recv pc >>>
+    ⊢ <<< ▷ c ↣ iProto_message Recv pc >>>
       try_recv c @ ⊤
-    <<< ∃ v, ((⌜v = NONEV⌝ ∧ c ↣ iProto_message Recv pc) ∨
-             ▷ (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2)),
+    <<< ∃ v, (⌜v = NONEV⌝ ∧ c ↣ iProto_message Recv pc) ∨
+              ▷ (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗
+                           c ↣ (pc x).2 ∗ ▷ (pc x).1.2),
     RET v >>>.
   Proof.
     rewrite iProto_mapsto_eq. iIntros (Φ) "HAU".
@@ -344,21 +345,21 @@ Section channel.
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       wp_bind (InjR _).
       iMod "HAU" as "[Hp [_ Hcomm]]".
+      wp_pures.
       iDestruct "Hp" as (γ' s' l' r' lk' ?) "(#Hm1' & #_ & #Hm3' & _ & Hown)".
       iAssert ⌜ s' = Left ∧ l' = l ∧ r' = r ⌝%I with "[]" as %(-> & -> & ->).
       { destruct s'; simplify_eq/=; auto;
           by iDestruct (meta_agree with "Hm2 Hm1'") as %?. }
       iDestruct (meta_agree with "Hm3 Hm3'") as %<-. iClear "Hm1' Hm3'".
       iMod (iProto_recv_l with "Hctx Hown") as "H".
-      rewrite bi.later_exist_except_0.
-      wp_pures.
-      iMod "H".
-      iDestruct "H" as (x) "(Heq & Hctx & Hown & Hpc)".
-      iMod ("Hcomm" $! (InjRV v') with "[Heq Hown Hpc]") as "Hcomm".
+      iDestruct "H" as "[Hctx H]".
+      iMod ("Hcomm" $!(InjRV v') with "[H]") as "Hcomm".
       {
-        iRight. iIntros "!>".
-        iExists _. iDestruct "Heq" as %->. iFrame. iSplit; first done.
-        iExists _, _, _, _, _. iFrame "#∗". eauto.
+        iRight. iNext.
+        iDestruct "H" as (x ->) "[Hown Hpc]".
+        iExists _. iSplit; first done.
+        iFrame "Hpc".
+        iExists _, _, _, _, _. by iFrame "#∗".
       }
       iModIntro.
       wp_pures.
@@ -382,29 +383,27 @@ Section channel.
         wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
         wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]");
         [by eauto with iFrame|].
-        iIntros "_".
-        wp_pures.
-        iApply "HΦ".
+        iIntros "_". wp_pures. iApply "HΦ".
       }
       wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       wp_bind (InjR _).
       iMod "HAU" as "[Hp [_ Hcomm]]".
+      wp_pures.
       iDestruct "Hp" as (γ' s' l' r' lk' ?) "(#Hm1' & #_ & #Hm3' & _ & Hown)".
       iAssert ⌜ s' = Right ∧ l' = l ∧ r' = r ⌝%I with "[]" as %(-> & -> & ->).
       { destruct s'; simplify_eq/=; auto;
           by iDestruct (meta_agree with "Hm2 Hm1'") as %?. }
       iDestruct (meta_agree with "Hm3 Hm3'") as %<-. iClear "Hm1' Hm3'".
       iMod (iProto_recv_r with "Hctx Hown") as "H".
-      rewrite bi.later_exist_except_0.
-      wp_pures.
-      iMod "H".
-      iDestruct "H" as (x) "(Heq & Hctx & Hown & Hpc)".
-      iMod ("Hcomm" $! (InjRV v') with "[Heq Hown Hpc]") as "Hcomm".
+      iDestruct "H" as "[Hctx H]".
+      iMod ("Hcomm" $!(InjRV v') with "[H]") as "Hcomm".
       {
-        iRight. iIntros "!>".
-        iExists _. iDestruct "Heq" as %->. iFrame. iSplit; first done.
-        iExists _, _, _, _, _. iFrame "#∗". eauto.
+        iRight. iNext.
+        iDestruct "H" as (x ->) "[Hown Hpc]".
+        iExists _. iSplit; first done.
+        iFrame "Hpc".
+        iExists _, _, _, _, _. by iFrame "#∗".
       }
       iModIntro.
       wp_pures.
@@ -414,37 +413,15 @@ Section channel.
   Qed.
 
   Lemma try_recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Recv pc }}}
+    {{{ ▷ c ↣ iProto_message Recv pc }}}
       try_recv c
     {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Recv pc) ∨
-                  (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2) }}}.
+                    ▷ (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗
+                                 c ↣ (pc x).2 ∗ ▷ (pc x).1.2) }}}.
   Proof.
-    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
-    wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
-    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
-    - wp_apply (lisnil_spec with "Hr"); iIntros "Hr".
-      destruct vsr as [|vr vsr]; wp_pures.
-      { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
-        iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
-      wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
-      iMod (iProto_recv_l with "Hctx H") as "H". wp_pures.
-      iMod "H" as (x ->) "(Hctx & H & Hpc)".
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
-      iFrame "Hpc". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
-    - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
-      destruct vsl as [|vl vsl]; wp_pures.
-      { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
-        iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
-      wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
-      iMod (iProto_recv_r with "Hctx H") as "H". wp_pures.
-      iMod "H" as (x ->) "(Hctx & H & Hpc)".
-      wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
-      iFrame "Hpc". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
+    iIntros (Φ) "Hp HΦ".
+    wp_apply (atomic_wp_seq_step $! (try_recv_spec_packed_atomic c pc)
+                   with "[$Hp]")=> //.
   Qed.
 
   Lemma recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
