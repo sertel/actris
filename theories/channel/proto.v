@@ -867,7 +867,7 @@ Section proto.
   Proof. apply (ne_proper _). Qed.
 
   Lemma iProto_own_le γ s p1 p2 :
-    iProto_own γ s p1 -∗ iProto_le p1 p2 -∗ iProto_own γ s p2.
+    iProto_own γ s p1 -∗ ▷ iProto_le p1 p2 -∗ iProto_own γ s p2.
   Proof.
     iDestruct 1 as (p1') "[Hle H]". iIntros "Hle'".
     iExists p1'. iFrame "H". by iApply (iProto_le_trans with "Hle").
