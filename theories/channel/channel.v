@@ -174,6 +174,21 @@ Section channel.
     by apply iProto_message_proper=> /= -[].
   Qed.
 
+  Lemma iProto_le_branch a P1 P2 p1 p2 p1' p2' :
+    ▷ (P1 -∗ P1 ∗ iProto_le p1 p1') ∧ ▷ (P2 -∗ P2 ∗ iProto_le p2 p2') -∗
+    iProto_le (iProto_branch a P1 P2 p1 p2) (iProto_branch a P1 P2 p1' p2').
+  Proof.
+    iIntros "H". rewrite /iProto_branch. destruct a.
+    - iApply iProto_le_send'; iIntros "!>" (b) "HP /=".
+      iExists b; iSplit; [done|]. destruct b.
+      + iDestruct "H" as "[H _]". by iApply "H".
+      + iDestruct "H" as "[_ H]". by iApply "H".
+    - iApply iProto_le_recv'; iIntros "!>" (b) "HP /=".
+      iExists b; iSplit; [done|]. destruct b.
+      + iDestruct "H" as "[H _]". by iApply "H".
+      + iDestruct "H" as "[_ H]". by iApply "H".
+  Qed.
+
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec p :
     {{{ True }}}
