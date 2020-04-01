@@ -86,6 +86,24 @@ Definition prog_lock : val := λ: <>,
     acquire "l";; send "c'" #21;; release "l") in
   recv "c" + recv "c".
 
+(** Swapping of sends *)
+Definition prog_swap : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    send "c'" #20;;
+    let: "y" := recv "c'" in
+    send "c'" "y") in
+  send "c" #22;;
+  recv "c" + recv "c".
+
+Definition prog_swap_twice : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    send "c'" #20;;
+    let: "y1" := recv "c'" in
+    let: "y2" := recv "c'" in
+    send "c'" ("y1" + "y2")) in
+  send "c" #11;; send "c" #11;;
+  recv "c" + recv "c".
+
 Section proofs.
 Context `{heapG Σ, chanG Σ}.
 
@@ -141,6 +159,17 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
   | 0 => END
   | S n' => <?> MSG #21; prot_lock n'
   end%proto.
+
+Definition prot_swap : iProto Σ :=
+  (<!> x : Z, MSG #x;
+   <?> MSG #20;
+   <?> MSG #x; END)%proto.
+
+Definition prot_swap_twice : iProto Σ :=
+  (<!> x : Z, MSG #x;
+   <!> y : Z, MSG #y;
+   <?> MSG #20;
+   <?> MSG #(x+y); END)%proto.
 
 (** Specs and proofs of the respective programs *)
 Lemma prog_spec : {{{ True }}} prog #() {{{ RET #42; True }}}.
@@ -269,5 +298,24 @@ Proof.
     { iNext. by iApply "Hhelp". }
     by wp_apply "Hhelp".
   - wp_recv as "_". wp_recv as "_". wp_pures. by iApply "HΦ".
+Qed.
+
+Lemma prog_swap_spec : {{{ True }}} prog_swap #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_spec prot_swap); iIntros (c) "Hc".
+  - wp_send with "[//]". wp_recv (x) as "_". by wp_send with "[//]".
+  - wp_send with "[//]". wp_recv as "_". wp_recv as "_".
+    wp_pures. by iApply "HΦ".
+Qed.
+
+Lemma prog_swap_twice_spec : {{{ True }}} prog_swap_twice #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_spec prot_swap_twice); iIntros (c) "Hc".
+  - wp_send with "[//]". wp_recv (x1) as "_". wp_recv (x2) as "_".
+    by wp_send with "[//]".
+  - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
+    wp_pures. by iApply "HΦ".
 Qed.
 End proofs.
