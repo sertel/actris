@@ -39,16 +39,16 @@ Instance action_dual_if_true_recv : ActionDualIf true Recv Send := eq_refl.
 Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
     (pas : list (bool * iProto Σ)) (q : iProto Σ) :=
   proto_normalize :
-    q ≡ (iProto_dual_if d p <++>
-         foldr (iProto_app ∘ curry iProto_dual_if) END pas)%proto.
+    ⊢ iProto_le (iProto_dual_if d p <++>
+         foldr (iProto_app ∘ curry iProto_dual_if) END pas)%proto q.
 Hint Mode ProtoNormalize ! ! ! ! - : typeclass_instances.
 Arguments ProtoNormalize {_} _ _%proto _%proto _%proto.
 
 Class ProtoContNormalize {Σ TT} (d : bool) (pc : TT → val * iProp Σ * iProto Σ)
     (pas : list (bool * iProto Σ)) (qc : TT → val * iProp Σ * iProto Σ) :=
   proto_cont_normalize x :
-    (qc x).1.1 = (pc x).1.1 ∧
-    (qc x).1.2 ≡ (pc x).1.2 ∧
+    (pc x).1.1 = (qc x).1.1 ∧
+    (pc x).1.2 ≡ (qc x).1.2 ∧
     ProtoNormalize d ((pc x).2) pas ((qc x).2).
 Hint Mode ProtoContNormalize ! ! ! ! ! - : typeclass_instances.
 
@@ -61,27 +61,27 @@ Section classes.
   Implicit Types TT : tele.
 
   Lemma proto_unfold_eq p1 p2 : p1 ≡ p2 → ProtoUnfold p1 p2.
-  Proof. rewrite /ProtoNormalize=> Hp d pas q ->. by rewrite Hp. Qed.
+  Proof. rewrite /ProtoNormalize=> Hp d pas q. by rewrite Hp. Qed.
 
   Global Instance proto_normalize_done p : ProtoNormalize false p [] p | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id. Qed. 
+  Proof. rewrite /ProtoNormalize /= right_id. iApply iProto_le_refl. Qed.
   Global Instance proto_normalize_done_dual p :
     ProtoNormalize true p [] (iProto_dual p) | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id. Qed.
+  Proof. rewrite /ProtoNormalize /= right_id. iApply iProto_le_refl. Qed.
   Global Instance proto_normalize_done_dual_end :
     ProtoNormalize (Σ:=Σ) true END [] END | 0.
-  Proof. by rewrite /ProtoNormalize /= right_id iProto_dual_end. Qed.
+  Proof. rewrite /ProtoNormalize /= right_id iProto_dual_end. iApply iProto_le_refl. Qed.
 
   Global Instance proto_normalize_dual d p pas q :
     ProtoNormalize (negb d) p pas q →
     ProtoNormalize d (iProto_dual p) pas q.
-  Proof. rewrite /ProtoNormalize=> ->. by destruct d; rewrite /= ?involutive. Qed.
+  Proof. rewrite /ProtoNormalize. by destruct d; rewrite /= ?involutive. Qed.
 
   Global Instance proto_normalize_app_l d p1 p2 pas q :
     ProtoNormalize d p1 ((d,p2) :: pas) q →
     ProtoNormalize d (p1 <++> p2) pas q.
   Proof.
-    rewrite /ProtoNormalize=> -> /=. rewrite assoc.
+    rewrite /ProtoNormalize /=. rewrite assoc.
     by destruct d; by rewrite /= ?iProto_dual_app.
   Qed.
 
@@ -89,19 +89,25 @@ Section classes.
     ProtoNormalize d p pas q →
     ProtoNormalize d' END ((d,p) :: pas) q | 0.
   Proof.
-    rewrite /ProtoNormalize=> -> /=.
+    rewrite /ProtoNormalize /=.
     destruct d'; by rewrite /= ?iProto_dual_end left_id.
   Qed.
 
   Global Instance proto_normalize_app_r d p1 p2 pas q :
     ProtoNormalize d p2 pas q →
     ProtoNormalize false p1 ((d,p2) :: pas) (p1 <++> q) | 0.
-  Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
+  Proof.
+    rewrite /ProtoNormalize /= => H.
+    iApply iProto_le_app; [iApply iProto_le_refl|done].
+  Qed.
 
   Global Instance proto_normalize_app_r_dual d p1 p2 pas q :
     ProtoNormalize d p2 pas q →
     ProtoNormalize true p1 ((d,p2) :: pas) (iProto_dual p1 <++> q) | 0.
-  Proof. by rewrite /ProtoNormalize=> -> /=. Qed.
+  Proof.
+    rewrite /ProtoNormalize /= => H.
+    iApply iProto_le_app; [iApply iProto_le_refl|done].
+  Qed.
 
   Global Instance proto_cont_normalize_O d v P p q pas :
     ProtoNormalize d p pas q →
@@ -127,10 +133,52 @@ Section classes.
   Proof.
     rewrite /ActionDualIf /ProtoContNormalize /ProtoNormalize=> -> H.
     destruct d; simpl.
-    - rewrite iProto_dual_message iProto_app_message.
-      apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
-    - rewrite iProto_app_message.
-      apply iProto_message_proper; apply tforall_forall=> x /=; apply H.
+    - rewrite iProto_dual_message iProto_app_message. destruct a1; simpl.
+      + iApply iProto_le_recv; iIntros (x) "/= Hpc". iExists x.
+        destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
+      + iApply iProto_le_send; iIntros (x) "/= Hpc". iExists x.
+        destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
+    - rewrite iProto_app_message. destruct a1; simpl.
+      + iApply iProto_le_send; iIntros (x) "/= Hpc". iExists x.
+        destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
+      + iApply iProto_le_recv; iIntros (x) "/= Hpc". iExists x.
+        destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
+  Qed.
+
+  Global Instance proto_normalize_swap {TT1 TT2} d a1
+      (pc1 : TT1 → val * iProp Σ * iProto Σ)
+      (vP1 : TT1 -t> val * iProp Σ) (vP2 : TT2 -t> val * iProp Σ)
+      (pc12 : TT1 -t> TT2 -t> iProto Σ)
+      (pc2 : TT2 -t> val * iProp Σ * iProto Σ) pas :
+    ActionDualIf d a1 Recv →
+    ProtoContNormalize d pc1 pas (λ.. x1,
+      (tele_app vP1 x1, iProto_message Send (λ.. x2,
+        (tele_app vP2 x2, tele_app (tele_app pc12 x1) x2)))) →
+    (∀.. x2, TCEq (tele_app vP2 x2, iProto_message Recv (λ.. x1,
+                    (tele_app vP1 x1, tele_app (tele_app pc12 x1) x2)))
+                  (tele_app pc2 x2)) →
+    ProtoNormalize d (iProto_message a1 pc1) pas
+                     (iProto_message Send (tele_app pc2)).
+  Proof.
+    (** TODO: This proof contains twice the same subproof. Refactor. *)
+    rewrite /ActionDualIf /ProtoContNormalize /ProtoNormalize.
+    rewrite tforall_forall=> ? Hpc1 Hpc2. destruct d, a1; simplify_eq/=.
+    - rewrite iProto_dual_message iProto_app_message /=.
+      iApply iProto_le_swap. iIntros (x1 x2) "/= Hpc1 Hpc2 !>".
+      move: (Hpc1 x1); rewrite {Hpc1} !tele_app_bind /=; intros (->&->&Hpc).
+      move: (Hpc2 x2); rewrite {Hpc2} TCEq_eq; intros Hpc2.
+      iExists TT2, TT1, (λ.. x2, (tele_app vP2 x2, tele_app (tele_app pc12 x1) x2)),
+        (λ.. x1, (tele_app vP1 x1, tele_app (tele_app pc12 x1) x2)), x2, x1.
+      rewrite /= !tele_app_bind /= -!Hpc2 /=. do 2 (iSplit; [done|]). iFrame.
+      iSplitR; [done|]. iSplitR; [iApply iProto_le_refl|]. done.
+    - rewrite iProto_app_message /=.
+      iApply iProto_le_swap. iIntros (x1 x2) "/= Hpc1 Hpc2 !>".
+      move: (Hpc1 x1); rewrite {Hpc1} !tele_app_bind /=; intros (->&->&Hpc).
+      move: (Hpc2 x2); rewrite {Hpc2} TCEq_eq; intros Hpc2.
+      iExists TT2, TT1, (λ.. x2, (tele_app vP2 x2, tele_app (tele_app pc12 x1) x2)),
+        (λ.. x1, (tele_app vP1 x1, tele_app (tele_app pc12 x1) x2)), x2, x1.
+      rewrite /= !tele_app_bind /= -!Hpc2 /=. do 2 (iSplit; [done|]). iFrame.
+      iSplitR; [done|]. iSplitR; [iApply iProto_le_refl|]. done.
   Qed.
 
   Global Instance proto_normalize_branch d a1 a2 P1 P2 p1 p2 q1 q2 pas :
@@ -139,8 +187,10 @@ Section classes.
     ProtoNormalize d (iProto_branch a1 P1 P2 p1 p2) pas
                      (iProto_branch a2 P1 P2 q1 q2).
   Proof.
-    rewrite /ActionDualIf /ProtoNormalize=> -> -> ->.
-    destruct d; by rewrite /= -?iProto_app_branch -?iProto_dual_branch.
+    rewrite /ActionDualIf /ProtoNormalize=> -> H1 H2. destruct d; simpl.
+    - rewrite !iProto_dual_branch !iProto_app_branch.
+      iApply iProto_le_branch; iSplit; by iIntros "!> $".
+    - rewrite !iProto_app_branch. iApply iProto_le_branch; iSplit; by iIntros "!> $".
   Qed.
 
   (** Automatically perform normalization of protocols in the proof mode when
@@ -149,15 +199,17 @@ Section classes.
     ProtoNormalize false p1 [] p2 →
     FromAssumption q (c ↣ p1) (c ↣ p2).
   Proof.
-    rewrite /FromAssumption /ProtoNormalize=> ->.
-    by rewrite /= right_id bi.intuitionistically_if_elim.
+    rewrite /FromAssumption /ProtoNormalize /= right_id.
+    rewrite bi.intuitionistically_if_elim.
+    iIntros (?) "H". by iApply (iProto_mapsto_le with "H").
   Qed.
   Global Instance mapsto_proto_from_frame q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
     Frame q (c ↣ p1) (c ↣ p2) True.
   Proof.
-    rewrite /Frame /ProtoNormalize=> ->.
-    by rewrite /= !right_id bi.intuitionistically_if_elim.
+    rewrite /Frame /ProtoNormalize /= right_id.
+    rewrite bi.intuitionistically_if_elim.
+    iIntros (?) "[H _]". by iApply (iProto_mapsto_le with "H").
   Qed.
 End classes.
 
@@ -177,7 +229,8 @@ Lemma tac_wp_recv `{!chanG Σ, !heapG Σ} {TT : tele} Δ i j K
   envs_entails Δ (WP fill K (recv c) {{ Φ }}).
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= tforall_forall right_id=> ? Hp HΦ.
-  rewrite envs_lookup_sound //; simpl. rewrite -Hp.
+  rewrite envs_lookup_sound //; simpl.
+  rewrite (iProto_mapsto_le _ _ (iProto_message Recv pc)) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply recv_spec|f_equiv].
   rewrite -bi.later_intro bi_tforall_forall; apply bi.forall_intro=> x.
   specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
@@ -261,7 +314,8 @@ Lemma tac_wp_send `{!chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K
   envs_entails Δ (WP fill K (send c v) {{ Φ }}).
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= right_id texist_exist=> ? Hp [x HΦ].
-  rewrite envs_lookup_sound //; simpl. rewrite -Hp.
+  rewrite envs_lookup_sound //; simpl.
+  rewrite (iProto_mapsto_le _ _ (iProto_message Send pc)) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply send_spec|f_equiv].
   rewrite bi_texist_exist -(bi.exist_intro x).
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
@@ -351,7 +405,8 @@ Lemma tac_wp_branch `{!chanG Σ, !heapG Σ} Δ i j K
   envs_entails Δ (WP fill K (recv c) {{ Φ }}).
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= right_id=> ? Hp HΦ.
-  rewrite envs_lookup_sound //; simpl. rewrite -Hp.
+  rewrite envs_lookup_sound //; simpl.
+  rewrite (iProto_mapsto_le _ _ (p1 <{P1}&{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply branch_spec|f_equiv].
   rewrite -bi.later_intro; apply bi.forall_intro=> b.
   specialize (HΦ b). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
@@ -403,7 +458,8 @@ Lemma tac_wp_select `{!chanG Σ, !heapG Σ} Δ neg i js K
   envs_entails Δ (WP fill K (send c #b) {{ Φ }}).
 Proof.
   rewrite envs_entails_eq /ProtoNormalize /= right_id=> ? Hp HΦ.
-  rewrite envs_lookup_sound //; simpl. rewrite -Hp.
+  rewrite envs_lookup_sound //; simpl.
+  rewrite (iProto_mapsto_le _ _ (p1 <{P1}+{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply select_spec|].
   rewrite -assoc; f_equiv.
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
