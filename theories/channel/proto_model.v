@@ -269,16 +269,16 @@ Program Definition protoOF (V : Type) (Fn F : oFunctor)
 |}.
 Next Obligation.
   intros V Fn F ?? A1 ? A2 ? B1 ? B2 ? n f g [??] p; simpl in *.
-  apply proto_map_ne=> // y; by apply oFunctor_ne.
+  apply proto_map_ne=> // y; by apply oFunctor_map_ne.
 Qed.
 Next Obligation.
   intros V Fn F ?? A ? B ? p; simpl in *. rewrite /= -{2}(proto_map_id p).
-  apply proto_map_ext=> //= y; by rewrite oFunctor_id.
+  apply proto_map_ext=> //= y; by rewrite oFunctor_map_id.
 Qed.
 Next Obligation.
   intros V Fn F ?? A1 ? A2 ? A3 ? B1 ? B2 ? B3 ? f g f' g' p; simpl in *.
   rewrite -proto_map_compose.
-  apply proto_map_ext=> //= y; by rewrite ofe.oFunctor_compose.
+  apply proto_map_ext=> //= y; by rewrite ofe.oFunctor_map_compose.
 Qed.
 
 Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
@@ -289,6 +289,6 @@ Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
 Proof.
   intros ?? A1 ? A2 ? B1 ? B2 ? n f g Hfg p; simpl in *.
   apply proto_map_ne=> //= y.
-  - destruct n; [|destruct Hfg]; by apply oFunctor_contractive.
-  - destruct n; [|destruct Hfg]; by apply oFunctor_contractive.
+  - destruct n; [|destruct Hfg]; by apply oFunctor_map_contractive.
+  - destruct n; [|destruct Hfg]; by apply oFunctor_map_contractive.
 Qed.
