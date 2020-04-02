@@ -222,6 +222,7 @@ Example:
 Definition iProto_le_pre {Σ V}
     (rec : iProto Σ V → iProto Σ V → iProp Σ) (p1 p2 : iProto Σ V) : iProp Σ :=
   (p1 ≡ proto_end ∗ p2 ≡ proto_end) ∨
+  (∃ pc2, p1 ≡ proto_end ∗ p2 ≡ proto_message Send pc2) ∨
   ∃ a1 a2 pc1 pc2,
     p1 ≡ proto_message a1 pc1 ∗
     p2 ≡ proto_message a2 pc2 ∗
@@ -538,28 +539,22 @@ Section proto.
   Global Instance iProto_le_proper : Proper ((≡) ==> (≡) ==> (⊣⊢)) (@iProto_le Σ V).
   Proof. solve_proper. Qed.
 
+  (** Helper lemmas for subprotocols *)
   Lemma iProto_le_unfold p1 p2 : iProto_le p1 p2 ≡ iProto_le_pre iProto_le p1 p2.
   Proof. apply: (fixpoint_unfold iProto_le_pre'). Qed.
 
-  Lemma iProto_le_refl p : ⊢ iProto_le p p.
-  Proof.
-    iLöb as "IH" forall (p). destruct (proto_case p) as [->|([]&pc&->)].
-    - rewrite iProto_le_unfold. iLeft; by auto.
-    - rewrite iProto_le_unfold. iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
-      iIntros (v p') "Hpc". iExists p'. iIntros "{$Hpc} !> !>". iApply "IH".
-    - rewrite iProto_le_unfold. iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
-      iIntros (v p') "Hpc". iExists p'. iIntros "{$Hpc} !> !>". iApply "IH".
-  Qed.
-
   Lemma iProto_le_end_inv p : iProto_le p proto_end -∗ p ≡ proto_end.
   Proof.
-    rewrite iProto_le_unfold. iIntros "[[Hp _]|H] //".
+    rewrite iProto_le_unfold. iIntros "[[Hp _]|[H|H]] //".
+    { by iDestruct "H" as (pc2) "[? _]". }
     iDestruct "H" as (a1 a2 pc1 pc2) "(_ & Heq & _)".
     by iDestruct (proto_end_message_equivI with "Heq") as %[].
   Qed.
 
   Lemma iProto_le_send_inv p1 pc2 :
-    iProto_le p1 (proto_message Send pc2) -∗ ∃ a1 pc1,
+    iProto_le p1 (proto_message Send pc2) -∗ 
+    p1 ≡ proto_end ∨
+    ∃ a1 pc1,
       p1 ≡ proto_message a1 pc1 ∗
       match a1 with
       | Send =>
@@ -577,9 +572,11 @@ Section proto.
   Proof.
     rewrite iProto_le_unfold. iIntros "[[_ Heq]|H]".
     { by iDestruct (proto_message_end_equivI with "Heq") as %[]. }
+    iDestruct "H" as "[H|H]".
+    { iDestruct "H" as (pc2') "[? _]"; auto. }
     iDestruct "H" as (a1 a2 pc1 pc2') "(Hp1 & Hp2 & H)".
     iDestruct (proto_message_equivI with "Hp2") as (<-) "{Hp2} #Hpc".
-    iExists _, _; iSplit; [done|]. destruct a1. 
+    iRight. iExists _, _; iSplit; [done|]. destruct a1. 
     - iIntros (v p2'). by iRewrite ("Hpc" $! v (Next p2')).
     - iIntros (v1 v2 p1' p2'). by iRewrite ("Hpc" $! v2 (Next p2')).
   Qed.
@@ -592,11 +589,27 @@ Section proto.
   Proof.
     rewrite iProto_le_unfold. iIntros "[[_ Heq]|H]".
     { by iDestruct (proto_message_end_equivI with "Heq") as %[]. }
+    iDestruct "H" as "[H|H]".
+    { iDestruct "H" as (pc2') "[_ H]".
+      iDestruct (proto_message_equivI with "H") as ([=]) "_". }
     iDestruct "H" as (a1 a2 pc1 pc2') "(Hp1 & Hp2 & H)".
     iDestruct (proto_message_equivI with "Hp2") as (<-) "{Hp2} #Hpc2".
     destruct a1; [done|]. iExists _; iSplit; [done|].
     iIntros (v p1') "Hpc". iDestruct ("H" with "Hpc") as (p2') ">[Hle Hpc]".
     iExists p2'. iFrame "Hle". by iRewrite ("Hpc2" $! v (Next p2')).
+  Qed.
+
+  (** Rules for subprotocols *)
+  Lemma iProto_le_refl p : ⊢ iProto_le p p.
+  Proof.
+    iLöb as "IH" forall (p). destruct (proto_case p) as [->|([]&pc&->)].
+    - rewrite iProto_le_unfold. iLeft; by auto.
+    - rewrite iProto_le_unfold.
+      do 2 iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
+      iIntros (v p') "Hpc". iExists p'. iIntros "{$Hpc} !> !>". iApply "IH".
+    - rewrite iProto_le_unfold.
+      do 2 iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
+      iIntros (v p') "Hpc". iExists p'. iIntros "{$Hpc} !> !>". iApply "IH".
   Qed.
 
   Lemma iProto_le_trans p1 p2 p3 :
@@ -605,10 +618,15 @@ Section proto.
     iIntros "H1 H2". iLöb as "IH" forall (p1 p2 p3).
     destruct (proto_case p3) as [->|([]&pc3&->)].
     - by iRewrite (iProto_le_end_inv with "H2") in "H1".
-    - iDestruct (iProto_le_send_inv with "H2") as (a2 pc2) "[Hp2 H2]".
+    - iDestruct (iProto_le_send_inv with "H2") as "[H2|H2]".
+      { iRewrite "H2" in "H1". iRewrite (iProto_le_end_inv with "H1").
+        iEval (rewrite iProto_le_unfold). iRight; iLeft; auto. }
+      iDestruct "H2" as (a2 pc2) "[Hp2 H2]".
       iRewrite "Hp2" in "H1"; clear p2. destruct a2.
-      + iDestruct (iProto_le_send_inv with "H1") as (a1 pc1) "[Hp1 H1]".
-        iRewrite "Hp1"; clear p1. rewrite iProto_le_unfold; iRight.
+      + iDestruct (iProto_le_send_inv with "H1") as "[H1|H1]".
+        { iRewrite "H1". iEval (rewrite iProto_le_unfold). iRight; iLeft; auto. }
+        iDestruct "H1" as (a1 pc1) "[Hp1 H1]".
+        iRewrite "Hp1"; clear p1. rewrite iProto_le_unfold; do 2 iRight.
         iExists _, _, _, _; do 2 (iSplit; [done|]). destruct a1.
         * iIntros (v p3') "Hpc".
           iMod ("H2" with "Hpc") as (p2') "[Hle Hpc]".
@@ -620,7 +638,7 @@ Section proto.
           iModIntro. iExists pc1', pc2', pt. iFrame "Hp1' Hpc".
           by iApply ("IH" with "Hp2'").
       + iDestruct (iProto_le_recv_inv with "H1") as (pc1) "[Hp1 H1]".
-        iRewrite "Hp1"; clear p1. rewrite iProto_le_unfold; iRight.
+        iRewrite "Hp1"; clear p1. rewrite iProto_le_unfold; do 2 iRight.
         iExists _, _, _, _; do 2 (iSplit; [done|]); simpl.
         iIntros (v1 v3 p1' p3') "Hpc1 Hpc3".
         iMod ("H1" with "Hpc1") as (p2') "[Hle Hpc2]".
@@ -630,7 +648,7 @@ Section proto.
     - iDestruct (iProto_le_recv_inv with "H2") as (pc2) "[Hp2 H3]".
       iRewrite "Hp2" in "H1".
       iDestruct (iProto_le_recv_inv with "H1") as (pc1) "[Hp1 H2]".
-      iRewrite "Hp1". rewrite iProto_le_unfold. iRight.
+      iRewrite "Hp1". rewrite iProto_le_unfold. do 2 iRight.
       iExists _, _, _, _; do 2 (iSplit; [done|]).
       iIntros (v p1') "Hpc".
       iMod ("H2" with "Hpc") as (p2') "[Hle Hpc]".
@@ -647,7 +665,7 @@ Section proto.
     iProto_le (iProto_message Send pc1) (iProto_message Send pc2).
   Proof.
     iIntros "H". rewrite iProto_le_unfold iProto_message_eq.
-    iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
+    do 2 iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
     iIntros (v p2') "/=". iDestruct 1 as (x2 ->) "[Hpc #Heq]".
     iMod ("H" with "Hpc") as (x1 ?) "[Hpc Hle]".
     iModIntro. iExists (pc1 x1).2. iSplitL "Hle".
@@ -679,7 +697,7 @@ Section proto.
     iProto_le (iProto_message Recv pc1) (iProto_message Recv pc2).
   Proof.
     iIntros "H". rewrite iProto_le_unfold iProto_message_eq.
-    iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
+    do 2 iRight. iExists _, _, _, _; do 2 (iSplit; [done|]).
     iIntros (v p1') "/=". iDestruct 1 as (x1 ->) "[Hpc #Heq]".
     iMod ("H" with "Hpc") as (x2 ?) "[Hpc Hle]". iExists (pc2 x2).2. iSplitL "Hle".
     { iIntros "!> !>". by iRewrite "Heq". }
@@ -714,7 +732,7 @@ Section proto.
     iProto_le (iProto_message Recv pc1) (iProto_message Send pc2).
   Proof.
     iIntros "H". rewrite iProto_le_unfold iProto_message_eq.
-    iRight. iExists _, _, _, _; do 2 (iSplit; [done|]); simpl.
+    do 2 iRight. iExists _, _, _, _; do 2 (iSplit; [done|]); simpl.
     iIntros (v1 v2 p1 p2).
     iDestruct 1 as (x1 ->) "[Hpc1 #Heq1]"; iDestruct 1 as (x2 ->) "[Hpc2 #Heq2]".
     iMod ("H" with "Hpc1 Hpc2")
@@ -769,9 +787,11 @@ Section proto.
     iIntros "H". iLöb as "IH" forall (p1 p2).
     destruct (proto_case p1) as [->|([]&pc1&->)].
     - iRewrite (iProto_le_end_inv with "H"). iApply iProto_le_refl.
-    - iDestruct (iProto_le_send_inv with "H") as (a2 pc2) "[Hp2 H]".
+    - iDestruct (iProto_le_send_inv with "H") as "[H|H]".
+      { iRewrite "H". rewrite iProto_dual_end' iProto_dual_message' /=. admit. }
+      iDestruct "H" as (a2 pc2) "[Hp2 H]".
       iRewrite "Hp2"; clear p2. iEval (rewrite !iProto_dual_message').
-      rewrite iProto_le_unfold; iRight.
+      rewrite iProto_le_unfold; do 2 iRight.
       iExists _, _, _, _; do 2 (iSplit; [done|]); simpl. destruct a2; simpl.
       + iIntros (v p1d). iDestruct 1 as (p1') "[Hpc #Hp1d]".
         iMod ("H" with "Hpc") as (p2') "[H Hpc]".
@@ -788,14 +808,14 @@ Section proto.
         iSplitL "Hpc2"; simpl; auto.
     - iDestruct (iProto_le_recv_inv with "H") as (pc2) "[Hp2 H]".
       iRewrite "Hp2"; clear p2. iEval (rewrite !iProto_dual_message' /=).
-      rewrite iProto_le_unfold; iRight.
+      rewrite iProto_le_unfold; do 2 iRight.
       iExists _, _, _, _; do 2 (iSplit; [done|]); simpl.
       iIntros (v p2d). iDestruct 1 as (p2') "[Hpc #Hp2d]".
       iMod ("H" with "Hpc") as (p1') "[H Hpc]".
       iDestruct ("IH" with "H") as "H".
       iModIntro. iExists (iProto_dual p1'). iSplitR "Hpc"; [|by auto].
       iNext. by iRewrite "Hp2d".
-  Qed.
+  Admitted.
 
   Lemma iProto_le_app p1 p2 p3 p4 :
     iProto_le p1 p2 -∗ iProto_le p3 p4 -∗ iProto_le (p1 <++> p3) (p2 <++> p4).
@@ -803,7 +823,9 @@ Section proto.
     iIntros "H1 H2". iLöb as "IH" forall (p1 p2 p3 p4).
     destruct (proto_case p2) as [->|([]&pc2&->)].
     - iRewrite (iProto_le_end_inv with "H1"). by rewrite !iProto_app_end'.
-    - iDestruct (iProto_le_send_inv with "H1") as (a1 pc1) "[Hp1 H1]".
+    - iDestruct (iProto_le_send_inv with "H1") as "[H1|H1]".
+      { 
+      iDestruct "H1" as (a1 pc1) "[Hp1 H1]".
       iRewrite "Hp1"; clear p1.
       rewrite !iProto_app_message'. iEval (rewrite iProto_le_unfold).
       iRight. iExists _, _, _, _; do 2 (iSplit; [done|]). destruct a1; simpl.
