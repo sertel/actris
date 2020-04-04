@@ -90,7 +90,7 @@ Section map.
 
   Lemma par_map_worker_spec γl γ vmap lk c :
     map_spec vmap -∗
-    {{{ is_lock nroot γl lk (map_worker_lock_inv γ c) ∗ client γ (∅ : gmultiset A) }}}
+    {{{ is_lock γl lk (map_worker_lock_inv γ c) ∗ client γ (∅ : gmultiset A) }}}
       par_map_worker vmap lk c
     {{{ RET #(); True }}}.
   Proof.
@@ -130,7 +130,7 @@ Section map.
 
   Lemma par_map_workers_spec γl γ n vmap lk c :
     map_spec vmap -∗
-    {{{ is_lock nroot γl lk (map_worker_lock_inv γ c) ∗
+    {{{ is_lock γl lk (map_worker_lock_inv γ c) ∗
         [∗] replicate n (client γ (∅:gmultiset A)) }}}
       par_map_workers #n vmap lk c
     {{{ RET #(); True }}}.
@@ -153,7 +153,7 @@ Section map.
   Proof.
     iIntros "#Hf !>"; iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iMod (contribution_init_pow (A:=gmultisetUR A) n) as (γ) "[Hs Hγs]".
-    wp_apply (newlock_spec nroot (map_worker_lock_inv γ c) with "[Hc Hs]").
+    wp_apply (newlock_spec (map_worker_lock_inv γ c) with "[Hc Hs]").
     { iExists n, ∅. iFrame. }
     iIntros (lk γl) "#Hlk".
     wp_apply (par_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.

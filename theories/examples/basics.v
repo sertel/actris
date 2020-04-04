@@ -281,7 +281,7 @@ Proof.
   - iMod contribution_init as (γ) "Hs".
     iMod (alloc_client with "Hs") as "[Hs Hcl1]".
     iMod (alloc_client with "Hs") as "[Hs Hcl2]".
-    wp_apply (newlock_spec nroot (∃ n, server γ n ε ∗
+    wp_apply (newlock_spec (∃ n, server γ n ε ∗
       c ↣ iProto_dual (prot_lock n))%I
       with "[Hc Hs]"); first by eauto with iFrame.
     iIntros (lk γlk) "#Hlk".
