@@ -16,3 +16,9 @@ theories/examples/sort_br_del.v
 theories/examples/sort_fg.v
 theories/examples/map.v
 theories/examples/map_reduce.v
+theories/logrel/ltyping.v
+theories/logrel/lsty.v
+theories/logrel/session_types.v
+theories/logrel/types.v
+theories/logrel/subtyping.v
+theories/logrel/examples/double.v
