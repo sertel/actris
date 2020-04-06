@@ -39,11 +39,11 @@ Section types.
   Definition lty_ref_shr (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ l : loc, ⌜w = #l⌝ ∗ inv (ref_shrN .@ l) (∃ v, l ↦ v ∗ A v))%I.
   Definition lty_mutex `{lockG Σ} (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val),
+    ∃ (γ : gname) (l : loc) (lk : val),
       ⌜ w = PairV lk #l ⌝ ∗
       is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ A v_inner))%I.
   Definition lty_mutexguard `{lockG Σ} (A : lty Σ) : lty Σ := Lty (λ w,
-    ∃ (N : namespace) (γ : gname) (l : loc) (lk : val) (v : val),
+    ∃ (γ : gname) (l : loc) (lk : val) (v : val),
       ⌜ w = PairV lk #l ⌝ ∗
       is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ A v_inner) ∗
       locked γ ∗ l ↦ v)%I.
@@ -582,7 +582,7 @@ Section properties.
       { iExists v. iFrame "Hl Hv". }
       wp_apply (newlock_spec with "Hlock").
       iIntros (lk γ) "Hlock".
-      wp_pures. iExists N, γ, l, lk. iSplit=> //.
+      wp_pures. iExists γ, l, lk. iSplit=> //.
     Qed.
 
     Definition mutexacquire : val := λ: "x", acquire (Fst "x");; (! (Snd "x"), "x").
@@ -591,7 +591,7 @@ Section properties.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iIntros "!>" (m) "Hm". rewrite /mutexacquire. wp_pures.
-      iDestruct "Hm" as (N γ l lk ->) "Hlock".
+      iDestruct "Hm" as (γ l lk ->) "Hlock".
       iMod (fupd_mask_mono with "Hlock") as "#Hlock"; first done.
       wp_bind (acquire _).
       wp_apply (acquire_spec with "Hlock").
@@ -601,7 +601,7 @@ Section properties.
       wp_load. wp_pures.
       iExists v, (lk, #l)%V. iSplit=> //.
       iFrame "HA".
-      iExists N, γ, l, lk, v. iSplit=> //.
+      iExists γ, l, lk, v. iSplit=> //.
       by iFrame "Hl Hlocked Hlock".
     Qed.
 
@@ -613,7 +613,7 @@ Section properties.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iIntros "!>" (w1) "Hw1". rewrite /mutexrelease. wp_pures.
       iIntros (w2) "Hw2". wp_pures.
-      iDestruct "Hw2" as (N γ l lk inner ->) "[#Hlock [Hlocked Hinner]]".
+      iDestruct "Hw2" as (γ l lk inner ->) "[#Hlock [Hlocked Hinner]]".
       wp_store.
       iAssert (∃ inner : val, l ↦ inner ∗ A inner)%I
         with "[Hinner Hw1]" as "Hinner".
@@ -624,7 +624,7 @@ Section properties.
       { iFrame "Hlock Hlocked".
         iDestruct "Hinner" as (v) "[Hl HA]". eauto with iFrame. }
       iIntros "_". wp_pures.
-      iExists N, γ, l, lk. iSplit=> //.
+      iExists γ, l, lk. iSplit=> //.
     Qed.
   End with_lock.
 

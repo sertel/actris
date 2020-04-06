@@ -152,9 +152,9 @@ Section subtype.
     ▷ (A1 <: A2) -∗ ▷ (A2 <: A1) -∗
     mutex A1 <: mutex A2.
   Proof.
-    iIntros "#Hle1 #Hle2" (v) "!>". iDestruct 1 as (N γ l lk ->) "Hinv".
+    iIntros "#Hle1 #Hle2" (v) "!>". iDestruct 1 as (γ l lk ->) "Hinv".
     rewrite /spin_lock.is_lock.
-    iExists N, γ, l, lk. iSplit; first done.
+    iExists γ, l, lk. iSplit; first done.
     rewrite /spin_lock.is_lock.
     iDestruct "Hinv" as (l' ->) "Hinv".
     iExists l'.
@@ -175,9 +175,9 @@ Section subtype.
     mutexguard A1 <: mutexguard A2.
   Proof.
     iIntros "#Hle1 #Hle2" (v) "!>".
-    iDestruct 1 as (N γ l lk w ->) "[Hinv [Hlock Hinner]]".
+    iDestruct 1 as (γ l lk w ->) "[Hinv [Hlock Hinner]]".
     rewrite /spin_lock.is_lock.
-    iExists N, γ, l, lk, w. iSplit; first done.
+    iExists γ, l, lk, w. iSplit; first done.
     rewrite /spin_lock.is_lock.
     iFrame "Hlock Hinner".
     iDestruct "Hinv" as (l' ->) "Hinv".
