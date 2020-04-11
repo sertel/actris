@@ -1,3 +1,4 @@
+From iris.algebra Require Import gmap.
 From actris.logrel Require Export ltyping session_types.
 From actris.channel Require Import proto proofmode.
 From iris.heap_lang Require Export lifting metatheory.
@@ -684,36 +685,33 @@ Section properties.
       iExists v, c. eauto with iFrame.
     Qed.
 
-    Definition chanfst : val := λ: "c", send "c" #true;; "c".
-    Lemma ltyped_chanfst P1 P2:
-      ⊢ ∅ ⊨ chanfst : chan (P1 <+++> P2) → chan P1.
+    Definition chanselect : val := λ: "c" "i", send "c" "i";; "c".
+    Lemma ltyped_chanselect Γ (c : val) (i : Z) (Ps : gmap Z (lsty Σ)) :
+      is_Some (Ps !! i) →
+      (Γ ⊨ c : chan (lsty_select Ps)) -∗
+      Γ ⊨ chanselect c #i : chan (Ps !!! i).
     Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chanfst. wp_select.
-      wp_pures. iExact "Hc".
+      iIntros (Hin) "#Hc !>".
+      iIntros (vs) "H /=".
+      rewrite /chanselect. simpl.
+      iDestruct ("Hc" with "H") as "Hc'".
+      iMod (wp_value_inv with "Hc'") as "Hc'".
+      wp_send with "[]"=> //.
+      by wp_pures.
     Qed.
 
-    Definition chansnd : val := λ: "c", send "c" #false;; "c".
-    Lemma ltyped_chansnd P1 P2:
-      ⊢ ∅ ⊨ chansnd : chan (P1 <+++> P2) → chan P2.
-    Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chansnd. wp_select.
-      wp_pures. iExact "Hc".
-    Qed.
+    (* Definition chanbranch : val := λ: "c", *)
+    (*   let i := recv "c" in if: b then InjL "c" else InjR "c". *)
 
-    Definition chanbranch : val := λ: "c",
-      let b := recv "c" in if: b then InjL "c" else InjR "c".
-
-    Lemma ltyped_chanbranch P1 P2:
-      ⊢ ∅ ⊨ chanbranch : chan (P1 <&&&> P2) → chan P1 + chan P2.
-    Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chanbranch. wp_pures.
-      wp_branch; wp_pures.
-      - iLeft. iExists c. iSplit=> //.
-      - iRight. iExists c. iSplit=> //.
-    Qed.
+    (* Lemma ltyped_chanbranch Ps : *)
+    (*   ⊢ ∅ ⊨ chanbranch : chan (lsty_branch Ps) → . *)
+    (* Proof. *)
+    (*   iIntros (vs) "!> _ /=". iApply wp_value. *)
+    (*   iIntros "!>" (c) "Hc". rewrite /chanbranch. wp_pures. *)
+    (*   wp_branch; wp_pures. *)
+    (*   - iLeft. iExists c. iSplit=> //. *)
+    (*   - iRight. iExists c. iSplit=> //. *)
+    (* Qed. *)
 
   End with_chan.
 End properties.
