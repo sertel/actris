@@ -134,14 +134,14 @@ Section classes.
     rewrite /ActionDualIf /ProtoContNormalize /ProtoNormalize=> -> H.
     destruct d; simpl.
     - rewrite iProto_dual_message iProto_app_message. destruct a1; simpl.
-      + iApply iProto_le_recv; iIntros (x) "/= Hpc". iExists x.
+      + iApply iProto_le_recv; iIntros "!>" (x) "/= Hpc". iExists x.
         destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
-      + iApply iProto_le_send; iIntros (x) "/= Hpc". iExists x.
+      + iApply iProto_le_send; iIntros "!>" (x) "/= Hpc". iExists x.
         destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
     - rewrite iProto_app_message. destruct a1; simpl.
-      + iApply iProto_le_send; iIntros (x) "/= Hpc". iExists x.
+      + iApply iProto_le_send; iIntros "!>" (x) "/= Hpc". iExists x.
         destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
-      + iApply iProto_le_recv; iIntros (x) "/= Hpc". iExists x.
+      + iApply iProto_le_recv; iIntros "!>" (x) "/= Hpc". iExists x.
         destruct (H x) as (-> & -> & Hle). iSplit; [done|]. by iFrame "Hpc".
   Qed.
 
@@ -164,7 +164,7 @@ Section classes.
     rewrite /ActionDualIf /ProtoContNormalize /ProtoNormalize.
     rewrite tforall_forall=> ? Hpc1 Hpc2. destruct d, a1; simplify_eq/=.
     - rewrite iProto_dual_message iProto_app_message /=.
-      iApply iProto_le_swap. iIntros (x1 x2) "/= Hpc1 Hpc2 !>".
+      iApply iProto_le_swap. iIntros "!>" (x1 x2) "/= Hpc1 Hpc2".
       move: (Hpc1 x1); rewrite {Hpc1} !tele_app_bind /=; intros (->&->&Hpc).
       move: (Hpc2 x2); rewrite {Hpc2} TCEq_eq; intros Hpc2.
       iExists TT2, TT1, (λ.. x2, (tele_app vP2 x2, tele_app (tele_app pc12 x1) x2)),
@@ -172,7 +172,7 @@ Section classes.
       rewrite /= !tele_app_bind /= -!Hpc2 /=. do 2 (iSplit; [done|]). iFrame.
       iSplitR; [done|]. iSplitR; [iApply iProto_le_refl|]. done.
     - rewrite iProto_app_message /=.
-      iApply iProto_le_swap. iIntros (x1 x2) "/= Hpc1 Hpc2 !>".
+      iApply iProto_le_swap. iIntros "!>" (x1 x2) "/= Hpc1 Hpc2".
       move: (Hpc1 x1); rewrite {Hpc1} !tele_app_bind /=; intros (->&->&Hpc).
       move: (Hpc2 x2); rewrite {Hpc2} TCEq_eq; intros Hpc2.
       iExists TT2, TT1, (λ.. x2, (tele_app vP2 x2, tele_app (tele_app pc12 x1) x2)),
