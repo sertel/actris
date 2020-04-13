@@ -1,4 +1,3 @@
-From iris.algebra Require Import gmap.
 From actris.logrel Require Export ltyping session_types.
 From actris.channel Require Import proto proofmode.
 From iris.heap_lang Require Export lifting metatheory.

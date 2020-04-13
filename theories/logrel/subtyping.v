@@ -238,26 +238,83 @@ Section subtype.
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
-  Lemma lsty_select_le P11 P12 P21 P22 :
-    ▷ (P11 <p: P21) -∗ ▷ (P12 <p: P22) -∗
-    (P11 <+++> P12) <p: (P21 <+++> P22).
+  Lemma lsty_select_le_insert i P (Ps : gmap Z (lsty Σ)) :
+    Ps !! i = None →
+    ⊢ (lsty_select (<[i:=P]>Ps)) <p: (lsty_select Ps).
   Proof.
-    iIntros "#H1 #H2 !>".
-    rewrite /lsty_select /iProto_branch=> /=.
-    iApply iProto_le_send=> /=.
-    iIntros (x) "_ !>".
-    destruct x; eauto with iFrame.
+    iIntros (Hnone) "!>".
+    iApply iProto_le_send.
+    iIntros (x) ">% !>"=> /=.
+    iExists _.
+    iSplit=> //.
+    assert (i ≠ x).
+    {
+      unfold not=> Heq.
+      rewrite Heq in Hnone. rewrite Hnone in H1.
+      inversion H1. inversion H2.
+    }
+    iSplit.
+    - iNext. iPureIntro.
+      apply lookup_insert_is_Some. right. eauto.
+    - iNext. rewrite lookup_total_insert_ne=> //.
+      iApply iProto_le_refl.
   Qed.
 
-  Lemma lsty_branch_le P11 P12 P21 P22 :
-    ▷ (P11 <p: P21) -∗ ▷ (P12 <p: P22) -∗
-    (P11 <&&&> P12) <p: (P21 <&&&> P22).
+  Lemma lsty_select_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
+    (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
+    (lsty_select Ps1) <p: (lsty_select Ps2).
   Proof.
-    iIntros "#H1 #H2 !>".
-    rewrite /lsty_branch /iProto_branch=> /=.
+    iIntros "#H1 !>".
+    iApply iProto_le_send=> /=.
+    iIntros (x) "H !>".
+    iExists x. iSplit=> //. iSplit.
+    - iNext. iDestruct "H" as %Hsome.
+      iDestruct (big_sepM2_forall with "H1") as "[% _]".
+      iPureIntro. by apply H1.
+    - iNext. iDestruct "H" as %Hsome.
+      iDestruct (big_sepM2_forall with "H1") as "[% H]".
+      iApply ("H" with "[] []").
+      + iPureIntro. by apply lookup_lookup_total, H1.
+      + iPureIntro. by apply lookup_lookup_total.
+  Qed.
+
+  Lemma lsty_branch_le_insert i P (Ps : gmap Z (lsty Σ)) :
+    Ps !! i = None →
+    ⊢ (lsty_branch Ps) <p: (lsty_branch (<[i:=P]>Ps)).
+  Proof.
+    iIntros (Hnone) "!>".
+    iApply iProto_le_recv.
+    iIntros (x) ">% !>"=> /=.
+    iExists _. iSplit=> //.
+    assert (i ≠ x).
+    {
+      unfold not=> Heq.
+      rewrite Heq in Hnone. rewrite Hnone in H1.
+      inversion H1. inversion H2.
+    }
+    iSplit.
+    - iNext. iPureIntro.
+      apply lookup_insert_is_Some. right. split=> //.
+    - iNext. rewrite lookup_total_insert_ne=> //.
+      iApply iProto_le_refl.
+  Qed.
+
+  Lemma lsty_branch_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
+    (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
+    (lsty_branch Ps1) <p: (lsty_branch Ps2).
+  Proof.
+    iIntros "#H1 !>".
     iApply iProto_le_recv=> /=.
-    iIntros (x) "_ !>".
-    destruct x; eauto with iFrame.
+    iIntros (x) "H !>".
+    iExists x. iSplit=> //. iSplit.
+    - iNext. iDestruct "H" as %Hsome.
+      iDestruct (big_sepM2_forall with "H1") as "[% _]".
+      iPureIntro. by apply H1.
+    - iNext. iDestruct "H" as %Hsome.
+      iDestruct (big_sepM2_forall with "H1") as "[% H]".
+      iApply ("H" with "[] []").
+      + iPureIntro. by apply lookup_lookup_total.
+      + iPureIntro. by apply lookup_lookup_total, H1.
   Qed.
 
   Lemma lsty_app_le P11 P12 P21 P22 :
