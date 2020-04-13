@@ -197,6 +197,9 @@ Section subtype.
   Lemma lsty_le_refl P : ⊢ P <p: P.
   Proof. iApply iProto_le_refl. Qed.
 
+  Lemma lsty_le_trans P1 P2 P3 : P1 <p: P2 -∗ P2 <p: P3 -∗ P1 <p: P3.
+  Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_trans. Qed.
+
   Lemma lsty_send_le A1 A2 P1 P2 :
     ▷ (A2 <: A1) -∗ ▷ (P1 <p: P2) -∗
     (<!!> A1 ; P1) <p: (<!!> A2 ; P2).
