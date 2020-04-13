@@ -3,11 +3,11 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import metatheory proofmode notation assert.
 Set Default Proof Using "Type".
 
-Fixpoint switch_body (i : nat) (xs : list Z) (e : expr) : expr :=
+Fixpoint switch_body (y f : string) (i : nat) (xs : list Z) (e : expr) : expr :=
   match xs with
   | [] => e
-  | x :: xs => if: "y" = #x then ("f" +:+ pretty i) #()
-               else switch_body (S i) xs e
+  | x :: xs => if: y = #x then (f +:+ pretty i) #()
+               else switch_body y f (S i) xs e
   end.
 Fixpoint switch_lams (y : string) (i : nat) (n : nat) (e : expr) : expr :=
   match n with
@@ -15,7 +15,7 @@ Fixpoint switch_lams (y : string) (i : nat) (n : nat) (e : expr) : expr :=
   | S n => λ: (y +:+ pretty i), switch_lams y (S i) n e
   end.
 Definition switch_fail (xs : list Z) : val :=
-  λ: "y", switch_lams "f" 0 (length xs) (switch_body 0 xs (assert: #false)).
+  λ: "y", switch_lams "f" 0 (length xs) (switch_body "y" "f" 0 xs (assert: #false)).
 
 Fixpoint map_string_seq {A}
     (s : string) (start : nat) (xs : list A) : gmap string A :=
@@ -64,12 +64,12 @@ Proof.
     lookup_map_string_seq_None_lt; auto with lia.
 Qed.
 
-Lemma switch_body_spec `{heapG Σ} xs i j ws (x : Z) (f : val) e Φ :
+Lemma switch_body_spec `{heapG Σ} y f xs i j ws (x : Z) (vf : val) e Φ :
   fst <$> list_find (x =.) xs = Some i →
-  ws !! "y" = Some #x →
-  ws !! ("f" +:+ pretty (i + j)%nat) = Some f →
-  WP f #() {{ Φ }} -∗
-  WP subst_map ws (switch_body j xs e) {{ Φ }}.
+  ws !! y = Some #x →
+  ws !! (f +:+ pretty (i + j)%nat) = Some vf →
+  WP vf #() {{ Φ }} -∗
+  WP subst_map ws (switch_body y f j xs e) {{ Φ }}.
 Proof.
   iIntros (Hi Hy Hf) "H".
   iInduction xs as [|x' xs] "IH" forall (i j Hi Hf); simplify_eq/=.
@@ -82,12 +82,12 @@ Proof.
   - by rewrite Nat.add_succ_r.
 Qed.
 
-Lemma switch_fail_spec `{heapG Σ} fs xs i (x : Z) (f : val) Φ :
-  length fs = length xs →
+Lemma switch_fail_spec `{heapG Σ} vfs xs i (x : Z) (vf : val) Φ :
+  length vfs = length xs →
   fst <$> list_find (x =.) xs = Some i →
-  fs !! i = Some f →
-  ▷ WP f #() {{ Φ }} -∗
-  WP fill (AppLCtx <$> fs) (switch_fail xs #x) {{ Φ }}.
+  vfs !! i = Some vf →
+  ▷ WP vf #() {{ Φ }} -∗
+  WP fill (AppLCtx <$> vfs) (switch_fail xs #x) {{ Φ }}.
 Proof.
   iIntros (???) "H". iApply wp_bind. wp_lam.
   rewrite -subst_map_singleton. iApply switch_lams_spec; first done.
