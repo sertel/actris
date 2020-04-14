@@ -240,7 +240,7 @@ Section subtype.
 
   Lemma lsty_select_le_insert i P (Ps : gmap Z (lsty Σ)) :
     Ps !! i = None →
-    ⊢ (lsty_select (<[i:=P]>Ps)) <p: (lsty_select Ps).
+    ⊢ lsty_select (<[i:=P]>Ps) <p: lsty_select Ps.
   Proof.
     iIntros (Hnone) "!>".
     iApply iProto_le_send.
@@ -262,7 +262,7 @@ Section subtype.
 
   Lemma lsty_select_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
     (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
-    (lsty_select Ps1) <p: (lsty_select Ps2).
+    lsty_select Ps1 <p: lsty_select Ps2.
   Proof.
     iIntros "#H1 !>".
     iApply iProto_le_send=> /=.
@@ -280,7 +280,7 @@ Section subtype.
 
   Lemma lsty_branch_le_insert i P (Ps : gmap Z (lsty Σ)) :
     Ps !! i = None →
-    ⊢ (lsty_branch Ps) <p: (lsty_branch (<[i:=P]>Ps)).
+    ⊢ lsty_branch Ps <p: lsty_branch (<[i:=P]>Ps).
   Proof.
     iIntros (Hnone) "!>".
     iApply iProto_le_recv.
@@ -301,7 +301,7 @@ Section subtype.
 
   Lemma lsty_branch_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
     (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
-    (lsty_branch Ps1) <p: (lsty_branch Ps2).
+    lsty_branch Ps1 <p: lsty_branch Ps2.
   Proof.
     iIntros "#H1 !>".
     iApply iProto_le_recv=> /=.

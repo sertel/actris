@@ -10,7 +10,7 @@ Section protocols.
 
   Definition lsty_end : lsty Σ := Lsty END.
 
-  Definition lsty_message (a : action ) (A : lty Σ) (P : lsty Σ) : lsty Σ :=
+  Definition lsty_message (a : action) (A : lty Σ) (P : lsty Σ) : lsty Σ :=
     Lsty (<a> v, MSG v {{ A v }}; lsty_car P).
 
   Definition lsty_send (A : lty Σ) (P : lsty Σ) : lsty Σ :=
@@ -86,8 +86,7 @@ Section Propers.
   Proof.
     intros n Ps1 Ps2 Pseq.
     apply Lsty_ne.
-    apply iProto_message_ne; simpl; try done;
-    solve_proper.
+    apply iProto_message_ne; simpl; try done; solve_proper.
   Qed.
 
   Global Instance lsty_choice_contractive n a :
@@ -96,7 +95,7 @@ Section Propers.
     intros Ps1 Ps2 Pseq.
     apply Lsty_ne.
     apply iProto_message_contractive; simpl; try done;
-    destruct n=> //=; solve_proper.
+      destruct n=> //=; solve_proper.
   Qed.
 
   Global Instance lsty_select_ne : NonExpansive (@lsty_select Σ).
