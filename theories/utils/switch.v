@@ -3,11 +3,12 @@ From iris.heap_lang Require Export lang.
 From iris.heap_lang Require Import metatheory proofmode notation assert.
 Set Default Proof Using "Type".
 
-Fixpoint switch_body (y f : string) (i : nat) (xs : list Z) (e : expr) : expr :=
+Fixpoint switch_body (y : string) (i : nat) (xs : list Z)
+    (edef : expr) (ecase : nat → expr) : expr :=
   match xs with
-  | [] => e
-  | x :: xs => if: y = #x then (f +:+ pretty i) #()
-               else switch_body y f (S i) xs e
+  | [] => edef
+  | x :: xs => if: y = #x then ecase i
+               else switch_body y (S i) xs edef ecase
   end.
 Fixpoint switch_lams (y : string) (i : nat) (n : nat) (e : expr) : expr :=
   match n with
@@ -15,7 +16,8 @@ Fixpoint switch_lams (y : string) (i : nat) (n : nat) (e : expr) : expr :=
   | S n => λ: (y +:+ pretty i), switch_lams y (S i) n e
   end.
 Definition switch_fail (xs : list Z) : val :=
-  λ: "y", switch_lams "f" 0 (length xs) (switch_body "y" "f" 0 xs (assert: #false)).
+  λ: "y", switch_lams "f" 0 (length xs) $
+    switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) #().
 
 Fixpoint map_string_seq {A}
     (s : string) (start : nat) (xs : list A) : gmap string A :=
@@ -64,22 +66,19 @@ Proof.
     lookup_map_string_seq_None_lt; auto with lia.
 Qed.
 
-Lemma switch_body_spec `{heapG Σ} y f xs i j ws (x : Z) (vf : val) e Φ :
+Lemma switch_body_spec `{heapG Σ} y xs i j ws (x : Z) edef ecase Φ :
   fst <$> list_find (x =.) xs = Some i →
   ws !! y = Some #x →
-  ws !! (f +:+ pretty (i + j)%nat) = Some vf →
-  WP vf #() {{ Φ }} -∗
-  WP subst_map ws (switch_body y f j xs e) {{ Φ }}.
+  WP subst_map ws (ecase (i + j)%nat) {{ Φ }} -∗
+  WP subst_map ws (switch_body y j xs edef ecase) {{ Φ }}.
 Proof.
-  iIntros (Hi Hy Hf) "H".
-  iInduction xs as [|x' xs] "IH" forall (i j Hi Hf); simplify_eq/=.
+  iIntros (Hi Hy) "H".
+  iInduction xs as [|x' xs] "IH" forall (i j Hi); simplify_eq/=.
   rewrite Hy. case_decide; simplify_eq/=; wp_pures.
-  { rewrite bool_decide_true; last congruence. wp_pures. by rewrite Hf. }
+  { rewrite bool_decide_true; last congruence. by wp_pures. }
   move: Hi=> /fmap_Some [[??] [/fmap_Some [[i' x''] [??]] ?]]; simplify_eq/=.
   rewrite bool_decide_false; last congruence. wp_pures.
-  iApply ("IH" $! i' with "[%] [%] H").
-  - by simplify_option_eq.
-  - by rewrite Nat.add_succ_r.
+  iApply ("IH" $! i'). by simplify_option_eq. by rewrite Nat.add_succ_r.
 Qed.
 
 Lemma switch_fail_spec `{heapG Σ} vfs xs i (x : Z) (vf : val) Φ :
@@ -91,7 +90,7 @@ Lemma switch_fail_spec `{heapG Σ} vfs xs i (x : Z) (vf : val) Φ :
 Proof.
   iIntros (???) "H". iApply wp_bind. wp_lam.
   rewrite -subst_map_singleton. iApply switch_lams_spec; first done.
-  iApply (switch_body_spec with "H"); [done|..].
+  iApply switch_body_spec; [done|..].
   - by rewrite lookup_union_r ?lookup_singleton // lookup_map_string_seq_None.
-  - apply lookup_union_Some_l. by rewrite lookup_map_string_seq_Some.
+  - by rewrite /= (lookup_union_Some_l _ _ _ vf) // lookup_map_string_seq_Some.
 Qed.
