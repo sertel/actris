@@ -238,25 +238,22 @@ Section subtype.
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
-  Lemma lsty_select_le_insert i P (Ps : gmap Z (lsty Σ)) :
-    Ps !! i = None →
-    ⊢ lsty_select (<[i:=P]>Ps) <p: lsty_select Ps.
+  Lemma lsty_select_le_insert (Ps1 Ps2 : gmap Z (lsty Σ)) :
+    Ps2 ⊆ Ps1 →
+    ⊢ lsty_select Ps1 <p: lsty_select Ps2.
   Proof.
     iIntros (Hnone) "!>".
     iApply iProto_le_send.
     iIntros (x) ">% !>"=> /=.
-    iExists _.
-    iSplit=> //.
-    assert (i ≠ x).
-    {
-      unfold not=> Heq.
-      rewrite Heq in Hnone. rewrite Hnone in H1.
-      inversion H1. inversion H2.
-    }
+    iExists _. iSplit=> //.
     iSplit.
-    - iNext. iPureIntro.
-      apply lookup_insert_is_Some. right. eauto.
-    - iNext. rewrite lookup_total_insert_ne=> //.
+    - iNext. iPureIntro. by eapply lookup_weaken_is_Some.
+    - iNext.
+      destruct H1 as [P H1].
+      assert (Ps1 !! x = Some P).
+      { by eapply lookup_weaken. }
+      rewrite (lookup_total_correct Ps1 x P)=> //.
+      rewrite (lookup_total_correct Ps2 x P)=> //.
       iApply iProto_le_refl.
   Qed.
 
@@ -278,24 +275,22 @@ Section subtype.
       + iPureIntro. by apply lookup_lookup_total.
   Qed.
 
-  Lemma lsty_branch_le_insert i P (Ps : gmap Z (lsty Σ)) :
-    Ps !! i = None →
-    ⊢ lsty_branch Ps <p: lsty_branch (<[i:=P]>Ps).
+  Lemma lsty_branch_le_insert (Ps1 Ps2 : gmap Z (lsty Σ)) :
+    Ps1 ⊆ Ps2 →
+    ⊢ lsty_branch Ps1 <p: lsty_branch Ps2.
   Proof.
     iIntros (Hnone) "!>".
     iApply iProto_le_recv.
     iIntros (x) ">% !>"=> /=.
     iExists _. iSplit=> //.
-    assert (i ≠ x).
-    {
-      unfold not=> Heq.
-      rewrite Heq in Hnone. rewrite Hnone in H1.
-      inversion H1. inversion H2.
-    }
     iSplit.
-    - iNext. iPureIntro.
-      apply lookup_insert_is_Some. right. split=> //.
-    - iNext. rewrite lookup_total_insert_ne=> //.
+    - iNext. iPureIntro. by eapply lookup_weaken_is_Some.
+    - iNext.
+      destruct H1 as [P H1].
+      assert (Ps2 !! x = Some P).
+      { by eapply lookup_weaken. }
+      rewrite (lookup_total_correct Ps1 x P)=> //.
+      rewrite (lookup_total_correct Ps2 x P)=> //.
       iApply iProto_le_refl.
   Qed.
 
