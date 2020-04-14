@@ -685,17 +685,18 @@ Section properties.
     Qed.
 
     Definition chanselect : val := λ: "c" "i", send "c" "i";; "c".
-    Lemma ltyped_chanselect Γ (c : val) (i : Z) (Ps : gmap Z (lsty Σ)) :
-      is_Some (Ps !! i) →
+    Lemma ltyped_chanselect Γ (c : val) (i : Z) P Ps :
+      Ps !! i = Some P →
       (Γ ⊨ c : chan (lsty_select Ps)) -∗
-      Γ ⊨ chanselect c #i : chan (Ps !!! i).
+      Γ ⊨ chanselect c #i : chan P.
     Proof.
       iIntros (Hin) "#Hc !>".
       iIntros (vs) "H /=".
       rewrite /chanselect. simpl.
       iDestruct ("Hc" with "H") as "Hc'".
       iMod (wp_value_inv with "Hc'") as "Hc'".
-      wp_send with "[]"=> //.
+      wp_send with "[]"=> //; eauto.
+      rewrite (lookup_total_correct Ps i P)=> //.
       by wp_pures.
     Qed.
 
