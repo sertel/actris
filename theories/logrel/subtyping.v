@@ -242,7 +242,7 @@ Section subtype.
     Ps2 ⊆ Ps1 →
     ⊢ lsty_select Ps1 <p: lsty_select Ps2.
   Proof.
-    iIntros (Hnone) "!>".
+    iIntros (Hsub) "!>".
     iApply iProto_le_send.
     iIntros (x) ">% !>"=> /=.
     iExists _. iSplit=> //.
@@ -279,7 +279,7 @@ Section subtype.
     Ps1 ⊆ Ps2 →
     ⊢ lsty_branch Ps1 <p: lsty_branch Ps2.
   Proof.
-    iIntros (Hnone) "!>".
+    iIntros (Hsub) "!>".
     iApply iProto_le_recv.
     iIntros (x) ">% !>"=> /=.
     iExists _. iSplit=> //.
