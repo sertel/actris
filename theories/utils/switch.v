@@ -15,8 +15,8 @@ Fixpoint switch_lams (y : string) (i : nat) (n : nat) (e : expr) : expr :=
   | O => e
   | S n => λ: (y +:+ pretty i), switch_lams y (S i) n e
   end.
-Definition switch_fail (xs : list Z) : val :=
-  λ: "y", switch_lams "f" 0 (length xs) $
+Definition switch_fail (xs : list Z) : val := λ: "y",
+  switch_lams "f" 0 (length xs) $
     switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) #().
 
 Fixpoint map_string_seq {A}
