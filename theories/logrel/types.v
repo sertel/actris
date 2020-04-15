@@ -700,18 +700,129 @@ Section properties.
       by wp_pures.
     Qed.
 
-    (* Definition chanbranch : val := λ: "c", *)
-    (*   let i := recv "c" in if: b then InjL "c" else InjR "c". *)
+    From stdpp Require Import pretty.
+    From actris.utils Require Import switch.
+    From iris.heap_lang.lib Require Import assert.
 
-    (* Lemma ltyped_chanbranch Ps : *)
-    (*   ⊢ ∅ ⊨ chanbranch : chan (lsty_branch Ps) → . *)
-    (* Proof. *)
-    (*   iIntros (vs) "!> _ /=". iApply wp_value. *)
-    (*   iIntros "!>" (c) "Hc". rewrite /chanbranch. wp_pures. *)
-    (*   wp_branch; wp_pures. *)
-    (*   - iLeft. iExists c. iSplit=> //. *)
-    (*   - iRight. iExists c. iSplit=> //. *)
-    (* Qed. *)
+    Fixpoint lty_arr_list (As : list (lty Σ)) (B : lty Σ) : lty Σ :=
+      match As with
+      | [] => B
+      | A :: As => A ⊸ lty_arr_list As B
+      end.
+
+    Definition chanbranch (xs : list Z) : val := λ: "c",
+      switch_lams "f" 0 (length xs) $
+      let: "y" := recv "c" in
+      switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
+
+    Lemma lty_arr_list_spec_step A As (e : expr) B ws y i :
+      (∀ v, lty_car A v -∗
+      WP subst_map (<[ y +:+ pretty i := v ]>ws) (switch_lams y (S i) (length As) e) {{ lty_arr_list As B }}) -∗
+      WP subst_map ws (switch_lams y i (length (A::As)) e) {{ lty_arr_list (A::As) B }}.
+    Proof.
+      iIntros "H".
+      simpl.
+      wp_pures.
+      iIntros (v) "HA".
+      iDestruct ("H" with "HA") as "H".
+      wp_pures.
+      rewrite subst_map_insert.
+      iApply "H".
+    Qed.
+
+    Lemma lty_arr_list_spec As (e : expr) B ws y i n :
+      n = length As →
+      (∀ vs, ([∗ list] A;v ∈ As;vs, (lty_car A) v) -∗
+      WP subst_map (map_string_seq y i vs ∪ ws) e {{ lty_car B }}) -∗
+      WP subst_map ws (switch_lams y i n e) {{ lty_arr_list As B }}.
+    Proof.
+      iIntros (Hlen) "H".
+      iRevert (Hlen).
+      iInduction As as [|A As] "IH" forall (ws i e n)=> /=.
+      - iIntros (->).
+        iDestruct ("H" $! [] with "[$]") as "H"=> /=.
+        by rewrite left_id_L.
+      - iIntros (Hlen). rewrite Hlen. iApply lty_arr_list_spec_step.
+        iIntros (v) "HA".
+        iApply ("IH" with "[H HA]")=> //.
+        iIntros (vs) "HAs".
+        iSpecialize ("H" $!(v::vs)).
+
+        simpl.
+        rewrite insert_union_singleton_l.
+        rewrite insert_union_singleton_l.
+        rewrite (map_union_comm ({[y +:+ pretty i := v]})); last first.
+        { apply map_disjoint_singleton_l_2.
+          apply lookup_map_string_seq_None_lt. eauto. }
+        rewrite assoc_L.
+        iApply ("H" with "[HA HAs]"). iFrame.
+    Qed.
+
+    Lemma ltyped_chanbranch Ps A xs :
+      Forall (λ x, is_Some (Ps !! x)) xs →
+      ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ps) ⊸
+                              lty_arr_list
+                                ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
+    Proof.
+      intros Hxs.
+      iIntros "!>" (vs) "Hvs".
+      rewrite /chanbranch.
+      simpl.
+      iApply wp_value.
+      iIntros (c) "Hc".
+      wp_lam=> /=.
+      rewrite -subst_map_singleton.
+      iApply (lty_arr_list_spec).
+      { by rewrite fmap_length. }
+      iIntros (ws) "H".
+      rewrite big_sepL2_fmap_l.
+      assert (strings.length ((λ x : Z, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) =
+        strings.length ws) as Heq.
+      { admit. }                (* This can be asserted using big_sepL2_alt, but
+                                   then we get the map on a weird form *)
+      rewrite -insert_union_singleton_r=> //;
+        last by apply lookup_map_string_seq_None.
+      simpl.
+      rewrite lookup_insert.
+      wp_recv (x) as "%".
+      wp_pures.
+      rewrite -subst_map_insert.
+      assert (x ∈ xs).
+      { admit. }                (* We need to know that the domain of P is exactly xs to infer this. *)
+      pose proof (list_find_elem_of (eq x) xs x H2 eq_refl).
+      destruct H3 as [y H3].
+      destruct y.
+      iApply switch_body_spec=> //=.
+      2: { by rewrite lookup_insert. }
+      { rewrite H3. simpl. reflexivity. }
+      rewrite lookup_insert_ne=> //.
+      rewrite lookup_insert_ne=> //.
+      rewrite lookup_map_string_seq_Some.
+      assert (xs !! n = Some x) as Hxs_Some.
+      {
+        pose proof (@list_find_Some Z) as Hlist_find_Some.
+        specialize (Hlist_find_Some (eq x) _ xs n z).
+        destruct Hlist_find_Some as [Hlist_find_Some _].
+        specialize (Hlist_find_Some H3).
+        destruct Hlist_find_Some as [Heq1 [-> _]].
+        eauto.
+      }
+      assert (is_Some (ws !! n)) as Hws_Some.
+      {
+        apply lookup_lt_is_Some_2.
+        rewrite -Heq.
+        apply lookup_lt_is_Some_1.
+        rewrite list_lookup_fmap.
+        rewrite fmap_is_Some.
+        by exists x.
+      }
+      destruct Hws_Some as [w Hws_Some].
+      iDestruct (big_sepL2_lookup _ xs ws n with "H") as "HA"=> //.
+      rewrite Hws_Some.
+      rewrite insert_commute=> //.
+      rewrite lookup_insert.
+      by iApply "HA".
+    Qed.
 
   End with_chan.
 End properties.
