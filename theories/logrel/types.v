@@ -271,13 +271,11 @@ Section properties.
       iApply ("IH" with "[H HA]")=> //.
       iIntros (vs) "HAs".
       iSpecialize ("H" $!(v::vs))=> /=.
-      rewrite insert_union_singleton_l.
-      rewrite insert_union_singleton_l.
+      do 2 rewrite insert_union_singleton_l.
       rewrite (map_union_comm ({[y +:+ pretty i := v]})); last first.
       { apply map_disjoint_singleton_l_2.
         apply lookup_map_string_seq_None_lt. eauto. }
-      rewrite assoc_L.
-      iApply ("H" with "[HA HAs]"). iFrame "HA HAs".
+      rewrite assoc_L. iApply ("H" with "[HA HAs]"). iFrame "HA HAs".
   Qed.
 
   (** Product properties  *)
@@ -767,8 +765,7 @@ Section properties.
       { by rewrite fmap_length. }
       iIntros (ws) "H".
       rewrite big_sepL2_fmap_l.
-      iDestruct (big_sepL2_length with "H") as "%".
-      rename H1 into Heq.
+      iDestruct (big_sepL2_length with "H") as %Heq.
       rewrite -insert_union_singleton_r=> /=;
         last by apply lookup_map_string_seq_None=> /=.
       rewrite lookup_insert.
@@ -778,13 +775,11 @@ Section properties.
       assert (x ∈ xs) as Hin.
       { by apply Hdom. }
       pose proof (list_find_elem_of (eq x) xs x Hin eq_refl) as Hfind_Some.
-      destruct Hfind_Some as [y Hfind_Some].
-      destruct y.
+      destruct Hfind_Some as [[n z] Hfind_Some].
       iApply switch_body_spec=> //=.
       2: { by rewrite lookup_insert. }
       { rewrite Hfind_Some. simpl. reflexivity. }
-      rewrite lookup_insert_ne=> //.
-      rewrite lookup_insert_ne=> //.
+      do 2 rewrite lookup_insert_ne=> //.
       rewrite lookup_map_string_seq_Some.
       assert (xs !! n = Some x) as Hxs_Some.
       {
@@ -792,15 +787,12 @@ Section properties.
         specialize (Hlist_find_Some (eq x) _ xs n z).
         destruct Hlist_find_Some as [Hlist_find_Some _].
         specialize (Hlist_find_Some Hfind_Some).
-        destruct Hlist_find_Some as [Heq1 [-> _]].
-        eauto.
+        destruct Hlist_find_Some as [Heq1 [-> _]]=> //.
       }
       assert (is_Some (ws !! n)) as Hws_Some.
       {
-        apply lookup_lt_is_Some_2.
-        rewrite -Heq.
-        apply lookup_lt_is_Some_1.
-        by exists x.
+        apply lookup_lt_is_Some_2. rewrite -Heq.
+        apply lookup_lt_is_Some_1. by exists x.
       }
       destruct Hws_Some as [w Hws_Some].
       iDestruct (big_sepL2_lookup _ xs ws n with "H") as "HA"=> //.
