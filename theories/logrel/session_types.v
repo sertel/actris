@@ -26,14 +26,10 @@ Section protocols.
   Definition lsty_branch (Ps : gmap Z (lsty Σ)) : lsty Σ :=
     lsty_choice Recv Ps.
 
-  Definition lsty_rec1 (C : lsty Σ → lsty Σ)
-             `{!Contractive C}
-             (rec : lsty Σ) : lsty Σ :=
-    Lsty (C rec).
-
+  Definition lsty_rec1 (C : lsty Σ → lsty Σ) `{!Contractive C}
+    (rec : lsty Σ) : lsty Σ := Lsty (C rec).
   Instance lsty_rec1_contractive C `{!Contractive C} : Contractive (lsty_rec1 C).
   Proof. solve_contractive. Qed.
-
   Definition lsty_rec (C : lsty Σ → lsty Σ) `{!Contractive C} : lsty Σ :=
     fixpoint (lsty_rec1 C).
 
@@ -41,93 +37,57 @@ Section protocols.
     Lsty (iProto_dual P).
 
   Definition lsty_app (P1 P2 : lsty Σ) : lsty Σ :=
-    Lsty (iProto_app P1 P2).
-
+    Lsty (P1 <++> P2).
 End protocols.
 
 Section Propers.
   Context `{heapG Σ, protoG Σ}.
 
   Global Instance lsty_message_ne a : NonExpansive2 (@lsty_message Σ a).
-  Proof.
-    intros n A A' H1 P P' H2.
-    rewrite /lsty_send.
-    apply Lsty_ne.
-    apply iProto_message_ne; simpl; try done.
-  Qed.
-
+  Proof. intros n A A' ? P P' ?. by apply iProto_message_ne; simpl. Qed.
   Global Instance lsty_message_contractive n a :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_message Σ a).
   Proof.
-    intros A A' H1 P P' H2.
-    rewrite /lsty_send.
-    apply Lsty_ne.
-    apply iProto_message_contractive; simpl; try done.
-    intros v.
-    destruct n as [|n]; try done.
-    apply H1.
+    intros A A' ? P P' ?.
+    apply iProto_message_contractive; simpl; done || by destruct n.
   Qed.
 
   Global Instance lsty_send_ne : NonExpansive2 (@lsty_send Σ).
   Proof. solve_proper. Qed.
-
   Global Instance lsty_send_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_send Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_recv_ne : NonExpansive2 (@lsty_recv Σ).
   Proof. solve_proper. Qed.
-
   Global Instance lsty_recv_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_recv Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_choice_ne a : NonExpansive (@lsty_choice Σ a).
   Proof.
-    intros n Ps1 Ps2 Pseq.
-    apply Lsty_ne.
-    apply iProto_message_ne; simpl; try done; solve_proper.
+    intros n Ps1 Ps2 Pseq. apply iProto_message_ne; simpl; solve_proper.
   Qed.
-
-  Global Instance lsty_choice_contractive n a :
-    Proper (dist_later n ==> dist n) (@lsty_choice Σ a).
+  Global Instance lsty_choice_contractive a : Contractive (@lsty_choice Σ a).
   Proof.
-    intros Ps1 Ps2 Pseq.
-    apply Lsty_ne.
-    apply iProto_message_contractive; simpl; try done;
-      destruct n=> //=; solve_proper.
+    intros ? Ps1 Ps2 ?.
+    apply iProto_message_contractive; destruct n; simpl; done || solve_proper.
   Qed.
 
   Global Instance lsty_select_ne : NonExpansive (@lsty_select Σ).
   Proof. solve_proper. Qed.
-
-  Global Instance lsty_select_contractive n :
-    Proper (dist_later n ==> dist n) (@lsty_select Σ).
+  Global Instance lsty_select_contractive : Contractive (@lsty_select Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_branch_ne : NonExpansive (@lsty_branch Σ).
   Proof. solve_proper. Qed.
-
-  Global Instance lsty_branch_contractive n :
-    Proper (dist_later n ==> dist n) (@lsty_branch Σ).
+  Global Instance lsty_branch_contractive : Contractive (@lsty_branch Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_dual_ne : NonExpansive (@lsty_dual Σ).
-  Proof.
-    intros n P P' HP.
-    rewrite /lsty_dual.
-    apply Lsty_ne.
-    by apply iProto_dual_ne.
-  Qed.
-
+  Proof. solve_proper. Qed.
   Global Instance lsty_app_ne : NonExpansive2 (@lsty_app Σ).
-  Proof.
-    intros n P1 P1' H1 P2 P2' H2.
-    rewrite /lsty_app.
-    apply Lsty_ne.
-    by apply iProto_app_ne.
-  Qed.
-
+  Proof. solve_proper. Qed.
 End Propers.
 
 Notation "'END'" := lsty_end : lsty_scope.

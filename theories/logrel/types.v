@@ -737,10 +737,9 @@ Section properties.
     Proof.
       iIntros (Hin) "#Hc !>".
       iIntros (vs) "H /=".
-      rewrite /chanselect. simpl.
-      iDestruct ("Hc" with "H") as "Hc'".
-      iMod (wp_value_inv with "Hc'") as "Hc'".
-      wp_send with "[]"=> //; eauto.
+      rewrite /chanselect.
+      iMod (wp_value_inv with "(Hc H)") as "Hc'".
+      wp_send with "[]"; [by eauto|].
       rewrite (lookup_total_correct Ps i P)=> //.
       by wp_pures.
     Qed.
@@ -753,54 +752,33 @@ Section properties.
     Lemma ltyped_chanbranch Ps A xs :
       (∀ x, x ∈ xs ↔ is_Some (Ps !! x)) →
       ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ps) ⊸
-                              lty_arr_list
-                                ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
+        lty_arr_list ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
     Proof.
       iIntros (Hdom) "!>". iIntros (vs) "Hvs".
-      iApply wp_value.
-      iIntros (c) "Hc".
-      wp_lam=> /=.
+      iApply wp_value. iIntros (c) "Hc". wp_lam.
       rewrite -subst_map_singleton.
-      iApply (lty_arr_list_spec).
+      iApply lty_arr_list_spec.
       { by rewrite fmap_length. }
       iIntros (ws) "H".
       rewrite big_sepL2_fmap_l.
       iDestruct (big_sepL2_length with "H") as %Heq.
-      rewrite -insert_union_singleton_r=> /=;
-        last by apply lookup_map_string_seq_None=> /=.
-      rewrite lookup_insert.
-      wp_recv (x) as "%". rename H1 into HPs_Some.
+      rewrite -insert_union_singleton_r; last by apply lookup_map_string_seq_None.
+      rewrite /= lookup_insert.
+      wp_recv (x) as "HPsx". iDestruct "HPsx" as %HPs_Some.
       wp_pures.
       rewrite -subst_map_insert.
-      assert (x ∈ xs) as Hin.
-      { by apply Hdom. }
-      pose proof (list_find_elem_of (eq x) xs x Hin eq_refl) as Hfind_Some.
-      destruct Hfind_Some as [[n z] Hfind_Some].
-      iApply switch_body_spec=> //=.
-      2: { by rewrite lookup_insert. }
-      { rewrite Hfind_Some. simpl. reflexivity. }
-      do 2 rewrite lookup_insert_ne=> //.
-      rewrite lookup_map_string_seq_Some.
+      assert (x ∈ xs) as Hin by naive_solver.
+      pose proof (list_find_elem_of (x =.) xs x) as [[n z] Hfind_Some]; [done..|].
+      iApply switch_body_spec.
+      { apply fmap_Some_2, Hfind_Some. }
+      { by rewrite lookup_insert. }
+      simplify_map_eq. rewrite lookup_map_string_seq_Some.
       assert (xs !! n = Some x) as Hxs_Some.
-      {
-        pose proof (@list_find_Some Z) as Hlist_find_Some.
-        specialize (Hlist_find_Some (eq x) _ xs n z).
-        destruct Hlist_find_Some as [Hlist_find_Some _].
-        specialize (Hlist_find_Some Hfind_Some).
-        destruct Hlist_find_Some as [Heq1 [-> _]]=> //.
-      }
-      assert (is_Some (ws !! n)) as Hws_Some.
-      {
-        apply lookup_lt_is_Some_2. rewrite -Heq.
-        apply lookup_lt_is_Some_1. by exists x.
-      }
-      destruct Hws_Some as [w Hws_Some].
-      iDestruct (big_sepL2_lookup _ xs ws n with "H") as "HA"=> //.
-      rewrite Hws_Some.
-      rewrite insert_commute=> //.
-      rewrite lookup_insert.
-      by iApply "HA".
+      { by apply list_find_Some in Hfind_Some as [? [-> _]]. }
+      assert (is_Some (ws !! n)) as [w Hws_Some].
+      { apply lookup_lt_is_Some_2. rewrite -Heq. eauto using lookup_lt_Some. }
+      iDestruct (big_sepL2_lookup _ xs ws n with "H") as "HA"; [done..|].
+      rewrite Hws_Some. by iApply "HA".
     Qed.
-
   End with_chan.
 End properties.

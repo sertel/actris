@@ -5,30 +5,26 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode.
 
 Definition lty_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
-  □ ∀ v, (A1 v -∗ A2 v).
-
+  □ ∀ v, A1 v -∗ A2 v.
 Arguments lty_le {_} _%lty _%lty.
 Infix "<:" := lty_le (at level 70).
 Instance: Params (@lty_le) 1 := {}.
 
 Instance lty_le_ne {Σ} : NonExpansive2 (@lty_le Σ).
 Proof. solve_proper. Qed.
-Instance lty_le_proper {Σ} :
-  Proper ((≡) ==> (≡) ==> (≡)) (@lty_le Σ).
+Instance lty_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lty_le Σ).
 Proof. solve_proper. Qed.
 
 Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
-  □ (iProto_le P1 P2).
-
+  □ iProto_le P1 P2.
 Arguments lsty_le {_} _%lsty _%lsty.
 Infix "<p:" := lsty_le (at level 70).
 Instance: Params (@lsty_le) 1 := {}.
 
 Instance lsty_le_ne {Σ} : NonExpansive2 (@lsty_le Σ).
-Proof. solve_proper_prepare. f_equiv. solve_proper. Qed.
-Instance lsty_le_proper {Σ} :
-  Proper ((≡) ==> (≡) ==> (≡)) (@lsty_le Σ).
-Proof. apply ne_proper_2. apply _. Qed.
+Proof. solve_proper. Qed.
+Instance lsty_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_le Σ).
+Proof. solve_proper. Qed.
 
 Section subtype.
   Context `{heapG Σ, chanG Σ}.
@@ -153,21 +149,11 @@ Section subtype.
     mutex A1 <: mutex A2.
   Proof.
     iIntros "#Hle1 #Hle2" (v) "!>". iDestruct 1 as (γ l lk ->) "Hinv".
-    rewrite /spin_lock.is_lock.
     iExists γ, l, lk. iSplit; first done.
-    rewrite /spin_lock.is_lock.
-    iDestruct "Hinv" as (l' ->) "Hinv".
-    iExists l'.
-    iSplit; first done.
-    iApply (inv_iff with "Hinv"); iIntros "!> !>". iSplit.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl".
-      destruct v; first done.
-      iDestruct "HA" as "[Hown HA]". iDestruct "HA" as (inner) "[Hinner HA]".
-      iDestruct ("Hle1" with "HA") as "HA". eauto with iFrame.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl".
-      destruct v; first done.
-      iDestruct "HA" as "[Hown HA]". iDestruct "HA" as (inner) "[Hinner HA]".
-      iDestruct ("Hle2" with "HA") as "HA". eauto with iFrame.
+    iApply (spin_lock.is_lock_iff with "Hinv").
+    iIntros "!> !>". iSplit.
+    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
+    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
   Qed.
 
   Lemma lty_mutexguard_le A1 A2 :
@@ -176,22 +162,11 @@ Section subtype.
   Proof.
     iIntros "#Hle1 #Hle2" (v) "!>".
     iDestruct 1 as (γ l lk w ->) "[Hinv [Hlock Hinner]]".
-    rewrite /spin_lock.is_lock.
     iExists γ, l, lk, w. iSplit; first done.
-    rewrite /spin_lock.is_lock.
-    iFrame "Hlock Hinner".
-    iDestruct "Hinv" as (l' ->) "Hinv".
-    iExists l'.
-    iSplit; first done.
-    iApply (inv_iff with "Hinv"); iIntros "!> !>". iSplit.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl".
-      destruct v; first done.
-      iDestruct "HA" as "[Hown HA]". iDestruct "HA" as (inner) "[Hinner HA]".
-      iDestruct ("Hle1" with "HA") as "HA". eauto with iFrame.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl".
-      destruct v; first done.
-      iDestruct "HA" as "[Hown HA]". iDestruct "HA" as (inner) "[Hinner HA]".
-      iDestruct ("Hle2" with "HA") as "HA". eauto with iFrame.
+    iFrame "Hlock Hinner". iApply (spin_lock.is_lock_iff with "Hinv").
+    iIntros "!> !>". iSplit.
+    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
+    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
   Qed.
 
   Lemma lsty_le_refl P : ⊢ P <p: P.
@@ -216,7 +191,7 @@ Section subtype.
     (<??> A1 ; P1) <p: (<??> A2 ; P2).
   Proof.
     iIntros "#HAle #HPle !>".
-    iApply iProto_le_recv=> /=.
+    iApply iProto_le_recv; simpl.
     iIntros (x) "H !>".
     iDestruct ("HAle" with "H") as "H".
     eauto with iFrame.
@@ -230,31 +205,29 @@ Section subtype.
     iExists _, _,
       (tele_app (TT:=[tele _]) (λ x2, (x2, A2 x2, (P:iProto Σ)))),
       (tele_app (TT:=[tele _]) (λ x1, (x1, A1 x1, (P:iProto Σ)))),
-    x2, x1.
-    simpl.
+      x2, x1; simpl.
     do 2 (iSplit; [done|]).
     iFrame "HP1 HP2".
     iModIntro.
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
-  Lemma lsty_select_le_insert (Ps1 Ps2 : gmap Z (lsty Σ)) :
+  Lemma lsty_select_le_subseteq (Ps1 Ps2 : gmap Z (lsty Σ)) :
     Ps2 ⊆ Ps1 →
     ⊢ lsty_select Ps1 <p: lsty_select Ps2.
   Proof.
     iIntros (Hsub) "!>".
-    iApply iProto_le_send.
-    iIntros (x) ">% !>"=> /=.
-    iExists _. iSplit=> //.
+    iApply iProto_le_send; simpl.
+    iIntros (x) ">% !> /=".
+    iExists _. iSplit; first done.
     iSplit.
-    - iNext. iPureIntro. by eapply lookup_weaken_is_Some.
-    - iNext.
-      destruct H1 as [P H1].
-      assert (Ps1 !! x = Some P).
-      { by eapply lookup_weaken. }
-      rewrite (lookup_total_correct Ps1 x P)=> //.
-      rewrite (lookup_total_correct Ps2 x P)=> //.
-      iApply iProto_le_refl.
+    { iNext. iPureIntro. by eapply lookup_weaken_is_Some. }
+    iNext.
+    destruct H1 as [P H1].
+    assert (Ps1 !! x = Some P) by eauto using lookup_weaken.
+    rewrite (lookup_total_correct Ps1 x P) //.
+    rewrite (lookup_total_correct Ps2 x P) //.
+    iApply iProto_le_refl.
   Qed.
 
   Lemma lsty_select_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
@@ -262,54 +235,52 @@ Section subtype.
     lsty_select Ps1 <p: lsty_select Ps2.
   Proof.
     iIntros "#H1 !>".
-    iApply iProto_le_send=> /=.
-    iIntros (x) "H !>".
+    iApply iProto_le_send; simpl.
+    iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
     iExists x. iSplit=> //. iSplit.
-    - iNext. iDestruct "H" as %Hsome.
+    - iNext. 
       iDestruct (big_sepM2_forall with "H1") as "[% _]".
-      iPureIntro. by apply H1.
-    - iNext. iDestruct "H" as %Hsome.
+      iPureIntro. naive_solver.
+    - iNext.
       iDestruct (big_sepM2_forall with "H1") as "[% H]".
       iApply ("H" with "[] []").
-      + iPureIntro. by apply lookup_lookup_total, H1.
+      + iPureIntro. apply lookup_lookup_total; naive_solver.
       + iPureIntro. by apply lookup_lookup_total.
   Qed.
 
-  Lemma lsty_branch_le_insert (Ps1 Ps2 : gmap Z (lsty Σ)) :
+  Lemma lsty_branch_le_subseteq (Ps1 Ps2 : gmap Z (lsty Σ)) :
     Ps1 ⊆ Ps2 →
     ⊢ lsty_branch Ps1 <p: lsty_branch Ps2.
   Proof.
     iIntros (Hsub) "!>".
-    iApply iProto_le_recv.
-    iIntros (x) ">% !>"=> /=.
-    iExists _. iSplit=> //.
+    iApply iProto_le_recv; simpl.
+    iIntros (x) ">% !> /=".
+    iExists _. iSplit; first done.
     iSplit.
-    - iNext. iPureIntro. by eapply lookup_weaken_is_Some.
-    - iNext.
-      destruct H1 as [P H1].
-      assert (Ps2 !! x = Some P).
-      { by eapply lookup_weaken. }
-      rewrite (lookup_total_correct Ps1 x P)=> //.
-      rewrite (lookup_total_correct Ps2 x P)=> //.
-      iApply iProto_le_refl.
+    { iNext. iPureIntro. by eapply lookup_weaken_is_Some. }
+    iNext.
+    destruct H1 as [P ?].
+    assert (Ps2 !! x = Some P) by eauto using lookup_weaken.
+    rewrite (lookup_total_correct Ps1 x P) //.
+    rewrite (lookup_total_correct Ps2 x P) //.
+    iApply iProto_le_refl.
   Qed.
 
   Lemma lsty_branch_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
     (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
     lsty_branch Ps1 <p: lsty_branch Ps2.
   Proof.
-    iIntros "#H1 !>".
-    iApply iProto_le_recv=> /=.
-    iIntros (x) "H !>".
-    iExists x. iSplit=> //. iSplit.
-    - iNext. iDestruct "H" as %Hsome.
+    iIntros "#H1 !>". iApply iProto_le_recv.
+    iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
+    iExists x. iSplit; first done. iSplit.
+    - iNext.
       iDestruct (big_sepM2_forall with "H1") as "[% _]".
-      iPureIntro. by apply H1.
-    - iNext. iDestruct "H" as %Hsome.
+      iPureIntro. by naive_solver.
+    - iNext.
       iDestruct (big_sepM2_forall with "H1") as "[% H]".
       iApply ("H" with "[] []").
       + iPureIntro. by apply lookup_lookup_total.
-      + iPureIntro. by apply lookup_lookup_total, H1.
+      + iPureIntro. by apply lookup_lookup_total; naive_solver.
   Qed.
 
   Lemma lsty_app_le P11 P12 P21 P22 :
@@ -337,9 +308,8 @@ Section subtype.
     (□ ∀ P P', ▷ (P <p: P') -∗ C1 P <p: C2 P') -∗
     lsty_rec C1 <p: lsty_rec C2.
   Proof.
-    iIntros "#Hle".
+    iIntros "#Hle !>".
     iLöb as "IH".
-    iIntros "!>".
     rewrite /lsty_rec.
     iEval (rewrite fixpoint_unfold).
     iEval (rewrite (fixpoint_unfold (lsty_rec1 C2))).
