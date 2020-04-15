@@ -753,12 +753,12 @@ Section properties.
       switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
 
     Lemma ltyped_chanbranch Ps A xs :
-      Forall (λ x, is_Some (Ps !! x)) xs →
+      (∀ x, x ∈ xs ↔ is_Some (Ps !! x)) →
       ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ps) ⊸
                               lty_arr_list
                                 ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
     Proof.
-      iIntros (Hxs) "!>". iIntros (vs) "Hvs".
+      iIntros (Hdom) "!>". iIntros (vs) "Hvs".
       iApply wp_value.
       iIntros (c) "Hc".
       wp_lam=> /=.
@@ -767,24 +767,22 @@ Section properties.
       { by rewrite fmap_length. }
       iIntros (ws) "H".
       rewrite big_sepL2_fmap_l.
-      assert (strings.length ((λ x : Z, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) =
-        strings.length ws) as Heq.
-      { admit. }                (* This can be asserted using big_sepL2_alt, but
-                                   then we get the map on a weird form *)
+      iDestruct (big_sepL2_length with "H") as "%".
+      rename H1 into Heq.
       rewrite -insert_union_singleton_r=> /=;
         last by apply lookup_map_string_seq_None=> /=.
       rewrite lookup_insert.
-      wp_recv (x) as "%".
+      wp_recv (x) as "%". rename H1 into HPs_Some.
       wp_pures.
       rewrite -subst_map_insert.
-      assert (x ∈ xs).
-      { admit. }                (* We need to know that the domain of P is exactly xs to infer this. *)
-      pose proof (list_find_elem_of (eq x) xs x H2 eq_refl).
-      destruct H3 as [y H3].
+      assert (x ∈ xs) as Hin.
+      { by apply Hdom. }
+      pose proof (list_find_elem_of (eq x) xs x Hin eq_refl) as Hfind_Some.
+      destruct Hfind_Some as [y Hfind_Some].
       destruct y.
       iApply switch_body_spec=> //=.
       2: { by rewrite lookup_insert. }
-      { rewrite H3. simpl. reflexivity. }
+      { rewrite Hfind_Some. simpl. reflexivity. }
       rewrite lookup_insert_ne=> //.
       rewrite lookup_insert_ne=> //.
       rewrite lookup_map_string_seq_Some.
@@ -793,7 +791,7 @@ Section properties.
         pose proof (@list_find_Some Z) as Hlist_find_Some.
         specialize (Hlist_find_Some (eq x) _ xs n z).
         destruct Hlist_find_Some as [Hlist_find_Some _].
-        specialize (Hlist_find_Some H3).
+        specialize (Hlist_find_Some Hfind_Some).
         destruct Hlist_find_Some as [Heq1 [-> _]].
         eauto.
       }
@@ -802,8 +800,6 @@ Section properties.
         apply lookup_lt_is_Some_2.
         rewrite -Heq.
         apply lookup_lt_is_Some_1.
-        rewrite list_lookup_fmap.
-        rewrite fmap_is_Some.
         by exists x.
       }
       destruct Hws_Some as [w Hws_Some].
@@ -812,7 +808,7 @@ Section properties.
       rewrite insert_commute=> //.
       rewrite lookup_insert.
       by iApply "HA".
-    Admitted.
+    Qed.
 
   End with_chan.
 End properties.
