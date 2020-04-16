@@ -95,4 +95,4 @@ Notation "<!!> A ; P" :=
   (lsty_send A P) (at level 20, A, P at level 200) : lsty_scope.
 Notation "<??> A ; P" :=
   (lsty_recv A P) (at level 20, A, P at level 200) : lsty_scope.
-Infix "<++++>" := lsty_app (at level 60) : lsty_scope.
+Infix "<++>" := lsty_app (at level 60) : lsty_scope.

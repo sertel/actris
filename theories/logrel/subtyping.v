@@ -285,7 +285,7 @@ Section subtype.
 
   Lemma lsty_app_le P11 P12 P21 P22 :
     (P11 <p: P21) -∗ (P12 <p: P22) -∗
-    (P11 <++++> P12) <p: (P21 <++++> P22).
+    (P11 <++> P12) <p: (P21 <++> P22).
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
   Lemma lsty_dual_le P1 P2 : P2 <p: P1 -∗ lsty_dual P1 <p: lsty_dual P2.
