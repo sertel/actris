@@ -45,6 +45,9 @@ Section Propers.
 
   Global Instance lsty_message_ne a : NonExpansive2 (@lsty_message Σ a).
   Proof. intros n A A' ? S S' ?. by apply iProto_message_ne; simpl. Qed.
+  Global Instance lsty_message_proper a :
+    Proper ((≡) ==> (≡) ==> (≡)) (@lsty_message Σ a).
+  Proof. apply ne_proper_2, _. Qed.
   Global Instance lsty_message_contractive n a :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_message Σ a).
   Proof.
@@ -54,11 +57,15 @@ Section Propers.
 
   Global Instance lsty_send_ne : NonExpansive2 (@lsty_send Σ).
   Proof. solve_proper. Qed.
+  Global Instance lsty_send_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_send Σ).
+  Proof. solve_proper. Qed.
   Global Instance lsty_send_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_send Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_recv_ne : NonExpansive2 (@lsty_recv Σ).
+  Proof. solve_proper. Qed.
+  Global Instance lsty_recv_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_recv Σ).
   Proof. solve_proper. Qed.
   Global Instance lsty_recv_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_recv Σ).
@@ -68,6 +75,8 @@ Section Propers.
   Proof.
     intros n Ss1 Ss2 Pseq. apply iProto_message_ne; simpl; solve_proper.
   Qed.
+  Global Instance lsty_choice_proper a : Proper ((≡) ==> (≡)) (@lsty_choice Σ a).
+  Proof. apply ne_proper. apply _. Qed.
   Global Instance lsty_choice_contractive a : Contractive (@lsty_choice Σ a).
   Proof.
     intros ? Ss1 Ss2 ?.
@@ -76,18 +85,26 @@ Section Propers.
 
   Global Instance lsty_select_ne : NonExpansive (@lsty_select Σ).
   Proof. solve_proper. Qed.
+  Global Instance lsty_select_proper : Proper ((≡) ==> (≡)) (@lsty_select Σ).
+  Proof. solve_proper. Qed.
   Global Instance lsty_select_contractive : Contractive (@lsty_select Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_branch_ne : NonExpansive (@lsty_branch Σ).
+  Proof. solve_proper. Qed.
+  Global Instance lsty_branch_proper : Proper ((≡) ==> (≡)) (@lsty_branch Σ).
   Proof. solve_proper. Qed.
   Global Instance lsty_branch_contractive : Contractive (@lsty_branch Σ).
   Proof. solve_contractive. Qed.
 
   Global Instance lsty_dual_ne : NonExpansive (@lsty_dual Σ).
   Proof. solve_proper. Qed.
+  Global Instance lsty_dual_proper : Proper ((≡) ==> (≡)) (@lsty_dual Σ).
+  Proof. apply ne_proper, _. Qed.
   Global Instance lsty_app_ne : NonExpansive2 (@lsty_app Σ).
   Proof. solve_proper. Qed.
+  Global Instance lsty_app_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_app Σ).
+  Proof. apply ne_proper_2, _. Qed.
 End Propers.
 
 Notation "'END'" := lsty_end : lsty_scope.
