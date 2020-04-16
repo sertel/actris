@@ -18,7 +18,7 @@ Proof. solve_proper. Qed.
 Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
   □ iProto_le P1 P2.
 Arguments lsty_le {_} _%lsty _%lsty.
-Infix "<p:" := lsty_le (at level 70).
+Infix "<s:" := lsty_le (at level 70).
 Instance: Params (@lsty_le) 1 := {}.
 
 Instance lsty_le_ne {Σ} : NonExpansive2 (@lsty_le Σ).
@@ -29,9 +29,9 @@ Proof. solve_proper. Qed.
 Section subtype.
   Context `{heapG Σ, chanG Σ}.
   Implicit Types A : lty Σ.
-  Implicit Types P : lsty Σ.
+  Implicit Types S : lsty Σ.
 
-  Lemma lty_le_refl A : ⊢ A <: A.
+  Lemma lty_le_refl (A : lty Σ) : ⊢ A <: A.
   Proof. by iIntros (v) "!> H". Qed.
 
   Lemma lty_le_trans A1 A2 A3 : A1 <: A2 -∗ A2 <: A3 -∗ A1 <: A3.
@@ -169,15 +169,15 @@ Section subtype.
     - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
   Qed.
 
-  Lemma lsty_le_refl P : ⊢ P <p: P.
+  Lemma lsty_le_refl (S : lsty Σ) : ⊢ S <s: S.
   Proof. iApply iProto_le_refl. Qed.
 
-  Lemma lsty_le_trans P1 P2 P3 : P1 <p: P2 -∗ P2 <p: P3 -∗ P1 <p: P3.
+  Lemma lsty_le_trans S1 S2 S3 : S1 <s: S2 -∗ S2 <s: S3 -∗ S1 <s: S3.
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_trans. Qed.
 
-  Lemma lsty_send_le A1 A2 P1 P2 :
-    ▷ (A2 <: A1) -∗ ▷ (P1 <p: P2) -∗
-    (<!!> A1 ; P1) <p: (<!!> A2 ; P2).
+  Lemma lsty_send_le A1 A2 S1 S2 :
+    ▷ (A2 <: A1) -∗ ▷ (S1 <s: S2) -∗
+    (<!!> A1 ; S1) <s: (<!!> A2 ; S2).
   Proof.
     iIntros "#HAle #HPle !>".
     iApply iProto_le_send=> /=.
@@ -186,9 +186,9 @@ Section subtype.
     eauto with iFrame.
   Qed.
 
-  Lemma lsty_recv_le A1 A2 P1 P2 :
-    ▷ (A1 <: A2) -∗ ▷ (P1 <p: P2) -∗
-    (<??> A1 ; P1) <p: (<??> A2 ; P2).
+  Lemma lsty_recv_le A1 A2 S1 S2 :
+    ▷ (A1 <: A2) -∗ ▷ (S1 <s: S2) -∗
+    (<??> A1 ; S1) <s: (<??> A2 ; S2).
   Proof.
     iIntros "#HAle #HPle !>".
     iApply iProto_le_recv; simpl.
@@ -198,23 +198,23 @@ Section subtype.
   Qed.
 
   Lemma lsty_swap_le (A1 A2 : lty Σ) (P : lsty Σ) :
-    ⊢ (<??> A1 ; <!!> A2 ; P) <p: (<!!> A2 ; <??> A1 ; P).
+    ⊢ (<??> A1 ; <!!> A2 ; P) <s: (<!!> A2 ; <??> A1 ; P).
   Proof.
     iIntros "!>".
-    iApply iProto_le_swap. iIntros (x1 x2) "/= HP1 HP2".
+    iApply iProto_le_swap. iIntros (x1 x2) "/= HS1 HS2".
     iExists _, _,
       (tele_app (TT:=[tele _]) (λ x2, (x2, A2 x2, (P:iProto Σ)))),
       (tele_app (TT:=[tele _]) (λ x1, (x1, A1 x1, (P:iProto Σ)))),
       x2, x1; simpl.
     do 2 (iSplit; [done|]).
-    iFrame "HP1 HP2".
+    iFrame "HS1 HS2".
     iModIntro.
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
   Lemma lsty_select_le_subseteq (Ps1 Ps2 : gmap Z (lsty Σ)) :
     Ps2 ⊆ Ps1 →
-    ⊢ lsty_select Ps1 <p: lsty_select Ps2.
+    ⊢ lsty_select Ps1 <s: lsty_select Ps2.
   Proof.
     iIntros (Hsub) "!>".
     iApply iProto_le_send; simpl.
@@ -231,8 +231,8 @@ Section subtype.
   Qed.
 
   Lemma lsty_select_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
-    (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
-    lsty_select Ps1 <p: lsty_select Ps2.
+    (▷ [∗ map] i ↦ S1;S2 ∈ Ps1; Ps2, S1 <s: S2) -∗
+    lsty_select Ps1 <s: lsty_select Ps2.
   Proof.
     iIntros "#H1 !>".
     iApply iProto_le_send; simpl.
@@ -250,7 +250,7 @@ Section subtype.
 
   Lemma lsty_branch_le_subseteq (Ps1 Ps2 : gmap Z (lsty Σ)) :
     Ps1 ⊆ Ps2 →
-    ⊢ lsty_branch Ps1 <p: lsty_branch Ps2.
+    ⊢ lsty_branch Ps1 <s: lsty_branch Ps2.
   Proof.
     iIntros (Hsub) "!>".
     iApply iProto_le_recv; simpl.
@@ -267,8 +267,8 @@ Section subtype.
   Qed.
 
   Lemma lsty_branch_le (Ps1 Ps2 : gmap Z (lsty Σ)) :
-    (▷ [∗ map] i ↦ P1;P2 ∈ Ps1; Ps2, P1 <p: P2) -∗
-    lsty_branch Ps1 <p: lsty_branch Ps2.
+    (▷ [∗ map] i ↦ S1;S2 ∈ Ps1; Ps2, S1 <s: S2) -∗
+    lsty_branch Ps1 <s: lsty_branch Ps2.
   Proof.
     iIntros "#H1 !>". iApply iProto_le_recv.
     iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
@@ -283,30 +283,30 @@ Section subtype.
       + iPureIntro. by apply lookup_lookup_total; naive_solver.
   Qed.
 
-  Lemma lsty_app_le P11 P12 P21 P22 :
-    (P11 <p: P21) -∗ (P12 <p: P22) -∗
-    (P11 <++> P12) <p: (P21 <++> P22).
+  Lemma lsty_app_le S11 S12 S21 S22 :
+    (S11 <s: S21) -∗ (S12 <s: S22) -∗
+    (S11 <++> S12) <s: (S21 <++> S22).
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
-  Lemma lsty_dual_le P1 P2 : P2 <p: P1 -∗ lsty_dual P1 <p: lsty_dual P2.
+  Lemma lsty_dual_le S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
 
   Lemma lsty_rec_le_1 (C : lsty Σ → lsty Σ) `{!Contractive C} :
-    ⊢ lsty_rec C <p: C (lsty_rec C).
+    ⊢ lsty_rec C <s: C (lsty_rec C).
   Proof.
     rewrite {1}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1.
     iApply lsty_le_refl.
   Qed.
   Lemma lsty_rec_le_2 (C : lsty Σ → lsty Σ) `{!Contractive C} :
-    ⊢ C (lsty_rec C) <p: lsty_rec C.
+    ⊢ C (lsty_rec C) <s: lsty_rec C.
   Proof.
     rewrite {2}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1.
     iApply lsty_le_refl.
   Qed.
 
   Lemma lsty_rec_le `{Contractive C1, Contractive C2} :
-    (□ ∀ P P', ▷ (P <p: P') -∗ C1 P <p: C2 P') -∗
-    lsty_rec C1 <p: lsty_rec C2.
+    (□ ∀ S S', ▷ (S <s: S') -∗ C1 S <s: C2 S') -∗
+    lsty_rec C1 <s: lsty_rec C2.
   Proof.
     iIntros "#Hle !>".
     iLöb as "IH".
@@ -318,8 +318,8 @@ Section subtype.
     iNext. iApply "IH".
   Qed.
 
-  Lemma lty_chan_le P1 P2 :
-    ▷ (P1 <p: P2) -∗ chan P1 <: chan P2.
+  Lemma lty_chan_le S1 S2 :
+    ▷ (S1 <s: S2) -∗ chan S1 <: chan S2.
   Proof.
     iIntros "#Hle" (v) "!> H".
     iApply (iProto_mapsto_le with "H [Hle]"). eauto.

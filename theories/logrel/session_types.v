@@ -10,21 +10,21 @@ Section protocols.
 
   Definition lsty_end : lsty Σ := Lsty END.
 
-  Definition lsty_message (a : action) (A : lty Σ) (P : lsty Σ) : lsty Σ :=
-    Lsty (<a> v, MSG v {{ A v }}; lsty_car P).
+  Definition lsty_message (a : action) (A : lty Σ) (S : lsty Σ) : lsty Σ :=
+    Lsty (<a> v, MSG v {{ A v }}; lsty_car S).
 
-  Definition lsty_send (A : lty Σ) (P : lsty Σ) : lsty Σ :=
-    lsty_message Send A P.
-  Definition lsty_recv (A : lty Σ) (P : lsty Σ) : lsty Σ :=
-    lsty_message Recv A P.
+  Definition lsty_send (A : lty Σ) (S : lsty Σ) : lsty Σ :=
+    lsty_message Send A S.
+  Definition lsty_recv (A : lty Σ) (S : lsty Σ) : lsty Σ :=
+    lsty_message Recv A S.
 
-  Definition lsty_choice (a : action) (Ps : gmap Z (lsty Σ)) : lsty Σ :=
-    Lsty (<a> x : Z, MSG #x {{ ⌜is_Some (Ps !! x)⌝ }}; lsty_car (Ps !!! x)).
+  Definition lsty_choice (a : action) (Ss : gmap Z (lsty Σ)) : lsty Σ :=
+    Lsty (<a> x : Z, MSG #x {{ ⌜is_Some (Ss !! x)⌝ }}; lsty_car (Ss !!! x)).
 
-  Definition lsty_select (Ps : gmap Z (lsty Σ)) : lsty Σ :=
-    lsty_choice Send Ps.
-  Definition lsty_branch (Ps : gmap Z (lsty Σ)) : lsty Σ :=
-    lsty_choice Recv Ps.
+  Definition lsty_select (Ss : gmap Z (lsty Σ)) : lsty Σ :=
+    lsty_choice Send Ss.
+  Definition lsty_branch (Ss : gmap Z (lsty Σ)) : lsty Σ :=
+    lsty_choice Recv Ss.
 
   Definition lsty_rec1 (C : lsty Σ → lsty Σ) `{!Contractive C}
     (rec : lsty Σ) : lsty Σ := Lsty (C rec).
@@ -33,22 +33,22 @@ Section protocols.
   Definition lsty_rec (C : lsty Σ → lsty Σ) `{!Contractive C} : lsty Σ :=
     fixpoint (lsty_rec1 C).
 
-  Definition lsty_dual (P : lsty Σ) : lsty Σ :=
-    Lsty (iProto_dual P).
+  Definition lsty_dual (S : lsty Σ) : lsty Σ :=
+    Lsty (iProto_dual S).
 
-  Definition lsty_app (P1 P2 : lsty Σ) : lsty Σ :=
-    Lsty (P1 <++> P2).
+  Definition lsty_app (S1 S2 : lsty Σ) : lsty Σ :=
+    Lsty (S1 <++> S2).
 End protocols.
 
 Section Propers.
   Context `{heapG Σ, protoG Σ}.
 
   Global Instance lsty_message_ne a : NonExpansive2 (@lsty_message Σ a).
-  Proof. intros n A A' ? P P' ?. by apply iProto_message_ne; simpl. Qed.
+  Proof. intros n A A' ? S S' ?. by apply iProto_message_ne; simpl. Qed.
   Global Instance lsty_message_contractive n a :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lsty_message Σ a).
   Proof.
-    intros A A' ? P P' ?.
+    intros A A' ? S S' ?.
     apply iProto_message_contractive; simpl; done || by destruct n.
   Qed.
 
@@ -66,11 +66,11 @@ Section Propers.
 
   Global Instance lsty_choice_ne a : NonExpansive (@lsty_choice Σ a).
   Proof.
-    intros n Ps1 Ps2 Pseq. apply iProto_message_ne; simpl; solve_proper.
+    intros n Ss1 Ss2 Pseq. apply iProto_message_ne; simpl; solve_proper.
   Qed.
   Global Instance lsty_choice_contractive a : Contractive (@lsty_choice Σ a).
   Proof.
-    intros ? Ps1 Ps2 ?.
+    intros ? Ss1 Ss2 ?.
     apply iProto_message_contractive; destruct n; simpl; done || solve_proper.
   Qed.
 
@@ -91,8 +91,8 @@ Section Propers.
 End Propers.
 
 Notation "'END'" := lsty_end : lsty_scope.
-Notation "<!!> A ; P" :=
-  (lsty_send A P) (at level 20, A, P at level 200) : lsty_scope.
-Notation "<??> A ; P" :=
-  (lsty_recv A P) (at level 20, A, P at level 200) : lsty_scope.
+Notation "<!!> A ; S" :=
+  (lsty_send A S) (at level 20, A, S at level 200) : lsty_scope.
+Notation "<??> A ; S" :=
+  (lsty_recv A S) (at level 20, A, S at level 200) : lsty_scope.
 Infix "<++>" := lsty_app (at level 60) : lsty_scope.
