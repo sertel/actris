@@ -1,7 +1,10 @@
+From stdpp Require Import pretty.
+From actris.utils Require Import switch.
 From actris.logrel Require Export ltyping session_types.
 From actris.channel Require Import proto proofmode.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang.lib Require Import assert.
 From iris.heap_lang Require Import notation proofmode lib.par spin_lock.
 
 Section types.
@@ -231,6 +234,48 @@ Section properties.
     - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert.
     - rewrite subst_subst_ne // -subst_map_insert.
       by rewrite -delete_insert_ne // -subst_map_insert.
+  Qed.
+
+  Fixpoint lty_arr_list (As : list (lty Σ)) (B : lty Σ) : lty Σ :=
+    match As with
+    | [] => B
+    | A :: As => A ⊸ lty_arr_list As B
+    end.
+
+  Lemma lty_arr_list_spec_step A As (e : expr) B ws y i :
+    (∀ v, lty_car A v -∗
+          WP subst_map (<[ y +:+ pretty i := v ]>ws)
+             (switch_lams y (S i) (length As) e) {{ lty_arr_list As B }}) -∗
+    WP subst_map ws (switch_lams y i (length (A::As)) e)
+       {{ lty_arr_list (A::As) B }}.
+  Proof.
+    iIntros "H". wp_pures. iIntros (v) "HA".
+    iDestruct ("H" with "HA") as "H".
+    rewrite subst_map_insert.
+    wp_apply "H".
+  Qed.
+
+  Lemma lty_arr_list_spec As (e : expr) B ws y i n :
+    n = length As →
+    (∀ vs, ([∗ list] A;v ∈ As;vs, (lty_car A) v) -∗
+           WP subst_map (map_string_seq y i vs ∪ ws) e {{ lty_car B }}) -∗
+    WP subst_map ws (switch_lams y i n e) {{ lty_arr_list As B }}.
+  Proof.
+    iIntros (Hlen) "H". iRevert (Hlen).
+    iInduction As as [|A As] "IH" forall (ws i e n)=> /=.
+    - iIntros (->).
+      iDestruct ("H" $! [] with "[$]") as "H"=> /=.
+      by rewrite left_id_L.
+    - iIntros (->). iApply lty_arr_list_spec_step.
+      iIntros (v) "HA".
+      iApply ("IH" with "[H HA]")=> //.
+      iIntros (vs) "HAs".
+      iSpecialize ("H" $!(v::vs))=> /=.
+      do 2 rewrite insert_union_singleton_l.
+      rewrite (map_union_comm ({[y +:+ pretty i := v]})); last first.
+      { apply map_disjoint_singleton_l_2.
+        apply lookup_map_string_seq_None_lt. eauto. }
+      rewrite assoc_L. iApply ("H" with "[HA HAs]"). iFrame "HA HAs".
   Qed.
 
   (** Product properties  *)
@@ -684,36 +729,56 @@ Section properties.
       iExists v, c. eauto with iFrame.
     Qed.
 
-    Definition chanfst : val := λ: "c", send "c" #true;; "c".
-    Lemma ltyped_chanfst P1 P2:
-      ⊢ ∅ ⊨ chanfst : chan (P1 <+++> P2) → chan P1.
+    Definition chanselect : val := λ: "c" "i", send "c" "i";; "c".
+    Lemma ltyped_chanselect Γ (c : val) (i : Z) P Ps :
+      Ps !! i = Some P →
+      (Γ ⊨ c : chan (lsty_select Ps)) -∗
+      Γ ⊨ chanselect c #i : chan P.
     Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chanfst. wp_select.
-      wp_pures. iExact "Hc".
+      iIntros (Hin) "#Hc !>".
+      iIntros (vs) "H /=".
+      rewrite /chanselect.
+      iMod (wp_value_inv with "(Hc H)") as "Hc'".
+      wp_send with "[]"; [by eauto|].
+      rewrite (lookup_total_correct Ps i P)=> //.
+      by wp_pures.
     Qed.
 
-    Definition chansnd : val := λ: "c", send "c" #false;; "c".
-    Lemma ltyped_chansnd P1 P2:
-      ⊢ ∅ ⊨ chansnd : chan (P1 <+++> P2) → chan P2.
+    Definition chanbranch (xs : list Z) : val := λ: "c",
+      switch_lams "f" 0 (length xs) $
+      let: "y" := recv "c" in
+      switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
+
+    Lemma ltyped_chanbranch Ps A xs :
+      (∀ x, x ∈ xs ↔ is_Some (Ps !! x)) →
+      ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ps) ⊸
+        lty_arr_list ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
     Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chansnd. wp_select.
-      wp_pures. iExact "Hc".
+      iIntros (Hdom) "!>". iIntros (vs) "Hvs".
+      iApply wp_value. iIntros (c) "Hc". wp_lam.
+      rewrite -subst_map_singleton.
+      iApply lty_arr_list_spec.
+      { by rewrite fmap_length. }
+      iIntros (ws) "H".
+      rewrite big_sepL2_fmap_l.
+      iDestruct (big_sepL2_length with "H") as %Heq.
+      rewrite -insert_union_singleton_r; last by apply lookup_map_string_seq_None.
+      rewrite /= lookup_insert.
+      wp_recv (x) as "HPsx". iDestruct "HPsx" as %HPs_Some.
+      wp_pures.
+      rewrite -subst_map_insert.
+      assert (x ∈ xs) as Hin by naive_solver.
+      pose proof (list_find_elem_of (x =.) xs x) as [[n z] Hfind_Some]; [done..|].
+      iApply switch_body_spec.
+      { apply fmap_Some_2, Hfind_Some. }
+      { by rewrite lookup_insert. }
+      simplify_map_eq. rewrite lookup_map_string_seq_Some.
+      assert (xs !! n = Some x) as Hxs_Some.
+      { by apply list_find_Some in Hfind_Some as [? [-> _]]. }
+      assert (is_Some (ws !! n)) as [w Hws_Some].
+      { apply lookup_lt_is_Some_2. rewrite -Heq. eauto using lookup_lt_Some. }
+      iDestruct (big_sepL2_lookup _ xs ws n with "H") as "HA"; [done..|].
+      rewrite Hws_Some. by iApply "HA".
     Qed.
-
-    Definition chanbranch : val := λ: "c",
-      let b := recv "c" in if: b then InjL "c" else InjR "c".
-
-    Lemma ltyped_chanbranch P1 P2:
-      ⊢ ∅ ⊨ chanbranch : chan (P1 <&&&> P2) → chan P1 + chan P2.
-    Proof.
-      iIntros (vs) "!> _ /=". iApply wp_value.
-      iIntros "!>" (c) "Hc". rewrite /chanbranch. wp_pures.
-      wp_branch; wp_pures.
-      - iLeft. iExists c. iSplit=> //.
-      - iRight. iExists c. iSplit=> //.
-    Qed.
-
   End with_chan.
 End properties.
