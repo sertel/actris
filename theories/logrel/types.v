@@ -215,7 +215,7 @@ Section properties.
     - by iApply ltyped_lam=> //=.
   Qed.
 
-  Lemma ltyped_rec Γ Γ' f x e A1 A2:
+  Lemma ltyped_rec Γ Γ' f x e A1 A2 :
     env_copy Γ Γ' -∗
     (<[f:=(A1 → A2)%lty]>(<[x:=A1]>Γ') ⊨ e : A2) -∗
     Γ ⊨ (rec: f x := e) : A1 → A2.
@@ -302,7 +302,7 @@ Section properties.
 
   Definition split : val := λ: "pair" "f", "f" (Fst "pair") (Snd "pair").
 
-  Lemma ltyped_split A1 A2 B:
+  Lemma ltyped_split A1 A2 B :
     ⊢ ∅ ⊨ split : A1 * A2 → (A1 ⊸ A2 ⊸ B) ⊸ B.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -323,7 +323,7 @@ Section properties.
   Global Instance lty_sum_ne : NonExpansive2 (@lty_sum Σ).
   Proof. solve_proper. Qed.
 
-  Lemma ltyped_injl Γ e A1 A2:
+  Lemma ltyped_injl Γ e A1 A2 :
     (Γ ⊨ e : A1) -∗ Γ ⊨ InjL e : A1 + A2.
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
@@ -332,7 +332,7 @@ Section properties.
     iLeft. iExists v. auto.
   Qed.
 
-  Lemma ltyped_injr Γ e A1 A2:
+  Lemma ltyped_injr Γ e A1 A2 :
     (Γ ⊨ e : A2) -∗ Γ ⊨ InjR e : A1 + A2.
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
@@ -528,7 +528,7 @@ Section properties.
 
   Definition store : val := λ: "r" "new", "r" <- "new";; "r".
 
-  Lemma ltyped_store A B:
+  Lemma ltyped_store A B :
     ⊢ ∅ ⊨ store : ref_mut A → B ⊸ ref_mut B.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -549,7 +549,7 @@ Section properties.
   Proof. iIntros (v). apply _. Qed.
 
   Definition fetch_and_add : val := λ: "r" "inc", FAA "r" "inc".
-  Lemma ltyped_fetch_and_add:
+  Lemma ltyped_fetch_and_add :
     ⊢ ∅ ⊨ fetch_and_add : ref_shr lty_int → lty_int → lty_int.
   Proof.
     iIntros (vs) "!> _ /=". iApply wp_value. iIntros "!>" (r) "Hr".
@@ -615,7 +615,7 @@ Section properties.
     Proof. solve_proper. Qed.
 
     Definition mutexalloc : val := λ: "x", (newlock #(), ref "x").
-    Lemma ltyped_mutexalloc A:
+    Lemma ltyped_mutexalloc A :
       ⊢ ∅ ⊨ mutexalloc : A → mutex A.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -631,7 +631,7 @@ Section properties.
     Qed.
 
     Definition mutexacquire : val := λ: "x", acquire (Fst "x");; (! (Snd "x"), "x").
-    Lemma ltyped_mutexacquire A:
+    Lemma ltyped_mutexacquire A :
       ⊢ ∅ ⊨ mutexacquire : mutex A → A * mutexguard A.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -652,7 +652,7 @@ Section properties.
 
     Definition mutexrelease : val :=
       λ: "inner" "guard", Snd "guard" <- "inner";; release (Fst "guard");; "guard".
-    Lemma ltyped_mutexrelease A:
+    Lemma ltyped_mutexrelease A :
       ⊢ ∅ ⊨ mutexrelease : A → mutexguard A ⊸ mutex A.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -679,7 +679,7 @@ Section properties.
     (** Parallel composition properties *)
     Definition parallel : val := λ: "e1" "e2", par "e1" "e2".
 
-    Lemma ltyped_parallel A B:
+    Lemma ltyped_parallel A B :
       ⊢ ∅ ⊨ parallel : (() ⊸ A) → (() ⊸ B) ⊸ (A * B).
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -699,7 +699,7 @@ Section properties.
     Proof. solve_proper. Qed.
 
     Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
-    Lemma ltyped_chanalloc S:
+    Lemma ltyped_chanalloc S :
       ⊢ ∅ ⊨ chanalloc : () → (chan S * chan (lsty_dual S)).
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -710,7 +710,7 @@ Section properties.
     Qed.
 
     Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
-    Lemma ltyped_chansend A S:
+    Lemma ltyped_chansend A S :
       ⊢ ∅ ⊨ chansend : chan (<!!> A; S) → A ⊸ chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
@@ -720,7 +720,7 @@ Section properties.
     Qed.
 
     Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
-    Lemma ltyped_chanrecv A S:
+    Lemma ltyped_chanrecv A S :
       ⊢ ∅ ⊨ chanrecv : chan (<??> A; S) → A * chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
