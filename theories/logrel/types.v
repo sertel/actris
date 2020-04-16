@@ -699,8 +699,8 @@ Section properties.
     Proof. solve_proper. Qed.
 
     Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
-    Lemma ltyped_chanalloc P:
-      ⊢ ∅ ⊨ chanalloc : () → (chan P * chan (lsty_dual P)).
+    Lemma ltyped_chanalloc S:
+      ⊢ ∅ ⊨ chanalloc : () → (chan S * chan (lsty_dual S)).
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iIntros "!>" (u) ">->". rewrite /chanalloc. wp_pures.
@@ -710,8 +710,8 @@ Section properties.
     Qed.
 
     Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
-    Lemma ltyped_chansend A P:
-      ⊢ ∅ ⊨ chansend : chan (<!!> A; P) → A ⊸ chan P.
+    Lemma ltyped_chansend A S:
+      ⊢ ∅ ⊨ chansend : chan (<!!> A; S) → A ⊸ chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iIntros "!>" (c) "Hc". rewrite /chansend. wp_pures.
@@ -720,8 +720,8 @@ Section properties.
     Qed.
 
     Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
-    Lemma ltyped_chanrecv A P:
-      ⊢ ∅ ⊨ chanrecv : chan (<??> A; P) → A * chan P.
+    Lemma ltyped_chanrecv A S:
+      ⊢ ∅ ⊨ chanrecv : chan (<??> A; S) → A * chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iIntros "!>" (c) "Hc". rewrite /chanrecv. wp_pures.
@@ -730,17 +730,17 @@ Section properties.
     Qed.
 
     Definition chanselect : val := λ: "c" "i", send "c" "i";; "c".
-    Lemma ltyped_chanselect Γ (c : val) (i : Z) P Ps :
-      Ps !! i = Some P →
-      (Γ ⊨ c : chan (lsty_select Ps)) -∗
-      Γ ⊨ chanselect c #i : chan P.
+    Lemma ltyped_chanselect Γ (c : val) (i : Z) S Ss :
+      Ss !! i = Some S →
+      (Γ ⊨ c : chan (lsty_select Ss)) -∗
+      Γ ⊨ chanselect c #i : chan S.
     Proof.
       iIntros (Hin) "#Hc !>".
       iIntros (vs) "H /=".
       rewrite /chanselect.
       iMod (wp_value_inv with "(Hc H)") as "Hc'".
       wp_send with "[]"; [by eauto|].
-      rewrite (lookup_total_correct Ps i P)=> //.
+      rewrite (lookup_total_correct Ss i S)=> //.
       by wp_pures.
     Qed.
 
@@ -749,10 +749,10 @@ Section properties.
       let: "y" := recv "c" in
       switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
 
-    Lemma ltyped_chanbranch Ps A xs :
-      (∀ x, x ∈ xs ↔ is_Some (Ps !! x)) →
-      ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ps) ⊸
-        lty_arr_list ((λ x, (chan (Ps !!! x) ⊸ A)%lty) <$> xs) A.
+    Lemma ltyped_chanbranch Ss A xs :
+      (∀ x, x ∈ xs ↔ is_Some (Ss !! x)) →
+      ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ss) ⊸
+        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A.
     Proof.
       iIntros (Hdom) "!>". iIntros (vs) "Hvs".
       iApply wp_value. iIntros (c) "Hc". wp_lam.
