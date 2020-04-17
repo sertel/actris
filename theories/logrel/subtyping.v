@@ -99,6 +99,10 @@ Section subtype.
     iIntros "#Hle" (v) "!>". iDestruct 1 as (A) "H". iExists A. by iApply "Hle".
   Qed.
 
+  Lemma lty_exist_le_elim C B :
+    ⊢ (C B) <: (∃ A, C A).
+  Proof. iIntros "!>" (v) "Hle". by iExists B. Qed.
+
   Lemma lty_rec_le_1 (C : lty Σ → lty Σ) `{!Contractive C} :
     ⊢ lty_rec C <: C (lty_rec C).
   Proof.
