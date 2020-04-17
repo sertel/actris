@@ -300,6 +300,22 @@ Section subtype.
     ⊢ ((S1 <++> S2) <++> S3) <s: (S1 <++> (S2 <++> S3)).
   Proof. rewrite lsty_app_assoc. iApply lsty_le_refl. Qed.
 
+  Lemma lsty_le_app_id_l_l S :
+    ⊢ (END <++> S) <s: S.
+  Proof. rewrite left_id. iApply lsty_le_refl. Qed.
+
+  Lemma lsty_le_app_id_l_r S :
+    ⊢ (S <++> END) <s: S.
+  Proof. rewrite right_id. iApply lsty_le_refl. Qed.
+
+  Lemma lsty_le_app_id_r_l S :
+    ⊢ S <s: (END <++> S).
+  Proof. rewrite left_id. iApply lsty_le_refl. Qed.
+
+  Lemma lsty_le_app_id_r_r S :
+    ⊢ S <s: (S <++> END).
+  Proof. rewrite right_id. iApply lsty_le_refl. Qed.
+
   Lemma lsty_le_dual S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
 
