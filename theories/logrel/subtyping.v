@@ -224,7 +224,7 @@ Section subtype.
     iApply iProto_le_send; simpl.
     iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
     iExists x. iSplit=> //. iSplit.
-    - iNext. 
+    - iNext.
       iDestruct (big_sepM2_forall with "H1") as "[% _]".
       iPureIntro. naive_solver.
     - iNext.
@@ -291,6 +291,14 @@ Section subtype.
     (S11 <s: S21) -∗ (S12 <s: S22) -∗
     (S11 <++> S12) <s: (S21 <++> S22).
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
+
+  Lemma lsty_le_app_assoc_l S1 S2 S3 :
+    ⊢ ((S1 <++> S2) <++> S3) <s: (S1 <++> (S2 <++> S3)).
+  Proof. rewrite lsty_app_assoc. iApply lsty_le_refl. Qed.
+
+  Lemma lsty_le_app_assoc_r S1 S2 S3 :
+    ⊢ ((S1 <++> S2) <++> S3) <s: (S1 <++> (S2 <++> S3)).
+  Proof. rewrite lsty_app_assoc. iApply lsty_le_refl. Qed.
 
   Lemma lsty_le_dual S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.

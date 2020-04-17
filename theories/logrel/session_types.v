@@ -105,6 +105,8 @@ Section Propers.
   Proof. solve_proper. Qed.
   Global Instance lsty_app_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_app Σ).
   Proof. apply ne_proper_2, _. Qed.
+  Global Instance lsty_app_assoc : Assoc (≡) (@lsty_app Σ).
+  Proof. intros s1 s2 s3. rewrite /lsty_app. by rewrite iProto_app_assoc. Qed.
 End Propers.
 
 Notation "'END'" := lsty_end : lsty_scope.
