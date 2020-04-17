@@ -295,6 +295,12 @@ Section subtype.
   Lemma lsty_le_dual S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
 
+  Lemma lsty_le_dual_l S1 S2 : lsty_dual S2 <s: S1 -∗ lsty_dual S1 <s: S2.
+  Proof. iIntros "#H !>". by iApply iProto_le_dual_l. Qed.
+
+  Lemma lsty_le_dual_r S1 S2 : S2 <s: lsty_dual S1 -∗ S1 <s: lsty_dual S2.
+  Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
+
   Lemma lsty_le_rec_1 (C : lsty Σ → lsty Σ) `{!Contractive C} :
     ⊢ lsty_rec C <s: C (lsty_rec C).
   Proof.

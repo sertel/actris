@@ -797,6 +797,20 @@ Section proto.
       iNext. by iRewrite "Hp2d".
   Qed.
 
+  Lemma iProto_le_dual_l p1 p2 :
+    iProto_le (iProto_dual p2) p1 -∗ iProto_le (iProto_dual p1) p2.
+  Proof.
+    iIntros "H". iEval (rewrite -(iProto_dual_involutive p2)).
+    by iApply iProto_le_dual.
+  Qed.
+
+  Lemma iProto_le_dual_r p1 p2 :
+    iProto_le p2 (iProto_dual p1) -∗ iProto_le p1 (iProto_dual p2).
+  Proof.
+    iIntros "H". iEval (rewrite -(iProto_dual_involutive p1)).
+    by iApply iProto_le_dual.
+  Qed.
+
   Lemma iProto_le_app p1 p2 p3 p4 :
     iProto_le p1 p2 -∗ iProto_le p3 p4 -∗ iProto_le (p1 <++> p3) (p2 <++> p4).
   Proof.
