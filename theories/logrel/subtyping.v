@@ -319,6 +319,28 @@ Section subtype.
   Lemma lsty_le_dual S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
 
+  Lemma lsty_le_dual_send_l A S : ⊢ (lsty_dual (<!!>A;S)) <s: (<??>A;(lsty_dual S)).
+  Proof.
+    rewrite /lsty_le /lsty_dual /lsty_send /lsty_recv /lsty_message iProto_dual_message /=.
+    iIntros "!>".
+    rewrite {1}/lsty_car /=.
+    iApply iProto_le_refl.
+  Admitted.
+
+  Lemma lsty_le_dual_send_r A S : ⊢ (<!!>A;(lsty_dual S)) <s: lsty_dual (<??> A;S).
+  Proof. Admitted.
+
+  Lemma lsty_le_dual_recv_l A S : ⊢ (lsty_dual (<??> A;S)) <s: (<!!> A;(lsty_dual S)).
+  Proof. Admitted.
+  Lemma lsty_le_dual_recv_r A S : ⊢ (<??>A;(lsty_dual S)) <s: lsty_dual (<!!> A;S).
+  Proof. Admitted.
+
+  Lemma lsty_le_dual_end_l : ⊢ (lsty_dual (Σ:=Σ) END) <s: END.
+  Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_le_refl. Qed.
+
+  Lemma lsty_le_dual_end_r : ⊢ END <s: (lsty_dual (Σ:=Σ) END).
+  Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_le_refl. Qed.
+
   Lemma lsty_le_dual_l S1 S2 : lsty_dual S2 <s: S1 -∗ lsty_dual S1 <s: S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual_l. Qed.
 
