@@ -416,6 +416,14 @@ Section proto.
     - iDestruct 1 as (x ->) "[Hpc Hpd]"; auto 10.
   Qed.
 
+  Lemma iProto_dual_message_tele {TT} a (pc : TT -t> V * iProp Σ * iProto Σ V) :
+    iProto_dual (iProto_message a (tele_app pc))
+    ≡ iProto_message (action_dual a) (tele_app (tele_map (prod_map id iProto_dual) pc)).
+  Proof.
+    rewrite iProto_dual_message.
+    apply iProto_message_proper; apply tforall_forall=> x; by rewrite /=?tele_map_app.
+  Qed.
+
   Global Instance iProto_dual_involutive : Involutive (≡) (@iProto_dual Σ V).
   Proof.
     intros p. apply (uPred.internal_eq_soundness (M:=iResUR Σ)).
