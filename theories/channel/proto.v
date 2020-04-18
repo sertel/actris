@@ -152,7 +152,7 @@ Program Definition iProto_map_cont {Σ V}
   λne p2, (∃ p1, pc (Next p1) ∗ p2 ≡ Next (rec p1))%I.
 Next Obligation. solve_proper. Qed.
 
-Program Definition iProto_map_app_aux {Σ V} 
+Program Definition iProto_map_app_aux {Σ V}
     (f : action → action) (p2 : iProto Σ V)
     (rec : iProto Σ V -n> iProto Σ V) : iProto Σ V -n> iProto Σ V := λne p1,
   match proto_unfold p1 return _ with
@@ -579,7 +579,7 @@ Section proto.
     { by iDestruct (proto_message_end_equivI with "Heq") as %[]. }
     iDestruct "H" as (a1 a2 pc1 pc2') "(Hp1 & Hp2 & H)".
     iDestruct (proto_message_equivI with "Hp2") as (<-) "{Hp2} #Hpc".
-    iExists _, _; iSplit; [done|]. destruct a1. 
+    iExists _, _; iSplit; [done|]. destruct a1.
     - iIntros (v p2'). by iRewrite ("Hpc" $! v (Next p2')).
     - iIntros (v1 v2 p1' p2'). by iRewrite ("Hpc" $! v2 (Next p2')).
   Qed.
@@ -800,14 +800,14 @@ Section proto.
   Lemma iProto_le_dual_l p1 p2 :
     iProto_le (iProto_dual p2) p1 -∗ iProto_le (iProto_dual p1) p2.
   Proof.
-    iIntros "H". iEval (rewrite -(iProto_dual_involutive p2)).
+    iIntros "H". iEval (rewrite -(involutive iProto_dual p2)).
     by iApply iProto_le_dual.
   Qed.
 
   Lemma iProto_le_dual_r p1 p2 :
     iProto_le p2 (iProto_dual p1) -∗ iProto_le p1 (iProto_dual p2).
   Proof.
-    iIntros "H". iEval (rewrite -(iProto_dual_involutive p1)).
+    iIntros "H". iEval (rewrite -(involutive iProto_dual p1)).
     by iApply iProto_le_dual.
   Qed.
 

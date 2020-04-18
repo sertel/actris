@@ -106,7 +106,7 @@ Section Propers.
   Global Instance lsty_app_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_app Σ).
   Proof. apply ne_proper_2, _. Qed.
   Global Instance lsty_app_assoc : Assoc (≡) (@lsty_app Σ).
-  Proof. intros S1 S2 S3. rewrite /lsty_app. by rewrite iProto_app_assoc. Qed.
+  Proof. intros S1 S2 S3. rewrite /lsty_app. by rewrite assoc. Qed.
   Global Instance lsty_app_end_l : LeftId (≡) lsty_end (@lsty_app Σ).
   Proof. intros [S]. rewrite /lsty_app. by rewrite left_id. Qed.
   Global Instance lsty_app_end_r : RightId (≡) lsty_end (@lsty_app Σ).

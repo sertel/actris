@@ -100,7 +100,7 @@ Section subtype.
   Qed.
 
   Lemma lty_le_exist_elim C B :
-    ⊢ (C B) <: (∃ A, C A).
+    ⊢ C B <: ∃ A, C A.
   Proof. iIntros "!>" (v) "Hle". by iExists B. Qed.
 
   Lemma lty_le_rec_1 (C : lty Σ → lty Σ) `{!Contractive C} :
@@ -293,12 +293,12 @@ Section subtype.
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
   Lemma lsty_le_app_assoc_l S1 S2 S3 :
-    ⊢ (S1 <++> (S2 <++> S3)) <s: ((S1 <++> S2) <++> S3).
-  Proof. rewrite lsty_app_assoc. iApply lsty_le_refl. Qed.
+    ⊢ S1 <++> (S2 <++> S3) <s: (S1 <++> S2) <++> S3.
+  Proof. rewrite assoc. iApply lsty_le_refl. Qed.
 
   Lemma lsty_le_app_assoc_r S1 S2 S3 :
-    ⊢ ((S1 <++> S2) <++> S3) <s: (S1 <++> (S2 <++> S3)).
-  Proof. rewrite lsty_app_assoc. iApply lsty_le_refl. Qed.
+    ⊢ (S1 <++> S2) <++> S3 <s: S1 <++> (S2 <++> S3).
+  Proof. rewrite assoc. iApply lsty_le_refl. Qed.
 
   Lemma lsty_le_app_id_l_l S :
     ⊢ (END <++> S) <s: S.
