@@ -52,10 +52,6 @@ Class LTyUnOp {Σ} (op : un_op) (A B : lty Σ) :=
 Class LTyBinOp {Σ} (op : bin_op) (A1 A2 B : lty Σ) :=
   lty_bin_op v1 v2 : A1 v1 -∗ A2 v2 -∗ ∃ w, ⌜ bin_op_eval op v1 v2 = Some w ⌝ ∗ B w.
 
-(* Copy types *)
-Class LTyCopy `{invG Σ} (A : lty Σ) :=
-  lty_copy_pers v :> Persistent (A v).
-
 Section Environment.
   Context `{invG Σ}.
   Implicit Types A : lty Σ.
@@ -131,19 +127,20 @@ Section Environment.
     by iApply env_split_comm.
   Qed.
 
-  (* TODO: Get rid of side condition that x does not appear in Γ *)
-  Lemma env_split_copy Γ Γ1 Γ2 (x : string) A:
-    Γ !! x = None →
-    LTyCopy A →
-    env_split Γ Γ1 Γ2 -∗
-    env_split (<[x:=A]> Γ) (<[x:=A]> Γ1) (<[x:=A]> Γ2).
-  Proof.
-    iIntros (Hcopy HΓx) "#Hsplit". iIntros (vs) "!> HΓ".
-    iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
-    iDestruct "Hv" as (v ?) "#HAv".
-    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; eauto.
-  Qed.
+  (* FIXME: copy *)
+  (* (* TODO: Get rid of side condition that x does not appear in Γ *) *)
+  (* Lemma env_split_copy Γ Γ1 Γ2 (x : string) A: *)
+  (*   Γ !! x = None → *)
+  (*   LTyCopy A → *)
+  (*   env_split Γ Γ1 Γ2 -∗ *)
+  (*   env_split (<[x:=A]> Γ) (<[x:=A]> Γ1) (<[x:=A]> Γ2). *)
+  (* Proof. *)
+  (*   iIntros (Hcopy HΓx) "#Hsplit". iIntros (vs) "!> HΓ". *)
+  (*   iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption. *)
+  (*   iDestruct "Hv" as (v ?) "#HAv". *)
+  (*   iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]". *)
+  (*   iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; eauto. *)
+  (* Qed. *)
 
   (* TODO: Prove lemmas about this *)
   Definition env_copy (Γ Γ' : gmap string (lty Σ)) : iProp Σ :=
@@ -162,19 +159,20 @@ Section Environment.
     iApply ("Hcopy" with "Hvs").
   Qed.
 
-  Lemma env_copy_extend_copy x A Γ Γ' :
-    Γ !! x = None →
-    Γ' !! x = None →
-    LTyCopy A →
-    env_copy Γ Γ' -∗
-    env_copy (<[x:=A]> Γ) (<[x:=A]> Γ').
-  Proof.
-    iIntros (HΓx HΓ'x HcopyA) "#Hcopy". iIntros (vs) "!> Hvs". rewrite /env_ltyped.
-    iDestruct (big_sepM_insert with "Hvs") as "[HA Hvs]"; first done.
-    iDestruct ("Hcopy" with "Hvs") as "#Hvs'".
-    iDestruct "HA" as (v ?) "#HA".
-    iIntros "!>". iApply big_sepM_insert; first done. iSplitL; eauto.
-  Qed.
+  (* FIXME: copy *)
+  (* Lemma env_copy_extend_copy x A Γ Γ' : *)
+  (*   Γ !! x = None → *)
+  (*   Γ' !! x = None → *)
+  (*   LTyCopy A → *)
+  (*   env_copy Γ Γ' -∗ *)
+  (*   env_copy (<[x:=A]> Γ) (<[x:=A]> Γ'). *)
+  (* Proof. *)
+  (*   iIntros (HΓx HΓ'x HcopyA) "#Hcopy". iIntros (vs) "!> Hvs". rewrite /env_ltyped. *)
+  (*   iDestruct (big_sepM_insert with "Hvs") as "[HA Hvs]"; first done. *)
+  (*   iDestruct ("Hcopy" with "Hvs") as "#Hvs'". *)
+  (*   iDestruct "HA" as (v ?) "#HA". *)
+  (*   iIntros "!>". iApply big_sepM_insert; first done. iSplitL; eauto. *)
+  (* Qed. *)
 End Environment.
 
 (* The semantic typing judgement *)

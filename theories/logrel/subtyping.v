@@ -40,9 +40,6 @@ Section subtype.
   Lemma lty_le_copy A : ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
 
-  Lemma lty_le_copyable A `{LTyCopy Σ A} : ⊢ A <: copy A.
-  Proof. by iIntros (v) "!> #H". Qed.
-
   Lemma lty_le_arr A11 A12 A21 A22 :
     ▷ (A21 <: A11) -∗ ▷ (A12 <: A22) -∗
     (A11 ⊸ A12) <: (A21 ⊸ A22).

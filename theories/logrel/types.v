@@ -89,16 +89,10 @@ Section properties.
   (** Basic properties *)
   Global Instance lty_unit_unboxed : @LTyUnboxed Σ ().
   Proof. by iIntros (v ->). Qed.
-  Global Instance lty_unit_copy : @LTyCopy Σ _ ().
-  Proof. iIntros (v). apply _. Qed.
   Global Instance lty_bool_unboxed : @LTyUnboxed Σ lty_bool.
   Proof. iIntros (v). by iDestruct 1 as (b) "->". Qed.
-  Global Instance lty_bool_copy : @LTyCopy Σ _ lty_bool.
-  Proof. iIntros (v). apply _. Qed.
   Global Instance lty_int_unboxed : @LTyUnboxed Σ lty_int.
   Proof. iIntros (v). by iDestruct 1 as (i) "->". Qed.
-  Global Instance lty_int_copy : @LTyCopy Σ _ lty_int.
-  Proof. iIntros (v). apply _. Qed.
 
   Lemma ltyped_unit Γ : ⊢ Γ ⊨ #() : ().
   Proof. iIntros "!>" (vs) "_ /=". by iApply wp_value. Qed.
@@ -154,9 +148,6 @@ Section properties.
   (** Copy properties *)
   Global Instance lty_copy_ne : NonExpansive (@lty_copy Σ).
   Proof. solve_proper. Qed.
-
-  Global Instance lty_copy_copy A : LTyCopy (copy A).
-  Proof. iIntros (v). apply _. Qed.
 
   (** Arrow properties *)
   Global Instance lty_arr_contractive n :
@@ -279,8 +270,6 @@ Section properties.
   Qed.
 
   (** Product properties  *)
-  Global Instance lty_prod_copy `{!LTyCopy A1, !LTyCopy A2} : LTyCopy (A1 * A2).
-  Proof. iIntros (v). apply _. Qed.
   Global Instance lty_prod_contractive n:
     Proper (dist_later n ==> dist_later n ==> dist n) (@lty_prod Σ).
   Proof. solve_contractive. Qed.
@@ -315,8 +304,6 @@ Section properties.
   Qed.
 
   (** Sum Properties *)
-  Global Instance lty_sum_copy `{!LTyCopy A1, !LTyCopy A2} : LTyCopy (A1 + A2).
-  Proof. iIntros (v). apply _. Qed.
   Global Instance lty_sum_contractive n :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lty_sum Σ).
   Proof. solve_contractive. Qed.
@@ -412,10 +399,6 @@ Section properties.
   Qed.
 
   (** Existential properties *)
-  Global Instance lty_exist_copy C (Hcopy : ∀ A, LTyCopy (C A)) :
-    (LTyCopy (lty_exist C)).
-  Proof. intros v. apply bi.exist_persistent. intros A.
-         apply bi.later_persistent. apply Hcopy. Qed.
   Global Instance lty_exist_ne n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ).
   Proof. solve_proper. Qed.
@@ -423,10 +406,6 @@ Section properties.
     Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ).
   Proof. solve_contractive. Qed.
 
-  Global Instance lty_exist_lsty_copy C (Hcopy : ∀ A, LTyCopy (C A)) :
-    (LTyCopy (lty_exist_lsty C)).
-  Proof. intros v. apply bi.exist_persistent. intros A.
-         apply bi.later_persistent. apply Hcopy. Qed.
   Global Instance lty_exist_lsty_ne n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist_lsty Σ).
   Proof. solve_proper. Qed.
@@ -513,18 +492,19 @@ Section properties.
     by iModIntro.
   Qed.
 
-  Lemma ltyped_load_copy A {copyA : LTyCopy A} :
-    ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut A.
-  Proof.
-    iIntros (vs) "!> HΓ /=".
-    iApply wp_value.
-    iIntros "!>" (v) "Hv". rewrite /load. wp_pures.
-    iDestruct "Hv" as (l w ->) "[Hl #Hw]".
-    wp_load. wp_pures.
-    iExists w, #l. iSplit=> //. iFrame "Hw".
-    iExists l, w. iSplit=> //. iFrame "Hl".
-    by iModIntro.
-  Qed.
+  (* FIXME: copy *)
+  (* Lemma ltyped_load_copy A {copyA : LTyCopy A} : *)
+  (*   ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut A. *)
+  (* Proof. *)
+  (*   iIntros (vs) "!> HΓ /=". *)
+  (*   iApply wp_value. *)
+  (*   iIntros "!>" (v) "Hv". rewrite /load. wp_pures. *)
+  (*   iDestruct "Hv" as (l w ->) "[Hl #Hw]". *)
+  (*   wp_load. wp_pures. *)
+  (*   iExists w, #l. iSplit=> //. iFrame "Hw". *)
+  (*   iExists l, w. iSplit=> //. iFrame "Hl". *)
+  (*   by iModIntro. *)
+  (* Qed. *)
 
   Definition store : val := λ: "r" "new", "r" <- "new";; "r".
 
@@ -545,8 +525,6 @@ Section properties.
   Proof. solve_proper. Qed.
   Global Instance lty_ref_shr_unboxed A : LTyUnboxed (ref_shr A).
   Proof. iIntros (v). by iDestruct 1 as (l ->) "?". Qed.
-  Global Instance lty_ref_shr_copy A : LTyCopy (ref_shr A).
-  Proof. iIntros (v). apply _. Qed.
 
   Definition fetch_and_add : val := λ: "r" "inc", FAA "r" "inc".
   Lemma ltyped_fetch_and_add :
@@ -565,26 +543,27 @@ Section properties.
     by iExists m.
   Qed.
 
-  Lemma ltyped_ref_shr_load (A : lty Σ) {copyA : LTyCopy A} :
-    ⊢ ∅ ⊨ load : ref_shr A → (A * ref_shr A).
-  Proof.
-    iIntros (vs) "!> _ /=". iApply wp_value. iIntros "!>" (r) "Hr".
-    iApply wp_fupd. rewrite /load; wp_pures.
-    iDestruct "Hr" as (l ->) "Hr".
-    iMod (fupd_mask_mono with "Hr") as "#Hr"; first done.
-    wp_bind (!#l)%E.
-    iInv (ref_shrN .@ l) as (v) "[>Hl #HA]" "Hclose".
-    wp_load.
-    iMod ("Hclose" with "[Hl HA]") as "_".
-    { iExists v. iFrame "Hl HA". }
-    iIntros "!>". wp_pures. iIntros "!>".
-    iExists _, _.
-    iSplit; first done.
-    iFrame "HA".
-    iExists _.
-    iSplit; first done.
-    by iFrame "Hr".
-  Qed.
+  (* FIXME: copy *)
+  (* Lemma ltyped_ref_shr_load (A : lty Σ) {copyA : LTyCopy A} : *)
+  (*   ⊢ ∅ ⊨ load : ref_shr A → (A * ref_shr A). *)
+  (* Proof. *)
+  (*   iIntros (vs) "!> _ /=". iApply wp_value. iIntros "!>" (r) "Hr". *)
+  (*   iApply wp_fupd. rewrite /load; wp_pures. *)
+  (*   iDestruct "Hr" as (l ->) "Hr". *)
+  (*   iMod (fupd_mask_mono with "Hr") as "#Hr"; first done. *)
+  (*   wp_bind (!#l)%E. *)
+  (*   iInv (ref_shrN .@ l) as (v) "[>Hl #HA]" "Hclose". *)
+  (*   wp_load. *)
+  (*   iMod ("Hclose" with "[Hl HA]") as "_". *)
+  (*   { iExists v. iFrame "Hl HA". } *)
+  (*   iIntros "!>". wp_pures. iIntros "!>". *)
+  (*   iExists _, _. *)
+  (*   iSplit; first done. *)
+  (*   iFrame "HA". *)
+  (*   iExists _. *)
+  (*   iSplit; first done. *)
+  (*   by iFrame "Hr". *)
+  (* Qed. *)
 
   Lemma ltyped_ref_shrstore (A : lty Σ) :
     ⊢ ∅ ⊨ store : ref_shr A → A → ref_shr A.
