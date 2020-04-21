@@ -9,10 +9,19 @@ Definition lty_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
 Arguments lty_le {_} _%lty _%lty.
 Infix "<:" := lty_le (at level 70).
 Instance: Params (@lty_le) 1 := {}.
-
 Instance lty_le_ne {Σ} : NonExpansive2 (@lty_le Σ).
 Proof. solve_proper. Qed.
 Instance lty_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lty_le Σ).
+Proof. solve_proper. Qed.
+
+Definition lty_bi_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
+  A1 <: A2 ∧ A2 <: A1.
+Arguments lty_bi_le {_} _%lty _%lty.
+Infix "<:>" := lty_bi_le (at level 70).
+Instance: Params (@lty_bi_le) 1 := {}.
+Instance lty_bi_le_ne {Σ} : NonExpansive2 (@lty_bi_le Σ).
+Proof. solve_proper. Qed.
+Instance lty_bi_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lty_bi_le Σ).
 Proof. solve_proper. Qed.
 
 Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
@@ -20,10 +29,19 @@ Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
 Arguments lsty_le {_} _%lsty _%lsty.
 Infix "<s:" := lsty_le (at level 70).
 Instance: Params (@lsty_le) 1 := {}.
-
 Instance lsty_le_ne {Σ} : NonExpansive2 (@lsty_le Σ).
 Proof. solve_proper. Qed.
 Instance lsty_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_le Σ).
+Proof. solve_proper. Qed.
+
+Definition lsty_bi_le {Σ} (S1 S2 : lsty Σ) : iProp Σ :=
+  S1 <s: S2 ∧ S2 <s: S1.
+Arguments lty_bi_le {_} _%lsty _%lsty.
+Infix "<s:>" := lsty_bi_le (at level 70).
+Instance: Params (@lsty_bi_le) 1 := {}.
+Instance lsty_bi_le_ne {Σ} : NonExpansive2 (@lsty_bi_le Σ).
+Proof. solve_proper. Qed.
+Instance lsty_bi_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lsty_bi_le Σ).
 Proof. solve_proper. Qed.
 
 Section subtype.
@@ -33,9 +51,13 @@ Section subtype.
 
   Lemma lty_le_refl (A : lty Σ) : ⊢ A <: A.
   Proof. by iIntros (v) "!> H". Qed.
-
   Lemma lty_le_trans A1 A2 A3 : A1 <: A2 -∗ A2 <: A3 -∗ A1 <: A3.
   Proof. iIntros "#H1 #H2" (v) "!> H". iApply "H2". by iApply "H1". Qed.
+
+  Lemma lty_bi_le_refl A : ⊢ A <:> A.
+  Proof. iSplit; iApply lty_le_refl. Qed.
+  Lemma lty_bi_le_trans A1 A2 A3 : ⊢ A1 <:> A2 -∗ A2 <:> A3 -∗ A1 <:> A3.
+  Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lty_le_trans. Qed.
 
   Lemma lty_le_copy A : ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
@@ -103,15 +125,12 @@ Section subtype.
     ⊢ C B <: ∃ A, C A.
   Proof. iIntros "!>" (v) "Hle". by iExists B. Qed.
 
-  Lemma lty_le_rec_1 (C : lty Σ → lty Σ) `{!Contractive C} :
-    ⊢ lty_rec C <: C (lty_rec C).
+  Lemma lty_le_rec_unfold (C : lty Σ → lty Σ) `{!Contractive C} :
+    ⊢ lty_rec C <:> C (lty_rec C).
   Proof.
-    rewrite {1}/lty_rec {1}fixpoint_unfold {1}/lty_rec_aux. iApply lty_le_refl.
-  Qed.
-  Lemma lty_le_rec_2 (C : lty Σ → lty Σ) `{!Contractive C} :
-    ⊢ C (lty_rec C) <: lty_rec C.
-  Proof.
-    rewrite {2}/lty_rec {1}fixpoint_unfold {1}/lty_rec_aux. iApply lty_le_refl.
+    iSplit.
+    - rewrite {1}/lty_rec {1}fixpoint_unfold {1}/lty_rec_aux. iApply lty_le_refl.
+    - rewrite {2}/lty_rec {1}fixpoint_unfold {1}/lty_rec_aux. iApply lty_le_refl.
   Qed.
 
   Lemma lty_le_rec `{Contractive C1, Contractive C2} :
@@ -175,9 +194,13 @@ Section subtype.
 
   Lemma lsty_le_refl (S : lsty Σ) : ⊢ S <s: S.
   Proof. iApply iProto_le_refl. Qed.
-
   Lemma lsty_le_trans S1 S2 S3 : S1 <s: S2 -∗ S2 <s: S3 -∗ S1 <s: S3.
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_trans. Qed.
+
+  Lemma lsty_bi_le_refl S : ⊢ S <s:> S.
+  Proof. iSplit; iApply lsty_le_refl. Qed.
+  Lemma lsty_bi_le_trans S1 S2 S3 : ⊢ S1 <s:> S2 -∗ S2 <s:> S3 -∗ S1 <s:> S3.
+  Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lsty_le_trans. Qed.
 
   Lemma lsty_le_send A1 A2 S1 S2 :
     ▷ (A2 <: A1) -∗ ▷ (S1 <s: S2) -∗
@@ -292,21 +315,14 @@ Section subtype.
     (S11 <++> S12) <s: (S21 <++> S22).
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
-  Lemma lsty_le_app_assoc_l S1 S2 S3 :
-    ⊢ S1 <++> (S2 <++> S3) <s: (S1 <++> S2) <++> S3.
-  Proof. rewrite assoc. iApply lsty_le_refl. Qed.
-  Lemma lsty_le_app_assoc_r S1 S2 S3 :
-    ⊢ (S1 <++> S2) <++> S3 <s: S1 <++> (S2 <++> S3).
-  Proof. rewrite assoc. iApply lsty_le_refl. Qed.
+  Lemma lsty_le_app_assoc S1 S2 S3 :
+    ⊢ (S1 <++> S2) <++> S3 <s:> S1 <++> (S2 <++> S3).
+  Proof. rewrite assoc. iApply lsty_bi_le_refl. Qed.
 
-  Lemma lsty_le_app_id_l_l S : ⊢ (END <++> S) <s: S.
-  Proof. rewrite left_id. iApply lsty_le_refl. Qed.
-  Lemma lsty_le_app_id_l_r S : ⊢ (S <++> END) <s: S.
-  Proof. rewrite right_id. iApply lsty_le_refl. Qed.
-  Lemma lsty_le_app_id_r_l S : ⊢ S <s: (END <++> S).
-  Proof. rewrite left_id. iApply lsty_le_refl. Qed.
-  Lemma lsty_le_app_id_r_r S : ⊢ S <s: (S <++> END).
-  Proof. rewrite right_id. iApply lsty_le_refl. Qed.
+  Lemma lsty_le_app_id_l S : ⊢ (END <++> S) <s:> S.
+  Proof. rewrite left_id. iApply lsty_bi_le_refl. Qed.
+  Lemma lsty_le_app_id_r S : ⊢ (S <++> END) <s:> S.
+  Proof. rewrite right_id. iApply lsty_bi_le_refl. Qed.
 
   Lemma lsty_le_dual S1 S2 : S2 <s: S1 -∗ lsty_dual S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
@@ -315,41 +331,26 @@ Section subtype.
   Lemma lsty_le_dual_r S1 S2 : S2 <s: lsty_dual S1 -∗ S1 <s: lsty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
 
-  Lemma lsty_le_dual_message_l a A S :
-    ⊢ lsty_dual (lsty_message a A S) <s: lsty_message (action_dual a) A (lsty_dual S).
+  Lemma lsty_le_dual_message a A S :
+    ⊢ lsty_dual (lsty_message a A S) <s:>
+      lsty_message (action_dual a) A (lsty_dual S).
   Proof.
-    iIntros "!>". rewrite /lsty_dual iProto_dual_message_tele. iApply iProto_le_refl.
+    iSplit; iIntros "!>"; rewrite /lsty_dual iProto_dual_message_tele;
+      iApply iProto_le_refl.
   Qed.
-  Lemma lsty_le_dual_message_r a A S :
-    ⊢ lsty_message (action_dual a) A (lsty_dual S) <s: lsty_dual (lsty_message a A S).
-  Proof.
-    iIntros "!>". rewrite /lsty_dual iProto_dual_message_tele. iApply iProto_le_refl.
-  Qed.
-  Lemma lsty_le_dual_send_l A S : ⊢ lsty_dual (<!!> A; S) <s: (<??> A; lsty_dual S).
-  Proof. apply lsty_le_dual_message_l. Qed.
-  Lemma lsty_le_dual_send_r A S : ⊢ (<!!> A; lsty_dual S) <s: lsty_dual (<??> A; S).
-  Proof. apply: lsty_le_dual_message_r. Qed.
-  Lemma lsty_le_dual_recv_l A S : ⊢ lsty_dual (<??> A; S) <s: (<!!> A; lsty_dual S).
-  Proof. apply lsty_le_dual_message_l. Qed.
-  Lemma lsty_le_dual_recv_r A S : ⊢ (<??> A; lsty_dual S) <s: lsty_dual (<!!> A; S).
-  Proof. apply: lsty_le_dual_message_r. Qed.
+  Lemma lsty_le_dual_send A S : ⊢ lsty_dual (<!!> A; S) <s:> (<??> A; lsty_dual S).
+  Proof. apply lsty_le_dual_message. Qed.
+  Lemma lsty_le_dual_recv A S : ⊢ lsty_dual (<??> A; S) <s:> (<!!> A; lsty_dual S).
+  Proof. apply lsty_le_dual_message. Qed.
+  Lemma lsty_le_dual_end : ⊢ lsty_dual (Σ:=Σ) END <s:> END.
+  Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_bi_le_refl. Qed.
 
-  Lemma lsty_le_dual_end_l : ⊢ lsty_dual (Σ:=Σ) END <s: END.
-  Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_le_refl. Qed.
-  Lemma lsty_le_dual_end_r : ⊢ END <s: lsty_dual (Σ:=Σ) END.
-  Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_le_refl. Qed.
-
-  Lemma lsty_le_rec_1 (C : lsty Σ → lsty Σ) `{!Contractive C} :
-    ⊢ lsty_rec C <s: C (lsty_rec C).
+  Lemma lsty_le_rec_unfold (C : lsty Σ → lsty Σ) `{!Contractive C} :
+    ⊢ lsty_rec C <s:> C (lsty_rec C).
   Proof.
-    rewrite {1}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1.
-    iApply lsty_le_refl.
-  Qed.
-  Lemma lsty_le_rec_2 (C : lsty Σ → lsty Σ) `{!Contractive C} :
-    ⊢ C (lsty_rec C) <s: lsty_rec C.
-  Proof.
-    rewrite {2}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1.
-    iApply lsty_le_refl.
+    iSplit.
+    - rewrite {1}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1. iApply lsty_le_refl.
+    - rewrite {2}/lsty_rec {1}fixpoint_unfold {1}/lsty_rec1. iApply lsty_le_refl.
   Qed.
 
   Lemma lsty_le_rec `{Contractive C1, Contractive C2} :
