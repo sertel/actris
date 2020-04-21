@@ -22,4 +22,5 @@ theories/logrel/lsty.v
 theories/logrel/session_types.v
 theories/logrel/types.v
 theories/logrel/subtyping.v
+theories/logrel/copying.v
 theories/logrel/examples/double.v

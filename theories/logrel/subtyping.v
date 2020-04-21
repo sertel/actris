@@ -59,8 +59,6 @@ Section subtype.
   Lemma lty_bi_le_trans A1 A2 A3 : ⊢ A1 <:> A2 -∗ A2 <:> A3 -∗ A1 <:> A3.
   Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lty_le_trans. Qed.
 
-  Lemma lty_le_copy A : ⊢ copy A <: A.
-  Proof. by iIntros (v) "!> #H". Qed.
 
   Lemma lty_le_arr A11 A12 A21 A22 :
     ▷ (A21 <: A11) -∗ ▷ (A12 <: A22) -∗
