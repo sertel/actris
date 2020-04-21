@@ -206,9 +206,7 @@ Section subtype.
     ▷ (A2 <: A1) -∗ ▷ (S1 <s: S2) -∗
     (<!!> A1 ; S1) <s: (<!!> A2 ; S2).
   Proof.
-    iIntros "#HAle #HPle !>".
-    iApply iProto_le_send=> /=.
-    iIntros (x) "H !>".
+    iIntros "#HAle #HPle !>". iApply iProto_le_send; iIntros "!> /=" (x) "H".
     iDestruct ("HAle" with "H") as "H".
     eauto with iFrame.
   Qed.
@@ -217,9 +215,7 @@ Section subtype.
     ▷ (A1 <: A2) -∗ ▷ (S1 <s: S2) -∗
     (<??> A1 ; S1) <s: (<??> A2 ; S2).
   Proof.
-    iIntros "#HAle #HPle !>".
-    iApply iProto_le_recv; simpl.
-    iIntros (x) "H !>".
+    iIntros "#HAle #HSle !>". iApply iProto_le_recv; iIntros "!> /=" (x) "H".
     iDestruct ("HAle" with "H") as "H".
     eauto with iFrame.
   Qed.
@@ -227,15 +223,13 @@ Section subtype.
   Lemma lsty_le_swap (A1 A2 : lty Σ) (P : lsty Σ) :
     ⊢ (<??> A1 ; <!!> A2 ; P) <s: (<!!> A2 ; <??> A1 ; P).
   Proof.
-    iIntros "!>".
-    iApply iProto_le_swap. iIntros (x1 x2) "/= HS1 HS2".
+    iIntros "!>". iApply iProto_le_swap. iIntros "!>" (x1 x2) "/= HS1 HS2".
     iExists _, _,
       (tele_app (TT:=[tele _]) (λ x2, (x2, A2 x2, (P:iProto Σ)))),
       (tele_app (TT:=[tele _]) (λ x1, (x1, A1 x1, (P:iProto Σ)))),
       x2, x1; simpl.
     do 2 (iSplit; [done|]).
     iFrame "HS1 HS2".
-    iModIntro.
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
   Qed.
 
@@ -243,15 +237,11 @@ Section subtype.
     (▷ [∗ map] i ↦ S1;S2 ∈ Ps1; Ps2, S1 <s: S2) -∗
     lsty_select Ps1 <s: lsty_select Ps2.
   Proof.
-    iIntros "#H1 !>".
-    iApply iProto_le_send; simpl.
-    iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
-    iExists x. iSplit=> //. iSplit.
-    - iNext.
-      iDestruct (big_sepM2_forall with "H1") as "[% _]".
+    iIntros "#H1 !>". iApply iProto_le_send; iIntros "!>" (x Hsome).
+    iExists x. iSplit; first done. iSplit.
+    - iDestruct (big_sepM2_forall with "H1") as "[% _]".
       iPureIntro. naive_solver.
-    - iNext.
-      iDestruct (big_sepM2_forall with "H1") as "[% H]".
+    - iDestruct (big_sepM2_forall with "H1") as "[% H]".
       iApply ("H" with "[] []").
       + iPureIntro. apply lookup_lookup_total; naive_solver.
       + iPureIntro. by apply lookup_lookup_total.
@@ -261,14 +251,10 @@ Section subtype.
     Ps2 ⊆ Ps1 →
     ⊢ lsty_select Ps1 <s: lsty_select Ps2.
   Proof.
-    iIntros (Hsub) "!>".
-    iApply iProto_le_send; simpl.
-    iIntros (x) ">% !> /=".
-    iExists _. iSplit; first done.
-    iSplit.
-    { iNext. iPureIntro. by eapply lookup_weaken_is_Some. }
-    iNext.
-    destruct H1 as [P H1].
+    iIntros (Hsub) "!>". iApply iProto_le_send; iIntros "!>" (x Hsome).
+    iExists _. iSplit; first done. iSplit.
+    { iPureIntro. by eapply lookup_weaken_is_Some. }
+    destruct Hsome as [P H1].
     assert (Ps1 !! x = Some P) by eauto using lookup_weaken.
     rewrite (lookup_total_correct Ps1 x P) //.
     rewrite (lookup_total_correct Ps2 x P) //.
@@ -279,14 +265,11 @@ Section subtype.
     (▷ [∗ map] i ↦ S1;S2 ∈ Ps1; Ps2, S1 <s: S2) -∗
     lsty_branch Ps1 <s: lsty_branch Ps2.
   Proof.
-    iIntros "#H1 !>". iApply iProto_le_recv.
-    iIntros (x) ">H !>"; iDestruct "H" as %Hsome.
+    iIntros "#H1 !>". iApply iProto_le_recv; iIntros "!>" (x Hsome).
     iExists x. iSplit; first done. iSplit.
-    - iNext.
-      iDestruct (big_sepM2_forall with "H1") as "[% _]".
+    - iDestruct (big_sepM2_forall with "H1") as "[% _]".
       iPureIntro. by naive_solver.
-    - iNext.
-      iDestruct (big_sepM2_forall with "H1") as "[% H]".
+    - iDestruct (big_sepM2_forall with "H1") as "[% H]".
       iApply ("H" with "[] []").
       + iPureIntro. by apply lookup_lookup_total.
       + iPureIntro. by apply lookup_lookup_total; naive_solver.
@@ -296,14 +279,10 @@ Section subtype.
     Ps1 ⊆ Ps2 →
     ⊢ lsty_branch Ps1 <s: lsty_branch Ps2.
   Proof.
-    iIntros (Hsub) "!>".
-    iApply iProto_le_recv; simpl.
-    iIntros (x) ">% !> /=".
-    iExists _. iSplit; first done.
-    iSplit.
-    { iNext. iPureIntro. by eapply lookup_weaken_is_Some. }
-    iNext.
-    destruct H1 as [P ?].
+    iIntros (Hsub) "!>". iApply iProto_le_recv; iIntros "!>" (x Hsome).
+    iExists _. iSplit; first done. iSplit.
+    { iPureIntro. by eapply lookup_weaken_is_Some. }
+    destruct Hsome as [P ?].
     assert (Ps2 !! x = Some P) by eauto using lookup_weaken.
     rewrite (lookup_total_correct Ps1 x P) //.
     rewrite (lookup_total_correct Ps2 x P) //.
