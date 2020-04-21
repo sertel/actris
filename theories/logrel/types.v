@@ -2,6 +2,7 @@ From stdpp Require Import pretty.
 From actris.utils Require Import switch.
 From actris.logrel Require Export ltyping session_types.
 From actris.channel Require Import proto proofmode.
+From iris.bi.lib Require Export core.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang.lib Require Import assert.
@@ -14,6 +15,7 @@ Section types.
   Definition lty_bool : lty Σ := Lty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
   Definition lty_int : lty Σ := Lty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
   Definition lty_copy (A : lty Σ) : lty Σ := Lty (λ w, □ (A w))%I.
+  Definition lty_copyminus (A : lty Σ) : lty Σ := Lty (λ w, coreP (A w)).
   Definition lty_arr (A1 A2 : lty Σ) : lty Σ := Lty (λ w,
     ∀ v, ▷ A1 v -∗ WP w v {{ A2 }})%I.
   (* TODO: Make a non-linear version of prod, using ∧ *)
@@ -55,6 +57,7 @@ End types.
 
 Notation "()" := lty_unit : lty_scope.
 Notation "'copy' A" := (lty_copy A) (at level 10) : lty_scope.
+Notation "'copy-' A" := (lty_copyminus A) (at level 10) : lty_scope.
 Notation "A → B" := (lty_copy (lty_arr A B)) : lty_scope.
 Notation "A ⊸ B" := (lty_arr A B) (at level 99, B at level 200, right associativity) : lty_scope.
 Infix "*" := lty_prod : lty_scope.
@@ -204,27 +207,6 @@ Section properties.
     iApply (ltyped_app Γ Γ2 Γ1 _ _ A1 A2)=> //.
     - by iApply env_split_comm.
     - by iApply ltyped_lam=> //=.
-  Qed.
-
-  Lemma ltyped_rec Γ Γ' f x e A1 A2 :
-    env_copy Γ Γ' -∗
-    (<[f:=(A1 → A2)%lty]>(<[x:=A1]>Γ') ⊨ e : A2) -∗
-    Γ ⊨ (rec: f x := e) : A1 → A2.
-  Proof.
-    iIntros "#Hcopy #He". iIntros (vs) "!> HΓ /=". iApply wp_fupd. wp_pures.
-    iDestruct ("Hcopy" with "HΓ") as "HΓ".
-    iMod (fupd_mask_mono with "HΓ") as "#HΓ"; first done.
-    iModIntro. iLöb as "IH".
-    iIntros (v) "!> HA1". wp_pures. set (r := RecV f x _).
-    iDestruct ("He" $!(binder_insert f r (binder_insert x v vs))
-                  with "[HΓ HA1]") as "He'".
-    { iApply (env_ltyped_insert with "IH").
-      iApply (env_ltyped_insert with "HA1 HΓ"). }
-    destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //.
-    destruct (decide (x = f)) as [->|].
-    - by rewrite subst_subst delete_idemp insert_insert -subst_map_insert.
-    - rewrite subst_subst_ne // -subst_map_insert.
-      by rewrite -delete_insert_ne // -subst_map_insert.
   Qed.
 
   Fixpoint lty_arr_list (As : list (lty Σ)) (B : lty Σ) : lty Σ :=
