@@ -177,11 +177,11 @@ Section channel.
     iProto_le (iProto_branch a P1 P2 p1 p2) (iProto_branch a P1 P2 p1' p2').
   Proof.
     iIntros "H". rewrite /iProto_branch. destruct a.
-    - iApply iProto_le_send'; iIntros "!>" (b) "HP /=".
+    - iApply iProto_le_send; iIntros "!>" (b) "HP /=".
       iExists b; iSplit; [done|]. destruct b.
       + iDestruct "H" as "[H _]". by iApply "H".
       + iDestruct "H" as "[_ H]". by iApply "H".
-    - iApply iProto_le_recv'; iIntros "!>" (b) "HP /=".
+    - iApply iProto_le_recv; iIntros "!>" (b) "HP /=".
       iExists b; iSplit; [done|]. destruct b.
       + iDestruct "H" as "[H _]". by iApply "H".
       + iDestruct "H" as "[_ H]". by iApply "H".
