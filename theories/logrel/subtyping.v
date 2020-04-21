@@ -321,6 +321,61 @@ Section subtype.
   Proof. apply lsty_le_dual_message. Qed.
   Lemma lsty_le_dual_recv A S : ⊢ lsty_dual (<??> A; S) <s:> (<!!> A; lsty_dual S).
   Proof. apply lsty_le_dual_message. Qed.
+
+  Lemma lsty_le_dual_choice a (Ss : gmap Z (lsty Σ)) :
+    ⊢ lsty_dual (lsty_choice a Ss) <s:> lsty_choice (action_dual a) (lsty_dual <$> Ss).
+  Proof.
+    iSplit.
+    - iIntros "!>".
+      rewrite /lsty_dual iProto_dual_message_tele /lsty_choice /=.
+      destruct a.
+      + iApply iProto_le_recv.
+        iIntros "!>" (x) "%".
+        iExists _.
+        iSplit; first done. iSplit.
+        * by rewrite lookup_fmap fmap_is_Some.
+        * destruct a as [S HSs]=> /=.
+          rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+          iApply iProto_le_refl.
+      + iApply iProto_le_send.
+        iIntros "!>" (x) "%".
+        iExists _.
+        iSplit; first done. iSplit.
+        * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
+        * destruct a as [S HSs]=> /=.
+          rewrite lookup_total_alt lookup_total_alt HSs /=.
+          rewrite lookup_fmap in HSs.
+          apply fmap_Some_1 in HSs as [S' [-> ->]].
+          iApply iProto_le_refl.
+        - iIntros "!>".
+          rewrite /lsty_dual iProto_dual_message_tele /lsty_choice /=.
+          destruct a.
+          + iApply iProto_le_recv.
+            iIntros "!>" (x) "%". iExists _.
+            iSplit; first done. iSplit.
+            * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
+            * destruct a as [S HSs]=> /=.
+              rewrite lookup_total_alt lookup_total_alt HSs /=.
+              rewrite lookup_fmap in HSs.
+              apply fmap_Some_1 in HSs as [S' [-> ->]].
+              iApply iProto_le_refl.
+          + iApply iProto_le_send.
+            iIntros "!>" (x) "%". iExists _.
+            iSplit; first done. iSplit.
+            * by rewrite lookup_fmap fmap_is_Some.
+            * destruct a as [S HSs]=> /=.
+              rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+              iApply iProto_le_refl.
+  Qed.
+
+  Lemma lsty_le_dual_select (Ss : gmap Z (lsty Σ)) :
+    ⊢ lsty_dual (lsty_select Ss) <s:> lsty_branch (lsty_dual <$> Ss).
+  Proof. iApply lsty_le_dual_choice. Qed.
+
+  Lemma lsty_le_dual_branch (Ss : gmap Z (lsty Σ)) :
+    ⊢ lsty_dual (lsty_branch Ss) <s:> lsty_select (lsty_dual <$> Ss).
+  Proof. iApply lsty_le_dual_choice. Qed.
+
   Lemma lsty_le_dual_end : ⊢ lsty_dual (Σ:=Σ) END <s:> END.
   Proof. rewrite /lsty_dual iProto_dual_end=> /=. apply lsty_bi_le_refl. Qed.
 
