@@ -323,43 +323,43 @@ Section subtype.
       iSplit; iIntros "!>".
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.
-        iIntros "!>" (x) "%". iExists _ => /=.
+        iIntros "!>" (x HSs). iExists _ => /=.
         iSplit; first done.
         iSplit.
-        * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt HSs /=.
+        * rewrite lookup_fmap in HSs. rewrite ->fmap_is_Some in HSs. done.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
           apply fmap_Some_1 in HSs as [S' [-> ->]].
           iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.
-        iIntros "!>" (x) "%".
+        iIntros "!>" (x HSs).
         iExists _.
         iSplit; first done. iSplit.
         * by rewrite lookup_fmap fmap_is_Some.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt lookup_fmap HSs.
           iApply iProto_le_refl.
     - rewrite /lsty_app iProto_app_message_tele.
       iSplit; iIntros "!>".
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_recv.
-        iIntros "!>" (x) "%". iExists _ => /=.
+        iIntros "!>" (x HSs). iExists _ => /=.
         iSplit; first done.
         iSplit.
         * by rewrite lookup_fmap fmap_is_Some.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt lookup_fmap HSs.
           iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_recv.
-        iIntros "!>" (x) "%".
+        iIntros "!>" (x HSs).
         iExists _.
         iSplit; first done. iSplit.
-        * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt HSs /=.
+        * rewrite lookup_fmap in HSs. rewrite ->fmap_is_Some in HSs. done.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
           apply fmap_Some_1 in HSs as [S' [-> ->]].
           iApply iProto_le_refl.
@@ -406,21 +406,21 @@ Section subtype.
       iSplit; iIntros "!>".
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_recv.
-        iIntros "!>" (x) "%". iExists _ => /=.
+        iIntros "!>" (x HSs). iExists _ => /=.
         iSplit; first done.
         iSplit.
         * by rewrite lookup_fmap fmap_is_Some.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt lookup_fmap HSs.
           iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_recv.
-        iIntros "!>" (x) "%".
+        iIntros "!>" (x HSs).
         iExists _.
         iSplit; first done. iSplit.
-        * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt HSs /=.
+        * rewrite lookup_fmap in HSs. rewrite ->fmap_is_Some in HSs. done.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
           apply fmap_Some_1 in HSs as [S' [-> ->]].
           iApply iProto_le_refl.
@@ -428,23 +428,23 @@ Section subtype.
       iSplit; iIntros "!>".
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.
-        iIntros "!>" (x) "%". iExists _ => /=.
+        iIntros "!>" (x HSs). iExists _ => /=.
         iSplit; first done.
         iSplit.
-      * rewrite lookup_fmap in a. rewrite ->fmap_is_Some in a. done.
-      * destruct a as [S HSs]=> /=.
-        rewrite lookup_total_alt lookup_total_alt HSs /=.
+      * rewrite lookup_fmap in HSs. rewrite ->fmap_is_Some in HSs. done.
+      * destruct HSs as [S HSs]=> /=.
+        rewrite !lookup_total_alt HSs /=.
         rewrite lookup_fmap in HSs.
         apply fmap_Some_1 in HSs as [S' [-> ->]].
         iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.
-        iIntros "!>" (x) "%".
+        iIntros "!>" (x HSs).
         iExists _.
         iSplit; first done. iSplit.
         * by rewrite lookup_fmap fmap_is_Some.
-        * destruct a as [S HSs]=> /=.
-          rewrite lookup_total_alt lookup_total_alt lookup_fmap HSs.
+        * destruct HSs as [S HSs]=> /=.
+          rewrite !lookup_total_alt lookup_fmap HSs.
           iApply iProto_le_refl.
   Qed.
 
