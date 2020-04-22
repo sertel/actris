@@ -66,10 +66,12 @@ Section Environment.
 
   Lemma env_ltyped_lookup Γ vs x A :
     Γ !! x = Some A →
-    env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∗ A v.
+    env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∗ A v ∗ env_ltyped (delete x Γ) vs.
   Proof.
     iIntros (HΓx) "HΓ".
-    iPoseProof (big_sepM_lookup with "HΓ") as "H"; eauto.
+    iPoseProof (big_sepM_delete with "HΓ") as "[H1 H2]"; eauto.
+    iDestruct "H1" as (v) "H1".
+    eauto with iFrame.
   Qed.
 
   Lemma env_ltyped_insert Γ vs x A v :
@@ -179,14 +181,18 @@ End Environment.
 
 (* The semantic typing judgement *)
 Definition ltyped `{!heapG Σ}
-    (Γ : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
-  □ ∀ vs, env_ltyped Γ vs -∗ WP subst_map vs e {{ A }}.
+    (Γ Γ' : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
+  □ ∀ vs, env_ltyped Γ vs -∗
+          WP subst_map vs e {{ v, A v ∗ env_ltyped Γ' vs }}.
 
-Notation "Γ ⊨ e : A" := (ltyped Γ e A)
+Notation "Γ ⊨ e : A ⫤ Γ'" := (ltyped Γ Γ' e A)
   (at level 100, e at next level, A at level 200).
 
-Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
-  (∀ `{heapG Σ}, ∃ A, ⊢ ∅ ⊨ e : A) →
+Notation "Γ ⊨ e : A" := (ltyped Γ Γ e A)
+  (at level 100, e at next level, A at level 200).
+
+Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' Γ' :
+  (∀ `{heapG Σ}, ∃ A, ⊢ ∅ ⊨ e : A ⫤ Γ') →
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
