@@ -64,6 +64,9 @@ Section Environment.
              (vs : gmap string val) : iProp Σ :=
     ([∗ map] i ↦ A ∈ Γ, ∃ v, ⌜vs !! i = Some v⌝ ∗ lty_car A v)%I.
 
+  Lemma env_ltyped_empty vs : ⊢ env_ltyped ∅ vs.
+  Proof. by iApply big_sepM_empty. Qed.
+
   Lemma env_ltyped_lookup Γ vs x A :
     Γ !! x = Some A →
     env_ltyped Γ vs -∗ ∃ v, ⌜ vs !! x = Some v ⌝ ∗ A v ∗ env_ltyped (delete x Γ) vs.

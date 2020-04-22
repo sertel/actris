@@ -190,17 +190,20 @@ Section properties.
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
   Qed.
 
-  Lemma ltyped_lam Γ Γ2 x e A1 A2 :
-    (binder_insert x A1 Γ ⊨ e : A2 ⫤ Γ2) -∗
-    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ binder_delete x Γ2.
+  Lemma ltyped_lam Γ Γ1 Γ2 Γ3 x e A1 A2 :
+    env_split Γ Γ1 Γ2 -∗
+    (<[ x := A1 ]>Γ2 ⊨ e : A2 ⫤ Γ3) -∗
+    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ1.
   Proof.
-    iIntros "#He" (vs) "!> HΓ /=".
-    wp_pures.
-    (* Unprovable *)
+    iIntros "#Hsplit #He" (vs) "!> HΓ /=".
+    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    iFrame "HΓ1". wp_pures.
     iIntros (v) "HA1". wp_pures.
-    iDestruct ("He" $!((binder_insert x v vs)) with "[HΓ HA1]") as "He'".
-    { iApply (env_ltyped_insert with "[HA1 //] [HΓ //]"). }
-    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+    iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ2]") as "He'".
+    { iApply (env_ltyped_insert with "[HA1 //] HΓ2"). }
+    rewrite -subst_map_binder_insert.
+    iApply (wp_wand with "He'").
+    iIntros (w) "[$ _]".
   Qed.
 
   Lemma ltyped_let Γ Γ1 Γ2 (x : binder) e1 e2 A1 A2 :
