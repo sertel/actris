@@ -103,27 +103,48 @@ Section Environment.
   Qed.
 
   Definition env_split (Γ Γ1 Γ2 : gmap string (lty Σ)) : iProp Σ :=
-    □ ∀ vs, env_ltyped Γ vs -∗ env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs.
+    □ ∀ vs, (env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)).
+
+  Lemma env_split_None Γ Γ1 Γ2 x :
+    Γ !! x = None → env_split Γ Γ1 Γ2 -∗ ⌜Γ1 !! x = None ∧ Γ2 !! x = None⌝.
+  Proof.
+    iIntros (HΓx) "Hsplit".
+    rewrite /env_split. rewrite /env_ltyped.
+  Admitted.
 
   Lemma env_split_empty : ⊢ env_split ∅ ∅ ∅.
-  Proof. iIntros (vs) "!> HΓ". rewrite /env_ltyped. auto. Qed.
+  Proof.
+    iIntros "!>" (vs).
+    iSplit.
+    - iIntros "HΓ". rewrite /env_ltyped. auto.
+    - iIntros "[HΓ1 HΓ2]". auto.
+  Qed.
 
   Lemma env_split_left Γ Γ1 Γ2 x A:
     Γ !! x = None →
     env_split Γ Γ1 Γ2 -∗
     env_split (<[x := A]> Γ) (<[x := A]> Γ1) Γ2.
   Proof.
-    iIntros (HΓx) "#Hsplit". iIntros (v) "!> HΓ".
-    iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
-    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 $]".
-    iApply (big_sepM_insert_2 with "[Hv]"); simpl; eauto.
+    iIntros (HΓx) "#Hsplit !>". iIntros (vs).
+    iSplit.
+    - iIntros "HΓ".
+      iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
+      iDestruct ("Hsplit" with "HΓ") as "[HΓ1 $]".
+      iApply (big_sepM_insert_2 with "[Hv]"); simpl; eauto.
+    - iIntros "[HΓ1 HΓ2]".
+      iPoseProof (env_split_None with "Hsplit") as "[% %]"; first by apply HΓx.
+      iPoseProof (big_sepM_insert with "HΓ1") as "[Hv HΓ1]"; first by assumption.
+      iApply (big_sepM_insert_2 with "[Hv]")=> //.
+      iApply "Hsplit". iFrame "HΓ1 HΓ2".
   Qed.
 
   Lemma env_split_comm Γ Γ1 Γ2:
     env_split Γ Γ1 Γ2 -∗ env_split Γ Γ2 Γ1.
   Proof.
-    iIntros "#Hsplit" (vs) "!> HΓ".
-    by iDestruct ("Hsplit" with "HΓ") as "[$ $]".
+    iIntros "#Hsplit" (vs) "!>".
+    iSplit.
+    - iIntros "HΓ". by iDestruct ("Hsplit" with "HΓ") as "[$ $]".
+    - iIntros "[HΓ1 HΓ2]". iApply "Hsplit". iFrame.
   Qed.
 
   Lemma env_split_right Γ Γ1 Γ2 x A:
@@ -143,14 +164,22 @@ Section Environment.
     env_split Γ Γ1 Γ2 -∗
     env_split (<[x:=A]> Γ) (<[x:=A]> Γ1) (<[x:=A]> Γ2).
   Proof.
-    iIntros (Hcopy HΓx) "#Hsplit". iIntros (vs) "!> HΓ".
-    iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
-    iDestruct "Hv" as (v ?) "#HAv".
-    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; eauto.
+    iIntros (HΓx Hcopy) "#Hsplit". iIntros (vs) "!>".
+    iSplit.
+    - iIntros "HΓ".
+      iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
+      iDestruct "Hv" as (v ?) "#HAv".
+      iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+      iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; eauto.
+    - iIntros "[HΓ1 HΓ2]".
+      iPoseProof (env_split_None with "Hsplit") as "[% %]"; first by apply HΓx.
+      iPoseProof (big_sepM_insert with "HΓ1") as "[Hv HΓ1]"; first by assumption.
+      iPoseProof (big_sepM_insert with "HΓ2") as "[_ HΓ2]"; first by assumption.
+      iApply (big_sepM_insert_2 with "[Hv]")=> //.
+      iApply "Hsplit". iFrame "HΓ1 HΓ2".
   Qed.
 
-  (* TODO: Prove lemmas about this *)
+  (* (* TODO: Prove lemmas about this *) *)
   Definition env_copy (Γ Γ' : gmap string (lty Σ)) : iProp Σ :=
     □ ∀ vs, env_ltyped Γ vs -∗ □ env_ltyped Γ' vs.
 
@@ -193,6 +222,18 @@ Notation "Γ ⊨ e : A ⫤ Γ'" := (ltyped Γ Γ' e A)
 
 Notation "Γ ⊨ e : A" := (ltyped Γ Γ e A)
   (at level 100, e at next level, A at level 200).
+
+Lemma ltyped_frame `{!heapG Σ} (Γ Γ' Γ1 Γ1' Γ2 : gmap string (lty Σ)) e A :
+  env_split Γ Γ1 Γ2 -∗ env_split Γ' Γ1' Γ2 -∗
+  (Γ1 ⊨ e : A ⫤ Γ1') -∗ Γ ⊨ e : A ⫤ Γ'.
+Proof.
+  iIntros "#Hsplit #Hsplit' #Htyped !>" (vs) "Henv".
+  iDestruct ("Hsplit" with "Henv") as "[Henv1 Henv2]".
+  iApply (wp_wand with "(Htyped Henv1)").
+  iIntros (v) "[$ Henv1']".
+
+  iApply "Hsplit'". iFrame "Henv1' Henv2".
+Qed.
 
 Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' Γ' :
   (∀ `{heapG Σ}, ∃ A, ⊢ ∅ ⊨ e : A ⫤ Γ') →
