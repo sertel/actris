@@ -58,6 +58,8 @@ Section subtype.
   Proof. iSplit; iApply lty_le_refl. Qed.
   Lemma lty_bi_le_trans A1 A2 A3 : ⊢ A1 <:> A2 -∗ A2 <:> A3 -∗ A1 <:> A3.
   Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lty_le_trans. Qed.
+  Lemma lty_bi_le_sym A1 A2 : ⊢ A1 <:> A2 -∗ A2 <:> A1.
+  Proof. iIntros "[$$]". Qed.
 
   Lemma lty_le_copy A : ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
@@ -201,6 +203,8 @@ Section subtype.
   Proof. iSplit; iApply lsty_le_refl. Qed.
   Lemma lsty_bi_le_trans S1 S2 S3 : ⊢ S1 <s:> S2 -∗ S2 <s:> S3 -∗ S1 <s:> S3.
   Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lsty_le_trans. Qed.
+  Lemma lsty_bi_le_sym S1 S2 : ⊢ S1 <s:> S2 -∗ S2 <s:> S1.
+  Proof. iIntros "[$$]". Qed.
 
   Lemma lsty_le_send A1 A2 S1 S2 :
     ▷ (A2 <: A1) -∗ ▷ (S1 <s: S2) -∗
