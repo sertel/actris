@@ -190,31 +190,28 @@ Section properties.
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
   Qed.
 
-  Lemma ltyped_lam Γ Γ1 Γ2 Γ3 x e A1 A2 :
-    env_split Γ Γ1 Γ2 -∗
-    (<[ x := A1 ]>Γ2 ⊨ e : A2 ⫤ Γ3) -∗
-    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ1.
+  Lemma ltyped_lam Γ Γ1 Γ2 x e A1 A2 :
+    (<[ x := A1 ]>Γ ⊨ e : A2 ⫤ Γ2) -∗
+    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
   Proof.
-    iIntros "#Hsplit #He" (vs) "!> HΓ /=".
-    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
-    iFrame "HΓ1". wp_pures.
+    iIntros "#He" (vs) "!> HΓ /=".
+    wp_pures.
+    iSplitL; last by admit.
     iIntros (v) "HA1". wp_pures.
-    iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ2]") as "He'".
-    { iApply (env_ltyped_insert with "[HA1 //] HΓ2"). }
+    iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ]") as "He'".
+    { iApply (env_ltyped_insert with "[HA1 //] HΓ"). }
     rewrite -subst_map_binder_insert.
     iApply (wp_wand with "He'").
     iIntros (w) "[$ _]".
-  Qed.
+  Admitted.
 
-  Lemma ltyped_let Γ Γ1 Γ2 (x : binder) e1 e2 A1 A2 :
-    env_split Γ Γ1 Γ2 -∗
-    (Γ1 ⊨ e1 : A1) -∗ (<[x:=A1]>Γ2 ⊨ e2 : A2) -∗
-    Γ ⊨ (let: x:=e1 in e2) : A2.
+  Lemma ltyped_let Γ1 Γ2 Γ3 (x : binder) e1 e2 A1 A2 :
+    (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (<[x:=A1]>Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
+    Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ Γ3.
   Proof.
-    iIntros "#Hsplit #HA1 #HA2".
-    iApply (ltyped_app Γ Γ2 Γ1 _ _ A1 A2)=> //.
-    - by iApply env_split_comm.
-    - by iApply ltyped_lam=> //=.
+    iIntros "#He1 #He2".
+    iApply ltyped_app=> //.
+    iApply (ltyped_lam)=> //.
   Qed.
 
   Lemma ltyped_rec Γ Γ' f x e A1 A2 :
