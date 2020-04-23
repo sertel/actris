@@ -112,6 +112,17 @@ Section Environment.
     rewrite /env_split. rewrite /env_ltyped.
   Admitted.
 
+  Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.
+  Proof.
+    iIntros "!>" (vs).
+    iSplit; [iIntros "$" | iIntros "[_ $]"]; iApply env_ltyped_empty.
+  Qed.
+  Lemma env_split_id_r Γ : ⊢ env_split Γ Γ ∅.
+  Proof.
+    iIntros "!>" (vs).
+    iSplit; [iIntros "$" | iIntros "[$ _]"]; iApply env_ltyped_empty.
+  Qed.
+
   Lemma env_split_empty : ⊢ env_split ∅ ∅ ∅.
   Proof.
     iIntros "!>" (vs).
