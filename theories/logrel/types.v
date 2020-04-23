@@ -192,7 +192,7 @@ Section properties.
 
   Lemma ltyped_lam Γ Γ1 Γ2 x e A1 A2 :
     (<[ x := A1 ]>Γ ⊨ e : A2 ⫤ Γ2) -∗
-    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
+    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ binder_delete x Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_pures.
@@ -207,10 +207,10 @@ Section properties.
 
   Lemma ltyped_let Γ1 Γ2 Γ3 (x : binder) e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (<[x:=A1]>Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
-    Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ Γ3.
+    Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ binder_delete x Γ3.
   Proof.
     iIntros "#He1 #He2".
-    iApply ltyped_app=> //.
+    iApply ltyped_app=> //.    
     iApply (ltyped_lam)=> //.
   Qed.
 
