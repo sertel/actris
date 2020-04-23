@@ -205,13 +205,7 @@ Section properties.
   Lemma ltyped_let Γ1 Γ2 Γ3 (x : binder) e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (binder_insert x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
     Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ ∅.
-  Proof.
-    iIntros "#He1 #He2".
-    iApply ltyped_app=> //.
-    iApply (ltyped_frame _ _ _ _ ∅); last by iApply (ltyped_lam).
-    - iApply env_split_id_r.
-    - iApply env_split_empty.
-  Qed.
+  Proof. iIntros "#He1 #He2". iApply ltyped_app=> //. iApply ltyped_lam. Qed.
 
   Lemma ltyped_rec Γ Γ' f x e A1 A2 :
     env_copy Γ Γ' -∗
