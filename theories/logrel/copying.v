@@ -23,11 +23,21 @@ Section copying.
     ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
 
+  Lemma coreP_desired_lemma (P : iProp Σ) :
+    □ (P -∗ □ P) -∗ coreP P -∗ P.
+  Proof.
+    iIntros "HP Hcore".
+  Admitted.
+
   Lemma lty_le_copy_minus A :
     copyable A -∗ copy- A <: A.
   Proof.
     iIntros "#HA". iIntros (v) "!> #Hv".
-  Admitted.
+    iSpecialize ("HA" $! v).
+    iApply coreP_desired_lemma.
+    - iModIntro. iApply "HA".
+    - iApply "Hv".
+  Qed.
 
   (* Copyability of types *)
   Lemma lty_unit_copyable :
