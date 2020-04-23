@@ -105,13 +105,6 @@ Section Environment.
   Definition env_split (Γ Γ1 Γ2 : gmap string (lty Σ)) : iProp Σ :=
     □ ∀ vs, (env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)).
 
-  Lemma env_split_None Γ Γ1 Γ2 x :
-    Γ !! x = None → env_split Γ Γ1 Γ2 -∗ ⌜Γ1 !! x = None ∧ Γ2 !! x = None⌝.
-  Proof.
-    iIntros (HΓx) "Hsplit".
-    rewrite /env_split. rewrite /env_ltyped.
-  Admitted.
-
   Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.
   Proof.
     iIntros "!>" (vs).
@@ -131,19 +124,19 @@ Section Environment.
     - iIntros "[HΓ1 HΓ2]". auto.
   Qed.
 
+  (* TODO: Get rid of side condition that x does not appear in Γ1 *)
   Lemma env_split_left Γ Γ1 Γ2 x A:
-    Γ !! x = None →
+    Γ !! x = None → Γ1 !! x = None →
     env_split Γ Γ1 Γ2 -∗
     env_split (<[x := A]> Γ) (<[x := A]> Γ1) Γ2.
   Proof.
-    iIntros (HΓx) "#Hsplit !>". iIntros (vs).
+    iIntros (HΓx HΓ2x) "#Hsplit !>". iIntros (vs).
     iSplit.
     - iIntros "HΓ".
       iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
       iDestruct ("Hsplit" with "HΓ") as "[HΓ1 $]".
       iApply (big_sepM_insert_2 with "[Hv]"); simpl; eauto.
     - iIntros "[HΓ1 HΓ2]".
-      iPoseProof (env_split_None with "Hsplit") as "[% %]"; first by apply HΓx.
       iPoseProof (big_sepM_insert with "HΓ1") as "[Hv HΓ1]"; first by assumption.
       iApply (big_sepM_insert_2 with "[Hv]")=> //.
       iApply "Hsplit". iFrame "HΓ1 HΓ2".
@@ -158,24 +151,25 @@ Section Environment.
     - iIntros "[HΓ1 HΓ2]". iApply "Hsplit". iFrame.
   Qed.
 
+  (* TODO: Get rid of side condition that x does not appear in Γ2 *)
   Lemma env_split_right Γ Γ1 Γ2 x A:
-    Γ !! x = None →
+    Γ !! x = None → Γ2 !! x = None →
     env_split Γ Γ1 Γ2 -∗
     env_split (<[x := A]> Γ) Γ1 (<[x := A]> Γ2).
   Proof.
-    iIntros (HΓx) "Hsplit".
-    iApply env_split_comm. iApply env_split_left; first by assumption.
+    iIntros (HΓx HΓ2x) "Hsplit".
+    iApply env_split_comm. iApply env_split_left=> //.
     by iApply env_split_comm.
   Qed.
 
-  (* TODO: Get rid of side condition that x does not appear in Γ *)
+  (* TODO: Get rid of side condition that x does not appear in Γs *)
   Lemma env_split_copy Γ Γ1 Γ2 (x : string) A:
-    Γ !! x = None →
+    Γ !! x = None → Γ1 !! x = None → Γ2 !! x = None →
     LTyCopy A →
     env_split Γ Γ1 Γ2 -∗
     env_split (<[x:=A]> Γ) (<[x:=A]> Γ1) (<[x:=A]> Γ2).
   Proof.
-    iIntros (HΓx Hcopy) "#Hsplit". iIntros (vs) "!>".
+    iIntros (HΓx HΓ1x HΓ2x Hcopy) "#Hsplit". iIntros (vs) "!>".
     iSplit.
     - iIntros "HΓ".
       iPoseProof (big_sepM_insert with "HΓ") as "[Hv HΓ]"; first by assumption.
@@ -183,7 +177,6 @@ Section Environment.
       iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
       iSplitL "HΓ1"; iApply big_sepM_insert_2; simpl; eauto.
     - iIntros "[HΓ1 HΓ2]".
-      iPoseProof (env_split_None with "Hsplit") as "[% %]"; first by apply HΓx.
       iPoseProof (big_sepM_insert with "HΓ1") as "[Hv HΓ1]"; first by assumption.
       iPoseProof (big_sepM_insert with "HΓ2") as "[_ HΓ2]"; first by assumption.
       iApply (big_sepM_insert_2 with "[Hv]")=> //.
@@ -242,7 +235,6 @@ Proof.
   iDestruct ("Hsplit" with "Henv") as "[Henv1 Henv2]".
   iApply (wp_wand with "(Htyped Henv1)").
   iIntros (v) "[$ Henv1']".
-
   iApply "Hsplit'". iFrame "Henv1' Henv2".
 Qed.
 
