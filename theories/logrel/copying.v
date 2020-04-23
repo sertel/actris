@@ -96,15 +96,21 @@ Section copying.
 
   (* Copyability of recursive types *)
   Lemma lty_rec_copy C `{!Contractive C} :
-    □ (∀ A, copyable A -∗ copyable (C A)) -∗ copyable (lty_rec C).
+    □ (∀ A, ▷ copyable A -∗ copyable (C A)) -∗ copyable (lty_rec C).
   Proof.
     iIntros "#Hcopy".
-    iLöb as "#IH".
+    iLöb as "IH".
     iIntros (v) "!> Hv".
-    rewrite /lty_rec {2}fixpoint_unfold.
-    (* iEval (rewrite fixpoint_unfold) *)
-    (* TODO: Rewriting goes crazy here *)
-  Admitted.
+    rewrite /lty_rec.
+    rewrite {2}fixpoint_unfold.
+    iSpecialize ("Hcopy" with "IH").
+    rewrite {3}/lty_rec_aux.
+    iSpecialize ("Hcopy" with "Hv").
+    iDestruct "Hcopy" as "#Hcopy".
+    iModIntro.
+    iEval (rewrite fixpoint_unfold).
+    iApply "Hcopy".
+  Qed.
 
   (* TODO: Get rid of side condition that x does not appear in Γ *)
   Lemma env_split_copy Γ Γ1 Γ2 (x : string) A:
