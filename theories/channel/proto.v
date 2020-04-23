@@ -466,6 +466,14 @@ Section proto.
     - iDestruct 1 as (x ->) "[Hpc Hps]". auto 10.
   Qed.
 
+  Lemma iProto_app_message_tele {TT} a (pc : TT -t> V * iProp Σ * iProto Σ V) p2 :
+    (iProto_message a (tele_app pc) <++> p2)%proto
+    ≡ iProto_message a (tele_app (tele_map (prod_map id (flip iProto_app p2)) pc)).
+  Proof.
+    rewrite iProto_app_message.
+    apply iProto_message_proper; apply tforall_forall=> x; by rewrite /=?tele_map_app.
+  Qed.
+
   Global Instance iProto_app_end_l : LeftId (≡) END%proto (@iProto_app Σ V).
   Proof. intros p. by rewrite iProto_end_eq /iProto_end_def iProto_app_end'. Qed.
   Global Instance iProto_app_end_r : RightId (≡) END%proto (@iProto_app Σ V).
