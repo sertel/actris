@@ -103,7 +103,7 @@ Section Environment.
   Qed.
 
   Definition env_split (Γ Γ1 Γ2 : gmap string (lty Σ)) : iProp Σ :=
-    □ ∀ vs, (env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs)).
+    □ ∀ vs, env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs).
 
   Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.
   Proof.
@@ -119,9 +119,7 @@ Section Environment.
   Lemma env_split_empty : ⊢ env_split ∅ ∅ ∅.
   Proof.
     iIntros "!>" (vs).
-    iSplit.
-    - iIntros "HΓ". rewrite /env_ltyped. auto.
-    - iIntros "[HΓ1 HΓ2]". auto.
+    iSplit; [iIntros "HΓ" | iIntros "[HΓ1 HΓ2]"]; auto.
   Qed.
 
   (* TODO: Get rid of side condition that x does not appear in Γ1 *)
@@ -183,7 +181,7 @@ Section Environment.
       iApply "Hsplit". iFrame "HΓ1 HΓ2".
   Qed.
 
-  (* (* TODO: Prove lemmas about this *) *)
+  (* TODO: Prove lemmas about this *)
   Definition env_copy (Γ Γ' : gmap string (lty Σ)) : iProp Σ :=
     □ ∀ vs, env_ltyped Γ vs -∗ □ env_ltyped Γ' vs.
 
@@ -223,8 +221,7 @@ Definition ltyped `{!heapG Σ}
 
 Notation "Γ ⊨ e : A ⫤ Γ'" := (ltyped Γ Γ' e A)
   (at level 100, e at next level, A at level 200).
-
-Notation "Γ ⊨ e : A" := (ltyped Γ Γ e A)
+Notation "Γ ⊨ e : A" := (Γ ⊨ e : A ⫤ Γ)
   (at level 100, e at next level, A at level 200).
 
 Lemma ltyped_frame `{!heapG Σ} (Γ Γ' Γ1 Γ1' Γ2 : gmap string (lty Σ)) e A :

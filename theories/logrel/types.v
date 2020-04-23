@@ -763,7 +763,7 @@ Section properties.
     Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
-      ⊢ <[x := (chan (<??> A; S))%lty]>Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
+      ⊢ <[x := (chan (<??> A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
       iIntros "!>" (vs) "HΓ"=> /=.
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
