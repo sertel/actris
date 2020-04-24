@@ -6,7 +6,7 @@ From iris.heap_lang Require Import proofmode.
 
 Definition lty_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
   (■ ∀ v, A1 v -∗ A2 v)%I.
-Arguments lty_le {_} _%lty _%lty.
+Arguments lty_le {_} _%kind _%kind.
 Infix "<:" := lty_le (at level 70).
 Instance: Params (@lty_le) 1 := {}.
 Instance lty_le_ne {Σ} : NonExpansive2 (@lty_le Σ).
@@ -16,7 +16,7 @@ Proof. solve_proper. Qed.
 
 Definition lty_bi_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
   A1 <: A2 ∧ A2 <: A1.
-Arguments lty_bi_le {_} _%lty _%lty.
+Arguments lty_bi_le {_} _%kind _%kind.
 Infix "<:>" := lty_bi_le (at level 70).
 Instance: Params (@lty_bi_le) 1 := {}.
 Instance lty_bi_le_ne {Σ} : NonExpansive2 (@lty_bi_le Σ).
@@ -26,7 +26,7 @@ Proof. solve_proper. Qed.
 
 Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
   (■ iProto_le P1 P2)%I.
-Arguments lsty_le {_} _%lsty _%lsty.
+Arguments lsty_le {_} _%kind _%kind.
 Infix "<s:" := lsty_le (at level 70).
 Instance: Params (@lsty_le) 1 := {}.
 Instance lsty_le_ne {Σ} : NonExpansive2 (@lsty_le Σ).
@@ -36,7 +36,7 @@ Proof. solve_proper. Qed.
 
 Definition lsty_bi_le {Σ} (S1 S2 : lsty Σ) : iProp Σ :=
   S1 <s: S2 ∧ S2 <s: S1.
-Arguments lty_bi_le {_} _%lsty _%lsty.
+Arguments lty_bi_le {_} _%kind _%kind.
 Infix "<s:>" := lsty_bi_le (at level 70).
 Instance: Params (@lsty_bi_le) 1 := {}.
 Instance lsty_bi_le_ne {Σ} : NonExpansive2 (@lsty_bi_le Σ).
@@ -318,7 +318,7 @@ Section subtype.
 
   Lemma lsty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
     ⊢ lsty_choice a Ss <++> S2 <s:>
-      lsty_choice a ((λ S1, S1 <++> S2)%lsty <$> Ss).
+      lsty_choice a ((λ S1, S1 <++> S2)%kind <$> Ss).
   Proof.
     destruct a.
     - rewrite /lsty_app iProto_app_message_tele.
@@ -331,7 +331,7 @@ Section subtype.
         * destruct HSs as [S HSs]=> /=.
           rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
-          apply fmap_Some_1 in HSs as [S' [-> ->]].
+          apply fmap_Some_1 in HSs as [S' [Heq1 ->]]. rewrite Heq1.
           iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.
@@ -359,16 +359,16 @@ Section subtype.
         * destruct HSs as [S HSs]=> /=.
           rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
-          apply fmap_Some_1 in HSs as [S' [-> ->]].
+          apply fmap_Some_1 in HSs as [S' [Heq ->]]. rewrite Heq.
           iApply iProto_le_refl.
   Qed.
 
   Lemma lsty_le_app_select A Ss S2 :
-    ⊢ (lsty_select Ss) <++> S2 <s:> (lsty_select ((λ S1, S1 <++> S2)%lsty <$> Ss)).
+    ⊢ (lsty_select Ss) <++> S2 <s:> (lsty_select ((λ S1, S1 <++> S2)%kind <$> Ss)).
   Proof. apply lsty_le_app_choice. Qed.
 
   Lemma lsty_le_app_branch A Ss S2 :
-    ⊢ (lsty_branch Ss) <++> S2 <s:> (lsty_branch ((λ S1, S1 <++> S2)%lsty <$> Ss)).
+    ⊢ (lsty_branch Ss) <++> S2 <s:> (lsty_branch ((λ S1, S1 <++> S2)%kind <$> Ss)).
   Proof. apply lsty_le_app_choice. Qed.
 
   Lemma lsty_le_app_id_l S : ⊢ (END <++> S) <s:> S.
@@ -418,7 +418,7 @@ Section subtype.
         * destruct HSs as [S HSs]=> /=.
           rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
-          apply fmap_Some_1 in HSs as [S' [-> ->]].
+          apply fmap_Some_1 in HSs as [S' [Heq ->]]. rewrite Heq.
           iApply iProto_le_refl.
     - rewrite /lsty_dual iProto_dual_message_tele.
       iSplit; iIntros "!>".
@@ -430,7 +430,7 @@ Section subtype.
         * destruct HSs as [S HSs]=> /=.
           rewrite !lookup_total_alt HSs /=.
           rewrite lookup_fmap in HSs.
-          apply fmap_Some_1 in HSs as [S' [-> ->]].
+          apply fmap_Some_1 in HSs as [S' [Heq ->]]. rewrite Heq.
           iApply iProto_le_refl.
       + rewrite /lsty_select /lsty_choice.
         iApply iProto_le_send.

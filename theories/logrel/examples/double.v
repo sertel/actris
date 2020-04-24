@@ -98,7 +98,7 @@ Section double.
     iSplitL; last by iApply env_ltyped_empty.
     iIntros (c) "Hc".
     iApply (wp_prog with "[Hc]").
-    { iApply (iProto_mapsto_le _ (<??> lty_int; <??> lty_int; END)%lsty with "Hc").
+    { iApply (iProto_mapsto_le _ (<??> lty_int; <??> lty_int; END)%kind with "Hc").
       iApply iProto_le_recv.
       iIntros "!> !> !>" (? [x ->]).
       iExists _. do 2 (iSplit; [done|]).
