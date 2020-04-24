@@ -23,25 +23,35 @@ Section copying.
     ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
 
-  (* TODO(COPY): have A <: copy- A rule *)
   (* TODO(COPY): Show derived rules about copyability of products, sums, etc. *)
   (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
 
-  (* TODO(COPY) *)
-  Lemma coreP_desired_lemma (P : iProp Σ) :
-    □ (P -∗ □ P) -∗ coreP P -∗ P.
+  Lemma lty_le_copy_minus_copy A :
+    ⊢ copy- (copy A) <: A.
   Proof.
-    iIntros "HP Hcore".
-  Admitted.
+    iIntros (v) "!> #Hv".
+    iDestruct (coreP_elim with "Hv") as "Hw".
+    iApply "Hw".
+  Qed.
 
   Lemma lty_le_copy_minus A :
-    copyable A -∗ copy- A <: A.
+    ⊢ A <: copy- A.
+  Proof. iIntros "!>" (v). iApply coreP_intro. Qed.
+
+  (* TODO: Wait for this to be merged into Iris and then bump Iris version *)
+  Lemma actris_coreP_wand (P Q : iProp Σ) : <affine> ■ (P -∗ Q) -∗ coreP P -∗ coreP Q.
   Proof.
-    iIntros "#HA". iIntros (v) "!> #Hv".
-    iSpecialize ("HA" $! v).
-    iApply coreP_desired_lemma.
-    - iModIntro. iApply "HA".
-    - iApply "Hv".
+    rewrite /coreP. iIntros "#HPQ HP" (R) "#HR #HQR". iApply ("HP" with "HR").
+    iIntros "!> !> HP". iApply "HQR". by iApply "HPQ".
+  Qed.
+
+  Lemma lty_copy_minus_mono A B :
+    A <: B -∗ copy- A <: copy- B.
+  Proof.
+    iIntros "#Hsub !>" (v) "#HA".
+    iApply (actris_coreP_wand (A v)).
+    - iModIntro. iClear "HA". iModIntro. iApply "Hsub".
+    - iApply "HA".
   Qed.
 
   (* Copyability of types *)
@@ -111,7 +121,7 @@ Section copying.
 
   (* Copyability of recursive types *)
   Lemma lty_rec_copy C `{!Contractive C} :
-    □ (∀ A, ▷ copyable A -∗ copyable (C A)) -∗ copyable (lty_rec C).
+    (∀ A, ▷ copyable A -∗ copyable (C A)) -∗ copyable (lty_rec C).
   Proof.
     iIntros "#Hcopy".
     iLöb as "IH".
@@ -150,7 +160,7 @@ Section copying.
   Qed.
 
   Definition env_copy (Γ Γ' : gmap string (lty Σ)) : iProp Σ :=
-    □ ∀ vs, env_ltyped Γ vs -∗ □ env_ltyped Γ' vs.
+    (■ ∀ vs, env_ltyped Γ vs -∗ □ env_ltyped Γ' vs)%I.
 
   Lemma env_copy_empty : ⊢ env_copy ∅ ∅.
   Proof. iIntros (vs) "!> _ !> ". by rewrite /env_ltyped. Qed.

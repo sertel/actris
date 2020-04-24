@@ -5,7 +5,7 @@ From iris.proofmode Require Import tactics.
 From iris.heap_lang Require Import proofmode.
 
 Definition lty_le {Σ} (A1 A2 : lty Σ) : iProp Σ :=
-  □ ∀ v, A1 v -∗ A2 v.
+  (■ ∀ v, A1 v -∗ A2 v)%I.
 Arguments lty_le {_} _%lty _%lty.
 Infix "<:" := lty_le (at level 70).
 Instance: Params (@lty_le) 1 := {}.
@@ -25,7 +25,7 @@ Instance lty_bi_le_proper {Σ} : Proper ((≡) ==> (≡) ==> (≡)) (@lty_bi_le 
 Proof. solve_proper. Qed.
 
 Definition lsty_le {Σ} (P1 P2 : lsty Σ) : iProp Σ :=
-  □ iProto_le P1 P2.
+  (■ iProto_le P1 P2)%I.
 Arguments lsty_le {_} _%lsty _%lsty.
 Infix "<s:" := lsty_le (at level 70).
 Instance: Params (@lsty_le) 1 := {}.
@@ -137,7 +137,7 @@ Section subtype.
   Qed.
 
   Lemma lty_le_rec `{Contractive C1, Contractive C2} :
-    (□ ∀ A B, ▷ (A <: B) -∗ C1 A <: C2 B) -∗
+    (∀ A B, ▷ (A <: B) -∗ C1 A <: C2 B) -∗
     lty_rec C1 <: lty_rec C2.
   Proof.
     iIntros "#Hle".
@@ -196,7 +196,8 @@ Section subtype.
   Qed.
 
   Lemma lsty_le_refl (S : lsty Σ) : ⊢ S <s: S.
-  Proof. iApply iProto_le_refl. Qed.
+  Proof. iModIntro. iApply iProto_le_refl. Qed.
+
   Lemma lsty_le_trans S1 S2 S3 : S1 <s: S2 -∗ S2 <s: S3 -∗ S1 <s: S3.
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_trans. Qed.
 
@@ -462,11 +463,11 @@ Section subtype.
   Qed.
 
   Lemma lsty_le_rec `{Contractive C1, Contractive C2} :
-    (□ ∀ S S', ▷ (S <s: S') -∗ C1 S <s: C2 S') -∗
+    (∀ S S', ▷ (S <s: S') -∗ C1 S <s: C2 S') -∗
     lsty_rec C1 <s: lsty_rec C2.
   Proof.
-    iIntros "#Hle !>".
-    iLöb as "IH".
+    iIntros "#Hle".
+    iLöb as "IH". iModIntro.
     rewrite /lsty_rec.
     iEval (rewrite fixpoint_unfold).
     iEval (rewrite (fixpoint_unfold (lsty_rec1 C2))).
