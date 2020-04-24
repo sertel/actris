@@ -99,7 +99,7 @@ Section Environment.
   Qed.
 
   Definition env_split (Γ Γ1 Γ2 : gmap string (lty Σ)) : iProp Σ :=
-    □ ∀ vs, env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs).
+    (■ ∀ vs, env_ltyped Γ vs ∗-∗ (env_ltyped Γ1 vs ∗ env_ltyped Γ2 vs))%I.
 
   Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.
   Proof.
@@ -161,8 +161,8 @@ End Environment.
 (* The semantic typing judgement *)
 Definition ltyped `{!heapG Σ}
     (Γ Γ' : gmap string (lty Σ)) (e : expr) (A : lty Σ) : iProp Σ :=
-  □ ∀ vs, env_ltyped Γ vs -∗
-          WP subst_map vs e {{ v, A v ∗ env_ltyped Γ' vs }}.
+  (■ ∀ vs, env_ltyped Γ vs -∗
+           WP subst_map vs e {{ v, A v ∗ env_ltyped Γ' vs }})%I.
 
 Notation "Γ ⊨ e : A ⫤ Γ'" := (ltyped Γ Γ' e A)
   (at level 100, e at next level, A at level 200).
