@@ -5,11 +5,8 @@ Based Reasoning in Separation Logic".
 
 It has been built and tested with the following dependencies
 
- - Coq 8.10
- - [std++](https://gitlab.mpi-sws.org/robbertkrebbers/coq-stdpp) at
-   commit 37e95a04.
- - [iris](https://gitlab.mpi-sws.org/iris/iris) at
-   commit d1787db2.
+ - Coq 8.11.1
+ - The version of Iris in the [opam file](opam)
 
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.
