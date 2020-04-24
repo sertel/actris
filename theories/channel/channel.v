@@ -18,7 +18,8 @@ In this file we define the three message-passing connectives:
 - [send] takes an endpoint and adds an element to the first buffer.
 - [recv] performs a busy loop until there is something in the second buffer,
   which it pops and returns, locking during each peek.*)
-From iris.heap_lang Require Import proofmode notation.
+From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang Require Import proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
 From actris.channel Require Export proto.
 From actris.utils Require Import llist skip.

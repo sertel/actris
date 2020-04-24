@@ -1,7 +1,7 @@
 opam-version: "1.2"
 name: "coq-actris"
 maintainer: "Robbert Krebbers"
-authors: "Jonas Kastberg Hinrichsen, Jesper Bengtson, Robbert Krebbers"
+authors: "Jonas Kastberg Hinrichsen, Daniël Louwrink, Jesper Bengtson, Robbert Krebbers"
 license: "BSD"
 bug-reports: "https://gitlab.mpi-sws.org/iris/actris/issues"
 dev-repo: "https://gitlab.mpi-sws.org/iris/actris.git"
@@ -9,5 +9,5 @@ build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/actris" ]
 depends: [
-  "coq-iris" { (= "dev.2020-04-13.0.26dc475b") | (= "dev") }
+  "coq-iris" { (= "dev.2020-04-24.0.9cc3cc77 ") | (= "dev") }
 ]

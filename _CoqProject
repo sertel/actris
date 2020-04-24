@@ -18,10 +18,13 @@ theories/examples/sort_fg.v
 theories/examples/map.v
 theories/examples/map_reduce.v
 theories/logrel/model.v
-theories/logrel/ltyping.v
-theories/logrel/session_types.v
-theories/logrel/types.v
 theories/logrel/subtyping.v
-theories/logrel/copying.v
+theories/logrel/environments.v
+theories/logrel/term_types.v
+theories/logrel/session_types.v
+theories/logrel/operators.v
+theories/logrel/typing_judgment.v
+theories/logrel/subtyping_rules.v
+theories/logrel/term_typing_rules.v
 theories/logrel/examples/double.v
 theories/logrel/examples/pair.v

@@ -1,9 +1,8 @@
-From iris.heap_lang Require Export lifting metatheory.
-From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Import notation proofmode lib.par lib.spin_lock.
-From iris.algebra Require Import agree frac csum excl frac_auth.
-From actris.channel Require Import channel proto proofmode.
-From actris.logrel Require Export types subtyping.
+From iris.algebra Require Import frac.
+From iris.heap_lang.lib Require Export par spin_lock.
+From actris.channel Require Import proofmode.
+From actris.logrel Require Export typing_judgment session_types.
+From actris.logrel Require Import environments.
 
 Definition prog : val := λ: "c",
   let: "lock" := newlock #() in
@@ -19,13 +18,8 @@ Definition prog : val := λ: "c",
     "x2"
   ).
 
-Class fracG Σ := { frac_inG :> inG Σ fracR }.
-Definition fracΣ : gFunctors := #[GFunctor fracR].
-Instance subG_fracΣ {Σ} : subG fracΣ Σ → fracG Σ.
-Proof. solve_inG. Qed.
-
 Section double.
-  Context `{heapG Σ, chanG Σ, fracG Σ, spawnG Σ}.
+  Context `{heapG Σ, chanG Σ, inG Σ fracR, spawnG Σ}.
 
   Definition prog_prot : iProto Σ :=
     (<?> (x : Z), MSG #x; <?> (y : Z), MSG #y; END)%proto.
@@ -98,7 +92,7 @@ Section double.
     iSplitL; last by iApply env_ltyped_empty.
     iIntros (c) "Hc".
     iApply (wp_prog with "[Hc]").
-    { iApply (iProto_mapsto_le _ (<??> lty_int; <??> lty_int; END)%kind with "Hc").
+    { iApply (iProto_mapsto_le _ (lsty_car (<??> lty_int; <??> lty_int; END)) with "Hc").
       iApply iProto_le_recv.
       iIntros "!> !> !>" (? [x ->]).
       iExists _. do 2 (iSplit; [done|]).

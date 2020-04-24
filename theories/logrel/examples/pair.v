@@ -1,6 +1,5 @@
-From iris.heap_lang Require Import notation proofmode.
-From actris.channel Require Import channel proto proofmode.
-From actris.logrel Require Export types.
+From actris.logrel Require Export term_typing_rules.
+From iris.proofmode Require Import tactics.
 
 Definition prog : expr := λ: "c", (recv "c", recv "c").
 
@@ -14,5 +13,4 @@ Section pair.
     iApply ltyped_lam. iApply ltyped_pair.
     iApply ltyped_recv. iApply ltyped_recv.
   Qed.
-
 End pair.
