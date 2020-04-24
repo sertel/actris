@@ -1,4 +1,4 @@
-From actris.logrel Require Export ltyping lsty.
+From actris.logrel Require Export model.
 From iris.algebra Require Import gmap.
 From iris.heap_lang Require Export lifting metatheory.
 From iris.base_logic.lib Require Import invariants.
@@ -113,9 +113,9 @@ Section Propers.
   Proof. intros [S]. rewrite /lsty_app. by rewrite right_id. Qed.
 End Propers.
 
-Notation "'END'" := lsty_end : lsty_scope.
+Notation "'END'" := lsty_end : kind_scope.
 Notation "<!!> A ; S" :=
-  (lsty_send A S) (at level 20, A, S at level 200) : lsty_scope.
+  (lsty_send A S) (at level 20, A, S at level 200) : kind_scope.
 Notation "<??> A ; S" :=
-  (lsty_recv A S) (at level 20, A, S at level 200) : lsty_scope.
-Infix "<++>" := lsty_app (at level 60) : lsty_scope.
+  (lsty_recv A S) (at level 20, A, S at level 200) : kind_scope.
+Infix "<++>" := lsty_app (at level 60) : kind_scope.

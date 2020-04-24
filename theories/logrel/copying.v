@@ -196,7 +196,7 @@ Section copying.
 
   Lemma ltyped_rec Γ Γ' f x e A1 A2 :
     env_copy Γ Γ' -∗
-    (binder_insert f (A1 → A2)%lty (binder_insert x A1 Γ') ⊨ e : A2) -∗
+    (binder_insert f (A1 → A2)%kind (binder_insert x A1 Γ') ⊨ e : A2) -∗
     Γ ⊨ (rec: f x := e) : A1 → A2 ⫤ ∅.
   Proof.
     iIntros "#Hcopy #He". iIntros (vs) "!> HΓ /=". iApply wp_fupd. wp_pures.

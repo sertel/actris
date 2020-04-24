@@ -1,6 +1,6 @@
 From stdpp Require Import pretty.
 From actris.utils Require Import switch.
-From actris.logrel Require Export ltyping session_types.
+From actris.logrel Require Export model ltyping session_types.
 From actris.channel Require Import proto proofmode.
 From iris.bi.lib Require Export core.
 From iris.heap_lang Require Export lifting metatheory.
@@ -30,14 +30,10 @@ Section types.
   Proof. solve_contractive. Qed.
   Definition lty_rec (C : lty Σ → lty Σ) `{!Contractive C} : lty Σ :=
     fixpoint (lty_rec_aux C).
-  Definition lty_forall (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∀ A : lty Σ, WP w #() {{ C A }})%I.
-  Definition lty_forall_lsty (C : lsty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∀ A : lsty Σ, WP w #() {{ C A }})%I.
-  Definition lty_exist (C : lty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∃ A : lty Σ, ▷ C A w)%I.
-  Definition lty_exist_lsty (C : lsty Σ → lty Σ) : lty Σ := Lty (λ w,
-    ∃ A : lsty Σ, ▷ C A w)%I.
+Definition lty_forall {k} (C : kind_interp k Σ → lty Σ) : lty Σ := Lty (λ w,
+    ∀ A : kind_interp k Σ, WP w #() {{ C A }})%I.
+  Definition lty_exist {k} (C : kind_interp k Σ → lty Σ) : lty Σ := Lty (λ w,
+    ∃ A : kind_interp k Σ, ▷ C A w)%I.
   Definition lty_ref_mut (A : lty Σ) : lty Σ := Lty (λ w,
     ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ A v)%I.
   Definition ref_shrN := nroot .@ "shr_ref".
@@ -55,32 +51,24 @@ Section types.
   Definition lty_chan `{chanG Σ} (P : lsty Σ) : lty Σ := Lty (λ w, w ↣ P)%I.
 End types.
 
-Notation "()" := lty_unit : lty_scope.
-Notation "'copy' A" := (lty_copy A) (at level 10) : lty_scope.
-Notation "'copy-' A" := (lty_copyminus A) (at level 10) : lty_scope.
-Notation "A → B" := (lty_copy (lty_arr A B)) : lty_scope.
-Notation "A ⊸ B" := (lty_arr A B) (at level 99, B at level 200, right associativity) : lty_scope.
-Infix "*" := lty_prod : lty_scope.
-Infix "+" := lty_sum : lty_scope.
+Notation "()" := lty_unit : kind_scope.
+Notation "'copy' A" := (lty_copy A) (at level 10) : kind_scope.
+Notation "'copy-' A" := (lty_copyminus A) (at level 10) : kind_scope.
+Notation "A → B" := (lty_copy (lty_arr A B)) : kind_scope.
+Notation "A ⊸ B" := (lty_arr A B) (at level 99, B at level 200, right associativity) : kind_scope.
+Infix "*" := lty_prod : kind_scope.
+Infix "+" := lty_sum : kind_scope.
 Notation any := lty_any.
 Notation "∀ A1 .. An , C" :=
-  (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
+  (lty_forall (λ A1, .. (lty_forall (λ An, C%kind)) ..)) : kind_scope.
 Notation "∃ A1 .. An , C" :=
-  (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
-Notation "∀p A1 .. An , C" :=
-  (lty_forall_lsty (λ A1, .. (lty_forall_lsty (λ An, C%lty)) ..))
-  (at level 200, A1 binder, An binder, right associativity,
-  format "'[ ' '[ ' ∀p A1 .. An ']' , '/' C ']'") : lty_scope.
-Notation "∃p A1 .. An , C" :=
-  (lty_exist_lsty (λ A1, .. (lty_exist_lsty (λ An, C%lty)) ..))
-  (at level 200, A1 binder, An binder, right associativity,
-  format "'[ ' '[ ' ∃p A1 .. An ']' , '/' C ']'") : type_scope.
-Notation "'ref_mut' A" := (lty_ref_mut A) (at level 10) : lty_scope.
-Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : lty_scope.
+  (lty_exist (λ A1, .. (lty_exist (λ An, C%kind)) ..)) : kind_scope.
+Notation "'ref_mut' A" := (lty_ref_mut A) (at level 10) : kind_scope.
+Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : kind_scope.
 
-Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
-Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : lty_scope.
-Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
+Notation "'mutex' A" := (lty_mutex A) (at level 10) : kind_scope.
+Notation "'mutexguard' A" := (lty_mutexguard A) (at level 10) : kind_scope.
+Notation "'chan' A" := (lty_chan A) (at level 10) : kind_scope.
 
 Section properties.
   Context `{heapG Σ}.
@@ -321,29 +309,18 @@ Section properties.
   Qed.
 
   (** Universal Properties *)
-  Global Instance lty_forall_ne n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _).
+  Global Instance lty_forall_ne k n :
+    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _ k).
   Proof. solve_proper. Qed.
-  Global Instance lty_forall_contractive n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall Σ _).
+  Global Instance lty_forall_contractive k n :
+    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall Σ _ k).
   Proof.
     intros F F' A. apply lty_ne=> w. f_equiv=> B.
     apply (wp_contractive _ _ _ _ _)=> u. specialize (A B).
     by destruct n as [|n]; simpl.
   Qed.
 
-  Global Instance lty_forall_lsty_ne n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall_lsty Σ _).
-  Proof. solve_proper. Qed.
-  Global Instance lty_forall_lsty_contractive n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall_lsty Σ _).
-  Proof.
-    intros F F' A. apply lty_ne=> w. f_equiv=> B.
-    apply (wp_contractive _ _ _ _ _)=> u. specialize (A B).
-    by destruct n as [|n]; simpl.
-  Qed.
-
-  Lemma ltyped_tlam Γ e C :
+  Lemma ltyped_tlam Γ e k (C : kind_interp k Σ → lty Σ) :
     (∀ A, Γ ⊨ e : C A ⫤ ∅) -∗ Γ ⊨ (λ: <>, e) : ∀ A, C A ⫤ ∅.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
@@ -351,52 +328,25 @@ Section properties.
     iIntros (A) "/=". wp_pures.
     iApply (wp_wand with "(He HΓ)"). iIntros (v) "[$ _]".
   Qed.
-  Lemma ltyped_tlam_lsty Γ e C :
-    (∀ A, Γ ⊨ e : C A ⫤ ∅) -∗ Γ ⊨ (λ: <>, e) : ∀p A, C A ⫤ ∅.
-  Proof.
-    iIntros "#He" (vs) "!> HΓ /=". wp_pures.
-    iSplitL; last by iApply env_ltyped_empty.
-    iIntros (A) "/=". wp_pures.
-    iApply (wp_wand with "(He HΓ)"). iIntros (v) "[$ _]".
-  Qed.
 
-  Lemma ltyped_tapp Γ Γ2 e C A :
+  Lemma ltyped_tapp Γ Γ2 e k (C : kind_interp k Σ → lty Σ) A :
     (Γ ⊨ e : ∀ A, C A ⫤ Γ2) -∗ Γ ⊨ e #() : C A ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ]".
     by iApply (wp_wand with "HB [HΓ]"); iIntros (v) "$ //".
   Qed.
-  Lemma ltyped_tapp_lsty Γ Γ2 e C A :
-    (Γ ⊨ e : ∀p A, C A ⫤ Γ2) -∗ Γ ⊨ e #() : C A ⫤ Γ2.
-    iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ]".
-    by iApply (wp_wand with "HB [HΓ]"); iIntros (v) "$ //".
-  Qed.
 
   (** Existential properties *)
-  Global Instance lty_exist_ne n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ).
+  Global Instance lty_exist_ne k n :
+    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_proper. Qed.
-  Global Instance lty_exist_contractive n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ).
+  Global Instance lty_exist_contractive k n :
+    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_contractive. Qed.
 
-  Global Instance lty_exist_lsty_ne n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist_lsty Σ).
-  Proof. solve_proper. Qed.
-  Global Instance lty_exist_lsty_contractive n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist_lsty Σ).
-  Proof. solve_contractive. Qed.
-
-  Lemma ltyped_pack Γ e C A :
+  Lemma ltyped_pack Γ e k (C : kind_interp k Σ → lty Σ) A :
     (Γ ⊨ e : C A) -∗ Γ ⊨ e : ∃ A, C A.
-  Proof.
-    iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists A.
-  Qed.
-  Lemma ltyped_pack_lsty Γ e C A :
-    (Γ ⊨ e : C A) -∗ Γ ⊨ e : ∃p A, C A.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists A.
@@ -404,22 +354,8 @@ Section properties.
 
   Definition unpack : val := λ: "exist" "f", "f" #() "exist".
 
-  Lemma ltyped_unpack C B :
+  Lemma ltyped_unpack k (C : kind_interp k Σ → lty Σ) B :
     ⊢ ∅ ⊨ unpack : (∃ A, C A) → (∀ A, C A ⊸ B) ⊸ B.
-  Proof.
-    iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
-    iIntros "!>" (v). iDestruct 1 as (A) "Hv".
-    rewrite /unpack. wp_pures.
-    iIntros (fty) "Hfty". wp_pures.
-    iSpecialize ("Hfty" $! A).
-    wp_bind (fty _). wp_apply (wp_wand with "Hfty").
-    iIntros (f) "Hf".
-    wp_apply (wp_wand with "(Hf [Hv //])").
-    iIntros (w) "HB". iApply "HB".
-  Qed.
-  Lemma ltyped_unpack_lsty C B :
-    ⊢ ∅ ⊨ unpack : (∃p A, C A) → (∀p A, C A ⊸ B) ⊸ B.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
     iSplitL; last by iApply env_ltyped_empty.
@@ -690,8 +626,8 @@ Section properties.
     Qed.
 
     Lemma ltyped_send Γ Γ' (x : string) e A S :
-      (Γ ⊨ e : A ⫤ <[x:=(chan (<!!> A; S))%lty]> Γ') -∗
-      Γ ⊨ send x e : () ⫤ <[x:=(chan S)%lty]> Γ'.
+      (Γ ⊨ e : A ⫤ <[x:=(chan (<!!> A; S))%kind]> Γ') -∗
+      Γ ⊨ send x e : () ⫤ <[x:=(chan S)%kind]> Γ'.
     Proof.
       iIntros "#He !>" (vs) "HΓ"=> /=.
       wp_bind (subst_map vs e).
@@ -718,7 +654,7 @@ Section properties.
     Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
-      ⊢ <[x := (chan (<??> A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
+      ⊢ <[x := (chan (<??> A; S))%kind]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%kind]> Γ.
     Proof.
       iIntros "!>" (vs) "HΓ"=> /=.
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
@@ -753,7 +689,7 @@ Section properties.
     Lemma ltyped_chanbranch Ss A xs :
       (∀ x, x ∈ xs ↔ is_Some (Ss !! x)) →
       ⊢ ∅ ⊨ chanbranch xs : chan (lsty_branch Ss) ⊸
-        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A.
+        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%kind) <$> xs) A.
     Proof.
       iIntros (Hdom) "!>". iIntros (vs) "Hvs".
       iApply wp_value.
