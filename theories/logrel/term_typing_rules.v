@@ -202,43 +202,39 @@ Section properties.
   Qed.
 
   (** Universal Properties *)
-  Lemma ltyped_tlam Γ e k (C : lty Σ k → ltty Σ) :
-    (∀ M, Γ ⊨ e : C M ⫤ ∅) -∗ Γ ⊨ (λ: <>, e) : ∀ M, C M ⫤ ∅.
+  Lemma ltyped_tlam Γ e k Mlow Mup (C : lty Σ k → ltty Σ) :
+    (∀ M, Mlow <: M -∗ M <: Mup -∗ Γ ⊨ e : C M ⫤ ∅) -∗
+    Γ ⊨ (λ: <>, e) : lty_forall Mlow Mup C ⫤ ∅.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
     iSplitL; last by iApply env_ltyped_empty.
-    iIntros (M) "/=". wp_pures.
-    iApply (wp_wand with "(He HΓ)"). iIntros (v) "[$ _]".
+    iIntros (M) "/= Hlow Hup". wp_pures.
+    iApply (wp_wand with "(He Hlow Hup HΓ)"). iIntros (v) "[$ _]".
   Qed.
 
-  Lemma ltyped_tapp Γ Γ2 e k (C : lty Σ k → ltty Σ) M :
-    (Γ ⊨ e : ∀ M, C M ⫤ Γ2) -∗ Γ ⊨ e #() : C M ⫤ Γ2.
+  Lemma ltyped_tapp Γ Γ2 e k (C : lty Σ k → ltty Σ) Mlow Mup M :
+    Mlow <: M -∗ M <: Mup -∗
+    (Γ ⊨ e : lty_forall Mlow Mup C ⫤ Γ2) -∗
+    Γ ⊨ e #() : C M ⫤ Γ2.
   Proof.
-    iIntros "#He" (vs) "!> HΓ /=".
+    iIntros "#Hlow #Hup #He" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ] /=".
-    iApply (wp_wand with "HB [HΓ]"). by iIntros (v) "$".
+    iApply (wp_wand with "(HB Hlow Hup) [HΓ]"). by iIntros (v) "$".
   Qed.
 
   (** Existential properties *)
-  Lemma ltyped_pack Γ e k (C : lty Σ k → ltty Σ) M :
-    (Γ ⊨ e : C M) -∗ Γ ⊨ e : ∃ M, C M.
-  Proof.
-    iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists M.
-  Qed.
-
   Definition unpack : val := λ: "exist" "f", "f" #() "exist".
 
-  Lemma ltyped_unpack k (C : lty Σ k → ltty Σ) B :
-    ⊢ ∅ ⊨ unpack : (∃ M, C M) → (∀ M, C M ⊸ B) ⊸ B.
+  Lemma ltyped_unpack k (C : lty Σ k → ltty Σ) Mlow Mup B :
+    ⊢ ∅ ⊨ unpack : lty_exist Mlow Mup C → lty_forall Mlow Mup (λ M, C M ⊸ B)%lty ⊸ B.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
     iSplitL; last by iApply env_ltyped_empty.
-    iIntros "!>" (v). iDestruct 1 as (M) "Hv".
+    iIntros "!>" (v). iDestruct 1 as (M) "(Hlow & Hup & Hv)".
     rewrite /unpack. wp_pures.
     iIntros (fty) "Hfty". wp_pures.
     iSpecialize ("Hfty" $! M).
-    wp_bind (fty _). wp_apply (wp_wand with "Hfty").
+    wp_bind (fty _). wp_apply (wp_wand with "(Hfty Hlow Hup)").
     iIntros (f) "Hf".
     wp_apply (wp_wand with "(Hf [Hv //])").
     iIntros (w) "HB". iApply "HB".
@@ -264,7 +260,7 @@ Section properties.
   longer use the memory at the old location. *)
   Definition load : val := λ: "r", (!"r", "r").
   Lemma ltyped_load A :
-    ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut any.
+    ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut ⊤.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
     iSplitL; last by iApply env_ltyped_empty.

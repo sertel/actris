@@ -4,7 +4,8 @@ From iris.heap_lang Require Export spin_lock.
 From actris.logrel Require Export subtyping.
 From actris.channel Require Export channel.
 
-Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
+Instance lty_bot {Σ} : Bottom (ltty Σ) := Ltty (λ w, False%I).
+Instance lty_top {Σ} : Top (ltty Σ) := Ltty (λ w, True%I).
 
 Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
 Definition lty_copy_inv {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
@@ -24,10 +25,11 @@ Definition lty_sum {Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
   (∃ w1, ⌜w = InjLV w1⌝ ∗ ▷ ltty_car A1 w1) ∨
   (∃ w2, ⌜w = InjRV w2⌝ ∗ ▷ ltty_car A2 w2))%I.
 
-Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
-  Ltty (λ w, ∀ A, WP w #() {{ ltty_car (C A) }})%I.
-Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
-  Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
+Definition lty_forall `{heapG Σ} {k} (Mlow Mup : lty Σ k)
+    (C : lty Σ k → ltty Σ) : ltty Σ :=
+  Ltty (λ w, ∀ M, Mlow <: M -∗ M <: Mup -∗ WP w #() {{ ltty_car (C M) }})%I.
+Definition lty_exist {Σ k} (Mlow Mup : lty Σ k) (C : lty Σ k → ltty Σ) : ltty Σ :=
+  Ltty (λ w, ∃ M, Mlow <: M ∗ M <: Mup ∗ ▷ ltty_car (C M) w)%I.
 
 Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
@@ -62,7 +64,6 @@ Instance: Params (@lty_mutex) 3 := {}.
 Instance: Params (@lty_mutexguard) 3 := {}.
 Instance: Params (@lty_chan) 3 := {}.
 
-Notation any := lty_any.
 Notation "()" := lty_unit : lty_scope.
 Notation "'copy' A" := (lty_copy A) (at level 10) : lty_scope.
 Notation "'copy-' A" := (lty_copy_inv A) (at level 10) : lty_scope.
@@ -73,10 +74,11 @@ Notation "A → B" := (lty_copy (lty_arr A B)) : lty_scope.
 Infix "*" := lty_prod : lty_scope.
 Infix "+" := lty_sum : lty_scope.
 
+(* TODO: Have nice notations for bounded quantifiers *)
 Notation "∀ A1 .. An , C" :=
-  (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
+  (lty_forall ⊥ ⊤ (λ A1, .. (lty_forall ⊥ ⊤(λ An, C%lty)) ..)) : lty_scope.
 Notation "∃ A1 .. An , C" :=
-  (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
+  (lty_exist ⊥ ⊤(λ A1, .. (lty_exist ⊥ ⊤(λ An, C%lty)) ..)) : lty_scope.
 
 Notation "'ref_mut' A" := (lty_ref_mut A) (at level 10) : lty_scope.
 Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : lty_scope.
@@ -121,20 +123,25 @@ Section term_types.
   Proof. solve_proper. Qed.
 
   Global Instance lty_forall_contractive `{heapG Σ} k n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall Σ _ k).
+    Proper (dist n ==> dist n ==> pointwise_relation _ (dist_later n) ==> dist n)
+           (@lty_forall Σ _ k).
   Proof.
-    intros F F' A. apply Ltty_ne=> w. f_equiv=> B.
-    apply (wp_contractive _ _ _ _ _)=> u. specialize (A B).
+    intros Ml Ml' Hl Mu Mu' Hu C C' HC w. apply Ltty_ne=> v. f_equiv=> M.
+    do 2 (f_equiv; [by f_equiv|]).
+    apply (wp_contractive _ _ _ _ _)=> u. specialize (HC M).
     by destruct n as [|n]; simpl.
   Qed.
   Global Instance lty_forall_ne `{heapG Σ} k n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _ k).
+    Proper (dist n ==> dist n ==> pointwise_relation _ (dist n) ==> dist n)
+           (@lty_forall Σ _ k).
   Proof. solve_proper. Qed.
   Global Instance lty_exist_contractive k n :
-    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ k).
+    Proper (dist n ==> dist n ==> pointwise_relation _ (dist_later n) ==> dist n)
+           (@lty_exist Σ k).
   Proof. solve_contractive. Qed.
   Global Instance lty_exist_ne k n :
-    Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
+    Proper (dist n ==> dist n ==> pointwise_relation _ (dist n) ==> dist n)
+           (@lty_exist Σ k).
   Proof. solve_proper. Qed.
 
   Global Instance lty_ref_mut_contractive `{heapG Σ} : Contractive lty_ref_mut.
