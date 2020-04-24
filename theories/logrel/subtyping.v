@@ -482,13 +482,13 @@ Section subtype.
     iApply (iProto_mapsto_le with "H [Hle]"). eauto.
   Qed.
 
-  Theorem ltyped_subsumption Γ e τ1 τ2 :
-    τ1 <: τ2 -∗ (Γ ⊨ e : τ1) -∗ (Γ ⊨ e : τ2).
+  Theorem ltyped_subsumption Γ Γ2 e τ1 τ2 :
+    τ1 <: τ2 -∗ (Γ ⊨ e : τ1 ⫤ Γ2) -∗ (Γ ⊨ e : τ2 ⫤ Γ2).
   Proof.
     iIntros "#Hle #Hltyped" (vs) "!> Henv".
     iDestruct ("Hltyped" with "Henv") as "Hltyped'".
     iApply (wp_wand with "Hltyped' [Hle]").
-    by iIntros (v).
+    iIntros (v) "[H1 $]". by iApply "Hle".
   Qed.
 
 End subtype.
