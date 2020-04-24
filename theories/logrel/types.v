@@ -472,7 +472,7 @@ Section properties.
     by iModIntro.
   Qed.
 
-  (* FIXME: copy *)
+  (* TODO(COPY) *)
   (* Lemma ltyped_load_copy A {copyA : LTyCopy A} : *)
   (*   ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut A. *)
   (* Proof. *)
@@ -526,7 +526,7 @@ Section properties.
     by iExists m.
   Qed.
 
-  (* FIXME: copy *)
+  (* TODO(COPY) *)
   (* Lemma ltyped_ref_shr_load (A : lty Σ) {copyA : LTyCopy A} : *)
   (*   ⊢ ∅ ⊨ load : ref_shr A → (A * ref_shr A). *)
   (* Proof. *)

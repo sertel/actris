@@ -23,6 +23,11 @@ Section copying.
     ⊢ copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
 
+  (* TODO(COPY): have A <: copy- A rule *)
+  (* TODO(COPY): Show derived rules about copyability of products, sums, etc. *)
+  (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
+
+  (* TODO(COPY) *)
   Lemma coreP_desired_lemma (P : iProp Σ) :
     □ (P -∗ □ P) -∗ coreP P -∗ P.
   Proof.
@@ -102,7 +107,7 @@ Section copying.
         iExists A; repeat iModIntro; iApply "Hv".
   Qed.
 
-  (* TODO: Do the forall type former, once we have the value restriction *)
+  (* TODO(COPY) TODO(VALUERES): Do the forall type former, once we have the value restriction *)
 
   (* Copyability of recursive types *)
   Lemma lty_rec_copy C `{!Contractive C} :
