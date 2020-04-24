@@ -61,11 +61,12 @@ Section subtype.
   Lemma lty_bi_le_sym A1 A2 : A1 <:> A2 -∗ A2 <:> A1.
   Proof. iIntros "[$$]". Qed.
 
-  Lemma lty_le_copy A : ⊢ copy A <: A.
-  Proof. by iIntros (v) "!> #H". Qed.
-
-  Lemma lty_le_copyable A `{LTyCopy Σ A} : ⊢ A <: copy A.
-  Proof. by iIntros (v) "!> #H". Qed.
+  Lemma lty_le_copy A B :
+    A <: B -∗ copy A <: copy B.
+  Proof.
+    iIntros "#Hsub". iIntros (v) "!> #HA !>".
+    iApply ("Hsub" with "HA").
+  Qed.
 
   Lemma lty_le_arr A11 A12 A21 A22 :
     ▷ (A21 <: A11) -∗ ▷ (A12 <: A22) -∗
