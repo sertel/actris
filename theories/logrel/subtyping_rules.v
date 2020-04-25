@@ -268,7 +268,7 @@ Section subtyping_rules.
     eauto with iFrame.
   Qed.
 
-  Lemma lty_le_swap A1 A2 S :
+  Lemma lty_le_swap_recv_send A1 A2 S :
     ⊢ (<??> A1; <!!> A2; S) <: (<!!> A2; <??> A1; S).
   Proof.
     iIntros "!>". iApply iProto_le_swap. iIntros "!>" (v1 v2) "/= HS1 HS2".
@@ -279,6 +279,64 @@ Section subtyping_rules.
     do 2 (iSplit; [done|]).
     iFrame "HS1 HS2".
     do 2 (iSplitR; [iApply iProto_le_refl|]). by iFrame.
+  Qed.
+
+  Lemma lty_le_swap_recv_select A Ss :
+    ⊢ (<??> A; lty_select Ss) <: (lty_select ((λ S, <??> A ; S)%lty <$> Ss)).
+  Proof.
+    iIntros "!>". iApply iProto_le_swap. iIntros "!>" (v1 v2) "/=".
+    iIntros "HS1" (HS2).
+    iExists _, _,
+      (tele_app (TT:=[tele _]) (λ (v2 : Z),(#v2, ⌜is_Some (((λ S : lsty Σ, (<??> A; S)%lty) <$> Ss) !! v2)⌝%I, lsty_car (Ss !!! v2)))),
+      (tele_app (TT:=[tele _]) (λ v1, (v1, ltty_car A v1, lsty_car (Ss !!! v2)))),
+      v2, v1; simpl.
+    do 2 (iSplit; [done|]).
+    iFrame "HS1".
+    iSplitL.
+    - iApply iProto_le_send=> /=.
+      iIntros "!>" (x HSsx). iExists _.
+      rewrite lookup_fmap in HSsx.
+      apply fmap_is_Some in HSsx.
+      do 2 (iSplit; first done).
+      iApply iProto_le_refl.
+    - iSplit; last done.
+      destruct HS2 as [x HS2].
+      rewrite !lookup_total_alt !lookup_fmap /=.
+      rewrite lookup_fmap in HS2.
+      destruct (Ss !! v2); inversion HS2.
+      iApply iProto_le_recv=> /=.
+      iIntros "!>" (y) "H". iExists _.
+      iFrame. iSplit; first done.
+      iApply iProto_le_refl.
+  Qed.
+
+  Lemma lty_le_swap_branch_send A Ss :
+    ⊢ lty_branch ((λ S, <!!> A ; S)%lty <$> Ss) <: (<!!> A ; lty_branch Ss).
+  Proof.
+    iIntros "!>". iApply iProto_le_swap. iIntros "!>" (v1 v2) "/=".
+    iIntros (HS1) "HS2".
+    iExists _, _,
+      (tele_app (TT:=[tele _]) (λ v2, (v2, ltty_car A v2, lsty_car (Ss !!! v1)))),
+      (tele_app (TT:=[tele _]) (λ (v1 : Z),(#v1, ⌜is_Some (((λ S : lsty Σ, (<!!> A; S)%lty) <$> Ss) !! v1)⌝%I, lsty_car (Ss !!! v1)))),
+      v2, v1; simpl.
+    do 2 (iSplit; [done|]).
+    iFrame "HS2".
+    iSplitL.
+    - destruct HS1 as [x HS1].
+      rewrite !lookup_total_alt !lookup_fmap /=.
+      rewrite lookup_fmap in HS1.
+      destruct (Ss !! v1); inversion HS1.
+      iApply iProto_le_send=> /=.
+      iIntros "!>" (y) "H". iExists _.
+      iFrame. iSplit; first done.
+      iApply iProto_le_refl.
+    - iSplit; last done.
+      iApply iProto_le_recv=> /=.
+      iIntros "!>" (y HSsy). iExists _.
+      rewrite lookup_fmap in HSsy.
+      apply fmap_is_Some in HSsy.
+      do 2 (iSplit; first done).
+      iApply iProto_le_refl.
   Qed.
 
   Lemma lty_le_select (Ss1 Ss2 : gmap Z (lsty Σ)) :
@@ -443,4 +501,5 @@ Section subtyping_rules.
   Lemma lty_le_dual_branch (Ss : gmap Z (lsty Σ)) :
     ⊢ lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
   Proof. iApply lty_le_dual_choice. Qed.
+
 End subtyping_rules.
