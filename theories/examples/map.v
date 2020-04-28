@@ -72,11 +72,11 @@ Section map.
       nat -d> gmultiset A -d> iProto Σ := λ i X,
     let rec : nat → gmultiset A → iProto Σ := rec in
     (if i is 0 then END else
-     ((<!> x v, MSG v {{ IA x v }}; rec i (X ⊎ {[ x ]}))
+     ((<! x v> MSG v {{ IA x v }}; rec i (X ⊎ {[ x ]}))
         <+>
       rec (pred i) X
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
-         <?> x (l : loc), MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist IB l (map x) }};
+         <? x (l : loc)> MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist IB l (map x) }};
          rec i (X ∖ {[ x ]}))%proto.
   Instance par_map_protocol_aux_contractive : Contractive par_map_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.

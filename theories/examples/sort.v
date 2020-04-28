@@ -45,13 +45,13 @@ Section sort.
   Context `{!heapG Σ, !chanG Σ}.
 
   Definition sort_protocol {A} (I : A → val → iProp Σ) (R : A → A → Prop) : iProto Σ :=
-    (<!> (xs : list A) (l : loc), MSG #l {{ llist I l xs }};
-     <?> (xs' : list A), MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗ llist I l xs' }};
+    (<! (xs : list A) (l : loc)> MSG #l {{ llist I l xs }};
+     <? (xs' : list A)> MSG #() {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs ⌝ ∗ llist I l xs' }};
      END)%proto.
 
   Definition sort_protocol_func : iProto Σ :=
-    (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
-         `{!RelDecision R, !Total R} (cmp : val),
+    (<! A (I : A → val → iProp Σ) (R : A → A → Prop)
+         `{!RelDecision R, !Total R} (cmp : val)>
        MSG cmp {{ cmp_spec I R cmp }};
      sort_protocol I R)%proto.
 

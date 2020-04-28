@@ -46,13 +46,13 @@ Section lty_ofe.
     | lty_kind => λ n S T, lsty_car S ≡{n}≡ lsty_car T
     end.
 
-  Lemma lty_mixin k : OfeMixin (lty Σ k).
+  Lemma lty_ofe_mixin k : OfeMixin (lty Σ k).
   Proof.
     destruct k.
     - by apply (iso_ofe_mixin (ltty_car : _ → val -d> _)).
     - by apply (iso_ofe_mixin (lsty_car : _ → iProto _)).
   Qed.
-  Canonical Structure ltyO k := OfeT (lty Σ k) (lty_mixin k).
+  Canonical Structure ltyO k := OfeT (lty Σ k) (lty_ofe_mixin k).
 
   Global Instance lty_cofe k : Cofe (ltyO k).
   Proof.

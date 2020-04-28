@@ -60,7 +60,7 @@ Section sort_service_br_del.
   Qed.
 
   Definition sort_protocol_del_aux (rec : iProto Σ) : iProto Σ :=
-    ((<?> c, MSG c {{ c ↣ sort_protocol I R }}; rec) <+> END)%proto.
+    ((<? c> MSG c {{ c ↣ sort_protocol I R }}; rec) <+> END)%proto.
   Instance sort_protocol_del_aux_contractive : Contractive sort_protocol_del_aux.
   Proof. solve_proto_contractive. Qed.
   Definition sort_protocol_del : iProto Σ := fixpoint sort_protocol_del_aux.
@@ -83,7 +83,7 @@ Section sort_service_br_del.
   Qed.
 
   Definition sort_protocol_br_del_aux (rec : iProto Σ) : iProto Σ :=
-    ((sort_protocol I R <++> rec) <+> ((<?> c, MSG c {{ c ↣ rec }}; rec) <+> END))%proto.
+    ((sort_protocol I R <++> rec) <+> ((<? c> MSG c {{ c ↣ rec }}; rec) <+> END))%proto.
   Instance sort_protocol_br_del_aux_contractive : Contractive sort_protocol_br_del_aux.
   Proof. solve_proto_contractive. Qed.
   Definition sort_protocol_br_del : iProto Σ := fixpoint sort_protocol_br_del_aux.

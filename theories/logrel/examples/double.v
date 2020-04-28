@@ -22,14 +22,14 @@ Section double.
   Context `{heapG Σ, chanG Σ, inG Σ fracR, spawnG Σ}.
 
   Definition prog_prot : iProto Σ :=
-    (<?> (x : Z), MSG #x; <?> (y : Z), MSG #y; END)%proto.
+    (<? (x : Z)> MSG #x; <? (y : Z)> MSG #y; END)%proto.
 
   Definition chan_inv (c : val) (γ : gname) : iProp Σ :=
-    ((c ↣ prog_prot) ∨
-     (own γ (1/2)%Qp ∗ c ↣ (<?> (x : Z), MSG #x; END)%proto) ∨
+    (c ↣ prog_prot ∨
+     (own γ (1/2)%Qp ∗ c ↣ <? (x : Z)> MSG #x; END) ∨
      (own γ 1%Qp ∗ c ↣ END))%I.
 
-  Lemma wp_prog (c : val):
+  Lemma wp_prog c :
     {{{ ▷ c ↣ prog_prot }}}
       prog c
     {{{ (k1 k2 : Z), RET (#k1, #k2); True }}}.
@@ -93,13 +93,8 @@ Section double.
     iIntros (c) "Hc".
     iApply (wp_prog with "[Hc]").
     { iApply (iProto_mapsto_le _ (lsty_car (<??> lty_int; <??> lty_int; END)) with "Hc").
-      iApply iProto_le_recv.
-      iIntros "!> !> !>" (? [x ->]).
-      iExists _. do 2 (iSplit; [done|]).
-      iApply iProto_le_recv.
-      iIntros "!>" (? [y ->]).
-      iExists _. do 2 (iSplit; [done|]).
-      iApply iProto_le_refl. }
+      iIntros "!> !>" (v1). iMod 1 as %[x1 ->]. iExists x1.
+      iIntros "!>" (v2). iMod 1 as %[x2 ->]. iExists x2. auto. }
     iIntros "!>" (k1 k2 _).
     iExists _, _. iSplit; first done. eauto.
   Qed.

@@ -79,7 +79,7 @@ Section sort_fg.
 
   Definition sort_fg_tail_protocol_aux (xs : list A)
       (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ ys,
-    ((<?> y v, MSG v {{ ⌜ TlRel R y ys ⌝ ∗ I y v }}; (rec : _ → iProto Σ) (ys ++ [y]))
+    ((<? y v> MSG v {{ ⌜ TlRel R y ys ⌝ ∗ I y v }}; rec (ys ++ [y]))
      <&{⌜ ys ≡ₚ xs ⌝}> END)%proto.
 
   Instance sort_fg_tail_protocol_aux_contractive xs :
@@ -94,7 +94,7 @@ Section sort_fg.
 
   Definition sort_fg_head_protocol_aux
       (rec : list A -d> iProto Σ) : list A -d> iProto Σ := λ xs,
-    ((<!> x v, MSG v {{ I x v }}; (rec : _ → iProto Σ) (xs ++ [x]))
+    ((<! x v > MSG v {{ I x v }}; (rec : _ → iProto Σ) (xs ++ [x]))
      <+> sort_fg_tail_protocol xs [])%proto.
 
   Instance sort_fg_head_protocol_aux_contractive :
@@ -293,8 +293,8 @@ Section sort_fg.
   End sort_fg_inner.
 
   Definition sort_fg_func_protocol : iProto Σ :=
-    (<!> A (I : A → val → iProp Σ) (R : A → A → Prop)
-         `{!RelDecision R, !Total R} (cmp : val),
+    (<! A (I : A → val → iProp Σ) (R : A → A → Prop)
+         `{!RelDecision R, !Total R} (cmp : val)>
        MSG cmp {{ cmp_spec I R cmp }};
      sort_fg_head_protocol I R [])%proto.
 

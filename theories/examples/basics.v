@@ -112,34 +112,34 @@ Definition prot : iProto Σ :=
   (<?> MSG #42; END)%proto.
 
 Definition prot_ref : iProto Σ :=
-  (<?> l : loc, MSG #l {{ l ↦ #42 }}; END)%proto.
+  (<? (l : loc)> MSG #l {{ l ↦ #42 }}; END)%proto.
 
 Definition prot_del : iProto Σ :=
-  (<?> c : val, MSG c {{ c ↣ prot }}; END)%proto.
+  (<? c> MSG c {{ c ↣ prot }}; END)%proto.
 
 Definition prot_dep : iProto Σ :=
-  (<!> x : Z, MSG #x; <?> MSG #(x + 2); END)%proto.
+  (<! (x : Z)> MSG #x; <?> MSG #(x + 2); END)%proto.
 
 Definition prot_dep_ref : iProto Σ :=
-  (<!> (l : loc) (x : Z), MSG #l {{ l ↦ #x }};
+  (<! (l : loc) (x : Z)> MSG #l {{ l ↦ #x }};
    <?> MSG #() {{ l ↦ #(x + 2) }};
    END)%proto.
 
 Definition prot_dep_del : iProto Σ :=
-  (<?> c : val, MSG c {{ c ↣ prot_dep }}; END)%proto.
+  (<? c> MSG c {{ c ↣ prot_dep }}; END)%proto.
 
 Definition prot_dep_del_2 : iProto Σ :=
-  (<!> c : val, MSG c {{ c ↣ prot_dep }};
+  (<! c> MSG c {{ c ↣ prot_dep }};
    <?> MSG #() {{ c ↣ <?> MSG #42; END }};
    END)%proto.
 
 Definition prot_dep_del_3 : iProto Σ :=
-  (<!> c : val, MSG c {{ c ↣ prot_dep }};
-   <!> y : Z, MSG #y; <?> MSG #() {{ c ↣ <?> MSG #(y + 2); END }};
+  (<! c> MSG c {{ c ↣ prot_dep }};
+   <! (y : Z)> MSG #y; <?> MSG #() {{ c ↣ <?> MSG #(y + 2); END }};
    END)%proto.
 
 Definition prot_loop_aux (rec : iProto Σ) : iProto Σ :=
-  (<!> x : Z, MSG #x; <?> MSG #(x + 2); rec)%proto.
+  (<! (x : Z)> MSG #x; <?> MSG #(x + 2); rec)%proto.
 Instance prot_loop_contractive : Contractive prot_loop_aux.
 Proof. solve_proto_contractive. Qed.
 Definition prot_loop : iProto Σ := fixpoint prot_loop_aux.
@@ -148,9 +148,9 @@ Global Instance prot_loop_unfold :
 Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
 
 Definition prot_fun : iProto Σ :=
-  (<!> (P : iProp Σ) (Φ : Z → iProp Σ) (vf : val),
+  (<! (P : iProp Σ) (Φ : Z → iProp Σ) (vf : val)>
      MSG vf {{ {{{ P }}} vf #() {{{ x, RET #x; Φ x }}} }};
-   <?> (vg : val),
+   <? (vg : val)>
      MSG vg {{ {{{ P }}} vg #() {{{ x, RET #(x + 2); Φ x }}} }};
    END)%proto.
 
@@ -161,13 +161,13 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
   end%proto.
 
 Definition prot_swap : iProto Σ :=
-  (<!> x : Z, MSG #x;
+  (<! (x : Z)> MSG #x;
    <?> MSG #20;
    <?> MSG #x; END)%proto.
 
 Definition prot_swap_twice : iProto Σ :=
-  (<!> x : Z, MSG #x;
-   <!> y : Z, MSG #y;
+  (<! (x : Z)> MSG #x;
+   <! (y : Z)> MSG #y;
    <?> MSG #20;
    <?> MSG #(x+y); END)%proto.
 
@@ -285,9 +285,9 @@ Proof.
       c ↣ iProto_dual (prot_lock n))%I
       with "[Hc Hs]"); first by eauto with iFrame.
     iIntros (lk γlk) "#Hlk".
-    iAssert (□ (client γ ε -∗
-      WP acquire lk;; send c #21;; release lk {{ _, True }}))%I as "#Hhelp".
-    { iIntros "!> Hcl".
+    iAssert (client γ ε -∗
+      WP acquire lk;; send c #21;; release lk {{ _, True }})%I with "[]" as "#Hhelp".
+    { iIntros "Hcl".
       wp_apply (acquire_spec with "[$]"); iIntros "[Hl H]".
       iDestruct "H" as (n) "[Hs Hc]".
       iDestruct (server_agree with "Hs Hcl") as %[? _].

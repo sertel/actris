@@ -5,10 +5,10 @@ From actris.channel Require Export channel.
 Definition lty_end {Σ} : lsty Σ := Lsty END.
 
 Definition lty_message {Σ} (a : action) (A : ltty Σ) (S : lsty Σ) : lsty Σ :=
-  Lsty (<a> v, MSG v {{ ltty_car A v }}; lsty_car S).
+  Lsty (<a@v> MSG v {{ ▷ ltty_car A v }}; lsty_car S).
 
 Definition lty_choice {Σ} (a : action) (Ss : gmap Z (lsty Σ)) : lsty Σ :=
-  Lsty (<a> x : Z, MSG #x {{ ⌜is_Some (Ss !! x)⌝ }}; lsty_car (Ss !!! x)).
+  Lsty (<a@(x : Z)> MSG #x {{ ⌜is_Some (Ss !! x)⌝ }}; lsty_car (Ss !!! x)).
 
 Definition lty_dual {Σ} (S : lsty Σ) : lsty Σ :=
   Lsty (iProto_dual (lsty_car S)).
@@ -35,29 +35,22 @@ Section session_types.
   Context {Σ : gFunctors}.
 
   Global Instance lty_message_ne a : NonExpansive2 (@lty_message Σ a).
-  Proof. intros n A A' ? S S' ?. by apply iProto_message_ne; simpl. Qed.
+  Proof. solve_proper. Qed.
   Global Instance lty_message_proper a :
     Proper ((≡) ==> (≡) ==> (≡)) (@lty_message Σ a).
   Proof. apply ne_proper_2, _. Qed.
   Global Instance lty_message_contractive n a :
     Proper (dist_later n ==> dist_later n ==> dist n) (@lty_message Σ a).
-  Proof.
-    intros A A' ? S S' ?.
-    apply iProto_message_contractive; simpl; done || by destruct n.
-  Qed.
+  Proof. solve_contractive. Qed.
 
   Global Instance lty_choice_ne a : NonExpansive (@lty_choice Σ a).
-  Proof.
-    intros n Ss1 Ss2 Pseq. apply iProto_message_ne; simpl; solve_proper.
-  Qed.
+  Proof. solve_proper. Qed.
   Global Instance lty_choice_proper a : Proper ((≡) ==> (≡)) (@lty_choice Σ a).
-  Proof. apply ne_proper. apply _. Qed.
+  Proof. apply ne_proper, _. Qed.
+(* FIXME
   Global Instance lty_choice_contractive a : Contractive (@lty_choice Σ a).
-  Proof.
-    intros ? Ss1 Ss2 ?.
-    apply iProto_message_contractive; destruct n; simpl; done || solve_proper.
-  Qed.
-
+  Proof. solve_contractive. Qed.
+*)
   Global Instance lty_dual_ne : NonExpansive (@lty_dual Σ).
   Proof. solve_proper. Qed.
   Global Instance lty_dual_proper : Proper ((≡) ==> (≡)) (@lty_dual Σ).

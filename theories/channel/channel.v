@@ -6,7 +6,7 @@ lock-protected buffers, and their primitive proof rules. Moreover:
 - It proves Actris's specifications of [send] and [recv] w.r.t. dependent
   separation protocols.
 
-An encoding of the usual branching connectives [prot1 <{Q1}+{Q2}> prot2] and
+An encoding of the usual choice connectives [prot1 <{Q1}+{Q2}> prot2] and
 [prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in this
 file.
 
@@ -86,6 +86,7 @@ Qed.
 
 (** * Definition of the mapsto connective *)
 Notation iProto Σ := (iProto Σ val).
+Notation iMsg Σ := (iMsg Σ val).
 
 Definition iProto_mapsto_def `{!heapG Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
@@ -105,20 +106,20 @@ Instance: Params (@iProto_mapsto) 4 := {}.
 Notation "c ↣ p" := (iProto_mapsto c p)
   (at level 20, format "c  ↣  p").
 
-Definition iProto_branch {Σ} (a : action) (P1 P2 : iProp Σ)
+Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
-  (<a> (b : bool), MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
-Typeclasses Opaque iProto_branch.
-Arguments iProto_branch {_} _ _%I _%I _%proto _%proto.
-Instance: Params (@iProto_branch) 2 := {}.
-Infix "<{ P1 }+{ P2 }>" := (iProto_branch Send P1 P2) (at level 85) : proto_scope.
-Infix "<{ P1 }&{ P2 }>" := (iProto_branch Recv P1 P2) (at level 85) : proto_scope.
-Infix "<+{ P2 }>" := (iProto_branch Send True P2) (at level 85) : proto_scope.
-Infix "<&{ P2 }>" := (iProto_branch Recv True P2) (at level 85) : proto_scope.
-Infix "<{ P1 }+>" := (iProto_branch Send P1 True) (at level 85) : proto_scope.
-Infix "<{ P1 }&>" := (iProto_branch Recv P1 True) (at level 85) : proto_scope.
-Infix "<+>" := (iProto_branch Send True True) (at level 85) : proto_scope.
-Infix "<&>" := (iProto_branch Recv True True) (at level 85) : proto_scope.
+  (<a @ (b : bool)> MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
+Typeclasses Opaque iProto_choice.
+Arguments iProto_choice {_} _ _%I _%I _%proto _%proto.
+Instance: Params (@iProto_choice) 2 := {}.
+Infix "<{ P1 }+{ P2 }>" := (iProto_choice Send P1 P2) (at level 85) : proto_scope.
+Infix "<{ P1 }&{ P2 }>" := (iProto_choice Recv P1 P2) (at level 85) : proto_scope.
+Infix "<+{ P2 }>" := (iProto_choice Send True P2) (at level 85) : proto_scope.
+Infix "<&{ P2 }>" := (iProto_choice Recv True P2) (at level 85) : proto_scope.
+Infix "<{ P1 }+>" := (iProto_choice Send P1 True) (at level 85) : proto_scope.
+Infix "<{ P1 }&>" := (iProto_choice Recv P1 True) (at level 85) : proto_scope.
+Infix "<+>" := (iProto_choice Send True True) (at level 85) : proto_scope.
+Infix "<&>" := (iProto_choice Recv True True) (at level 85) : proto_scope.
 
 Section channel.
   Context `{!heapG Σ, !chanG Σ}.
@@ -130,62 +131,47 @@ Section channel.
   Global Instance iProto_mapsto_proper c : Proper ((≡) ==> (≡)) (iProto_mapsto c).
   Proof. apply (ne_proper _). Qed.
 
-  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ ▷ iProto_le p1 p2 -∗ c ↣ p2.
+  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
   Proof.
     rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
     iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk".
     by iApply (iProto_own_le with "H").
   Qed.
 
-  Global Instance iProto_branch_contractive n a :
-    Proper (dist_later n ==> dist_later n ==>
-            dist_later n ==> dist_later n ==> dist n) (@iProto_branch Σ a).
+  Global Instance iProto_choice_contractive n a :
+    Proper (dist n ==> dist n ==>
+            dist_later n ==> dist_later n ==> dist n) (@iProto_choice Σ a).
+  Proof. solve_contractive. Qed.
+  Global Instance iProto_choice_ne n a :
+    Proper (dist n ==> dist n ==> dist n ==> dist n ==> dist n) (@iProto_choice Σ a).
+  Proof. solve_proper. Qed.
+  Global Instance iProto_choice_proper a :
+    Proper ((≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡)) (@iProto_choice Σ a).
+  Proof. solve_proper. Qed.
+
+  Lemma iProto_dual_choice a P1 P2 p1 p2 :
+    iProto_dual (iProto_choice a P1 P2 p1 p2)
+    ≡ iProto_choice (action_dual a) P1 P2 (iProto_dual p1) (iProto_dual p2).
   Proof.
-    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
-    apply iProto_message_contractive=> /= -[] //.
-  Qed.
-  Global Instance iProto_branch_ne n a :
-    Proper (dist n ==> dist n ==> dist n ==> dist n ==> dist n) (@iProto_branch Σ a).
-  Proof.
-    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
-    by apply iProto_message_ne=> /= -[].
-  Qed.
-  Global Instance iProto_branch_proper a :
-    Proper ((≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡)) (@iProto_branch Σ a).
-  Proof.
-    intros p1 p1' Hp1 p2 p2' Hp2 P1 P1' HP1 P2 P2' HP2.
-    by apply iProto_message_proper=> /= -[].
+    rewrite /iProto_choice iProto_dual_message /= iMsg_dual_exist.
+    f_equiv; f_equiv=> -[]; by rewrite iMsg_dual_base.
   Qed.
 
-  Lemma iProto_dual_branch a P1 P2 p1 p2 :
-    iProto_dual (iProto_branch a P1 P2 p1 p2)
-    ≡ iProto_branch (action_dual a) P1 P2 (iProto_dual p1) (iProto_dual p2).
+  Lemma iProto_app_choice a P1 P2 p1 p2 q :
+    (iProto_choice a P1 P2 p1 p2 <++> q)%proto
+    ≡ (iProto_choice a P1 P2 (p1 <++> q) (p2 <++> q))%proto.
   Proof.
-    rewrite /iProto_branch iProto_dual_message /=.
-    by apply iProto_message_proper=> /= -[].
+    rewrite /iProto_choice iProto_app_message /= iMsg_app_exist.
+    f_equiv; f_equiv=> -[]; by rewrite iMsg_app_base.
   Qed.
 
-  Lemma iProto_app_branch a P1 P2 p1 p2 q :
-    (iProto_branch a P1 P2 p1 p2 <++> q)%proto
-    ≡ (iProto_branch a P1 P2 (p1 <++> q) (p2 <++> q))%proto.
+  Lemma iProto_le_choice a P1 P2 p1 p2 p1' p2' :
+    (P1 -∗ P1 ∗ ▷ (p1 ⊑ p1')) ∧ (P2 -∗ P2 ∗ ▷ (p2 ⊑ p2')) -∗
+    iProto_choice a P1 P2 p1 p2 ⊑ iProto_choice a P1 P2 p1' p2'.
   Proof.
-    rewrite /iProto_branch iProto_app_message.
-    by apply iProto_message_proper=> /= -[].
-  Qed.
-
-  Lemma iProto_le_branch a P1 P2 p1 p2 p1' p2' :
-    ▷ (P1 -∗ P1 ∗ iProto_le p1 p1') ∧ ▷ (P2 -∗ P2 ∗ iProto_le p2 p2') -∗
-    iProto_le (iProto_branch a P1 P2 p1 p2) (iProto_branch a P1 P2 p1' p2').
-  Proof.
-    iIntros "H". rewrite /iProto_branch. destruct a.
-    - iApply iProto_le_send; iIntros "!>" (b) "HP /=".
-      iExists b; iSplit; [done|]. destruct b.
-      + iDestruct "H" as "[H _]". by iApply "H".
-      + iDestruct "H" as "[_ H]". by iApply "H".
-    - iApply iProto_le_recv; iIntros "!>" (b) "HP /=".
-      iExists b; iSplit; [done|]. destruct b.
-      + iDestruct "H" as "[H _]". by iApply "H".
-      + iDestruct "H" as "[_ H]". by iApply "H".
+    iIntros "H". rewrite /iProto_choice. destruct a;
+      iIntros (b) "HP"; iExists b; destruct b;
+      iDestruct ("H" with "HP") as "[$ ?]"; by iModIntro.
   Qed.
 
   (** ** Specifications of [send] and [recv] *)
@@ -220,22 +206,24 @@ Section channel.
     wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
-  Lemma send_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) (x : TT) :
-    {{{ c ↣ iProto_message Send pc ∗ (pc x).1.2 }}}
-      send c (pc x).1.1
-    {{{ RET #(); c ↣ (pc x).2 }}}.
+  Lemma send_spec c v p :
+    {{{ c ↣ <!> MSG v; p }}}
+      send c v
+    {{{ RET #(); c ↣ p }}}.
   Proof.
-    rewrite iProto_mapsto_eq. iIntros (Φ) "[Hc Hpc] HΦ". wp_lam; wp_pures.
+    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
-    - iMod (iProto_send_l with "Hctx H Hpc") as "[Hctx H]".
+    - iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=; auto. }
       wp_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply skipN_spec.
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
-    - iMod (iProto_send_r with "Hctx H Hpc") as "[Hctx H]".
+    - iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=; auto. }
       wp_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
       wp_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
       wp_apply skipN_spec.
@@ -243,24 +231,16 @@ Section channel.
       iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
   Qed.
 
-  (** A version written without Texan triples that is more convenient to use
-  (via [iApply] in Coq. *)
-  Lemma send_spec {TT} Φ c v (pc : TT → val * iProp Σ * iProto Σ) :
-    c ↣ iProto_message Send pc -∗
-    (∃.. x : TT,
-      ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ ▷ (c ↣ (pc x).2 -∗ Φ #())) -∗
-    WP send c v {{ Φ }}.
-  Proof.
-    iIntros "Hc H". iDestruct (bi_texist_exist with "H") as (x ->) "[HP HΦ]".
-    by iApply (send_spec_packed with "[$]").
-  Qed.
-
-  Lemma try_recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Recv pc }}}
+  Lemma try_recv_spec {TT} c (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
+    {{{ c ↣ <?.. x> MSG v x {{ ▷ P x }}; p x }}}
       try_recv c
-    {{{ v, RET v; (⌜v = NONEV⌝ ∧ c ↣ iProto_message Recv pc) ∨
-                  (∃ x : TT, ⌜v = SOMEV ((pc x).1.1)⌝ ∗ c ↣ (pc x).2 ∗ (pc x).1.2) }}}.
+    {{{ w, RET w; (⌜w = NONEV⌝ ∗ c ↣ <?.. x> MSG v x {{ ▷ P x }}; p x) ∨
+                  (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
+    assert (∀ w lp (m : TT → iMsg Σ),
+      (∃.. x, m x)%msg w lp ⊣⊢ (∃.. x, m x w lp)) as iMsg_texist.
+    { intros w lp m. clear v P p. rewrite /iMsg_texist iMsg_exist_eq.
+      induction TT as [|T TT IH]; simpl; [done|]. f_equiv=> x. apply IH. }
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
@@ -272,10 +252,12 @@ Section channel.
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       iMod (iProto_recv_l with "Hctx H") as "H". wp_pures.
-      iMod "H" as (x ->) "(Hctx & H & Hpc)".
+      iMod "H" as (q) "(Hctx & H & Hm)".
+      rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
-      iFrame "Hpc". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
+      iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+      by iRewrite "Hp".
     - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct vsl as [|vl vsl]; wp_pures.
       { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
@@ -283,43 +265,35 @@ Section channel.
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       iMod (iProto_recv_r with "Hctx H") as "H". wp_pures.
-      iMod "H" as (x ->) "(Hctx & H & Hpc)".
+      iMod "H" as (q) "(Hctx & H & Hm)".
+      rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
-      iFrame "Hpc". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
+      iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+      by iRewrite "Hp".
   Qed.
 
-  Lemma recv_spec_packed {TT} c (pc : TT → val * iProp Σ * iProto Σ) :
-    {{{ c ↣ iProto_message Recv pc }}}
+  Lemma recv_spec {TT} c (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
+    {{{ c ↣ <?.. x> MSG v x {{ ▷ P x }}; p x }}}
       recv c
-    {{{ x, RET (pc x).1.1; c ↣ (pc x).2 ∗ (pc x).1.2 }}}.
+    {{{ x, RET v x; c ↣ p x ∗ P x }}}.
   Proof.
     iIntros (Φ) "Hc HΦ". iLöb as "IH". wp_lam.
-    wp_apply (try_recv_spec_packed with "Hc"); iIntros (v) "[[-> H]|H]".
+    wp_apply (try_recv_spec with "Hc"); iIntros (w) "[[-> H]|H]".
     { wp_pures. by iApply ("IH" with "[$]"). }
-    iDestruct "H" as (x ->) "[Hc Hpc]". wp_pures. iApply "HΦ". iFrame.
+    iDestruct "H" as (x ->) "[Hc HP]". wp_pures. iApply "HΦ". iFrame.
   Qed.
 
-  (** A version written without Texan triples that is more convenient to use
-  (via [iApply] in Coq. *)
-  Lemma recv_spec {TT} Φ c (pc : TT → val * iProp Σ * iProto Σ) :
-    c ↣ iProto_message Recv pc -∗
-    ▷ (∀.. x : TT, c ↣ (pc x).2 -∗ (pc x).1.2 -∗ Φ (pc x).1.1) -∗
-    WP recv c {{ Φ }}.
-  Proof.
-    iIntros "Hc H". iApply (recv_spec_packed with "[$]").
-    iIntros "!>" (x) "[Hc HP]". iDestruct (bi_tforall_forall with "H") as "H".
-    iApply ("H" with "[$] [$]").
-  Qed.
-
-  (** ** Specifications for branching *)
+  (** ** Specifications for choice *)
   Lemma select_spec c (b : bool) P1 P2 p1 p2 :
     {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}}
       send c #b
     {{{ RET #(); c ↣ (if b then p1 else p2) }}}.
   Proof.
-    rewrite /iProto_branch. iIntros (Φ) "[Hc HP] HΦ".
-    iApply (send_spec with "Hc"); simpl; eauto with iFrame.
+    rewrite /iProto_choice. iIntros (Φ) "[Hc HP] HΦ".
+    iApply (send_spec with "[Hc HP] HΦ").
+    iApply (iProto_mapsto_le with "Hc").
+    iIntros "!>". iExists b. by iFrame "HP".
   Qed.
 
   Lemma branch_spec c P1 P2 p1 p2 :
@@ -327,8 +301,13 @@ Section channel.
       recv c
     {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}.
   Proof.
-    rewrite /iProto_branch. iIntros (Φ) "Hc HΦ".
-    iApply (recv_spec with "Hc"); simpl.
-    iIntros "!>" (b) "Hc HP". iApply "HΦ". iFrame.
+    rewrite /iProto_choice. iIntros (Φ) "Hc HΦ".
+    iApply (recv_spec _ (tele_app _)
+      (tele_app (TT:=[tele _ : bool]) (λ b, if b then P1 else P2))%I
+      (tele_app _) with "[Hc]").
+    { iApply (iProto_mapsto_le with "Hc").
+      iIntros "!> /=" (b) "HP". iExists b. by iSplitL. }
+    rewrite -bi_tforall_forall.
+    iIntros "!>" (x) "[Hc H]". iApply "HΦ". iFrame.
   Qed.
 End channel.
