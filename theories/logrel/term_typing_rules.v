@@ -525,6 +525,26 @@ Section properties.
       wp_pures. iFrame.
     Qed.
 
+    Definition select : val := λ: "c" "i", send "c" "i".
+    Lemma ltyped_select Γ (c : string) (i : Z) (S : lsty Σ) Ss :
+      Ss !! i = Some S →
+      ⊢ <[c := (chan (lty_select Ss))%lty]>Γ ⊨ select c #i : () ⫤
+        <[c := (chan S)%lty]>Γ.
+    Proof.
+      iIntros (Hin).
+      iIntros "!>" (vs) "HΓ /=".
+      iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
+      { by apply lookup_insert. }
+      rewrite Heq /select.
+      wp_send with "[]".
+      { eauto. }
+      iSplitR; first done.
+      iDestruct (env_ltyped_insert _ _ c (chan _) with "[Hc //] HΓ")
+        as "HΓ'"=> /=.
+      rewrite insert_delete insert_insert (insert_id vs)=> //.
+      by rewrite lookup_total_alt Hin.
+    Qed.
+
     Definition chanbranch (xs : list Z) : val := λ: "c",
       switch_lams "f" 0 (length xs) $
       let: "y" := recv "c" in
