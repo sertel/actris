@@ -69,10 +69,14 @@ Section session_types.
   Global Instance lty_msg_base_proper a :
     Proper ((≡) ==> (≡) ==> (≡)) (@lty_msg_base Σ a).
   Proof. rewrite /lty_msg_base. apply ne_proper_2, _. Qed.
-  (* FIXME: Not contractive since lty_msg_exist is not contractive *)
-  (* Global Instance lty_msg_base_contractive n a : *)
-  (*   Proper (dist n ==> dist_later n ==> dist n) (@lty_msg_base Σ a). *)
-  (* Proof. rewrite /lty_msg_base. solve_contractive. Qed. *)
+  Global Instance lty_msg_base_contractive n :
+    Proper (dist_later n ==> dist_later n ==> dist n) (@lty_msg_base Σ).
+  Proof.
+    intros A1 A2 HA S1 S2 HS.
+    rewrite /lty_msg_base.
+    f_equiv=> w.
+    by repeat f_contractive.
+  Qed.
 
   Global Instance lty_message_ne a : NonExpansive (@lty_message Σ a).
   Proof. solve_proper. Qed.
