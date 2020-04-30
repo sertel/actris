@@ -3,7 +3,7 @@ From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import metatheory.
 From iris.heap_lang.lib Require Export spawn par assert.
-From actris.logrel Require Export subtyping typing_judgment session_types.
+From actris.logrel Require Export subtyping term_typing_judgment session_types.
 From actris.logrel Require Import environments.
 From actris.utils Require Import switch.
 From actris.channel Require Import proofmode.

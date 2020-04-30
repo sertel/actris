@@ -1,7 +1,7 @@
 From iris.algebra Require Import frac.
 From iris.heap_lang.lib Require Export par spin_lock.
 From actris.channel Require Import proofmode.
-From actris.logrel Require Export typing_judgment session_types.
+From actris.logrel Require Export term_typing_judgment session_types.
 From actris.logrel Require Import environments.
 
 Definition prog : val := λ: "c",
