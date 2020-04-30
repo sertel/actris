@@ -772,13 +772,13 @@ Section proto.
       iMod (iProto_le_end_inv_l with "H") as "H".
       rewrite iProto_end_eq iProto_message_eq.
       iDestruct (proto_message_end_equivI with "H") as "[]".
-    - rewrite -> Heq. destruct a.
+    - iEval (rewrite Heq). destruct a.
       + iApply iProto_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1 Hm2 /=".
         iDestruct "Hm1" as (x) "Hm1".
-        iSpecialize ("H" $! x). rewrite -> Heq.
+        iSpecialize ("H" $! x). rewrite Heq.
         iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
       + iApply iProto_le_recv. iIntros (v p1') "/=". iDestruct 1 as (x) "Hm".
-        iSpecialize ("H" $! x). rewrite -> Heq.
+        iSpecialize ("H" $! x). rewrite Heq.
         by iApply (iProto_le_recv_recv_inv with "H").
   Qed.
 
@@ -804,13 +804,13 @@ Section proto.
       iMod (iProto_le_end_inv_r with "H") as "H".
       rewrite iProto_end_eq iProto_message_eq.
       iDestruct (proto_message_end_equivI with "H") as "[]".
-    - rewrite -> Heq. destruct a.
+    - iEval (rewrite Heq). destruct a.
       + iApply iProto_le_send. iIntros (v p2'). iDestruct 1 as (x) "Hm".
-        iSpecialize ("H" $! x). rewrite -> Heq.
+        iSpecialize ("H" $! x). rewrite Heq.
         by iApply (iProto_le_send_send_inv with "H").
       + iApply iProto_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1".
         iDestruct 1 as (x) "Hm2".
-        iSpecialize ("H" $! x). rewrite -> Heq.
+        iSpecialize ("H" $! x). rewrite Heq.
         iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
   Qed.
   Lemma iProto_le_exist_intro_l {A} (m : A → iMsg Σ V) a :
