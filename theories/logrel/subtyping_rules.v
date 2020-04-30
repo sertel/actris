@@ -262,14 +262,14 @@ Section subtyping_rules.
     iDestruct ("HAle" with "H") as "$". by iModIntro.
   Qed.
 
-  Lemma lty_le_exist_elim_l M S :
-    (∀ A, (<??> M A) <: S) -∗
-    ((<?? A> M A) <: S).
+  Lemma lty_le_exist_elim_l k (M : lty Σ k → lmsg Σ) S :
+    (∀ (A : lty Σ k), (<??> M A) <: S) -∗
+    ((<?? (A : lty Σ k)> M A) <: S).
   Proof. iIntros "#Hle !>". iApply (iProto_le_exist_elim_l_inhabited M). auto. Qed.
 
-  Lemma lty_le_exist_elim_r M S :
-    (∀ A, S <: (<!!> M A)) -∗
-    (S <: (<!! A> M A)).
+  Lemma lty_le_exist_elim_r k (M : lty Σ k → lmsg Σ) S :
+    (∀ (A : lty Σ k), S <: (<!!> M A)) -∗
+    (S <: (<!! (A : lty Σ k)> M A)).
   Proof. iIntros "#Hle !>". iApply (iProto_le_exist_elim_r_inhabited _ M). auto. Qed.
 
   Lemma lty_le_exist_intro_l k (M : lty Σ k → lmsg Σ) (A : lty Σ k) :
