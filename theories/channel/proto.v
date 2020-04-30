@@ -566,11 +566,18 @@ Section proto.
     (<?> m1) ⊑ (<!> m2).
   Proof. rewrite iProto_le_unfold. iIntros "H". iRight. auto 10. Qed.
 
-  Lemma iProto_le_end_inv p : p ⊑ END -∗ ◇ (p ≡ END).
+  Lemma iProto_le_end_inv_l p : p ⊑ END -∗ ◇ (p ≡ END).
   Proof.
     rewrite iProto_le_unfold. iIntros "[[Hp _]|H] //".
     iDestruct "H" as (a1 a2 m1 m2) "(_ & >Heq & _)".
     by iDestruct (iProto_end_message_equivI with "Heq") as %[].
+  Qed.
+
+  Lemma iProto_le_end_inv_r p : END ⊑ p -∗ ◇ (p ≡ END).
+  Proof.
+    rewrite iProto_le_unfold. iIntros "[[_ Hp]|H] //".
+    iDestruct "H" as (a1 a2 m1 m2) "(>Heq & _ & _)".
+    iDestruct (iProto_end_message_equivI with "Heq") as %[].
   Qed.
 
   Lemma iProto_le_send_inv p1 m2 :
@@ -658,7 +665,7 @@ Section proto.
   Proof.
     iIntros "H1 H2". iLöb as "IH" forall (p1 p2 p3).
     destruct (iProto_case p3) as [->|([]&m3&->)].
-    - iMod (iProto_le_end_inv with "H2") as "H2". by iRewrite "H2" in "H1".
+    - iMod (iProto_le_end_inv_l with "H2") as "H2". by iRewrite "H2" in "H1".
     - iDestruct (iProto_le_send_inv with "H2") as (a2 m2) "[>Hp2 H2]".
       iRewrite "Hp2" in "H1"; clear p2. destruct a2.
       + iDestruct (iProto_le_send_inv with "H1") as (a1 m1) "[>Hp1 H1]".
@@ -753,6 +760,28 @@ Section proto.
     - iApply iProto_le_recv. iIntros (v p1') "/=". iDestruct 1 as (x) "Hm".
       by iApply (iProto_le_recv_recv_inv with "H").
   Qed.
+
+  Lemma iProto_le_exist_elim_l_inhabited `{!Inhabited A} (m : A → iMsg Σ V) p :
+    (∀ x, (<?> m x) ⊑ p) -∗
+    (<? x> m x) ⊑ p.
+  Proof.
+    rewrite iMsg_exist_eq. iIntros "H".
+    destruct (iProto_case p) as [Heq | [a [m' Heq]]].
+    - unshelve iSpecialize ("H" $!inhabitant); first by apply _.
+      rewrite Heq.
+      iMod (iProto_le_end_inv_l with "H") as "H".
+      rewrite iProto_end_eq iProto_message_eq.
+      iDestruct (proto_message_end_equivI with "H") as "[]".
+    - rewrite -> Heq. destruct a.
+      + iApply iProto_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1 Hm2 /=".
+        iDestruct "Hm1" as (x) "Hm1".
+        iSpecialize ("H" $! x). rewrite -> Heq.
+        iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
+      + iApply iProto_le_recv. iIntros (v p1') "/=". iDestruct 1 as (x) "Hm".
+        iSpecialize ("H" $! x). rewrite -> Heq.
+        by iApply (iProto_le_recv_recv_inv with "H").
+  Qed.
+
   Lemma iProto_le_exist_elim_r {A} a m1 (m2 : A → iMsg Σ V) :
     (∀ x, (<a> m1) ⊑ (<!> m2 x)) -∗
     (<a> m1) ⊑ (<! x> m2 x).
@@ -763,6 +792,26 @@ Section proto.
     - iApply iProto_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1".
       iDestruct 1 as (x) "Hm2".
       iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
+  Qed.
+  Lemma iProto_le_exist_elim_r_inhabited `{Hinh : Inhabited A} p (m : A → iMsg Σ V) :
+    (∀ x, p ⊑ (<!> m x)) -∗
+    p ⊑ (<! x> m x).
+  Proof.
+    rewrite iMsg_exist_eq. iIntros "H".
+    destruct (iProto_case p) as [Heq | [a [m' Heq]]].
+    - unshelve iSpecialize ("H" $!inhabitant); first by apply _.
+      rewrite Heq.
+      iMod (iProto_le_end_inv_r with "H") as "H".
+      rewrite iProto_end_eq iProto_message_eq.
+      iDestruct (proto_message_end_equivI with "H") as "[]".
+    - rewrite -> Heq. destruct a.
+      + iApply iProto_le_send. iIntros (v p2'). iDestruct 1 as (x) "Hm".
+        iSpecialize ("H" $! x). rewrite -> Heq.
+        by iApply (iProto_le_send_send_inv with "H").
+      + iApply iProto_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1".
+        iDestruct 1 as (x) "Hm2".
+        iSpecialize ("H" $! x). rewrite -> Heq.
+        iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
   Qed.
   Lemma iProto_le_exist_intro_l {A} (m : A → iMsg Σ V) a :
     ⊢ (<! x> m x) ⊑ (<!> m a).
@@ -810,7 +859,7 @@ Section proto.
   Proof.
     iIntros "H". iLöb as "IH" forall (p1 p2).
     destruct (iProto_case p1) as [->|([]&m1&->)].
-    - iMod (iProto_le_end_inv with "H") as "H".
+    - iMod (iProto_le_end_inv_l with "H") as "H".
       iRewrite "H". iApply iProto_le_refl.
     - iDestruct (iProto_le_send_inv with "H") as (a2 m2) "[>Hp2 H]".
       iRewrite "Hp2"; clear p2. iEval (rewrite !iProto_dual_message).
@@ -853,7 +902,7 @@ Section proto.
   Proof.
     iIntros "H1 H2". iLöb as "IH" forall (p1 p2 p3 p4).
     destruct (iProto_case p2) as [->|([]&m2&->)].
-    - iMod (iProto_le_end_inv with "H1") as "H1".
+    - iMod (iProto_le_end_inv_l with "H1") as "H1".
       iRewrite "H1". by rewrite !left_id.
     - iDestruct (iProto_le_send_inv with "H1") as (a1 m1) "[>Hp1 H1]".
       iRewrite "Hp1"; clear p1. rewrite !iProto_app_message. destruct a1; simpl.
