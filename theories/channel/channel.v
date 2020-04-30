@@ -238,7 +238,7 @@ Section channel.
                   (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
     assert (∀ w lp (m : TT → iMsg Σ),
-      (∃.. x, m x)%msg w lp ⊣⊢ (∃.. x, m x w lp)) as iMsg_texist.
+      iMsg_car (∃.. x, m x)%msg w lp ⊣⊢ (∃.. x, iMsg_car (m x) w lp)) as iMsg_texist.
     { intros w lp m. clear v P p. rewrite /iMsg_texist iMsg_exist_eq.
       induction TT as [|T TT IH]; simpl; [done|]. f_equiv=> x. apply IH. }
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
