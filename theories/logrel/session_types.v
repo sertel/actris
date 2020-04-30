@@ -7,10 +7,10 @@ Delimit Scope lmsg_scope with lmsg.
 Bind Scope lmsg_scope with lmsg.
 
 Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
-  iMsg_exist M.
+  (∃ v, M v)%msg.
 
 Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
-  iMsg_exist (λ v, iMsg_base v (▷ ltty_car A v) (lsty_car S)).
+  (∃ v, MSG v {{ ▷ ltty_car A v}} ; (lsty_car S))%msg.
 
 Definition lty_end {Σ} : lsty Σ := Lsty END.
 
