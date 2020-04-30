@@ -460,7 +460,7 @@ Section properties.
 
     Definition chansend : val := λ: "chan" "val", send "chan" "val";; "chan".
     Lemma ltyped_chansend A S :
-      ⊢ ∅ ⊨ chansend : chan (<!!> A; S) → A ⊸ chan S.
+      ⊢ ∅ ⊨ chansend : chan (<!!> TY A; S) → A ⊸ chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iSplitL; last by iApply env_ltyped_empty.
@@ -470,7 +470,7 @@ Section properties.
     Qed.
 
     Lemma ltyped_send Γ Γ' (x : string) e A S :
-      (Γ ⊨ e : A ⫤ <[x:=(chan (<!!> A; S))%lty]> Γ') -∗
+      (Γ ⊨ e : A ⫤ <[x:=(chan (<!!> TY A; S))%lty]> Γ') -∗
       Γ ⊨ send x e : () ⫤ <[x:=(chan S)%lty]> Γ'.
     Proof.
       iIntros "#He !>" (vs) "HΓ"=> /=.
@@ -488,7 +488,7 @@ Section properties.
 
     Definition chanrecv : val := λ: "chan", (recv "chan", "chan").
     Lemma ltyped_chanrecv A S :
-      ⊢ ∅ ⊨ chanrecv : chan (<??> A; S) → A * chan S.
+      ⊢ ∅ ⊨ chanrecv : chan (<??> TY A; S) → A * chan S.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iSplitL; last by iApply env_ltyped_empty.
@@ -498,7 +498,7 @@ Section properties.
     Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
-      ⊢ <[x := (chan (<??> A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
+      ⊢ <[x := (chan (<??> TY A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
       iIntros "!>" (vs) "HΓ"=> /=.
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".

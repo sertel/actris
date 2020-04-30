@@ -85,14 +85,14 @@ Section double.
   Qed.
 
   Lemma prog_typed :
-    ⊢ ∅ ⊨ prog : chan (<??> lty_int; <??> lty_int; END) ⊸ lty_int * lty_int.
+    ⊢ ∅ ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
   Proof.
     iIntros (vs) "!> HΓ /=".
     iApply wp_value.
     iSplitL; last by iApply env_ltyped_empty.
     iIntros (c) "Hc".
     iApply (wp_prog with "[Hc]").
-    { iApply (iProto_mapsto_le _ (lsty_car (<??> lty_int; <??> lty_int; END)) with "Hc").
+    { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
       iIntros "!> !>" (v1). iMod 1 as %[x1 ->]. iExists x1.
       iIntros "!>" (v2). iMod 1 as %[x2 ->]. iExists x2. auto. }
     iIntros "!>" (k1 k2 _).
