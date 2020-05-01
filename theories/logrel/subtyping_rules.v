@@ -267,6 +267,25 @@ Section subtyping_rules.
     ⊢ (<??> M A) <: (<?? X> M X).
   Proof. iIntros "!>". iApply (iProto_le_exist_intro_r). Qed.
 
+  (* Elimination rules need inhabited variant of telescopes in the model *)
+  Lemma lty_le_texist_elim_l {kt : ktele Σ} (M : ltys kt → lmsg Σ) S :
+    (∀ Xs, (<??> M Xs) <: S) -∗
+    (<??.. Xs> M Xs) <: S.
+  Proof. Admitted.
+
+  Lemma lty_le_texist_elim_r {kt : ktele Σ} (M : ltys kt → lmsg Σ) S :
+    (∀ Xs, S <: (<!!> M Xs)) -∗
+    S <: (<!!.. Xs> M Xs).
+  Proof. Admitted.
+
+  Lemma lty_le_texist_intro_l {kt : ktele Σ} (M : ltys kt → lmsg Σ) Ks :
+    ⊢ (<!!.. Xs> M Xs) <: (<!!> M Ks).
+  Proof. Admitted.
+
+  Lemma lty_le_texist_intro_r {kt : ktele Σ} (M : ltys kt → lmsg Σ) Ks :
+    ⊢ (<??> M Ks) <: (<??.. Xs> M Xs).
+  Proof. Admitted.
+
   Lemma lty_le_swap_recv_send A1 A2 S :
     ⊢ (<??> TY A1; <!!> TY A2; S) <: (<!!> TY A2; <??> TY A1; S).
   Proof.
