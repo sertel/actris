@@ -9,7 +9,7 @@ Bind Scope lmsg_scope with lmsg.
 Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
   (∃ X, M X)%msg.
 
-Definition lty_msg_texist {Σ} {kt : ktele Σ} (M : ltys kt → lmsg Σ) : lmsg Σ :=
+Definition lty_msg_texist {Σ} {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) : lmsg Σ :=
   ktele_fold (@lty_msg_exist Σ) (λ x, x) (ktele_bind M).
 
 Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
