@@ -28,8 +28,6 @@ Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∀ A, WP w #() {{ ltty_car (C A) }})%I.
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
-Definition lty_texist {Σ} {kt : ktele Σ} (C : ltys Σ kt → ltty Σ) : ltty Σ :=
-  ktele_fold (@lty_exist Σ) (λ x, x) (ktele_bind C).
 
 Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
