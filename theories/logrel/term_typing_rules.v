@@ -240,37 +240,14 @@ Section properties.
   Qed.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
-      (Γ1 ⊨ e1 : lty_exist C ⫤ Γ2) -∗
-      (∀ Y, binder_insert x (C Y) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-      Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
+    (Γ1 ⊨ e1 : lty_exist C ⫤ Γ2) -∗
+    (∀ Y, binder_insert x (C Y) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+    Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
     wp_apply (wp_wand with "(He1 HΓ1)").
     iIntros (v) "[HC HΓ2]".
     iDestruct "HC" as (X) "HX".
-    wp_pures.
-    iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
-    iDestruct ("He2" with "HΓ2") as "He2'".
-    destruct x as [|x]; rewrite /= -?subst_map_insert //.
-    wp_apply (wp_wand with "He2'").
-    iIntros (w) "[HA2 HΓ3]".
-    iFrame.
-    iApply env_ltyped_delete=> //.
-  Qed.
-
-  Lemma texist_exist {kt : ktele Σ} (C : ltys Σ kt → ltty Σ) v :
-    ltty_car (lty_texist C) v -∗ (∃ X, ▷ ltty_car (C X) v).
-  Proof. Admitted.
-
-  Lemma ltyped_unpack' {kt} Γ1 Γ2 Γ3 x e1 e2 (C : ltys Σ kt → ltty Σ) B :
-      (Γ1 ⊨ e1 : lty_texist C ⫤ Γ2) -∗
-      (∀ Ys, binder_insert x (C Ys) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-      Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
-  Proof.
-    iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
-    wp_apply (wp_wand with "(He1 HΓ1)").
-    iIntros (v) "[HC HΓ2]".
-    iDestruct (texist_exist with "HC") as (X) "HX".
     wp_pures.
     iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
     iDestruct ("He2" with "HΓ2") as "He2'".
@@ -487,20 +464,6 @@ Section properties.
   Section with_chan.
     Context `{chanG Σ}.
 
-    Lemma lmsg_iMsg {kt : ktele Σ} (M : ktele_to_tele kt → lmsg Σ) :
-      lty_msg_texist (λ Xs, M (ltys_to_tele_args Xs)) ≡ iMsg_texist M.
-    Proof.
-      induction kt.
-      - eauto.
-      - simpl.
-        rewrite /lty_msg_texist. simpl.
-        admit.
-    Admitted.
-
-    Lemma chan_texist_exist {kt : ktele Σ} c (M : ktele_to_tele kt → lmsg Σ) :
-      ltty_car (chan (<??.. Xs> M (ltys_to_tele_args Xs) )) c -∗ c ↣ (<?.. Xs> M Xs).
-    Proof. rewrite -lmsg_iMsg. eauto. Qed.
-
     Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
     Lemma ltyped_chanalloc S :
       ⊢ ∅ ⊨ chanalloc : () → (chan S * chan (lty_dual S)).
@@ -552,34 +515,39 @@ Section properties.
       iExists v, c. eauto with iFrame.
     Qed.
 
-    Lemma ltyped_recv_poly {kt : ktele Σ} Γ1 Γ2 (c : string) (x : string) (e : expr)
-          (A : ltys Σ kt → ltty Σ) (M : ltys Σ kt → lsty Σ) (B : ltty Σ) :
-      (∀ Ys, binder_insert x (A Ys) (<[c := (chan (M Ys))%lty ]> Γ1) ⊨ e : B ⫤ Γ2) -∗
-        <[c := (chan (<??> ∃.. Xs, TY A Xs; M Xs))%lty]> Γ1 ⊨
-          (let: x := recv c in e) : B ⫤ binder_delete x Γ2.
+    Lemma iProto_le_lmsg_texist {kt : ktele Σ} (m : ltys Σ kt → iMsg Σ) :
+      ⊢ (<?> (∃.. Xs : ltys Σ kt, m Xs)%lmsg) ⊑ (<? (Xs : ltys Σ kt)> m Xs).
     Proof.
-      iIntros "#He !>". iIntros (vs) "HΓ"=> /=.
-      iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
+      iInduction kt as [|k kt] "IH".
+      { rewrite /lty_msg_texist /=. by iExists LTysO. }
+      rewrite /lty_msg_texist /=. iIntros (X).
+      iApply (iProto_le_trans with "IH"). iIntros (Xs). by iExists (LTysS _ _).
+    Qed.
+
+    Lemma ltyped_recv_poly {kt} Γ1 Γ2 (xc x : string) (e : expr)
+        (A : ltys Σ kt → ltty Σ) (S : ltys Σ kt → lsty Σ) (B : ltty Σ) :
+      (∀ Ys,
+        binder_insert x (A Ys) (<[xc:=(chan (S Ys))%lty]> Γ1) ⊨ e : B ⫤ Γ2) -∗
+      <[xc:=(chan (<??.. Xs> TY A Xs; S Xs))%lty]> Γ1 ⊨
+        (let: x:=recv xc in e) : B ⫤ binder_delete x Γ2.
+    Proof.
+      iIntros "#He !>". iIntros (vs) "HΓ /=".
+      iDestruct (env_ltyped_lookup with "HΓ") as (c Hxc) "[Hc HΓ]".
       { by apply lookup_insert. }
-      rewrite Heq.
-      iDestruct (@chan_texist_exist kt v' _ with "[Hc]") as "Hc".
-      { admit. }
-      wp_apply (recv_spec with "[Hc]").
-      { admit. }
-      iIntros (Xs) "[Hc HC]".
-      wp_pures.
-      iDestruct (texist_exist with "HC") as (X) "HX".
-      wp_pures.
-      iDestruct (env_ltyped_insert _ _ c (chan _) _ with "Hc HΓ") as "HΓ"=> /=.
-      iDestruct (env_ltyped_insert _ _ x with "[HX] HΓ") as "HΓ".
-      { admit. }
-      iDestruct ("He" with "[HΓ]") as "He'".
-      { admit. }
+      rewrite Hxc.
+      iAssert (c ↣ <? (Xs : ltys Σ kt) (v : val)>
+        MSG v {{ ▷ ltty_car (A Xs) v }}; lsty_car (S Xs)) with "[Hc]" as "Hc".
+      { iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
+        iApply iProto_le_lmsg_texist. }
+      wp_recv (Xs v) as "HA". wp_pures.
       rewrite -subst_map_insert.
-      wp_apply (wp_wand with "He'").
-      iIntros (v) "[HB HΓ]". iFrame.
-      iApply env_ltyped_delete=> //.
-    Admitted.
+      wp_apply (wp_wand with "(He [-]) []").
+      { iApply (env_ltyped_insert _ _ x with "HA").
+        rewrite delete_insert_delete.
+        iEval (rewrite -(insert_id vs xc c) // -(insert_delete Γ1)).
+        by iApply (env_ltyped_insert _ _ xc with "[Hc] HΓ"). }
+      iIntros (w) "[$ HΓ]". by iApply env_ltyped_delete.
+    Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
       ⊢ <[x := (chan (<??> TY A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.

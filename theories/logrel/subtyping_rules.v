@@ -268,23 +268,37 @@ Section subtyping_rules.
   Proof. iIntros "!>". iApply (iProto_le_exist_intro_r). Qed.
 
   (* Elimination rules need inhabited variant of telescopes in the model *)
-  Lemma lty_le_texist_elim_l {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) S :
+  Lemma lty_le_texist_elim_l {kt} (M : ltys Σ kt → lmsg Σ) S :
     (∀ Xs, (<??> M Xs) <: S) -∗
     (<??.. Xs> M Xs) <: S.
-  Proof. Admitted.
+  Proof.
+    iIntros "H". iInduction kt as [|k kt] "IH"; simpl; [done|].
+    iApply lty_le_exist_elim_l; iIntros (X).
+    iApply "IH". iIntros (Xs). iApply "H".
+  Qed.
 
   Lemma lty_le_texist_elim_r {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) S :
     (∀ Xs, S <: (<!!> M Xs)) -∗
     S <: (<!!.. Xs> M Xs).
-  Proof. Admitted.
+  Proof.
+    iIntros "H". iInduction kt as [|k kt] "IH"; simpl; [done|].
+    iApply lty_le_exist_elim_r; iIntros (X).
+    iApply "IH". iIntros (Xs). iApply "H".
+  Qed.
 
   Lemma lty_le_texist_intro_l {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) Ks :
     ⊢ (<!!.. Xs> M Xs) <: (<!!> M Ks).
-  Proof. Admitted.
+  Proof.
+    induction Ks as [|k kT X Xs IH]; simpl; [iApply lty_le_refl|].
+    iApply lty_le_trans; [by iApply lty_le_exist_intro_l|]. iApply IH.
+  Qed.
 
   Lemma lty_le_texist_intro_r {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) Ks :
     ⊢ (<??> M Ks) <: (<??.. Xs> M Xs).
-  Proof. Admitted.
+  Proof.
+    induction Ks as [|k kt X Xs IH]; simpl; [iApply lty_le_refl|].
+    iApply lty_le_trans; [|by iApply lty_le_exist_intro_r]. iApply IH.
+  Qed.
 
   Lemma lty_le_swap_recv_send A1 A2 S :
     ⊢ (<??> TY A1; <!!> TY A2; S) <: (<!!> TY A2; <??> TY A1; S).
