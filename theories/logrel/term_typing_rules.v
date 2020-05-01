@@ -487,9 +487,19 @@ Section properties.
   Section with_chan.
     Context `{chanG Σ}.
 
+    Lemma lmsg_iMsg {kt : ktele Σ} (M : ktele_to_tele kt → lmsg Σ) :
+      lty_msg_texist (λ Xs, M (ltys_to_tele_args Xs)) ≡ iMsg_texist M.
+    Proof.
+      induction kt.
+      - eauto.
+      - simpl.
+        rewrite /lty_msg_texist. simpl.
+        admit.
+    Admitted.
+
     Lemma chan_texist_exist {kt : ktele Σ} c (M : ktele_to_tele kt → lmsg Σ) :
       ltty_car (chan (<??.. Xs> M (ltys_to_tele_args Xs) )) c -∗ c ↣ (<?.. Xs> M Xs).
-    Proof. Admitted.
+    Proof. rewrite -lmsg_iMsg. eauto. Qed.
 
     Definition chanalloc : val := λ: "u", let: "cc" := new_chan #() in "cc".
     Lemma ltyped_chanalloc S :
@@ -543,17 +553,16 @@ Section properties.
     Qed.
 
     Lemma ltyped_recv_poly {kt : ktele Σ} Γ1 Γ2 (c : string) (x : string) (e : expr)
-          (A : ltys Σ kt → ltty Σ) (S : ltys Σ kt → lsty Σ) (B : ltty Σ) :
-      ⊢ (∀ Ys, binder_insert x (A Ys) (<[c := (chan (S Ys))%lty ]> Γ1) ⊨ e : B ⫤ Γ2) -∗
-        <[c := (chan (<??> ∃.. Xs, TY A Xs; S Xs))%lty]> Γ1 ⊨
+          (A : ltys Σ kt → ltty Σ) (M : ltys Σ kt → lsty Σ) (B : ltty Σ) :
+      (∀ Ys, binder_insert x (A Ys) (<[c := (chan (M Ys))%lty ]> Γ1) ⊨ e : B ⫤ Γ2) -∗
+        <[c := (chan (<??> ∃.. Xs, TY A Xs; M Xs))%lty]> Γ1 ⊨
           (let: x := recv c in e) : B ⫤ binder_delete x Γ2.
     Proof.
       iIntros "#He !>". iIntros (vs) "HΓ"=> /=.
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
       { by apply lookup_insert. }
       rewrite Heq.
-      rewrite delete_insert; last by admit.
-      iDestruct (chan_texist_exist v' with "[Hc]") as "Hc".
+      iDestruct (@chan_texist_exist kt v' _ with "[Hc]") as "Hc".
       { admit. }
       wp_apply (recv_spec with "[Hc]").
       { admit. }
