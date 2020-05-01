@@ -298,7 +298,7 @@ Section subtyping_rules.
     iApply iProto_le_trans;
       [iApply iProto_le_base; iApply (iProto_le_exist_intro_l _ x2)|]; simpl.
     iApply iProto_le_payload_elim_r.
-    iMod 1 as "%". revert H1.
+    iMod 1 as %HSs. revert HSs.
     rewrite !lookup_total_alt !lookup_fmap fmap_is_Some; iIntros ([S ->]) "/=".
     iApply iProto_le_trans; [iApply iProto_le_base_swap|]. iSplitL; [by eauto|].
     iModIntro. by iExists v1.
