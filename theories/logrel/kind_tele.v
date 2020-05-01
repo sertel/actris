@@ -25,7 +25,7 @@ Notation "kt -k> A" :=
 (** An eliminator for elements of [ktele_fun].
     We use a [fix] because, for some reason, that makes stuff print nicer
     in the proofs in iris:bi/lib/telescopes.v *)
-Definition ktele_fold {Σ X Y} {kt : ktele Σ}
+Definition ktele_fold {Σ X Y kt}
     (step : ∀ {k}, (lty Σ k → Y) → Y) (base : X → Y) : (kt -k> X) → Y :=
   (fix rec {kt} : (kt -k> X) → Y :=
      match kt as kt return (kt -k> X) → Y with
@@ -40,11 +40,11 @@ Inductive ltys {Σ} : ktele Σ → Type :=
   | LTysO : ltys KTeleO
   (* the [X] is the only relevant data here *)
   | LTysS {k} {binder} (K : lty Σ k) :
-      ltys (binder K) →
-      ltys (KTeleS binder).
+     ltys (binder K) →
+     ltys (KTeleS binder).
 Arguments ltys : clear implicits.
 
-Definition ktele_app {Σ} {kt : ktele Σ} {T} (f : kt -k> T) : ltys Σ kt → T :=
+Definition ktele_app {Σ kt T} (f : kt -k> T) : ltys Σ kt → T :=
   λ Ks, (fix rec {kt} (Ks : ltys Σ kt) : (kt -k> T) → T :=
      match Ks in ltys _ kt return (kt -k> T) → T with
      | LTysO => λ t : T, t
@@ -57,15 +57,15 @@ Arguments ktele_app {_} {!_ _} _ !_ /.
 (* Local Coercion ktele_app : ktele_fun >-> Funclass. *)
 
 (** Inversion lemma for [tele_arg] *)
-Lemma ltys_inv {Σ} {kt : ktele Σ} (Ks : ltys Σ kt) :
+Lemma ltys_inv {Σ kt} (Ks : ltys Σ kt) :
   match kt as kt return ltys _ kt → Prop with
   | KTeleO => λ Ks, Ks = LTysO
   | KTeleS f => λ Ks, ∃ K Ks', Ks = LTysS K Ks'
   end Ks.
 Proof. induction Ks; eauto. Qed.
-Lemma ltys_O_inv {Σ} (Ks : ltys Σ (@KTeleO Σ)) : Ks = LTysO.
+Lemma ltys_O_inv {Σ} (Ks : ltys Σ KTeleO) : Ks = LTysO.
 Proof. exact (ltys_inv Ks). Qed.
-Lemma ltys_S_inv {Σ} {X} {f : lty Σ X → ktele Σ} (Ks : ltys Σ (KTeleS f)) :
+Lemma ltys_S_inv {Σ X} {f : lty Σ X → ktele Σ} (Ks : ltys Σ (KTeleS f)) :
   ∃ K Ks', Ks = LTysS K Ks'.
 Proof. exact (ltys_inv Ks). Qed.
 (*
@@ -94,7 +94,7 @@ Lemma ktele_fmap_app {Σ} {T U} {kt : ktele Σ} (F : T → U) (t : kt -k> T) (x 
 Proof. apply ktele_map_app. Qed.
 *)
 (** Operate below [tele_fun]s with argument telescope [kt]. *)
-Fixpoint ktele_bind {Σ} {U} {kt : ktele Σ} : (ltys Σ kt → U) → kt -k> U :=
+Fixpoint ktele_bind {Σ U kt} : (ltys Σ kt → U) → kt -k> U :=
   match kt as kt return (ltys _ kt → U) → kt -k> U with
   | KTeleO => λ F, F LTysO
   | @KTeleS _ k b => λ (F : ltys Σ (KTeleS b) → U) (K : lty Σ k), (* b x -t> U *)
@@ -103,7 +103,7 @@ Fixpoint ktele_bind {Σ} {U} {kt : ktele Σ} : (ltys Σ kt → U) → kt -k> U :
 Arguments ktele_bind {_} {_ !_} _ /.
 
 (* Show that tele_app ∘ tele_bind is the identity. *)
-Lemma ktele_app_bind {Σ} {U} {kt : ktele Σ} (f : ltys Σ kt → U) K :
+Lemma ktele_app_bind {Σ U kt} (f : ltys Σ kt → U) K :
   ktele_app (ktele_bind f) K = f K.
 Proof.
   induction kt as [|k b IH]; simpl in *.
