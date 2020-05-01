@@ -1,5 +1,5 @@
 From iris.algebra Require Export gmap.
-From actris.logrel Require Export model.
+From actris.logrel Require Export model kind_tele.
 From actris.channel Require Export channel.
 
 Definition lmsg Σ := iMsg Σ.
@@ -7,7 +7,10 @@ Delimit Scope lmsg_scope with lmsg.
 Bind Scope lmsg_scope with lmsg.
 
 Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
-  (∃ v, M v)%msg.
+  (∃ X, M X)%msg.
+
+Definition lty_msg_texist {Σ} {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) : lmsg Σ :=
+  ktele_fold (@lty_msg_exist Σ) (λ x, x) (ktele_bind M).
 
 Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
   (∃ v, MSG v {{ ▷ ltty_car A v}} ; (lsty_car S))%msg.
@@ -33,8 +36,12 @@ Instance: Params (@lty_app) 1 := {}.
 Notation "'TY' A ; S" := (lty_msg_base A S)
   (at level 200, right associativity,
    format "'TY'  A  ;  S") : lmsg_scope.
-Notation "∃ x .. y , m" :=
-  (lty_msg_exist (λ x, .. (lty_msg_exist (λ y, m)) ..)%lmsg) : lmsg_scope.
+Notation "∃ X .. Y , M" :=
+  (lty_msg_exist (λ X, .. (lty_msg_exist (λ Y, M)) ..)%lmsg) : lmsg_scope.
+Notation "'∃..' X .. Y , M" :=
+  (lty_msg_texist (λ X, .. (lty_msg_texist (λ Y, M)) .. )%lmsg)
+  (at level 200, X binder, Y binder, right associativity,
+   format "∃..  X  ..  Y ,  M") : lmsg_scope.
 
 Notation "'END'" := lty_end : lty_scope.
 Notation "<!!> M" :=
@@ -43,6 +50,9 @@ Notation "<!! X .. Y > M" :=
   (<!!> ∃ X, .. (∃ Y, M) ..)%lty
     (at level 200, X closed binder, Y closed binder, M at level 200,
      format "<!!  X  ..  Y >  M") : lty_scope.
+Notation "<!!.. X .. Y > M" := (<!!> ∃.. X, .. (∃.. Y, M) ..)%lty
+  (at level 200, X closed binder, Y closed binder, M at level 200,
+   format "<!!..  X  ..  Y >  M") : lty_scope.
 
 Notation "<??> M" :=
   (lty_message Recv M) (at level 200, M at level 200) : lty_scope.
@@ -50,6 +60,9 @@ Notation "<?? X .. Y > M" :=
   (<??> ∃ X, .. (∃ Y, M) ..)%lty
     (at level 200, X closed binder, Y closed binder, M at level 200,
      format "<??  X  ..  Y >  M") : lty_scope.
+Notation "<??.. X .. Y > M" := (<??> ∃.. X, .. (∃.. Y, M) ..)%lty
+  (at level 200, X closed binder, Y closed binder, M at level 200,
+   format "<??..  X  ..  Y >  M") : lty_scope.
 Notation lty_select := (lty_choice Send).
 Notation lty_branch := (lty_choice Recv).
 Infix "<++>" := lty_app (at level 60) : lty_scope.

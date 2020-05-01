@@ -1,7 +1,7 @@
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export spin_lock.
-From actris.logrel Require Export subtyping.
+From actris.logrel Require Export subtyping kind_tele.
 From actris.channel Require Export channel.
 
 Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
