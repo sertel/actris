@@ -186,12 +186,13 @@ Section subtyping_rules.
     iSplit; iIntros "!>" (v); iDestruct 1 as (A) "#Hv";
       iExists A; repeat iModIntro; iApply "Hv".
   Qed.
-  Lemma lty_copyable_exist {k} (Mlow Mup : lty Σ k) C :
-    ▷ (∀ M, Mlow <: M -∗ M <: Mup -∗ lty_copyable (C M)) -∗ lty_copyable (lty_exist Mlow Mup C).
+
+  Lemma lty_copyable_exist (C : ltty Σ → ltty Σ) :
+    ▷ (∀ M, lty_copyable (C M)) -∗ lty_copyable (lty_exist C).
   Proof.
     iIntros "#Hle". rewrite /lty_copyable /tc_opaque.
     iApply lty_le_r; last by iApply lty_le_exist_copy.
-    iApply lty_le_exist; try (iAssumption || iApply lty_le_refl).
+    iApply lty_le_exist. iApply "Hle".
   Qed.
 
   (* TODO: Try to add Löb induction in the type system, and use it to prove μX.int → X <:> μX.int → int → X *)
