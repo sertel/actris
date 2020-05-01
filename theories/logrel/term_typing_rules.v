@@ -524,12 +524,12 @@ Section properties.
       iApply (iProto_le_trans with "IH"). iIntros (Xs). by iExists (LTysS _ _).
     Qed.
 
-    Lemma ltyped_recv_poly {kt} Γ1 Γ2 (xc x : string) (e : expr)
+    Lemma ltyped_recv_texist {kt} Γ1 Γ2 (xc : string) (x : binder) (e : expr)
         (A : ltys Σ kt → ltty Σ) (S : ltys Σ kt → lsty Σ) (B : ltty Σ) :
       (∀ Ys,
         binder_insert x (A Ys) (<[xc:=(chan (S Ys))%lty]> Γ1) ⊨ e : B ⫤ Γ2) -∗
       <[xc:=(chan (<??.. Xs> TY A Xs; S Xs))%lty]> Γ1 ⊨
-        (let: x:=recv xc in e) : B ⫤ binder_delete x Γ2.
+        (let: x := recv xc in e) : B ⫤ binder_delete x Γ2.
     Proof.
       iIntros "#He !>". iIntros (vs) "HΓ /=".
       iDestruct (env_ltyped_lookup with "HΓ") as (c Hxc) "[Hc HΓ]".
@@ -540,13 +540,13 @@ Section properties.
       { iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
         iApply iProto_le_lmsg_texist. }
       wp_recv (Xs v) as "HA". wp_pures.
-      rewrite -subst_map_insert.
+      rewrite -subst_map_binder_insert.
       wp_apply (wp_wand with "(He [-]) []").
       { iApply (env_ltyped_insert _ _ x with "HA").
         rewrite delete_insert_delete.
         iEval (rewrite -(insert_id vs xc c) // -(insert_delete Γ1)).
         by iApply (env_ltyped_insert _ _ xc with "[Hc] HΓ"). }
-      iIntros (w) "[$ HΓ]". by iApply env_ltyped_delete.
+      iIntros (w) "[$ HΓ]". by destruct x; [|by iApply env_ltyped_delete].
     Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
