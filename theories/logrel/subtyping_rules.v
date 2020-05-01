@@ -169,7 +169,6 @@ Section subtyping_rules.
     iApply (wp_wand with "H"). iIntros (v') "H Hle' !>".
     by iApply "Hle'".
   Qed.
-  (* TODO(COPY) TODO(VALUERES): Do the forall type former, once we have the value restriction *)
 
   Lemma lty_le_exist C1 C2 :
     ▷ (∀ A, C1 A <: C2 A) -∗
