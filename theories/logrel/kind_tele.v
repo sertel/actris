@@ -1,4 +1,4 @@
-From stdpp Require Import base tactics.
+From stdpp Require Import base tactics telescopes.
 From actris.logrel Require Import model.
 Set Default Proof Using "Type".
 
@@ -111,7 +111,14 @@ Proof.
     rewrite IH. done.
 Qed.
 
+Fixpoint ktele_to_tele {Σ} (kt : ktele Σ) : tele :=
+  match kt with
+  | KTeleO => TeleO
+  | KTeleS b => TeleS (λ x, ktele_to_tele (b x))
+  end.
+
 (*
+
 (** We can define the identity function and composition of the [-t>] function *)
 (* space. *)
 Definition ktele_fun_id {Σ} {kt : ktele Σ} : kt -k> kt := ktele_bind id.
