@@ -55,21 +55,19 @@ Section env.
     by rewrite -Hw lookup_insert_ne.
   Qed.
 
-  Lemma env_ltyped_delete Γ vs x v :
-    Γ !! x = None ->
-    env_ltyped Γ (<[x := v]>vs) -∗
-    env_ltyped Γ vs.
+  Lemma env_ltyped_delete Γ x v vs :
+    env_ltyped Γ (<[x:=v]> vs) -∗
+    env_ltyped (delete x Γ) vs.
   Proof.
-    iIntros (HNone) "HΓ".
-    rewrite /env_ltyped.
-    iApply (big_sepM_impl with "HΓ").
-    iIntros "!>" (k A HSome) "H".
-    iDestruct "H" as (w Heq) "HA".
-    iExists _. iFrame.
-    iPureIntro.
-    destruct (decide (x = k)).
-    - subst. rewrite HNone in HSome. inversion HSome.
-    - by rewrite lookup_insert_ne in Heq.
+    iIntros "HΓ".
+    rewrite /env_ltyped. destruct (Γ !! x) as [A|] eqn:?.
+    { iDestruct (big_sepM_delete with "HΓ") as "[HA HΓ]"; first done.
+      iDestruct "HA" as (v' ?) "HA"; simplify_map_eq.
+      iApply (big_sepM_impl with "HΓ").
+      iIntros "!>" (y B ?). iDestruct 1 as (v'' ?) "HB".
+      destruct (decide (x = y)); simplify_map_eq; eauto. }
+    rewrite delete_notin //. iApply (big_sepM_impl with "HΓ").
+    iIntros "!>" (y B ?). iDestruct 1 as (v' ?) "HB"; simplify_map_eq; eauto.
   Qed.
 
   Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.

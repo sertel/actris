@@ -92,9 +92,8 @@ Section properties.
       by rewrite -delete_insert_ne // -subst_map_insert.
   Qed.
 
-  (* TODO: We would prefer just Γ3 in the second premise *)
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
-    (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (binder_insert x A1 Γ2 ⊨ e2 : A2 ⫤ binder_delete x Γ3) -∗
+    (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (binder_insert x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
     Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ binder_delete x Γ3.
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
@@ -102,13 +101,12 @@ Section properties.
     iIntros (v) "[HA1 HΓ2]".
     wp_pures.
     iDestruct (env_ltyped_insert _ _ x with "HA1 HΓ2") as "HΓ2".
-    iDestruct ("He2" with "HΓ2") as "He2'". 
+    iDestruct ("He2" with "HΓ2") as "He2'".
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
     wp_apply (wp_wand with "He2'").
     iIntros (w) "[HA2 HΓ3]".
     iFrame.
     iApply env_ltyped_delete=> //.
-    apply lookup_delete.
   Qed.
 
   Fixpoint lty_arr_list (As : list (ltty Σ)) (B : ltty Σ) : ltty Σ :=
@@ -243,7 +241,7 @@ Section properties.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
       (Γ1 ⊨ e1 : lty_exist C ⫤ Γ2) -∗
-      (∀ Y, binder_insert x (C Y) Γ2 ⊨ e2 : B ⫤ binder_delete x Γ3) -∗
+      (∀ Y, binder_insert x (C Y) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
       Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
@@ -252,13 +250,12 @@ Section properties.
     iDestruct "HC" as (X) "HX".
     wp_pures.
     iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
-    iDestruct ("He2" with "HΓ2") as "He2'". 
+    iDestruct ("He2" with "HΓ2") as "He2'".
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
     wp_apply (wp_wand with "He2'").
     iIntros (w) "[HA2 HΓ3]".
     iFrame.
     iApply env_ltyped_delete=> //.
-    apply lookup_delete.
   Qed.
 
   (** Mutable Reference properties *)
