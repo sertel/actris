@@ -55,6 +55,23 @@ Section env.
     by rewrite -Hw lookup_insert_ne.
   Qed.
 
+  Lemma env_ltyped_delete Γ vs x v :
+    Γ !! x = None ->
+    env_ltyped Γ (<[x := v]>vs) -∗
+    env_ltyped Γ vs.
+  Proof.
+    iIntros (HNone) "HΓ".
+    rewrite /env_ltyped.
+    iApply (big_sepM_impl with "HΓ").
+    iIntros "!>" (k A HSome) "H".
+    iDestruct "H" as (w Heq) "HA".
+    iExists _. iFrame.
+    iPureIntro.
+    destruct (decide (x = k)).
+    - subst. rewrite HNone in HSome. inversion HSome.
+    - by rewrite lookup_insert_ne in Heq.
+  Qed.
+
   Lemma env_split_id_l Γ : ⊢ env_split Γ ∅ Γ.
   Proof.
     iIntros "!>" (vs).
