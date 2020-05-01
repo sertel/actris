@@ -49,13 +49,9 @@ Section subtyping_rules.
   Qed.
 
   (** Term subtyping *)
-  Lemma lty_le_bot A : ⊢ ⊥ <: A.
+  Lemma lty_le_any A : ⊢ A <: any.
   Proof. by iIntros (v) "!> H". Qed.
-  Lemma lty_copyable_bot : ⊢@{iPropI Σ} lty_copyable ⊥.
-  Proof. iApply lty_le_bot. Qed.
-  Lemma lty_le_top A : ⊢ A <: ⊤.
-  Proof. by iIntros (v) "!> H". Qed.
-  Lemma lty_copyable_top : ⊢@{iPropI Σ} lty_copyable ⊤.
+  Lemma lty_copyable_any : ⊢@{iPropI Σ} lty_copyable any.
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
 
   Lemma lty_le_copy A B : A <: B -∗ copy A <: copy B.
@@ -133,41 +129,32 @@ Section subtyping_rules.
       try iModIntro; first [iLeft; by auto|iRight; by auto].
   Qed.
 
-  Lemma lty_le_forall {k} (Mlow1 Mup1 Mlow2 Mup2 : lty Σ k) C1 C2 :
-    Mlow1 <: Mlow2 -∗ Mup2 <: Mup1 -∗
-    ▷ (∀ M, Mlow2 <: M -∗ M <: Mup2 -∗ C1 M <: C2 M) -∗
-    lty_forall Mlow1 Mup1 C1 <: lty_forall Mlow2 Mup2 C2.
+  Lemma lty_le_forall C1 C2 :
+    ▷ (∀ A, C1 A <: C2 A) -∗
+    (∀ A, C1 A) <: (∀ A, C2 A).
   Proof.
-    iIntros "#Hlow #Hup #Hle" (v) "!> H". iIntros (M) "#Hlow' #Hup'".
-    iApply wp_step_fupd; first done.
-    { iIntros "!> !> !>". iExact "Hle". }
-    iApply (wp_wand with "(H [] [])").
-    { iApply (lty_le_trans with "Hlow Hlow'"). }
-    { iApply (lty_le_trans with "Hup' Hup"). }
-    iIntros (v') "H Hle' !>". by iApply "Hle'".
+    iIntros "#Hle" (v) "!> H". iIntros (w).
+    iApply (wp_step_fupd); first done.
+    { iIntros "!>!>!>". iExact "Hle". }
+    iApply (wp_wand with "H"). iIntros (v') "H Hle' !>".
+    by iApply "Hle'".
   Qed.
   (* TODO(COPY) TODO(VALUERES): Do the forall type former, once we have the value restriction *)
 
-  Lemma lty_le_exist {k} (Mlow1 Mup1 Mlow2 Mup2 : lty Σ k) C1 C2 :
-    Mlow2 <: Mlow1 -∗ Mup1 <: Mup2 -∗
-    ▷ (∀ M, Mlow1 <: M -∗ M <: Mup1 -∗ C1 M <: C2 M) -∗
-    lty_exist Mlow1 Mup1 C1 <: lty_exist Mlow2 Mup2 C2.
+  Lemma lty_le_exist C1 C2 :
+    ▷ (∀ A, C1 A <: C2 A) -∗
+    (∃ A, C1 A) <: (∃ A, C2 A).
   Proof.
-    iIntros "#Hlow #Hup #Hle" (v) "!>". iDestruct 1 as (M) "(#Hlow' & #Hup' & H)".
-    iExists M. iSplit; [|iSplit].
-    { iApply (lty_le_trans with "Hlow Hlow'"). }
-    { iApply (lty_le_trans with "Hup' Hup"). }
-    by iApply "Hle".
+    iIntros "#Hle" (v) "!>". iDestruct 1 as (A) "H". iExists A. by iApply "Hle".
   Qed.
-  Lemma lty_le_exist_intro {k} (Mlow Mup : lty Σ k) C M :
-    Mlow <: M -∗ M <: Mup -∗
-    C M <: lty_exist Mlow Mup C.
-  Proof. iIntros "#Hlow #Hup !>" (v) "Hle". iExists M. auto. Qed.
-  Lemma lty_le_exist_copy {k} (Mlow Mup : lty Σ k) C :
-    ⊢ lty_exist Mlow Mup (λ M, copy (C M))%lty <:> copy (lty_exist Mlow Mup C).
+  Lemma lty_le_exist_elim C B :
+    ⊢ C B <: ∃ A, C A.
+  Proof. iIntros "!>" (v) "Hle". by iExists B. Qed.
+  Lemma lty_le_exist_copy F :
+    ⊢ (∃ A, copy (F A)) <:> copy (∃ A, F A).
   Proof.
-    iSplit; iIntros "!>" (v);
-      iDestruct 1 as (A) "#(Hlow & Hup & Hv)"; iExists A; auto.
+    iSplit; iIntros "!>" (v); iDestruct 1 as (A) "#Hv";
+      iExists A; repeat iModIntro; iApply "Hv".
   Qed.
 
   (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
