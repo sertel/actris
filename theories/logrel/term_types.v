@@ -1,7 +1,7 @@
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export spin_lock.
-From actris.logrel Require Export subtyping.
+From actris.logrel Require Export subtyping kind_tele.
 From actris.channel Require Export channel.
 
 Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
@@ -28,6 +28,8 @@ Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∀ A, WP w #() {{ ltty_car (C A) }})%I.
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
+Definition lty_texist {Σ} {TT : ktele Σ} (C : kt → ltty Σ) : ltty Σ :=
+  ktele_fold (@lty_exist Σ) (λ x, x) (ktele_bind C).
 
 Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.

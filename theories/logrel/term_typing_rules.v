@@ -515,7 +515,13 @@ Section properties.
       iExists v, c. eauto with iFrame.
     Qed.
 
-    Lemma ltyped_recv Γ (x : string) A S :
+    Lemma ltyped_recv {kt : ktele Σ} Γ1 Γ2 (c : string) (x : binder) (e : expr)
+          (A : ltys kt → ltty Σ) (S : ltys kt → lsty Σ) (B : ltty Σ) :
+      ⊢ (∀ Ys, binder_insert x (A Ys) (<[c := (chan (S Ys))%lty ]> Γ1) ⊨ e : B ⫤ Γ2) -∗
+        <[c := (chan (<??> ∃.. Xs, TY A Xs; S Xs))%lty]> Γ1 ⊨
+          (let x := recv c in e) : B ⫤ Γ2.
+
+   Lemma ltyped_recv Γ (x : string) A S :
       ⊢ <[x := (chan (<??> TY A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
       iIntros "!>" (vs) "HΓ"=> /=.
