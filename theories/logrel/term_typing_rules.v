@@ -258,6 +258,29 @@ Section properties.
     iApply env_ltyped_delete=> //.
   Qed.
 
+  Lemma texist_exist {kt : ktele Σ} (C : ltys kt → ltty Σ) v :
+    ltty_car (lty_texist C) v -∗ (∃ X, ▷ ltty_car (C X) v).
+  Proof. Admitted.
+
+  Lemma ltyped_unpack' {kt} Γ1 Γ2 Γ3 x e1 e2 (C : ltys kt → ltty Σ) B :
+      (Γ1 ⊨ e1 : lty_texist C ⫤ Γ2) -∗
+      (∀ Ys, binder_insert x (C Ys) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+      Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
+  Proof.
+    iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
+    wp_apply (wp_wand with "(He1 HΓ1)").
+    iIntros (v) "[HC HΓ2]".
+    iDestruct (texist_exist with "HC") as (X) "HX".
+    wp_pures.
+    iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
+    iDestruct ("He2" with "HΓ2") as "He2'".
+    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+    wp_apply (wp_wand with "He2'").
+    iIntros (w) "[HA2 HΓ3]".
+    iFrame.
+    iApply env_ltyped_delete=> //.
+  Qed.
+
   (** Mutable Reference properties *)
   Definition alloc : val := λ: "init", ref "init".
   Lemma ltyped_alloc A :
@@ -515,13 +538,35 @@ Section properties.
       iExists v, c. eauto with iFrame.
     Qed.
 
-    Lemma ltyped_recv {kt : ktele Σ} Γ1 Γ2 (c : string) (x : binder) (e : expr)
+    Lemma ltyped_recv_poly {kt : ktele Σ} Γ1 Γ2 (c : string) (x : string) (e : expr)
           (A : ltys kt → ltty Σ) (S : ltys kt → lsty Σ) (B : ltty Σ) :
       ⊢ (∀ Ys, binder_insert x (A Ys) (<[c := (chan (S Ys))%lty ]> Γ1) ⊨ e : B ⫤ Γ2) -∗
         <[c := (chan (<??> ∃.. Xs, TY A Xs; S Xs))%lty]> Γ1 ⊨
-          (let x := recv c in e) : B ⫤ Γ2.
+          (let: x := recv c in e) : B ⫤ binder_delete x Γ2.
+    Proof.
+      iIntros "#He !>". iIntros (vs) "HΓ"=> /=.
+      iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
+      { by apply lookup_insert. }
+      rewrite Heq.
+      rewrite delete_insert; last by admit.
+      wp_apply (recv_spec with "[Hc]").
+      { admit. }
+      iIntros (Xs) "[Hc HC]".
+      wp_pures.
+      iDestruct (texist_exist with "HC") as (X) "HX".
+      wp_pures.
+      iDestruct (env_ltyped_insert _ _ c (chan _) _ with "Hc HΓ") as "HΓ"=> /=.
+      iDestruct (env_ltyped_insert _ _ x with "[HX] HΓ") as "HΓ".
+      { admit. }
+      iDestruct ("He" with "[HΓ]") as "He'".
+      { admit. }
+      rewrite -subst_map_insert.
+      wp_apply (wp_wand with "He'").
+      iIntros (v) "[HB HΓ]". iFrame.
+      iApply env_ltyped_delete=> //.
+    Admitted.
 
-   Lemma ltyped_recv Γ (x : string) A S :
+    Lemma ltyped_recv Γ (x : string) A S :
       ⊢ <[x := (chan (<??> TY A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
       iIntros "!>" (vs) "HΓ"=> /=.
