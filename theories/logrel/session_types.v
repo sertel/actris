@@ -50,6 +50,9 @@ Notation "<!! X .. Y > M" :=
   (<!!> ∃ X, .. (∃ Y, M) ..)%lty
     (at level 200, X closed binder, Y closed binder, M at level 200,
      format "<!!  X  ..  Y >  M") : lty_scope.
+Notation "<!!.. X .. Y > M" := (<!!> ∃.. X, .. (∃.. Y, M) ..)%lty
+  (at level 200, X closed binder, Y closed binder, M at level 200,
+   format "<!!..  X  ..  Y >  M") : lty_scope.
 
 Notation "<??> M" :=
   (lty_message Recv M) (at level 200, M at level 200) : lty_scope.
@@ -57,6 +60,9 @@ Notation "<?? X .. Y > M" :=
   (<??> ∃ X, .. (∃ Y, M) ..)%lty
     (at level 200, X closed binder, Y closed binder, M at level 200,
      format "<??  X  ..  Y >  M") : lty_scope.
+Notation "<??.. X .. Y > M" := (<??> ∃.. X, .. (∃.. Y, M) ..)%lty
+  (at level 200, X closed binder, Y closed binder, M at level 200,
+   format "<??..  X  ..  Y >  M") : lty_scope.
 Notation lty_select := (lty_choice Send).
 Notation lty_branch := (lty_choice Recv).
 Infix "<++>" := lty_app (at level 60) : lty_scope.
