@@ -194,6 +194,8 @@ Section subtyping_rules.
     iApply lty_le_exist; try (iAssumption || iApply lty_le_refl).
   Qed.
 
+  (* TODO: Try to add Löb induction in the type system, and use it to prove μX.int → X <:> μX.int → int → X *)
+
   (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
   Lemma lty_copyable_rec C `{!Contractive C} :
     (∀ A, ▷ lty_copyable A -∗ lty_copyable (C A)) -∗ lty_copyable (lty_rec C).
