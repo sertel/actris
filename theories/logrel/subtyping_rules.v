@@ -61,7 +61,7 @@ Section subtyping_rules.
   Lemma lty_copyable_copy A : ⊢@{iPropI Σ} lty_copyable (copy A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
 
-  Lemma lty_le_copy_inv A B : A <: B -∗ copy- A <: copy- B.
+  Lemma lty_le_copy_inv_mono A B : A <: B -∗ copy- A <: copy- B.
   Proof.
     iIntros "#Hle !>" (v) "#HA". iApply (coreP_wand (ltty_car A v) with "[] HA").
     iIntros "{HA} !> !>". iApply "Hle".
@@ -72,6 +72,13 @@ Section subtyping_rules.
   Proof. iIntros (v) "!> #H". iApply (coreP_elim with "H"). Qed.
   Lemma lty_copyable_copy_inv A : ⊢ lty_copyable (copy- A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
+  Lemma lty_le_copy_inv_elim_copyable A : lty_copyable A -∗ copy- A <: A.
+  Proof.
+    iIntros "#Hcp".
+    iApply lty_le_trans.
+    - iApply lty_le_copy_inv_mono. iApply "Hcp".
+    - iApply lty_le_copy_inv_elim.
+  Qed.
 
   Lemma lty_copyable_unit : ⊢@{iPropI Σ} lty_copyable ().
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
@@ -94,6 +101,10 @@ Section subtyping_rules.
     ▷ (A21 <: A11) -∗ ▷ (A12 <: A22) -∗
     (A11 → A12) <: (A21 → A22).
   Proof. iIntros "#H1 #H2" (v) "!> #H !>". by iApply lty_le_arr. Qed.
+  (* This rule is really trivial, since → is syntactic sugar for copy (... ⊸ ...),
+     but we include it anyway for completeness' sake. *)
+  Lemma lty_copyable_arr_copy A B : ⊢@{iPropI Σ} lty_copyable (A → B).
+  Proof. iApply lty_copyable_copy. Qed.
 
   Lemma lty_le_prod A11 A12 A21 A22 :
     ▷ (A11 <: A21) -∗ ▷ (A12 <: A22) -∗
@@ -104,13 +115,23 @@ Section subtyping_rules.
     iDestruct ("H1" with "H1'") as "$".
     by iDestruct ("H2" with "H2'") as "$".
   Qed.
-  (* TODO(COPY): Show derived rules about copyability of products, sums, etc. *)
+
   Lemma lty_le_prod_copy A B :
     ⊢ copy A * copy B <:> copy (A * B).
   Proof.
     iSplit; iModIntro; iIntros (v) "#Hv"; iDestruct "Hv" as (v1 v2 ->) "[Hv1 Hv2]".
     - iModIntro. iExists v1, v2. iSplit; [done|]. iSplitL; auto.
     - iExists v1, v2. iSplit; [done|]. auto.
+  Qed.
+
+  Lemma lty_copyable_prod A B :
+    lty_copyable A -∗ lty_copyable B -∗ lty_copyable (A * B).
+  Proof.
+    iIntros "#HcpA #HcpB". rewrite /lty_copyable /tc_opaque.
+    iApply lty_le_r; last by iApply lty_le_prod_copy.
+    iApply lty_le_prod.
+    - iApply "HcpA".
+    - iApply "HcpB".
   Qed.
 
   Lemma lty_le_sum A11 A12 A21 A22 :
@@ -127,6 +148,15 @@ Section subtyping_rules.
     iSplit; iModIntro; iIntros (v);
       iDestruct 1 as "#[Hv|Hv]"; iDestruct "Hv" as (w ?) "Hw";
       try iModIntro; first [iLeft; by auto|iRight; by auto].
+  Qed.
+  Lemma lty_copyable_sum A B :
+    lty_copyable A -∗ lty_copyable B -∗ lty_copyable (A + B).
+  Proof.
+    iIntros "#HcpA #HcpB". rewrite /lty_copyable /tc_opaque.
+    iApply lty_le_r; last by iApply lty_le_sum_copy.
+    iApply lty_le_sum.
+    - iApply "HcpA".
+    - iApply "HcpB".
   Qed.
 
   Lemma lty_le_forall C1 C2 :
@@ -156,9 +186,16 @@ Section subtyping_rules.
     iSplit; iIntros "!>" (v); iDestruct 1 as (A) "#Hv";
       iExists A; repeat iModIntro; iApply "Hv".
   Qed.
+  Lemma lty_copyable_exist {k} (Mlow Mup : lty Σ k) C :
+    ▷ (∀ M, Mlow <: M -∗ M <: Mup -∗ lty_copyable (C M)) -∗ lty_copyable (lty_exist Mlow Mup C).
+  Proof.
+    iIntros "#Hle". rewrite /lty_copyable /tc_opaque.
+    iApply lty_le_r; last by iApply lty_le_exist_copy.
+    iApply lty_le_exist; try (iAssumption || iApply lty_le_refl).
+  Qed.
 
   (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
-  Lemma lty_rec_copy C `{!Contractive C} :
+  Lemma lty_copyable_rec C `{!Contractive C} :
     (∀ A, ▷ lty_copyable A -∗ lty_copyable (C A)) -∗ lty_copyable (lty_rec C).
   Proof.
     iIntros "#Hcopy".
@@ -237,7 +274,7 @@ Section subtyping_rules.
     ▷ (A2 <: A1) -∗ ▷ (S1 <: S2) -∗
     (<!!> TY A1 ; S1) <: (<!!> TY A2 ; S2).
   Proof.
-    iIntros "#HAle #HSle !>" (v) "H". iExists v. 
+    iIntros "#HAle #HSle !>" (v) "H". iExists v.
     iDestruct ("HAle" with "H") as "$". by iModIntro.
   Qed.
 
