@@ -16,13 +16,11 @@ Section properties.
 
   (** Variable properties *)
   Lemma ltyped_var Γ (x : string) A :
-    ⊢ <[x := A]>Γ ⊨ x : A ⫤ delete x Γ.
+    Γ !! x = Some A → ⊢ Γ ⊨ x : A ⫤ delete x Γ.
   Proof.
-    iIntros "!>" (vs) "HΓ /=".
-    iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "[HA HΓ]";
-      first by apply lookup_insert.
-    iApply wp_value. iFrame "HA".
-    by rewrite delete_insert_delete.
+    iIntros (HΓx) "!>"; iIntros (vs) "HΓ /=".
+    iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "[HA HΓ]"; first done.
+    iApply wp_value. eauto with iFrame.
   Qed.
 
   (** Subtyping *)
