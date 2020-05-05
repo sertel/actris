@@ -236,33 +236,6 @@ Section subtyping_rules.
     ⊢ lty_copyable (ref_shr A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
 
-  Lemma lty_le_mutex A1 A2 :
-    ▷ (A1 <:> A2) -∗
-    mutex A1 <: mutex A2.
-  Proof.
-    iIntros "#[Hle1 Hle2]" (v) "!>". iDestruct 1 as (γ l lk ->) "Hinv".
-    iExists γ, l, lk. iSplit; first done.
-    iApply (spin_lock.is_lock_iff with "Hinv").
-    iIntros "!> !>". iSplit.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
-  Qed.
-  Lemma lty_copyable_mutex A :
-    ⊢ lty_copyable (mutex A).
-  Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
-
-  Lemma lty_le_mutexguard A1 A2 :
-    ▷ (A1 <:> A2) -∗
-    mutexguard A1 <: mutexguard A2.
-  Proof.
-    iIntros "#[Hle1 Hle2]" (v) "!>".
-    iDestruct 1 as (γ l lk w ->) "[Hinv [Hlock Hinner]]".
-    iExists γ, l, lk, w. iSplit; first done.
-    iFrame "Hlock Hinner". iApply (spin_lock.is_lock_iff with "Hinv").
-    iIntros "!> !>". iSplit.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
-  Qed.
 
   Lemma lty_le_chan S1 S2 :
     ▷ (S1 <: S2) -∗ chan S1 <: chan S2.
