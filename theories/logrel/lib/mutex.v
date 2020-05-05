@@ -5,6 +5,13 @@ From actris.logrel Require Import environments.
 From actris.channel Require Import proofmode.
 From iris.heap_lang Require Import metatheory.
 
+(** Mutex functions *)
+Definition mutex_alloc : val := λ: "x", (newlock #(), ref "x").
+Definition mutex_acquire : val := λ: "x", acquire (Fst "x");; ! (Snd "x").
+Definition mutex_release : val :=
+  λ: "guard" "inner", Snd "guard" <- "inner";; release (Fst "guard").
+
+(** Semantic types *)
 Definition lty_mutex `{heapG Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (γ : gname) (l : loc) (lk : val),
     ⌜ w = PairV lk #l ⌝ ∗
@@ -71,7 +78,6 @@ Section rules.
   Context `{heapG Σ, lockG Σ}.
 
   (** Mutex properties *)
-  Definition mutex_alloc : val := λ: "x", (newlock #(), ref "x").
   Lemma ltyped_mutex_alloc A :
     ⊢ ∅ ⊨ mutex_alloc : A → mutex A.
   Proof.
@@ -88,7 +94,6 @@ Section rules.
     wp_pures. iExists γ, l, lk. iSplit=> //.
   Qed.
 
-  Definition mutex_acquire : val := λ: "x", acquire (Fst "x");; ! (Snd "x").
   Lemma ltyped_mutex_acquire Γ (x : string) A :
     Γ !! x = Some (mutex A)%lty →
     ⊢ Γ ⊨ mutex_acquire x : A ⫤ <[x := (mutex_guard A)%lty]> Γ.
@@ -109,8 +114,6 @@ Section rules.
     iFrame "HΓ".
   Qed.
 
-  Definition mutex_release : val :=
-    λ: "guard" "inner", Snd "guard" <- "inner";; release (Fst "guard");; #().
   Lemma ltyped_mutex_release Γ Γ' (x : string) e A :
     Γ' !! x = Some (mutex_guard A)%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
@@ -123,7 +126,6 @@ Section rules.
     iDestruct "Hguard" as (γ l lk inner ->) "(#Hlock & Hlocked & Hinner)".
     rewrite /mutex_release.
     wp_pures. wp_store. wp_pures.
-    wp_bind (release _).
     iAssert (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
       with "[Hinner HA]" as "Hinner".
     { iExists v. iFrame "Hinner HA". }

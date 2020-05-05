@@ -15,7 +15,7 @@ Section properties.
   Implicit Types Γ : gmap string (ltty Σ).
 
   (** Frame rule *)
-  Lemma ltyped_frame `{!heapG Σ} (Γ Γ' Γ1 Γ1' Γ2 : gmap string (ltty Σ)) e A :
+  Lemma ltyped_frame Γ Γ' Γ1 Γ1' Γ2 e A :
     env_split Γ Γ1 Γ2 -∗
     env_split Γ' Γ1' Γ2 -∗
     (Γ1 ⊨ e : A ⫤ Γ1') -∗
@@ -413,24 +413,22 @@ Section properties.
       iExists c1, c2. iSplit=>//. iFrame "Hp1 Hp2".
     Qed.
 
-    (* TODO: This rule uses <[x := ...]> Γ' in the postcondition of the first
-    premise, which is inconsistent with some earlier rules, which are written with
-    `Γ' !! x = Some ...` instead. *)
     Lemma ltyped_send Γ Γ' (x : string) e A S :
-      (Γ ⊨ e : A ⫤ <[x:=(chan (<!!> TY A; S))%lty]> Γ') -∗
+      Γ' !! x = Some (chan (<!!> TY A; S))%lty →
+      (Γ ⊨ e : A ⫤ Γ') -∗
       Γ ⊨ send x e : () ⫤ <[x:=(chan S)%lty]> Γ'.
     Proof.
-      iIntros "#He !>" (vs) "HΓ"=> /=.
+      iIntros (Hx) "#He !>". iIntros (vs) "HΓ"=> /=.
       wp_bind (subst_map vs e).
       iApply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
       iDestruct (env_ltyped_lookup with "HΓ'") as (v' Heq) "[Hc HΓ']".
-      { by apply lookup_insert. }
+      { by apply Hx. }
       rewrite Heq.
       wp_send with "[HA //]".
       iSplitR; first done.
       iDestruct (env_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ'")
         as "HΓ'"=> /=.
-      by rewrite insert_delete insert_insert (insert_id vs).
+      by rewrite insert_delete (insert_id vs).
     Qed.
 
     Lemma iProto_le_lmsg_texist {kt : ktele Σ} (m : ltys Σ kt → iMsg Σ) :
@@ -468,16 +466,17 @@ Section properties.
     Qed.
 
     Lemma ltyped_recv Γ (x : string) A S :
-      ⊢ <[x := (chan (<??> TY A; S))%lty]> Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
+      Γ !! x = Some (chan (<??> TY A; S))%lty →
+      ⊢ Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
-      iIntros "!>" (vs) "HΓ"=> /=.
+      iIntros (Hx) "!>". iIntros (vs) "HΓ"=> /=.
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
-      { by apply lookup_insert. }
+      { by apply Hx. }
       rewrite Heq.
       wp_recv (v) as "HA".
       iSplitL "HA"; first done.
       iDestruct (env_ltyped_insert _ _ x (chan _) _ with "[Hc //] HΓ") as "HΓ"=> /=.
-      by rewrite insert_delete !insert_insert (insert_id vs).
+      by rewrite insert_delete (insert_id vs).
     Qed.
 
     Definition select : val := λ: "c" "i", send "c" "i".
