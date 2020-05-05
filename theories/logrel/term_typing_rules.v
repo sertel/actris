@@ -72,7 +72,7 @@ Section properties.
   Qed.
 
   Lemma ltyped_lam Γ Γ' x e A1 A2 :
-    (binder_insert x A1 Γ ⊨ e : A2 ⫤ Γ') -∗
+    (<![x:=A1]!> Γ ⊨ e : A2 ⫤ Γ') -∗
     Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ ∅.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
@@ -89,7 +89,7 @@ Section properties.
   (* Typing rule for introducing copyable functions *)
   Lemma ltyped_rec Γ Γ' Γ'' f x e A1 A2 :
     env_copy Γ Γ' -∗
-    (binder_insert f (A1 → A2)%lty (binder_insert x A1 Γ') ⊨ e : A2 ⫤ Γ'') -∗
+    (<![f:=A1 → A2]!> $ <![x:=A1]!> Γ' ⊨ e : A2 ⫤ Γ'') -∗
     Γ ⊨ (rec: f x := e) : A1 → A2 ⫤ ∅.
   Proof.
     iIntros "#Hcopy #He". iIntros (vs) "!> HΓ /=". iApply wp_fupd. wp_pures.
@@ -98,8 +98,7 @@ Section properties.
     iModIntro. iSplitL; last by iApply env_ltyped_empty.
     iLöb as "IH".
     iIntros (v) "!> HA1". wp_pures. set (r := RecV f x _).
-    iDestruct ("He" $!(binder_insert f r (binder_insert x v vs))
-                  with "[HΓ HA1]") as "He'".
+    iDestruct ("He" $! (<![f:=r]!> $ <![x:=v]!> vs) with "[HΓ HA1]") as "He'".
     { iApply (env_ltyped_insert with "IH").
       iApply (env_ltyped_insert with "HA1 HΓ"). }
     iDestruct (wp_wand _ _ _ _ (ltty_car A2) with "He' []") as "He'".
@@ -112,7 +111,7 @@ Section properties.
   Qed.
 
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
-    (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (binder_insert x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
+    (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗ (<![x:=A1]!> Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
     Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ binder_delete x Γ3.
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
@@ -243,7 +242,7 @@ Section properties.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 (x : string) e (C : lty Σ k → ltty Σ) A :
     Γ1 !! x = Some (lty_exist C) →
-    (∀ X, binder_insert x (C X) Γ1 ⊨ e : A ⫤ Γ2) -∗
+    (∀ X, <![x:=C X]!> Γ1 ⊨ e : A ⫤ Γ2) -∗
     (Γ1 ⊨ e : A ⫤ Γ2).
   Proof.
     iIntros (Hx) "#He". iIntros (vs) "!> HΓ".
@@ -443,7 +442,7 @@ Section properties.
     Lemma ltyped_recv_texist {kt} Γ1 Γ2 (xc : string) (x : binder) (e : expr)
         (A : ltys Σ kt → ltty Σ) (S : ltys Σ kt → lsty Σ) (B : ltty Σ) :
       (∀ Ys,
-        binder_insert x (A Ys) (<[xc:=(chan (S Ys))%lty]> Γ1) ⊨ e : B ⫤ Γ2) -∗
+        <![x:=A Ys]!> $ <[xc:=(chan (S Ys))%lty]> Γ1 ⊨ e : B ⫤ Γ2) -∗
       <[xc:=(chan (<??.. Xs> TY A Xs; S Xs))%lty]> Γ1 ⊨
         (let: x := recv xc in e) : B ⫤ binder_delete x Γ2.
     Proof.

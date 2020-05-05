@@ -1,6 +1,9 @@
 From actris.logrel Require Export term_types.
 From iris.proofmode Require Import tactics.
 
+Notation "<![ b := x ]!>" :=
+  (binder_insert b x%lty) (at level 5, right associativity).
+
 Definition env_ltyped {Σ} (Γ : gmap string (ltty Σ))
     (vs : gmap string val) : iProp Σ :=
   ([∗ map] i ↦ A ∈ Γ, ∃ v, ⌜vs !! i = Some v⌝ ∗ ltty_car A v)%I.
@@ -32,7 +35,7 @@ Section env.
   Lemma env_ltyped_insert Γ vs x A v :
     ltty_car A v -∗
     env_ltyped Γ vs -∗
-    env_ltyped (binder_insert x A Γ) (binder_insert x v vs).
+    env_ltyped (<![x:=A]!> Γ) (<![x:=v]!> vs).
   Proof.
     destruct x as [|x]=> /=; first by auto.
     iIntros "HA HΓ".
