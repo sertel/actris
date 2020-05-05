@@ -171,7 +171,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_exist C1 C2 :
-    ▷ (∀ A, C1 A <: C2 A) -∗
+    (∀ A, C1 A <: C2 A) -∗
     (∃ A, C1 A) <: (∃ A, C2 A).
   Proof.
     iIntros "#Hle" (v) "!>". iDestruct 1 as (A) "H". iExists A. by iApply "Hle".
@@ -187,7 +187,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_copyable_exist (C : ltty Σ → ltty Σ) :
-    ▷ (∀ M, lty_copyable (C M)) -∗ lty_copyable (lty_exist C).
+    (∀ M, lty_copyable (C M)) -∗ lty_copyable (lty_exist C).
   Proof.
     iIntros "#Hle". rewrite /lty_copyable /tc_opaque.
     iApply lty_le_r; last by iApply lty_le_exist_copy.
