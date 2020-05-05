@@ -15,16 +15,14 @@ Section properties.
   Implicit Types Γ : gmap string (ltty Σ).
 
   (** Variable properties *)
+  (* TODO(TYRULES) *)
   Lemma ltyped_var Γ (x : string) A :
-    Γ !! x = Some A → ⊢ Γ ⊨ x : A ⫤ <[x:=copy- A]>%lty Γ.
+    Γ !! x = Some A → ⊢ Γ ⊨ x : A ⫤ <[x := (copy- A)%lty]> Γ.
   Proof.
     iIntros (HΓx) "!>"; iIntros (vs) "HΓ /=".
-    iDestruct (env_ltyped_lookup with "HΓ") as (v Hx) "[HA HΓ]"; first done.
-    rewrite Hx. iApply wp_value.
-    iDestruct (coreP_intro with "HA") as "#HAc". iFrame "HA".
-    iEval (rewrite -insert_delete -(insert_id vs x v) //).
-    by iApply (env_ltyped_insert _ _ x).
-  Qed.
+    (* iDestruct (env_ltyped_lookup with "HΓ") as (v ->) "[HA HΓ]"; first done. *)
+    (* iApply wp_value. eauto with iFrame. *)
+  Admitted.
 
   (** Subtyping *)
   Theorem ltyped_subsumption Γ Γ2 e τ1 τ2 :
@@ -196,25 +194,26 @@ Section properties.
     iRight. iExists v. auto.
   Qed.
 
-  Definition paircase : val := λ: "pair" "left" "right",
-    Case "pair" "left" "right".
-
-  Lemma ltyped_paircase A1 A2 B :
-    ⊢ ∅ ⊨ paircase : A1 + A2 → (A1 ⊸ B) ⊸ (A2 ⊸ B) ⊸ B.
+  (* TODO(TYRULES) *)
+  Lemma ltyped_case Γ1 Γ2 Γ3 e1 e2 e3 A1 A2 B :
+    (Γ1 ⊨ e1 : A1 + A2 ⫤ Γ2) -∗
+    (Γ2 ⊨ e2 : A1 ⊸ B ⫤ Γ3) -∗
+    (Γ2 ⊨ e3 : A2 ⊸ B ⫤ Γ3) -∗
+    (Γ1 ⊨ Case e1 e2 e3 : B ⫤ Γ3).
   Proof.
-    iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
-    rewrite /paircase. iIntros "!>" (p) "Hp". wp_pures.
-    iIntros (f_left) "Hleft". wp_pures.
-    iIntros (f_right) "Hright". wp_pures.
-    iDestruct "Hp" as "[Hp|Hp]".
-    - iDestruct "Hp" as (w1 ->) "Hp". wp_pures.
-      wp_apply (wp_wand with "(Hleft [Hp //])").
-      iIntros (v) "HB". iApply "HB".
-    - iDestruct "Hp" as (w2 ->) "Hp". wp_pures.
-      wp_apply (wp_wand with "(Hright [Hp //])").
-      iIntros (v) "HB". iApply "HB".
-  Qed.
+    (* iIntros (vs) "!> HΓ /=". iApply wp_value. *)
+    (* iSplitL; last by iApply env_ltyped_empty. *)
+    (* rewrite /paircase. iIntros "!>" (p) "Hp". wp_pures. *)
+    (* iIntros (f_left) "Hleft". wp_pures. *)
+    (* iIntros (f_right) "Hright". wp_pures. *)
+    (* iDestruct "Hp" as "[Hp|Hp]". *)
+    (* - iDestruct "Hp" as (w1 ->) "Hp". wp_pures. *)
+    (*   wp_apply (wp_wand with "(Hleft [Hp //])"). *)
+    (*   iIntros (v) "HB". iApply "HB". *)
+    (* - iDestruct "Hp" as (w2 ->) "Hp". wp_pures. *)
+    (*   wp_apply (wp_wand with "(Hright [Hp //])"). *)
+    (*   iIntros (v) "HB". iApply "HB". *)
+  Admitted.
 
   (** Universal Properties *)
   Lemma ltyped_tlam Γ e k (C : lty Σ k → ltty Σ) :
@@ -242,37 +241,42 @@ Section properties.
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists M.
   Qed.
 
-  Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
-    (Γ1 ⊨ e1 : lty_exist C ⫤ Γ2) -∗
-    (∀ Y, binder_insert x (C Y) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-    Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
+  (* TODO(TYRULES) *)
+  (* NOTE: This only works when `x` is a string, not when it is a (more general)
+  binder. This means that it doesn't work for anonymous binders, but there
+  really isn't any reason to unpack those anyway. *)
+  Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 (x : string) e (C : lty Σ k → ltty Σ) A :
+    Γ1 !! x = Some (lty_exist C) →
+    (∀ X, binder_insert x (C X) Γ1 ⊨ e : A ⫤ Γ2) -∗
+    (Γ1 ⊨ e : A ⫤ Γ2).
   Proof.
-    iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
-    wp_apply (wp_wand with "(He1 HΓ1)").
-    iIntros (v) "[HC HΓ2]".
-    iDestruct "HC" as (X) "HX".
-    wp_pures.
-    iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
-    iDestruct ("He2" with "HΓ2") as "He2'".
-    destruct x as [|x]; rewrite /= -?subst_map_insert //.
-    wp_apply (wp_wand with "He2'").
-    iIntros (w) "[HA2 HΓ3]".
-    iFrame.
-    iApply env_ltyped_delete=> //.
-  Qed.
+    (* iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=. *)
+    (* wp_apply (wp_wand with "(He1 HΓ1)"). *)
+    (* iIntros (v) "[HC HΓ2]". *)
+    (* iDestruct "HC" as (X) "HX". *)
+    (* wp_pures. *)
+    (* iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2". *)
+    (* iDestruct ("He2" with "HΓ2") as "He2'". *)
+    (* destruct x as [|x]; rewrite /= -?subst_map_insert //. *)
+    (* wp_apply (wp_wand with "He2'"). *)
+    (* iIntros (w) "[HA2 HΓ3]". *)
+    (* iFrame. *)
+    (* iApply env_ltyped_delete=> //. *)
+  Admitted.
 
   (** Mutable Reference properties *)
-  Definition alloc : val := λ: "init", ref "init".
-  Lemma ltyped_alloc A :
-    ⊢ ∅ ⊨ alloc : A → ref_mut A.
+  (* TODO(TYRULES) *)
+  Lemma ltyped_alloc Γ1 Γ2 e A :
+    (Γ1 ⊨ e : A ⫤ Γ2) -∗
+    (Γ1 ⊨ ref e : ref_mut A ⫤ Γ2).
   Proof.
-    iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
-    iIntros "!>" (v) "Hv". rewrite /alloc. wp_pures.
-    wp_alloc l as "Hl".
-    iExists l, v. iSplit=> //.
-    iFrame "Hv Hl".
-  Qed.
+    (* iIntros (vs) "!> HΓ /=". iApply wp_value. *)
+    (* iSplitL; last by iApply env_ltyped_empty. *)
+    (* iIntros "!>" (v) "Hv". rewrite /alloc. wp_pures. *)
+    (* wp_alloc l as "Hl". *)
+    (* iExists l, v. iSplit=> //. *)
+    (* iFrame "Hv Hl". *)
+  Admitted.
 
   (* The intuition for the any is that the value is still there, but
   it no longer holds any Iris resources. Just as in Rust, where a move
@@ -280,45 +284,32 @@ Section properties.
   unmodified, but moves the resources, in the sense that you can no
   longer use the memory at the old location. *)
   Definition load : val := λ: "r", (!"r", "r").
-  Lemma ltyped_load A :
-    ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut any.
+  Lemma ltyped_load Γ (x : string) A :
+    Γ !! x = Some (ref_mut A)%lty →
+    ⊢ Γ ⊨ ! x : A ⫤ <[x := (ref_mut (copy- A))%lty]> Γ.
   Proof.
-    iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
-    iIntros "!>" (v) "Hv". rewrite /load. wp_pures.
-    iDestruct "Hv" as (l w ->) "[Hl Hw]".
-    wp_load. wp_pures.
-    iExists w, #l. iSplit=> //. iFrame "Hw".
-    iExists l, w. iSplit=> //. iFrame "Hl".
-    by iModIntro.
-  Qed.
+    (* iIntros (vs) "!> HΓ /=". iApply wp_value. *)
+    (* iSplitL; last by iApply env_ltyped_empty. *)
+    (* iIntros "!>" (v) "Hv". rewrite /load. wp_pures. *)
+    (* iDestruct "Hv" as (l w ->) "[Hl Hw]". *)
+    (* wp_load. wp_pures. *)
+    (* iExists w, #l. iSplit=> //. iFrame "Hw". *)
+    (* iExists l, w. iSplit=> //. iFrame "Hl". *)
+    (* by iModIntro. *)
+  Admitted.
 
-  (* TODO(COPY) *)
-  (* Lemma ltyped_load_copy A {copyA : LTyCopy A} : *)
-  (*   ⊢ ∅ ⊨ load : ref_mut A → A * ref_mut A. *)
-  (* Proof. *)
-  (*   iIntros (vs) "!> HΓ /=". *)
-  (*   iApply wp_value. *)
-  (*   iIntros "!>" (v) "Hv". rewrite /load. wp_pures. *)
-  (*   iDestruct "Hv" as (l w ->) "[Hl #Hw]". *)
-  (*   wp_load. wp_pures. *)
-  (*   iExists w, #l. iSplit=> //. iFrame "Hw". *)
-  (*   iExists l, w. iSplit=> //. iFrame "Hl". *)
-  (*   by iModIntro. *)
-  (* Qed. *)
-
-  Definition store : val := λ: "r" "new", "r" <- "new";; "r".
-
-  Lemma ltyped_store A B :
-    ⊢ ∅ ⊨ store : ref_mut A → B ⊸ ref_mut B.
+  Lemma ltyped_store Γ Γ' x e1 e2 A B :
+    Γ' !! x = Some (ref_mut A)%lty →
+    (Γ ⊨ e2 : B ⫤ Γ') -∗
+    Γ ⊨ e1 <- e2 : () ⫤ <[x := (ref_mut B)%lty]> Γ'.
   Proof.
-    iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
-    iIntros "!>" (v) "Hv". rewrite /store. wp_pures.
-    iDestruct "Hv" as (l old ->) "[Hl Hold]".
-    iIntros (new) "Hnew". wp_store.
-    iExists l, new. eauto with iFrame.
-  Qed.
+    (* iIntros (vs) "!> HΓ /=". iApply wp_value. *)
+    (* iSplitL; last by iApply env_ltyped_empty. *)
+    (* iIntros "!>" (v) "Hv". rewrite /store. wp_pures. *)
+    (* iDestruct "Hv" as (l old ->) "[Hl Hold]". *)
+    (* iIntros (new) "Hnew". wp_store. *)
+    (* iExists l, new. eauto with iFrame. *)
+  Admitted.
 
   (** Weak Reference properties *)
   Definition fetch_and_add : val := λ: "r" "inc", FAA "r" "inc".
