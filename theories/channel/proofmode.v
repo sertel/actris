@@ -12,7 +12,7 @@ From iris.proofmode Require Export tactics.
 From actris Require Export channel.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 
--(** * Tactics for proving contractiveness of protocols *)
+(** * Tactics for proving contractiveness of protocols *)
 Ltac f_dist_le :=
   match goal with
   | H : _ ≡{?n}≡ _ |- _ ≡{?n'}≡ _ => apply (dist_le n); [apply H|lia]
