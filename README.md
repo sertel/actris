@@ -11,64 +11,6 @@ It has been built and tested with the following dependencies
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.
 
-## Semantic Session Type System
-The logical relation for type safety of a semantic session type system is contained
-in the directory [theories/logrel](theories/logrel). The logical relation is
-defined across the following files:
-
-- [theories/logrel/model.v](theories/logrel/model.v): Definition of the
-  notions of a semantic term type and a semantic session type in terms of
-  unary Iris predicates (on values) and Actris protocols, respectively. Also
-  provides the required Coq definitions for creating recursive term/session
-  types.
-- [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
-  of the following semantic term types: basic types (integers, booleans,
-  unit), sums, products, copyable/affine functions, universally and
-  existentially quantified types, unique/shared references, and
-  session-typed channels.
-- [theories/logrel/session_types.v](theories/logrel/session_types.v):
-  Definitions of the following semantic session types: sending and receiving
-  with session polymorphism, n-ary choice. Session type duality is also
-  defined here. As mentioned, recursive session types can be defined using
-  the mechanism defined in [theories/logrel/model.v](theories/logrel/model.v).
-- [theories/logrel/environments.v](theories/logrel/environments.v):
-  Definition of semantic type environments, which are used in the semantic
-  typing relation. This also contains the rules for splitting and copying of
-  environments, which is used for distributing affine resources across the
-  various parts of the program inside the typing rules.
-- [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
-  Definition of the semantic typing relation, as well as the proof of type
-  soundness, showing that semantically well-typed programs do not get stuck.
-- [theories/logrel/subtyping.v](theories/logrel/subtyping.v): Definition of
-  the semantic subtyping relation for both term and session types. This file
-  also defines the notion of copyability of types in terms of subtyping.
-- [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
-  Semantic typing lemmas (typing rules) for the semantic term types.
-- [theories/logrel/session_typing_rules.v](theories/logrel/session.v):
-  Semantic typing lemmas (typing rules) for the semantic session types.
-- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v): Subtyping rules for term types and
-  session types.
-
-An extension to the basic type system is given in
-[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
-mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
-and allow one to gain exclusive ownership of resource shared between multiple
-threads.
-
-The logical relation is used to show that two example programs are semantically well-typed:
-- [theories/logrel/examples/pair.v](theories/logrel/examples/pair.v):
-  This program performs
-  two sequential receives and stores the results in a pair. It is shown to be
-  semantically well-typed by applying the semantic typing rules.
-- [theories/logrel/examples/double.v](theories/logrel/examples/double.v): This program
-  performs two ``racy'' parallel receives on the same channel from two
-  different threads, using locks to allow the channel to be shared. This
-  program cannot be shown to be well-typed using the semantic typing rules.
-  Therefore, a manual proof of the well-typedness is given.
-- [theories/examples/subprotocols.v](theories/examples/subprotocols.v):
-  Contains an example of a subprotocol assertion between two protocols that sends
-  references.
-
 ## Theory of Actris
 
 The theory of Actris (semantics of channels, the model, and the proof rules)
@@ -173,6 +115,64 @@ Concretely, the normalization performs the following actions:
 [HeapLang]: https://gitlab.mpi-sws.org/iris/iris/blob/master/HeapLang.md
 [ProofMode]: https://gitlab.mpi-sws.org/iris/iris/blob/master/ProofMode.md
 [ActrisProofMode]: theories/channel/proofmode.v
+
+## Semantic Session Type System
+The logical relation for type safety of a semantic session type system is contained
+in the directory [theories/logrel](theories/logrel). The logical relation is
+defined across the following files:
+
+- [theories/logrel/model.v](theories/logrel/model.v): Definition of the
+  notions of a semantic term type and a semantic session type in terms of
+  unary Iris predicates (on values) and Actris protocols, respectively. Also
+  provides the required Coq definitions for creating recursive term/session
+  types.
+- [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
+  of the following semantic term types: basic types (integers, booleans,
+  unit), sums, products, copyable/affine functions, universally and
+  existentially quantified types, unique/shared references, and
+  session-typed channels.
+- [theories/logrel/session_types.v](theories/logrel/session_types.v):
+  Definitions of the following semantic session types: sending and receiving
+  with session polymorphism, n-ary choice. Session type duality is also
+  defined here. As mentioned, recursive session types can be defined using
+  the mechanism defined in [theories/logrel/model.v](theories/logrel/model.v).
+- [theories/logrel/environments.v](theories/logrel/environments.v):
+  Definition of semantic type environments, which are used in the semantic
+  typing relation. This also contains the rules for splitting and copying of
+  environments, which is used for distributing affine resources across the
+  various parts of the program inside the typing rules.
+- [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
+  Definition of the semantic typing relation, as well as the proof of type
+  soundness, showing that semantically well-typed programs do not get stuck.
+- [theories/logrel/subtyping.v](theories/logrel/subtyping.v): Definition of
+  the semantic subtyping relation for both term and session types. This file
+  also defines the notion of copyability of types in terms of subtyping.
+- [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
+  Semantic typing lemmas (typing rules) for the semantic term types.
+- [theories/logrel/session_typing_rules.v](theories/logrel/session.v):
+  Semantic typing lemmas (typing rules) for the semantic session types.
+- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v): Subtyping rules for term types and
+  session types.
+
+An extension to the basic type system is given in
+[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
+mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
+and allow one to gain exclusive ownership of resource shared between multiple
+threads.
+
+The logical relation is used to show that two example programs are semantically well-typed:
+- [theories/logrel/examples/pair.v](theories/logrel/examples/pair.v):
+  This program performs
+  two sequential receives and stores the results in a pair. It is shown to be
+  semantically well-typed by applying the semantic typing rules.
+- [theories/logrel/examples/double.v](theories/logrel/examples/double.v): This program
+  performs two ``racy'' parallel receives on the same channel from two
+  different threads, using locks to allow the channel to be shared. This
+  program cannot be shown to be well-typed using the semantic typing rules.
+  Therefore, a manual proof of the well-typedness is given.
+- [theories/examples/subprotocols.v](theories/examples/subprotocols.v):
+  Contains an example of a subprotocol assertion between two protocols that sends
+  references.
 
 ## Examples
 
