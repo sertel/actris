@@ -13,8 +13,8 @@ In order to build, install the above dependencies and then run
 
 ## Logical relation
 The logical relation for type safety of the session type system is contained
-in the directory [theories/logrel](theories/logrel). The files in this
-directory contain the following parts of the paper:
+in the directory [theories/logrel](theories/logrel). The logical relation is
+defined across the following files:
 
 - [theories/logrel/model.v](theories/logrel/model.v): Definition of the
   notions of a semantic term type and a semantic session type in terms of
@@ -46,8 +46,24 @@ directory contain the following parts of the paper:
   Semantic typing lemmas (typing rules) for the semantic term types.
 - [theories/logrel/session_typing_rules.v](theories/logrel/session.v):
   Semantic typing lemmas (typing rules) for the semantic session types.
-- [theories/logrel/subtyping_rules.v): Subtyping rules for term types and
+- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v): Subtyping rules for term types and
   session types.
+
+An extension to the basic type system is given in
+[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
+mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
+and allow one to gain exclusive ownership of resource shared between multiple
+threads.
+
+The logical relation is used to show that two example programs are semantically well-typed:
+- [theories/examples/pair.v](theories/examples/pair.v): This program performs
+  two sequential receives and stores the results in a pair. It is shown to be
+  semantically well-typed by applying the semantic typing rules.
+- [theories/examples/double.v](theories/examples/double.v): This program
+  performs two ``racy'' parallel receives on the same channel from two
+  different threads, using locks to allow the channel to be shared. This
+  program cannot be shown to be well-typed using the semantic typing rules.
+  Therefore, a manual proof of the well-typedness is given.
 
 ## Theory of Actris
 
