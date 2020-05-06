@@ -24,11 +24,11 @@ The following types are defined:
   operations that might consume a resource, but do not always do so, depending
   on whether the type [A] is copyable. Such operations result in a [copy- A],
   which can be turned into an [A] using subtyping when [A] is copyable.
-- [ref_mut A]: the type of mutable (unique) references to a value of type [A].
+- [ref_uniq A]: the type of uniquely-owned mutable references to a value of type [A].
   Since the reference is guaranteed to be unique, it's possible for the type [A]
   contained in the reference to change to a different type [B] by assigning to
   the reference.
-- [ref_shr A]: the type of mutable (shared) references to a value of type [A].
+- [ref_shr A]: the type of shared mutable references to a value of type [A].
 - [chan P]: the type of channels, governed by the session type [P].
 
 In addition, some important properties, such as contractivity and
@@ -62,7 +62,7 @@ Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
 Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
 Definition lty_copy_minus {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
 
-Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_ref_uniq `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
 Definition ref_shrN := nroot .@ "shr_ref".
 Definition lty_ref_shr `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
@@ -78,7 +78,7 @@ Instance: Params (@lty_prod) 1 := {}.
 Instance: Params (@lty_sum) 1 := {}.
 Instance: Params (@lty_forall) 2 := {}.
 Instance: Params (@lty_sum) 1 := {}.
-Instance: Params (@lty_ref_mut) 2 := {}.
+Instance: Params (@lty_ref_uniq) 2 := {}.
 Instance: Params (@lty_ref_shr) 2 := {}.
 Instance: Params (@lty_chan) 3 := {}.
 
@@ -98,7 +98,7 @@ Notation "∀ A1 .. An , C" :=
 Notation "∃ A1 .. An , C" :=
   (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
 
-Notation "'ref_mut' A" := (lty_ref_mut A) (at level 10) : lty_scope.
+Notation "'ref_uniq' A" := (lty_ref_uniq A) (at level 10) : lty_scope.
 Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : lty_scope.
 
 Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
@@ -111,7 +111,6 @@ Section term_types.
   Proof. solve_proper. Qed.
   Global Instance lty_copy_minus_ne : NonExpansive (@lty_copy_minus Σ).
   Proof. solve_proper. Qed.
-
 
   Global Instance lty_arr_contractive `{heapG Σ} n :
     Proper (dist_later n ==> dist_later n ==> dist n) lty_arr.
@@ -150,9 +149,9 @@ Section term_types.
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_proper. Qed.
 
-  Global Instance lty_ref_mut_contractive `{heapG Σ} : Contractive lty_ref_mut.
+  Global Instance lty_ref_uniq_contractive `{heapG Σ} : Contractive lty_ref_uniq.
   Proof. solve_contractive. Qed.
-  Global Instance lty_ref_mut_ne `{heapG Σ} : NonExpansive lty_ref_mut.
+  Global Instance lty_ref_uniq_ne `{heapG Σ} : NonExpansive lty_ref_uniq.
   Proof. solve_proper. Qed.
 
   Global Instance lty_ref_shr_contractive `{heapG Σ} : Contractive lty_ref_shr.

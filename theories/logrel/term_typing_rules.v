@@ -258,15 +258,10 @@ Section properties.
     iIntros (w) "[$ HΓ3]". by iApply env_ltyped_delete.
   Qed.
 
-<<<<<<< HEAD
-
-  (** Mutable Reference properties *)
-=======
   (** Mutable Unique Reference properties *)
->>>>>>> add headers to files
   Lemma ltyped_alloc Γ1 Γ2 e A :
     (Γ1 ⊨ e : A ⫤ Γ2) -∗
-    (Γ1 ⊨ ref e : ref_mut A ⫤ Γ2).
+    (Γ1 ⊨ ref e : ref_uniq A ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ1 /=".
     wp_bind (subst_map vs e).
@@ -277,8 +272,8 @@ Section properties.
   Qed.
 
   Lemma ltyped_load Γ (x : string) A :
-    Γ !! x = Some (ref_mut A)%lty →
-    ⊢ Γ ⊨ ! x : A ⫤ <[x := (ref_mut (copy- A))%lty]> Γ.
+    Γ !! x = Some (ref_uniq A)%lty →
+    ⊢ Γ ⊨ ! x : A ⫤ <[x := (ref_uniq (copy- A))%lty]> Γ.
   Proof.
     iIntros (Hx vs) "!> HΓ".
     iDestruct (env_ltyped_lookup with "HΓ") as (v Hv) "[HA HΓ]"; first done.
@@ -288,7 +283,7 @@ Section properties.
     iAssert (ltty_car (copy- A) w)%lty as "#HAm".
     { iApply coreP_intro. iApply "Hw". }
     iFrame "Hw".
-    iAssert (ltty_car (ref_mut (copy- A))%lty #l) with "[Hl]" as "HA".
+    iAssert (ltty_car (ref_uniq (copy- A))%lty #l) with "[Hl]" as "HA".
     { iExists l, w. iSplit=>//. iFrame "Hl HAm". }
     iDestruct (env_ltyped_insert _ _ x with "HA HΓ") as "HΓ".
     rewrite /binder_insert insert_delete (insert_id _ _ _ Hv).
@@ -296,9 +291,9 @@ Section properties.
   Qed.
 
   Lemma ltyped_store Γ Γ' (x : string) e A B :
-    Γ' !! x = Some (ref_mut A)%lty →
+    Γ' !! x = Some (ref_uniq A)%lty →
     (Γ ⊨ e : B ⫤ Γ') -∗
-    Γ ⊨ x <- e : () ⫤ <[x := (ref_mut B)%lty]> Γ'.
+    Γ ⊨ x <- e : () ⫤ <[x := (ref_uniq B)%lty]> Γ'.
   Proof.
     iIntros (Hx) "#He". iIntros (vs) "!> HΓ /=".
     wp_bind (subst_map vs e).
@@ -307,7 +302,7 @@ Section properties.
     rewrite Hw.
     iDestruct "HA" as (l v' ->) "[Hl HA]".
     wp_store. iSplitR; first done.
-    iAssert (ltty_car (ref_mut B)%lty #l) with "[Hl HB]" as "HB".
+    iAssert (ltty_car (ref_uniq B)%lty #l) with "[Hl HB]" as "HB".
     { iExists l, v. iSplit=>//. iFrame "Hl HB". }
     iDestruct (env_ltyped_insert _ _ x with "HB HΓ'") as "HΓ'".
     rewrite /binder_insert insert_delete (insert_id _ _ _ Hw).
@@ -316,7 +311,7 @@ Section properties.
 
   (** Mutable Shared Reference properties *)
   Lemma ltyped_upgrade_shared  Γ Γ' e A :
-    (Γ ⊨ e : ref_mut (copy A) ⫤ Γ') -∗
+    (Γ ⊨ e : ref_uniq (copy A) ⫤ Γ') -∗
     Γ ⊨ e : ref_shr A ⫤ Γ'.
   Proof.
     iIntros "#He" (vs) "!> HΓ". iApply wp_fupd.
