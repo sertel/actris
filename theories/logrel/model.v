@@ -1,9 +1,9 @@
 (** This file contains the definition of what semantic term types and semantic
-session types are. A semantic term type is a unary (Iris) predicate on values,
-as is customary in a logical relation for type soundness. A semantic session
-type is essentially an Actris protocol.
+session types are. A semantic term type is a unary (Iris) predicate on values
+[val → iProp], as is customary in a logical relation for type soundness.
+A semantic session type is an Actris protocol [iProto].
 
-There is a single variant [lty Σ k], which contains either a term type or a
+There is a single kinded variant [lty Σ k], which contains either a term type or a
 session type, depending on the kind [k]. The reason for having a single type
 containing both term types and session types is that it allows for uniform
 definitions of polymorphic binders for term types and session types, instead of

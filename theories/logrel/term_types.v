@@ -4,21 +4,19 @@ term type formers of the type system. The semantic interpretation of a type
 when a value belongs to a certain type.
 
 The following types are defined:
-
 - [unit], [bool], [int]: basic types for unit, boolean and integer values,
   respectively.
 - [any]: inhabited by all values.
 - [A ⊸ B]: the type of affine functions from [A] to [B]. Affine functions can
   only be invoked once, since they might have captured affine resources.
 - [A → B]: the type of non-affine (copyable) functions from [A] to [B]. These
-  can be invoked any number of times. This is simply syntactic sugar for [copy
-  (A ⊸ B)].
+  can be invoked any number of times. This is simply syntactic sugar for
+  [copy (A ⊸ B)].
 - [A * B], [A + B], [∀ X, A], [∃ X, A]: products, sums, universal types,
   existential types.
 - [copy A]: inhabited by those values in the type [A] which are copyable. In the
   case of functions, for instance, functions (closures) which capture affine
-  resources are not copyable, whereas functions that do not capture resources
-  are.
+  resources are not copyable, whereas functions that do not capture resources are.
 - [copy- A]: acts as a kind of "inverse" to [copy A]. More precisely, we have
   that [copy- (copy A) <:> A]. This type is used to indicate the results of
   operations that might consume a resource, but do not always do so, depending
