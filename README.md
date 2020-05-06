@@ -11,6 +11,44 @@ It has been built and tested with the following dependencies
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.
 
+## Logical relation
+The logical relation for type safety of the session type system is contained
+in the directory [theories/logrel](theories/logrel). The files in this
+directory contain the following parts of the paper:
+
+- [theories/logrel/model.v](theories/logrel/model.v): Definition of the
+  notions of a semantic term type and a semantic session type in terms of
+  unary Iris predicates (on values) and Actris protocols, respectively. Also
+  provides the required Coq definitions for creating recursive term/session
+  types.
+- [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
+  of the following semantic term types: basic types (integers, booleans,
+  unit), sums, products, copyable/affine functions, universally and
+  existentially quantified types, unique/shared references, and
+  session-typed channels.
+- [theories/logrel/session_types.v](theories/logrel/session_types.v):
+  Definitions of the following semantic session types: sending and receiving
+  with session polymorphism, n-ary choice. Session type duality is also
+  defined here. As mentioned, recursive session types can be defined using
+  the mechanism defined in [theories/logrel/model.v](theories/logrel/model.v).
+- [theories/logrel/environments.v](theories/logrel/environments.v):
+  Definition of semantic type environments, which are used in the semantic
+  typing relation. This also contains the rules for splitting and copying of
+  environments, which is used for distributing affine resources across the
+  various parts of the program inside the typing rules.
+- [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
+  Definition of the semantic typing relation, as well as the proof of type
+  soundness, showing that semantically well-typed programs do not get stuck.
+- [theories/logrel/subtyping.v](theories/logrel/subtyping.v): Definition of
+  the semantic subtyping relation for both term and session types. This file
+  also defines the notion of copyability of types in terms of subtyping.
+- [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
+  Semantic typing lemmas (typing rules) for the semantic term types.
+- [theories/logrel/session_typing_rules.v](theories/logrel/session.v):
+  Semantic typing lemmas (typing rules) for the semantic session types.
+- [theories/logrel/subtyping_rules.v): Subtyping rules for term types and
+  session types.
+
 ## Theory of Actris
 
 The theory of Actris (semantics of channels, the model, and the proof rules)
@@ -158,7 +196,7 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   for the endpoints and one for connecting them, namely:
   - `chan_own γ Left vs1` and `chan_own γ Right vs1`
   - `is_chan N γ c1 c2`
-  
+
   Here, `γ` is a ghost name and `N` an invariant name. This setup is less
   intuitive but gives rise to a more practical Jacobs/Piessens-style spec of
   `recv` that does not need a closing view shift (to handle the case that the
@@ -183,4 +221,3 @@ of Actris and the formalization in Coq, that are briefly discussed here.
   This achieved using the relation `iProto_le p p'`, and the additional rule
   `c ↣ p -∗ iProto_le p p' -∗ c ↣ p'`. To support "protocol subtyping", the
   definition of `c ↣ p` in the model is changed to be closed under `iProto_le`.
-
