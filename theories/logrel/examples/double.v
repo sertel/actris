@@ -1,3 +1,14 @@
+(** This file contains a proof that the program
+
+  λ c, (recv c ||| recv c)
+
+can be assigned the semantic type
+
+  chan (?int.?int.end) ⊸ (int * int)
+
+This cannot be shown directly using the semantic typing rules, and therefore
+manual proof is used to show that the program is semantically well-typed. This
+demonstrates the extensibility of the type system. *)
 From iris.algebra Require Import frac auth excl updates.
 From iris.heap_lang.lib Require Export par spin_lock.
 From actris.channel Require Import proofmode.

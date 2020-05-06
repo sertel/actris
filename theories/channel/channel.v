@@ -17,7 +17,10 @@ In this file we define the three message-passing connectives:
   polarity of the endpoints.
 - [send] takes an endpoint and adds an element to the first buffer.
 - [recv] performs a busy loop until there is something in the second buffer,
-  which it pops and returns, locking during each peek.*)
+  which it pops and returns, locking during each peek.
+
+It is additionaly shown that the channel ownership [c ↣ prot] is closed under
+the subprotocol relation [⊑] *)
 From iris.heap_lang Require Export lifting notation.
 From iris.heap_lang Require Import proofmode.
 From iris.heap_lang.lib Require Import spin_lock.

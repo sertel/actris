@@ -1,19 +1,47 @@
+(** This file contains the definitions of the semantic interpretations of the
+term type formers of the type system. The semantic interpretation of a type
+(former) is a unary Iris predicate on values [val → iProp], which determines
+when a value belongs to a certain type.
+
+The following types are defined:
+- [unit], [bool], [int]: basic types for unit, boolean and integer values,
+  respectively.
+- [any]: inhabited by all values.
+- [A ⊸ B]: the type of affine functions from [A] to [B]. Affine functions can
+  only be invoked once, since they might have captured affine resources.
+- [A → B]: the type of non-affine (copyable) functions from [A] to [B]. These
+  can be invoked any number of times. This is simply syntactic sugar for
+  [copy (A ⊸ B)].
+- [A * B], [A + B], [∀ X, A], [∃ X, A]: products, sums, universal types,
+  existential types.
+- [copy A]: inhabited by those values in the type [A] which are copyable. In the
+  case of functions, for instance, functions (closures) which capture affine
+  resources are not copyable, whereas functions that do not capture resources are.
+- [copy- A]: acts as a kind of "inverse" to [copy A]. More precisely, we have
+  that [copy- (copy A) <:> A]. This type is used to indicate the results of
+  operations that might consume a resource, but do not always do so, depending
+  on whether the type [A] is copyable. Such operations result in a [copy- A],
+  which can be turned into an [A] using subtyping when [A] is copyable.
+- [ref_uniq A]: the type of uniquely-owned mutable references to a value of type [A].
+  Since the reference is guaranteed to be unique, it's possible for the type [A]
+  contained in the reference to change to a different type [B] by assigning to
+  the reference.
+- [ref_shr A]: the type of shared mutable references to a value of type [A].
+- [chan P]: the type of channels, governed by the session type [P].
+
+In addition, some important properties, such as contractivity and
+non-expansiveness of these type formers is proved. This is important in order to
+use these type formers to define recursive types. *)
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export spin_lock.
-From actris.logrel Require Export subtyping kind_tele.
+From actris.logrel Require Export model kind_tele.
 From actris.channel Require Export channel.
-
-Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
-
-Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
-Definition lty_copy_minus {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
-Definition lty_copyable {Σ} (A : ltty Σ) : iProp Σ :=
-  tc_opaque (A <: lty_copy A)%I.
 
 Definition lty_unit {Σ} : ltty Σ := Ltty (λ w, ⌜ w = #() ⌝%I).
 Definition lty_bool {Σ} : ltty Σ := Ltty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.
 Definition lty_int {Σ} : ltty Σ := Ltty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
+Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
 
 Definition lty_arr `{heapG Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
   ∀ v, ▷ ltty_car A1 v -∗ WP w v {{ ltty_car A2 }})%I.
@@ -29,7 +57,10 @@ Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
 
-Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
+Definition lty_copy_minus {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
+
+Definition lty_ref_uniq `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
 Definition ref_shrN := nroot .@ "shr_ref".
 Definition lty_ref_shr `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
@@ -40,13 +71,12 @@ Definition lty_chan `{heapG Σ, chanG Σ} (P : lsty Σ) : ltty Σ :=
 
 Instance: Params (@lty_copy) 1 := {}.
 Instance: Params (@lty_copy_minus) 1 := {}.
-Instance: Params (@lty_copyable) 1 := {}.
 Instance: Params (@lty_arr) 2 := {}.
 Instance: Params (@lty_prod) 1 := {}.
 Instance: Params (@lty_sum) 1 := {}.
 Instance: Params (@lty_forall) 2 := {}.
 Instance: Params (@lty_sum) 1 := {}.
-Instance: Params (@lty_ref_mut) 2 := {}.
+Instance: Params (@lty_ref_uniq) 2 := {}.
 Instance: Params (@lty_ref_shr) 2 := {}.
 Instance: Params (@lty_chan) 3 := {}.
 
@@ -66,7 +96,7 @@ Notation "∀ A1 .. An , C" :=
 Notation "∃ A1 .. An , C" :=
   (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
 
-Notation "'ref_mut' A" := (lty_ref_mut A) (at level 10) : lty_scope.
+Notation "'ref_uniq' A" := (lty_ref_uniq A) (at level 10) : lty_scope.
 Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : lty_scope.
 
 Notation "'chan' A" := (lty_chan A) (at level 10) : lty_scope.
@@ -79,11 +109,6 @@ Section term_types.
   Proof. solve_proper. Qed.
   Global Instance lty_copy_minus_ne : NonExpansive (@lty_copy_minus Σ).
   Proof. solve_proper. Qed.
-
-  Global Instance lty_copyable_plain A : Plain (lty_copyable A).
-  Proof. rewrite /lty_copyable /=. apply _. Qed.
-  Global Instance lty_copyable_ne : NonExpansive (@lty_copyable Σ).
-  Proof. rewrite /lty_copyable /=. solve_proper. Qed.
 
   Global Instance lty_arr_contractive `{heapG Σ} n :
     Proper (dist_later n ==> dist_later n ==> dist n) lty_arr.
@@ -122,9 +147,9 @@ Section term_types.
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_proper. Qed.
 
-  Global Instance lty_ref_mut_contractive `{heapG Σ} : Contractive lty_ref_mut.
+  Global Instance lty_ref_uniq_contractive `{heapG Σ} : Contractive lty_ref_uniq.
   Proof. solve_contractive. Qed.
-  Global Instance lty_ref_mut_ne `{heapG Σ} : NonExpansive lty_ref_mut.
+  Global Instance lty_ref_uniq_ne `{heapG Σ} : NonExpansive lty_ref_uniq.
   Proof. solve_proper. Qed.
 
   Global Instance lty_ref_shr_contractive `{heapG Σ} : Contractive lty_ref_shr.

@@ -1,3 +1,5 @@
+(** This file defines all of the semantic subtyping rules for term types and
+session types. *)
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.proofmode Require Import tactics.
@@ -213,9 +215,9 @@ Section subtyping_rules.
     iApply "Hcopy".
   Qed.
 
-  Lemma lty_le_ref_mut A1 A2 :
+  Lemma lty_le_ref_uniq A1 A2 :
     ▷ (A1 <: A2) -∗
-    ref_mut A1 <: ref_mut A2.
+    ref_uniq A1 <: ref_uniq A2.
   Proof.
     iIntros "#H1" (v) "!>". iDestruct 1 as (l w ->) "[Hl HA]".
     iDestruct ("H1" with "HA") as "HA".

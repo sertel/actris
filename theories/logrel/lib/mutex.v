@@ -1,3 +1,29 @@
+(** This file defines a new semantic type former [mutex A], which is the type of
+mutexes containing a value of type [A]. Mutexes are copyable, regardless of
+whether the type contained in them is copyable. This makes them very useful for
+sharing affine resources (such as channels) between multiple threads.
+Internally, mutexes are implemented using a spin lock and a mutable reference.
+The operations for spin locks that are used by the mutex are defined in Iris.
+
+The following operations are supported on mutexes:
+- [mutex_alloc]: Takes a value and wraps it in a mutex.
+- [mutex_acquire]: Acquire the mutex and return the value contained in it.
+- [mutex_release]: Release the mutex, storing a given value in it.
+
+The typing rules for these operations additionally contain a type
+[mutexguard A], which represents a mutex that has been acquired. The typing
+rules for the operations require the [mutex] or [mutexguard] to be in a variable
+(i.e., let-bound), and the type of this variable in the typing context changes
+as the mutex is acquired and released.
+
+It is only possible to release a mutex after it has been opened. The
+[mutexguard A] is not copyable, since that would allow a mutex to be released
+multiple times after acquiring it once.
+
+This type former is strongly inspired by the [Mutex] type in the standard
+library of Rust, which has also been semantically modelled in the LambdaRust
+project.
+*)
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export spin_lock.
 From actris.logrel Require Export term_types term_typing_judgment subtyping.

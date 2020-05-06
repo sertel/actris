@@ -1,3 +1,12 @@
+(** This file contains shows that the program
+
+  λ c, (recv c, recv c)
+
+can be assigned the type
+
+  chan (?int.?int.end) ⊸ (int * int)
+
+by exclusively using the semantic typing rules. *)
 From actris.logrel Require Export term_typing_rules.
 From iris.proofmode Require Import tactics.
 

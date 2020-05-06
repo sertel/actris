@@ -1,3 +1,11 @@
+(** This file contains the definitions of the semantic typing relation
+[Γ ⊨ e : A ⫤ Γ'], indicating that in context [Γ], the expression [e] has type
+[A], producing a new context [Γ']. The context is allowed to change to
+accomodate things like changing the type of a channel after a receive.
+
+In addition, we use the adequacy of Iris in order to show type soundness:
+programs which satisfy the semantic typing relation are safe. That is,
+semantically well-typed programs do not get stuck. *)
 From iris.heap_lang Require Import metatheory adequacy.
 From actris.logrel Require Export term_types.
 From actris.logrel Require Import environments.
