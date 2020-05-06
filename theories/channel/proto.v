@@ -27,7 +27,7 @@ Futhermore, we define the following operations:
 - [iProto_dual], which turns all [Send] of a protocol into [Recv] and vice-versa
 - [iProto_app], which appends two protocols as described in proto_model.v
 
-In addition we define the [iProto_le] subprotocol relation, which generalises
+In addition we define the subprotocol relation [iProto_le] [⊑], which generalises
 the following inductive definition for asynchronous subtyping on session types:
 
                  p1 <: p2           p1 <: p2          p1 <: !B.p3    ?A.p3 <: p2
