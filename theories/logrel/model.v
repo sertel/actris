@@ -1,3 +1,17 @@
+(** This file contains the definition of what semantic term types and semantic
+session types are. A semantic term type is a unary (Iris) predicate on values,
+as is customary in a logical relation for type soundness. A semantic session
+type is essentially an Actris protocol.
+
+There is a single variant [lty Σ k], which contains either a term type or a
+session type, depending on the kind [k]. The reason for having a single type
+containing both term types and session types is that it allows for uniform
+definitions of polymorphic binders for term types and session types, instead of
+having duplicated definitions.
+
+This file also defines a COFE structure on semantic term types and session
+types, which is required in order to define recursive term types and session
+types. *)
 From iris.algebra Require Export ofe.
 From actris.channel Require Export channel.
 

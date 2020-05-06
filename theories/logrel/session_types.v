@@ -1,3 +1,7 @@
+(** This file defines the semantic interpretations of sesssion types as Actris
+protocols. It includes session types for sending and receiving with session
+polymorphism, as well as n-ary choice. Recursive protocols are defined in
+[model.v]. *)
 From iris.algebra Require Export gmap.
 From actris.logrel Require Export model kind_tele.
 From actris.channel Require Export channel.

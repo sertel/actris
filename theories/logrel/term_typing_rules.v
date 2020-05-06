@@ -1,3 +1,6 @@
+(** This file defines all of the semantic typing lemmas for term types. Most of
+these lemmas are semantic versions of the syntactic typing judgments typically
+found in a syntactic type system. *)
 From stdpp Require Import pretty.
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
@@ -255,8 +258,12 @@ Section properties.
     iIntros (w) "[$ HΓ3]". by iApply env_ltyped_delete.
   Qed.
 
+<<<<<<< HEAD
 
   (** Mutable Reference properties *)
+=======
+  (** Mutable Unique Reference properties *)
+>>>>>>> add headers to files
   Lemma ltyped_alloc Γ1 Γ2 e A :
     (Γ1 ⊨ e : A ⫤ Γ2) -∗
     (Γ1 ⊨ ref e : ref_mut A ⫤ Γ2).
@@ -307,7 +314,7 @@ Section properties.
     iFrame "HΓ'".
   Qed.
 
-  (** Shared Reference properties *)
+  (** Mutable Shared Reference properties *)
   Lemma ltyped_upgrade_shared  Γ Γ' e A :
     (Γ ⊨ e : ref_mut (copy A) ⫤ Γ') -∗
     Γ ⊨ e : ref_shr A ⫤ Γ'.
@@ -397,6 +404,7 @@ Section properties.
     Qed.
   End with_spawn.
 
+  (** Channel properties *)
   Section with_chan.
     Context `{chanG Σ}.
 

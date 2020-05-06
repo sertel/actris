@@ -1,4 +1,16 @@
-From actris.logrel Require Export term_types.
+(** This file contains definitions related to type environments. The following
+relations on environments are defined:
+
+- [env_ltyped Γ vs]: This relation indicates that the value map [vs] contains a
+  value for each type in the semantic type environment [Γ].
+- [env_split Γ Γ1 Γ2]: The semantic type environment [Γ] can be split into
+  (semantically disjoint) [Γ1] and [Γ2].
+- [env_copy Γ Γ']: [Γ'] is a copyable sub-environment of [Γ].
+
+In addition, some lemmas about these definitions are proved, corresponding to
+the syntactic typing rules that are typically found in linear/affine type
+systems. *)
+From actris.logrel Require Export term_types subtyping.
 From iris.proofmode Require Import tactics.
 
 Notation "<![ b := x ]!>" :=

@@ -1,3 +1,5 @@
+(** This file defines semantic typing lemmas for the operators of the language.
+*)
 From actris.logrel Require Export term_types.
 From iris.heap_lang Require Import proofmode.
 

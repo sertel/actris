@@ -1,3 +1,5 @@
+(** This file defines kinded telescopes, which are used for representing binders
+in session types. *)
 From stdpp Require Import base tactics telescopes.
 From actris.logrel Require Import model.
 Set Default Proof Using "Type".

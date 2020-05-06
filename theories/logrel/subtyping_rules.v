@@ -1,3 +1,5 @@
+(** This file defines all of the semantic subtyping rules for term types and
+session types. *)
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.proofmode Require Import tactics.
