@@ -27,7 +27,7 @@ Definition lty_sum {Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
 Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∀ A, WP w #() {{ ltty_car (C A) }})%I.
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
-  Ltty (λ w, ∃ A, ltty_car (C A) w)%I.
+  Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
 
 Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
@@ -115,6 +115,9 @@ Section term_types.
   Global Instance lty_forall_ne `{heapG Σ} k n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _ k).
   Proof. solve_proper. Qed.
+  Global Instance lty_exist_contractive k n :
+    Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_exist Σ k).
+  Proof. solve_contractive. Qed.
   Global Instance lty_exist_ne k n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_proper. Qed.

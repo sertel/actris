@@ -240,18 +240,21 @@ Section properties.
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists M.
   Qed.
 
-  Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 (x : string) e (C : lty Σ k → ltty Σ) A :
-    Γ1 !! x = Some (lty_exist C) →
-    (∀ X, <![x:=C X]!> Γ1 ⊨ e : A ⫤ Γ2) -∗
-    (Γ1 ⊨ e : A ⫤ Γ2).
+  Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
+    (Γ1 ⊨ e1 : ∃ M, C M ⫤ Γ2) -∗
+    (∀ Y, <![x:=C Y]!> Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+    Γ1 ⊨ (let: x := e1 in e2) : B ⫤ binder_delete x Γ3.
   Proof.
-    iIntros (Hx) "#He". iIntros (vs) "!> HΓ".
-    iDestruct (env_ltyped_lookup with "HΓ") as (v Hv) "[HB HΓ]"; first done.
-    iDestruct ("HB") as (B) "HB".
-    iDestruct (env_ltyped_insert _ _ x with "HB HΓ") as "HΓ".
-    rewrite /binder_insert insert_delete (insert_id _ _ _ Hv).
-    iApply (wp_wand with "(He HΓ)"). eauto.
+    iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1"=> /=.
+    wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HC HΓ2]".
+    iDestruct "HC" as (X) "HX". wp_pures.
+    iDestruct (env_ltyped_insert _ _ x with "HX HΓ2") as "HΓ2".
+    iDestruct ("He2" with "HΓ2") as "He2'".
+    destruct x as [|x]; rewrite /= -?subst_map_insert //.
+    wp_apply (wp_wand with "He2'").
+    iIntros (w) "[$ HΓ3]". by iApply env_ltyped_delete.
   Qed.
+
 
   (** Mutable Reference properties *)
   Lemma ltyped_alloc Γ1 Γ2 e A :
@@ -304,7 +307,7 @@ Section properties.
     iFrame "HΓ'".
   Qed.
 
-  (** Weak Reference properties *)
+  (** Shared Reference properties *)
   Lemma ltyped_upgrade_shared  Γ Γ' e A :
     (Γ ⊨ e : ref_mut (copy A) ⫤ Γ') -∗
     Γ ⊨ e : ref_shr A ⫤ Γ'.

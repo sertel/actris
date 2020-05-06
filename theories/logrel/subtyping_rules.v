@@ -171,7 +171,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_exist C1 C2 :
-    (∀ A, C1 A <: C2 A) -∗
+    ▷ (∀ A, C1 A <: C2 A) -∗
     (∃ A, C1 A) <: (∃ A, C2 A).
   Proof.
     iIntros "#Hle" (v) "!>". iDestruct 1 as (A) "H". iExists A. by iApply "Hle".
