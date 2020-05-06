@@ -11,6 +11,8 @@ Section pair.
   Proof.
     rewrite /prog.
     iApply ltyped_lam. iApply ltyped_pair.
-    iApply ltyped_recv. iApply ltyped_recv.
+    iApply ltyped_recv.
+    2:{ iApply ltyped_recv. by rewrite /binder_insert lookup_insert. }
+    by rewrite lookup_insert.
   Qed.
 End pair.
