@@ -306,40 +306,35 @@ Section properties.
 
   (** Weak Reference properties *)
   Lemma ltyped_upgrade_shared  Γ Γ' e A :
-    (Γ ⊨ e : ref_mut A ⫤ Γ') -∗
+    (Γ ⊨ e : ref_mut (copy A) ⫤ Γ') -∗
     Γ ⊨ e : ref_shr A ⫤ Γ'.
   Proof.
-    iIntros "#He" (vs) "!> HΓ".
-    iApply wp_fupd.
+    iIntros "#He" (vs) "!> HΓ". iApply wp_fupd.
     iApply (wp_wand with "(He HΓ)"). iIntros (v) "[Hv HΓ']".
     iDestruct "Hv" as (l w ->) "[Hl HA]".
-    iFrame "HΓ'".
-    iExists l.
-    iMod (inv_alloc (ref_shrN .@ l) _ (∃ v : val, l ↦ v ∗ ltty_car A v) with "[Hl HA]") as "Href".
-    { iExists w. iFrame "Hl HA". }
-    iModIntro.
-    by iFrame "Href".
+    iFrame "HΓ'". iExists l.
+    iMod (inv_alloc (ref_shrN .@ l) _
+      (∃ v : val, l ↦ v ∗ □ ltty_car A v) with "[Hl HA]") as "$"; last done.
+    iExists w. iFrame "Hl HA".
   Qed.
 
   Lemma ltyped_load_shared Γ Γ' e A :
     (Γ ⊨ e : ref_shr A ⫤ Γ') -∗
-    Γ ⊨ ! e : copy- A ⫤ Γ'.
+    Γ ⊨ ! e : A ⫤ Γ'.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_bind (subst_map vs e).
     iApply (wp_wand with "(He HΓ)"). iIntros (v) "[Hv HΓ]".
     iDestruct "Hv" as (l ->) "#Hv".
-    iInv (ref_shrN .@ l) as (v) "[>Hl HA]" "Hclose".
+    iInv (ref_shrN .@ l) as (v) "[>Hl #HA]" "Hclose".
     wp_load.
-    iAssert (ltty_car (copy- A) v)%lty as "#HAm". { iApply coreP_intro. iApply "HA". }
     iMod ("Hclose" with "[Hl HA]") as "_".
     { iExists v. iFrame "Hl HA". }
-    iModIntro.
-    iFrame "HAm HΓ".
+    by iIntros "!> {$HΓ}".
   Qed.
 
   Lemma ltyped_store_shared Γ1 Γ2 Γ3 e1 e2 A :
-    (Γ1 ⊨ e2 : A ⫤ Γ2) -∗
+    (Γ1 ⊨ e2 : copy A ⫤ Γ2) -∗
     (Γ2 ⊨ e1 : ref_shr A ⫤ Γ3) -∗
     (Γ1 ⊨ e1 <- e2 : () ⫤ Γ3).
   Proof.
@@ -353,7 +348,7 @@ Section properties.
     wp_store.
     iMod ("Hclose" with "[Hl Hv]") as "_".
     { iExists v. iFrame "Hl Hv". }
-    iModIntro. iSplit=>//.
+    iModIntro. by iSplit.
   Qed.
 
   Lemma ltyped_fetch_and_add_shared Γ1 Γ2 Γ3 e1 e2 :

@@ -33,7 +33,7 @@ Definition lty_ref_mut `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
 Definition ref_shrN := nroot .@ "shr_ref".
 Definition lty_ref_shr `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
-  ∃ l : loc, ⌜w = #l⌝ ∗ inv (ref_shrN .@ l) (∃ v, l ↦ v ∗ ltty_car A v))%I.
+  ∃ l : loc, ⌜w = #l⌝ ∗ inv (ref_shrN .@ l) (∃ v, l ↦ v ∗ □ ltty_car A v))%I.
 
 Definition lty_chan `{heapG Σ, chanG Σ} (P : lsty Σ) : ltty Σ :=
   Ltty (λ w, w ↣ lsty_car P)%I.

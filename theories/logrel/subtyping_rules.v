@@ -229,13 +229,12 @@ Section subtyping_rules.
     iIntros "#[Hle1 Hle2]" (v) "!>". iDestruct 1 as (l ->) "Hinv".
     iExists l. iSplit; first done.
     iApply (inv_iff with "Hinv"). iIntros "!> !>". iSplit.
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
-    - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
+    - iDestruct 1 as (v) "[Hl #HA]". iExists v. iIntros "{$Hl} !>". by iApply "Hle1".
+    - iDestruct 1 as (v) "[Hl #HA]". iExists v. iIntros "{$Hl} !>". by iApply "Hle2".
   Qed.
   Lemma lty_copyable_shr_ref A :
     ⊢ lty_copyable (ref_shr A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
-
 
   Lemma lty_le_chan S1 S2 :
     ▷ (S1 <: S2) -∗ chan S1 <: chan S2.
