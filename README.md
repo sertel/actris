@@ -1,7 +1,8 @@
 # ACTRIS COQ DEVELOPMENT
 
-This directory contains the artifact for the paper "Actris: Session Type
-Based Reasoning in Separation Logic".
+This directory contains the Coq mechanisation of the Actris framework,
+first presented in the paper
+"Actris: Session Type Based Reasoning in Separation Logic".
 
 It has been built and tested with the following dependencies
 
