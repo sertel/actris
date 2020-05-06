@@ -11,8 +11,8 @@ It has been built and tested with the following dependencies
 In order to build, install the above dependencies and then run
 `make -j [num CPU cores]` to compile Actris.
 
-## Logical relation
-The logical relation for type safety of the session type system is contained
+## Semantic Session Type System
+The logical relation for type safety of a semantic session type system is contained
 in the directory [theories/logrel](theories/logrel). The logical relation is
 defined across the following files:
 
