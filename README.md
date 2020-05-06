@@ -56,14 +56,18 @@ and allow one to gain exclusive ownership of resource shared between multiple
 threads.
 
 The logical relation is used to show that two example programs are semantically well-typed:
-- [theories/examples/pair.v](theories/examples/pair.v): This program performs
+- [theories/logrel/examples/pair.v](theories/logrel/examples/pair.v):
+  This program performs
   two sequential receives and stores the results in a pair. It is shown to be
   semantically well-typed by applying the semantic typing rules.
-- [theories/examples/double.v](theories/examples/double.v): This program
+- [theories/logrel/examples/double.v](theories/logrel/examples/double.v): This program
   performs two ``racy'' parallel receives on the same channel from two
   different threads, using locks to allow the channel to be shared. This
   program cannot be shown to be well-typed using the semantic typing rules.
   Therefore, a manual proof of the well-typedness is given.
+- [theories/examples/subprotocols.v](theories/examples/subprotocols.v):
+  Contains an example of a subprotocol assertion between two protocols that sends
+  references.
 
 ## Theory of Actris
 
