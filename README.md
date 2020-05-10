@@ -1,7 +1,5 @@
 # ACTRIS COQ DEVELOPMENT
 
-For CONCUR 2020 specific remarks see [CONCUR2020.md](CONCUR2020.md).
-
 This directory contains the Coq mechanisation of the Actris framework,
 first presented in the paper
 "Actris: Session Type Based Reasoning in Separation Logic".
@@ -167,3 +165,7 @@ An extension to the basic type system is given in
 mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
 and allow one to gain exclusive ownership of resource shared between multiple
 threads.
+
+## Paper-specific remarks
+
+For CONCUR 2020 specific remarks see [papers/CONCUR20.md](papers/CONCUR20.md).
