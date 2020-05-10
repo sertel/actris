@@ -6,9 +6,9 @@ lock-protected buffers, and their primitive proof rules. Moreover:
 - It proves Actris's specifications of [send] and [recv] w.r.t. dependent
   separation protocols.
 
-An encoding of the usual choice connectives [prot1 <{Q1}+{Q2}> prot2] and
-[prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in this
-file.
+An encoding of the usual (binary) choice connectives [prot1 <{Q1}+{Q2}> prot2]
+and [prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in
+this file.
 
 In this file we define the three message-passing connectives:
 
@@ -46,7 +46,7 @@ Definition send : val :=
     acquire "lk";;
     let: "l" := Fst (Fst "c") in
     lsnoc "l" "v";;
-    skipN (llength (Snd (Fst "c")));; (* Later stripping *)
+    skipN (llength (Snd (Fst "c")));; (* "Ghost" operation for later stripping *)
     release "lk".
 
 Definition try_recv : val :=

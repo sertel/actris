@@ -7,25 +7,24 @@ parameterized version in [proto_model] with the type of propositions [iProp] of 
 We define ways of constructing instances of the instantiated type via two
 constructors:
 - [iProto_end], which is identical to [proto_end].
-- [iProto_message], which takes an [action] and an [iMsg] which is a
-  sequence of binders [iMsg_exist] terminated by the payload
-  constructed with [iMsg_base] based on arguments v, P and prot
-  which are the value, the carried proposition and the [iProto] tail
-  respectively.
+- [iProto_message], which takes an [action] and an [iMsg]. The type [iMsg] is a
+  sequence of binders [iMsg_exist], terminated by the payload constructed with
+  [iMsg_base] based on arguments [v], [P] and [prot], which are the value, the
+  carried proposition and the [iProto] tail, respectively.
 
 For convenience sake, we provide the following notations:
 - [END], which is simply [iProto_end].
-- [∃ x,m] which is [iMsg_exist] with argument m.
-- [MSG v ; {{ P }}; prot] which is [iMsg_Base with
-- [<a> m] which is [iProto_message] with arguments a and m.
+- [∃ x, m], which is [iMsg_exist] with argument [m].
+- [MSG v {{ P }}; prot], which is [iMsg_Base] with arguments [v], [P] and [prot].
+- [<a> m], which is [iProto_message] with arguments [a] and [m].
 
 We also include custom notation to more easily construct complete constructions:
-- [<a x1 .. xn> m] which is [<a> ∃ x1, .. ∃ xn, m]
-- [<a x1 .. xn> MSG v; {{ P }}; prot], which constructs a full protocol
+- [<a x1 .. xn> m], which is [<a> ∃ x1, .. ∃ xn, m].
+- [<a x1 .. xn> MSG v; {{ P }}; prot], which constructs a full protocol.
 
 Futhermore, we define the following operations:
-- [iProto_dual], which turns all [Send] of a protocol into [Recv] and vice-versa
-- [iProto_app], which appends two protocols as described in proto_model.v
+- [iProto_dual], which turns all [Send] of a protocol into [Recv] and vice-versa.
+- [iProto_app], which appends two protocols.
 
 In addition we define the subprotocol relation [iProto_le] [⊑], which generalises
 the following inductive definition for asynchronous subtyping on session types:
