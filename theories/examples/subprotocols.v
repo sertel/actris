@@ -1,4 +1,6 @@
 From actris.channel Require Import proofmode proto channel.
+From actris.logrel Require Import subtyping_rules.
+From iris.proofmode Require Import tactics.
 
 Section basics.
   Context `{heapG Σ, chanG Σ}.
