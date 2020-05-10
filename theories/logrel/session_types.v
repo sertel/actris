@@ -1,7 +1,7 @@
 (** This file defines the semantic interpretations of session types as Actris
 protocols. It includes session types for sending and receiving with session
 polymorphism, as well as n-ary choice. Recursive protocols are defined in
-the model.v file. *)
+the [model.v] file. *)
 From iris.algebra Require Export gmap.
 From actris.logrel Require Export model telescopes.
 From actris.channel Require Export channel.
@@ -10,14 +10,14 @@ Definition lmsg Σ := iMsg Σ.
 Delimit Scope lmsg_scope with lmsg.
 Bind Scope lmsg_scope with lmsg.
 
+Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
+  (∃ v, MSG v {{ ▷ ltty_car A v}} ; (lsty_car S))%msg.
+
 Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
   (∃ X, M X)%msg.
 
 Definition lty_msg_texist {Σ} {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) : lmsg Σ :=
   ktele_fold (@lty_msg_exist Σ) (λ x, x) (ktele_bind M).
-
-Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
-  (∃ v, MSG v {{ ▷ ltty_car A v}} ; (lsty_car S))%msg.
 
 Definition lty_end {Σ} : lsty Σ := Lsty END.
 
@@ -93,8 +93,7 @@ Section session_types.
 
   Global Instance lty_message_ne a : NonExpansive (@lty_message Σ a).
   Proof. solve_proper. Qed.
-  Global Instance lty_message_proper a :
-    Proper ((≡) ==> (≡)) (@lty_message Σ a).
+  Global Instance lty_message_proper a : Proper ((≡) ==> (≡)) (@lty_message Σ a).
   Proof. apply ne_proper, _. Qed.
 
   Global Instance lty_choice_ne a : NonExpansive (@lty_choice Σ a).

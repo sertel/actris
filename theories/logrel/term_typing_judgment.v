@@ -1,4 +1,4 @@
-(** This file contains the definitions of the semantic typing relation
+(** This file contains the definitions of the semantic typing judgment
 [Γ ⊨ e : A ⫤ Γ'], indicating that in context [Γ], the expression [e] has type
 [A], producing a new context [Γ']. The context is allowed to change to
 accomodate things like changing the type of a channel after a receive.
@@ -11,7 +11,7 @@ From actris.logrel Require Export term_types.
 From actris.logrel Require Import environments.
 From iris.proofmode Require Import tactics.
 
-(* The semantic typing judgement *)
+(** The semantic typing judgment *)
 Definition ltyped `{!heapG Σ}
     (Γ Γ' : gmap string (ltty Σ)) (e : expr) (A : ltty Σ) : iProp Σ :=
   (■ ∀ vs, env_ltyped Γ vs -∗

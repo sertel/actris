@@ -1,5 +1,6 @@
-(** This file defines semantic typing lemmas for the operators of the language.
-*)
+(** This file defines semantic typing judgments and typing lemmas for the
+operators of the language. The typing judgments for operators are expressed
+using type classes, so they can easily be solved automatically. *)
 From actris.logrel Require Export term_types.
 From iris.heap_lang Require Import proofmode.
 
@@ -21,7 +22,7 @@ Section operators.
   Context {Σ : gFunctors}.
   Implicit Types A B : ltty Σ.
 
-  (* Unboxed types *)
+  (** Rules for unboxed types *)
   Global Instance lty_unit_unboxed : LTyUnboxed (Σ:=Σ) ().
   Proof. by iIntros (v ->). Qed.
   Global Instance lty_bool_unboxed : LTyUnboxed (Σ:=Σ) lty_bool.
@@ -33,7 +34,7 @@ Section operators.
   Global Instance lty_ref_shr_unboxed `{heapG Σ} A : LTyUnboxed (ref_shr A).
   Proof. iIntros (v). by iDestruct 1 as (l ->) "?". Qed.
 
-  (* Operator typing *)
+  (** Rules for operator typing *)
   Global Instance lty_un_op_int op : LTyUnOp (Σ:=Σ) op lty_int lty_int.
   Proof. iIntros (?). iDestruct 1 as (i) "->". destruct op; eauto. Qed.
   Global Instance lty_un_op_bool : LTyUnOp (Σ:=Σ) NegOp lty_bool lty_bool.

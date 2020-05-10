@@ -160,7 +160,7 @@ Section properties.
 
   Lemma ltyped_snd Γ A1 A2 (x : string) :
     Γ !! x = Some (A1 * A2)%lty →
-    ⊢ Γ ⊨ Snd x : A2 ⫤ <[x := (A1 * copy- A2)%lty]> Γ.
+    ⊢ Γ ⊨ Snd x : A2 ⫤ <[x:=(A1 * copy- A2)%lty]> Γ.
   Proof.
     iIntros (Hx vs) "!> HΓ /=".
     iDestruct (env_ltyped_lookup with "HΓ") as (v Hv) "[HA HΓ]"; first done; rewrite Hv.
@@ -480,21 +480,19 @@ Section properties.
     Qed.
 
     Definition select : val := λ: "c" "i", send "c" "i".
-    Lemma ltyped_select Γ (c : string) (i : Z) (S : lsty Σ) Ss :
+    Lemma ltyped_select Γ (x : string) (i : Z) (S : lsty Σ) Ss :
       Ss !! i = Some S →
-      ⊢ <[c := (chan (lty_select Ss))%lty]>Γ ⊨ select c #i : () ⫤
-        <[c := (chan S)%lty]>Γ.
+      ⊢ <[x:=(chan (lty_select Ss))%lty]>Γ ⊨ select x #i : () ⫤
+        <[x:=(chan S)%lty]>Γ.
     Proof.
-      iIntros (Hin).
-      iIntros "!>" (vs) "HΓ /=".
+      iIntros (Hin); iIntros "!>" (vs) "HΓ /=".
       iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
       { by apply lookup_insert. }
       rewrite Heq /select.
       wp_send with "[]".
       { eauto. }
       iSplitR; first done.
-      iDestruct (env_ltyped_insert _ _ c (chan _) with "[Hc //] HΓ")
-        as "HΓ'"=> /=.
+      iDestruct (env_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ") as "HΓ' /=".
       rewrite insert_delete insert_insert (insert_id vs)=> //.
       by rewrite lookup_total_alt Hin.
     Qed.
@@ -538,14 +536,14 @@ Section properties.
         rewrite assoc_L. iApply ("H" with "[$HA $HAs]").
     Qed.
 
-    Definition chanbranch (xs : list Z) : val := λ: "c",
+    Definition branch (xs : list Z) : val := λ: "c",
       switch_lams "f" 0 (length xs) $
       let: "y" := recv "c" in
       switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
 
-    Lemma ltyped_chanbranch Ss A xs :
+    Lemma ltyped_branch Ss A xs :
       (∀ x, x ∈ xs ↔ is_Some (Ss !! x)) →
-      ⊢ ∅ ⊨ chanbranch xs : chan (lty_branch Ss) ⊸
+      ⊢ ∅ ⊨ branch xs : chan (lty_branch Ss) ⊸
         lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A.
     Proof.
       iIntros (Hdom) "!>". iIntros (vs) "Hvs".

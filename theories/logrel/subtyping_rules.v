@@ -105,8 +105,8 @@ Section subtyping_rules.
     ▷ (A21 <: A11) -∗ ▷ (A12 <: A22) -∗
     (A11 → A12) <: (A21 → A22).
   Proof. iIntros "#H1 #H2" (v) "!> #H !>". by iApply lty_le_arr. Qed.
-  (* This rule is really trivial, since → is syntactic sugar for copy (... ⊸ ...),
-     but we include it anyway for completeness' sake. *)
+  (** This rule is really trivial, since [A → B] is syntactic sugar for
+  [copy (A ⊸ B)], but we include it anyway for completeness' sake. *)
   Lemma lty_copyable_arr_copy A B : ⊢@{iPropI Σ} lty_copyable (A → B).
   Proof. iApply lty_copyable_copy. Qed.
 
@@ -198,20 +198,17 @@ Section subtyping_rules.
     iApply lty_le_exist. iApply "Hle".
   Qed.
 
-  (* TODO: Try to add Löb induction in the type system, and use it to prove μX.int → X <:> μX.int → int → X *)
-
-  (* TODO(COPY): Commuting rule for μ, allowing `copy` to move outside the μ *)
+  (* TODO(COPY): Commuting rule for recursive types, allowing [copy] to move
+  outside the recursive type. This rule should be derivable using Löb
+  induction. *)
   Lemma lty_copyable_rec C `{!Contractive C} :
     (∀ A, ▷ lty_copyable A -∗ lty_copyable (C A)) -∗ lty_copyable (lty_rec C).
   Proof.
     iIntros "#Hcopy".
     iLöb as "IH".
     iIntros (v) "!> Hv".
-    rewrite /lty_rec.
-    rewrite {2}fixpoint_unfold.
-    iSpecialize ("Hcopy" with "IH").
-    iSpecialize ("Hcopy" with "Hv").
-    iDestruct "Hcopy" as "#Hcopy".
+    rewrite /lty_rec {2}fixpoint_unfold.
+    iDestruct ("Hcopy" with "IH Hv") as "{Hcopy} #Hcopy".
     iModIntro.
     iEval (rewrite fixpoint_unfold).
     iApply "Hcopy".
@@ -269,7 +266,7 @@ Section subtyping_rules.
 
   Lemma lty_le_exist_elim_l k (M : lty Σ k → lmsg Σ) S :
     (∀ (A : lty Σ k), (<??> M A) <: S) -∗
-    ((<?? (A : lty Σ k)> M A) <: S).
+    (<?? (A : lty Σ k)> M A) <: S.
   Proof.
     rewrite /lty_le lsty_le_eq.
     iIntros "#Hle !>". iApply (iProto_le_exist_elim_l_inhabited M). auto.
@@ -277,7 +274,7 @@ Section subtyping_rules.
 
   Lemma lty_le_exist_elim_r k (M : lty Σ k → lmsg Σ) S :
     (∀ (A : lty Σ k), S <: (<!!> M A)) -∗
-    (S <: (<!! (A : lty Σ k)> M A)).
+    S <: (<!! (A : lty Σ k)> M A).
   Proof.
     rewrite /lty_le lsty_le_eq.
     iIntros "#Hle !>". iApply (iProto_le_exist_elim_r_inhabited _ M). auto.

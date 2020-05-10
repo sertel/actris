@@ -4,7 +4,7 @@ term type formers of the type system. The semantic interpretation of a type
 when a value belongs to a certain type.
 
 The following types are defined:
-- [unit], [bool], [int]: basic types for unit, boolean and integer values,
+- [unit], [bool], [int]: basic types for unit, Boolean and integer values,
   respectively.
 - [any]: inhabited by all values.
 - [A ⊸ B]: the type of affine functions from [A] to [B]. Affine functions can
@@ -18,12 +18,12 @@ The following types are defined:
   case of functions, for instance, functions (closures) which capture affine
   resources are not copyable, whereas functions that do not capture resources are.
 - [copy- A]: acts as a kind of "inverse" to [copy A]. More precisely, we have
-  that [copy- (copy A) <:> A]. This type is used to indicate the results of
+  that [copy- (copy A) :> A]. This type is used to indicate the results of
   operations that might consume a resource, but do not always do so, depending
   on whether the type [A] is copyable. Such operations result in a [copy- A],
   which can be turned into an [A] using subtyping when [A] is copyable.
 - [ref_uniq A]: the type of uniquely-owned mutable references to a value of type [A].
-  Since the reference is guaranteed to be unique, it's possible for the type [A]
+  Since the reference is guaranteed to be unique, it is possible for the type [A]
   contained in the reference to change to a different type [B] by assigning to
   the reference.
 - [ref_shr A]: the type of shared mutable references to a value of type [A].

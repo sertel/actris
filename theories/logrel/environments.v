@@ -7,8 +7,8 @@ relations on environments are defined:
   (semantically disjoint) [Γ1] and [Γ2].
 - [env_copy Γ Γ']: [Γ'] is a copyable sub-environment of [Γ].
 
-In addition, some lemmas about these definitions are proved, corresponding to
-the syntactic typing rules that are typically found in linear/affine type
+In addition, some lemmas/rules about these definitions are proved, corresponding
+to the syntactic typing rules that are typically found in substructural type
 systems. *)
 From actris.logrel Require Export term_types subtyping.
 From iris.proofmode Require Import tactics.

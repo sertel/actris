@@ -1,9 +1,8 @@
 (** This file contains the definition of the semantic subtyping relation
 [A <: B], where [A] and [B] can be either term types or session types, as
-well as a semantic type equivalence relation [A <:> B], which is essentially
-equivalent to having both [A <: B] and [B <: A]. Finally, the notion of a
-*copyable type* is defined in terms of subtyping: a type [A] is copyable
-when [A <: copy A]. *)
+well as a semantic type equivalence relation [A <:> B], which is equivalent to
+having both [A <: B] and [B <: A]. Finally, the notion of a *copyable type* is
+defined in terms of subtyping: a type [A] is copyable when [A <: copy A]. *)
 From actris.logrel Require Export model term_types.
 
 Definition lsty_le_def {Σ} (P1 P2 : lsty Σ) :=
