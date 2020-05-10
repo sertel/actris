@@ -12,12 +12,14 @@ Section subtyping_rules.
 
   (** Generic rules *)
   Lemma lty_le_refl {k} (M : lty Σ k) : ⊢ M <: M.
-  Proof. destruct k. by iIntros (v) "!> H". by iModIntro. Qed.
+  Proof. destruct k. by iIntros (v) "!> H".
+         rewrite /lty_le lsty_le_eq /lsty_le_def. by iModIntro. Qed.
   Lemma lty_le_trans {k} (M1 M2 M3 : lty Σ k) : M1 <: M2 -∗ M2 <: M3 -∗ M1 <: M3.
   Proof.
     destruct k.
     - iIntros "#H1 #H2" (v) "!> H". iApply "H2". by iApply "H1".
-    - iIntros "#H1 #H2 !>". by iApply iProto_le_trans.
+    - iIntros "#H1 #H2 !>".
+      rewrite /lty_le lsty_le_eq /lsty_le_def. by iApply iProto_le_trans.
   Qed.
 
   Lemma lty_bi_le_refl {k} (M : lty Σ k) : ⊢ M <:> M.
@@ -242,7 +244,8 @@ Section subtyping_rules.
     ▷ (S1 <: S2) -∗ chan S1 <: chan S2.
   Proof.
     iIntros "#Hle" (v) "!> H".
-    iApply (iProto_mapsto_le with "H [Hle]"). eauto.
+    iApply (iProto_mapsto_le with "H [Hle]").
+    rewrite /lty_le lsty_le_eq. eauto.
   Qed.
 
   (** Session subtyping *)
@@ -250,6 +253,7 @@ Section subtyping_rules.
     ▷ (A2 <: A1) -∗ ▷ (S1 <: S2) -∗
     (<!!> TY A1 ; S1) <: (<!!> TY A2 ; S2).
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "#HAle #HSle !>" (v) "H". iExists v.
     iDestruct ("HAle" with "H") as "$". by iModIntro.
   Qed.
@@ -258,6 +262,7 @@ Section subtyping_rules.
     ▷ (A1 <: A2) -∗ ▷ (S1 <: S2) -∗
     (<??> TY A1 ; S1) <: (<??> TY A2 ; S2).
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "#HAle #HSle !>" (v) "H". iExists v.
     iDestruct ("HAle" with "H") as "$". by iModIntro.
   Qed.
@@ -265,22 +270,33 @@ Section subtyping_rules.
   Lemma lty_le_exist_elim_l k (M : lty Σ k → lmsg Σ) S :
     (∀ (A : lty Σ k), (<??> M A) <: S) -∗
     ((<?? (A : lty Σ k)> M A) <: S).
-  Proof. iIntros "#Hle !>". iApply (iProto_le_exist_elim_l_inhabited M). auto. Qed.
+  Proof.
+    rewrite /lty_le lsty_le_eq.
+    iIntros "#Hle !>". iApply (iProto_le_exist_elim_l_inhabited M). auto.
+  Qed.
 
   Lemma lty_le_exist_elim_r k (M : lty Σ k → lmsg Σ) S :
     (∀ (A : lty Σ k), S <: (<!!> M A)) -∗
     (S <: (<!! (A : lty Σ k)> M A)).
-  Proof. iIntros "#Hle !>". iApply (iProto_le_exist_elim_r_inhabited _ M). auto. Qed.
+  Proof.
+    rewrite /lty_le lsty_le_eq.
+    iIntros "#Hle !>". iApply (iProto_le_exist_elim_r_inhabited _ M). auto.
+  Qed.
 
   Lemma lty_le_exist_intro_l k (M : lty Σ k → lmsg Σ) (A : lty Σ k) :
     ⊢ (<!! X> M X) <: (<!!> M A).
-  Proof. iIntros "!>". iApply (iProto_le_exist_intro_l). Qed.
+  Proof.
+    rewrite /lty_le lsty_le_eq.
+    iIntros "!>". iApply (iProto_le_exist_intro_l).
+  Qed.
 
   Lemma lty_le_exist_intro_r k (M : lty Σ k → lmsg Σ) (A : lty Σ k) :
     ⊢ (<??> M A) <: (<?? X> M X).
-  Proof. iIntros "!>". iApply (iProto_le_exist_intro_r). Qed.
+  Proof.
+    rewrite /lty_le lsty_le_eq.
+    iIntros "!>". iApply (iProto_le_exist_intro_r).
+  Qed.
 
-  (* Elimination rules need inhabited variant of telescopes in the model *)
   Lemma lty_le_texist_elim_l {kt} (M : ltys Σ kt → lmsg Σ) S :
     (∀ Xs, (<??> M Xs) <: S) -∗
     (<??.. Xs> M Xs) <: S.
@@ -316,6 +332,7 @@ Section subtyping_rules.
   Lemma lty_le_swap_recv_send A1 A2 S :
     ⊢ (<??> TY A1; <!!> TY A2; S) <: (<!!> TY A2; <??> TY A1; S).
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "!>" (v1 v2).
     iApply iProto_le_trans;
       [iApply iProto_le_base; iApply (iProto_le_exist_intro_l _ v2)|].
@@ -327,6 +344,7 @@ Section subtyping_rules.
   Lemma lty_le_swap_recv_select A Ss :
     ⊢ (<??> TY A; lty_select Ss) <: lty_select ((λ S, <??> TY A; S) <$> Ss)%lty.
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "!>" (v1 x2).
     iApply iProto_le_trans;
       [iApply iProto_le_base; iApply (iProto_le_exist_intro_l _ x2)|]; simpl.
@@ -340,6 +358,7 @@ Section subtyping_rules.
   Lemma lty_le_swap_branch_send A Ss :
     ⊢ lty_branch ((λ S, <!!> TY A; S) <$> Ss)%lty <: (<!!> TY A; lty_branch Ss).
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "!>" (x1 v2).
     iApply iProto_le_trans;
       [|iApply iProto_le_base; iApply (iProto_le_exist_intro_r _ x1)]; simpl.
@@ -354,6 +373,7 @@ Section subtyping_rules.
     ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
     lty_select Ss1 <: lty_select Ss2.
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "#H !>" (x); iMod 1 as %[S2 HSs2]. iExists x.
     iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
     assert (is_Some (Ss1 !! x)) as [S1 HSs1] by naive_solver.
@@ -365,6 +385,7 @@ Section subtyping_rules.
     Ss2 ⊆ Ss1 →
     ⊢ lty_select Ss1 <: lty_select Ss2.
   Proof.
+    rewrite /lty_le lsty_le_eq.
     intros; iIntros "!>" (x); iMod 1 as %[S HSs2]. iExists x.
     assert (Ss1 !! x = Some S) as HSs1 by eauto using lookup_weaken.
     rewrite HSs1. iSplitR; [by eauto|].
@@ -375,6 +396,7 @@ Section subtyping_rules.
     ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
     lty_branch Ss1 <: lty_branch Ss2.
   Proof.
+    rewrite /lty_le lsty_le_eq.
     iIntros "#H !>" (x); iMod 1 as %[S1 HSs1]. iExists x.
     iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
     assert (is_Some (Ss2 !! x)) as [S2 HSs2] by naive_solver.
@@ -386,6 +408,7 @@ Section subtyping_rules.
     Ss1 ⊆ Ss2 →
     ⊢ lty_branch Ss1 <: lty_branch Ss2.
   Proof.
+    rewrite /lty_le lsty_le_eq.
     intros; iIntros "!>" (x); iMod 1 as %[S HSs1]. iExists x.
     assert (Ss2 !! x = Some S) as HSs2 by eauto using lookup_weaken.
     rewrite HSs2. iSplitR; [by eauto|].
@@ -396,25 +419,29 @@ Section subtyping_rules.
   Lemma lty_le_app S11 S12 S21 S22 :
     (S11 <: S21) -∗ (S12 <: S22) -∗
     (S11 <++> S12) <: (S21 <++> S22).
-  Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
+  Proof. rewrite /lty_le lsty_le_eq.
+         iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
   Lemma lty_le_app_id_l S : ⊢ (END <++> S) <:> S.
-  Proof. rewrite /lty_app left_id. iSplit; by iModIntro. Qed.
+  Proof. rewrite /lty_app left_id.
+         iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iModIntro. Qed.
   Lemma lty_le_app_id_r S : ⊢ (S <++> END) <:> S.
-  Proof. rewrite /lty_app right_id. iSplit; by iModIntro. Qed.
+  Proof. rewrite /lty_app right_id.
+         iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iModIntro. Qed.
   Lemma lty_le_app_assoc S1 S2 S3 :
     ⊢ (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
-  Proof. rewrite /lty_app assoc. iSplit; by iModIntro. Qed.
+  Proof. rewrite /lty_app assoc.
+         iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iModIntro. Qed.
 
   Lemma lty_le_app_send A S1 S2 : ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
   Proof.
-    rewrite /lty_app iProto_app_message iMsg_app_exist.
-    setoid_rewrite iMsg_app_base. iSplit; by iIntros "!> /=".
+    rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
+    iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iIntros "!> /=".
   Qed.
   Lemma lty_le_app_recv A S1 S2 : ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
   Proof.
-    rewrite /lty_app iProto_app_message iMsg_app_exist.
-    setoid_rewrite iMsg_app_base. iSplit; by iIntros "!> /=".
+    rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
+    iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iIntros "!> /=".
   Qed.
 
   Lemma lty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
@@ -423,8 +450,8 @@ Section subtyping_rules.
     rewrite /lty_app /lty_choice iProto_app_message iMsg_app_exist;
       setoid_rewrite iMsg_app_base; setoid_rewrite lookup_total_alt;
       setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
-    iSplit; iIntros "!> /="; destruct a; iIntros (x); iExists x;
-      iMod 1 as %[S ->]; iSplitR; eauto.
+    iSplit; rewrite /lty_le lsty_le_eq; iIntros "!> /="; destruct a;
+      iIntros (x); iExists x; iMod 1 as %[S ->]; iSplitR; eauto.
   Qed.
   Lemma lty_le_app_select A Ss S2 :
     ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
@@ -434,11 +461,13 @@ Section subtyping_rules.
   Proof. apply lty_le_app_choice. Qed.
 
   Lemma lty_le_dual S1 S2 : S2 <: S1 -∗ lty_dual S1 <: lty_dual S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
+  Proof. rewrite /lty_le lsty_le_eq. iIntros "#H !>". by iApply iProto_le_dual. Qed.
   Lemma lty_le_dual_l S1 S2 : lty_dual S2 <: S1 -∗ lty_dual S1 <: S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual_l. Qed.
+  Proof. rewrite /lty_le lsty_le_eq. iIntros "#H !>".
+         by iApply iProto_le_dual_l. Qed.
   Lemma lty_le_dual_r S1 S2 : S2 <: lty_dual S1 -∗ S1 <: lty_dual S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
+  Proof. rewrite /lty_le lsty_le_eq. iIntros "#H !>".
+           by iApply iProto_le_dual_r. Qed.
 
   Lemma lty_le_dual_end : ⊢ lty_dual (Σ:=Σ) END <:> END.
   Proof. rewrite /lty_dual iProto_dual_end=> /=. apply lty_bi_le_refl. Qed.
@@ -447,7 +476,8 @@ Section subtyping_rules.
     ⊢ lty_dual (lty_message a (TY A; S)) <:> lty_message (action_dual a) (TY A; (lty_dual S)).
   Proof.
     rewrite /lty_dual iProto_dual_message iMsg_dual_exist.
-    setoid_rewrite iMsg_dual_base. iSplit; by iIntros "!> /=".
+    setoid_rewrite iMsg_dual_base.
+    iSplit; rewrite /lty_le lsty_le_eq /lsty_le_def; by iIntros "!> /=".
   Qed.
   Lemma lty_le_dual_send A S : ⊢ lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
   Proof. apply lty_le_dual_message. Qed.
@@ -460,8 +490,8 @@ Section subtyping_rules.
     rewrite /lty_dual /lty_choice iProto_dual_message iMsg_dual_exist;
       setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
       setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
-    iSplit; iIntros "!> /="; destruct a; iIntros (x); iExists x;
-      iMod 1 as %[S ->]; iSplitR; eauto.
+    iSplit; rewrite /lty_le lsty_le_eq; iIntros "!> /="; destruct a;
+      iIntros (x); iExists x; iMod 1 as %[S ->]; iSplitR; eauto.
   Qed.
 
   Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :
@@ -472,3 +502,4 @@ Section subtyping_rules.
   Proof. iApply lty_le_dual_choice. Qed.
 
 End subtyping_rules.
+
