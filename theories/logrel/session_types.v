@@ -39,7 +39,7 @@ Instance: Params (@lty_app) 1 := {}.
 
 Notation "'TY' A ; S" := (lty_msg_base A S)
   (at level 200, right associativity,
-   format "'TY'  A  ;  S") : lmsg_scope.
+   format "'TY'  A ;  S") : lmsg_scope.
 Notation "∃ X .. Y , M" :=
   (lty_msg_exist (λ X, .. (lty_msg_exist (λ Y, M)) ..)%lmsg) : lmsg_scope.
 Notation "'∃..' X .. Y , M" :=
