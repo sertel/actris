@@ -35,7 +35,7 @@ use these type formers to define recursive types. *)
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export spin_lock.
-From actris.logrel Require Export model kind_tele.
+From actris.logrel Require Export model.
 From actris.channel Require Export channel.
 
 Definition lty_unit {Σ} : ltty Σ := Ltty (λ w, ⌜ w = #() ⌝%I).

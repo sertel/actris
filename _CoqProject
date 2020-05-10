@@ -19,7 +19,7 @@ theories/examples/map.v
 theories/examples/map_reduce.v
 theories/examples/subprotocols.v
 theories/logrel/model.v
-theories/logrel/kind_tele.v
+theories/logrel/telescopes.v
 theories/logrel/subtyping.v
 theories/logrel/environments.v
 theories/logrel/term_types.v
