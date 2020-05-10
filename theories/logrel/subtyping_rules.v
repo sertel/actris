@@ -501,5 +501,47 @@ Section subtyping_rules.
     ⊢ lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
   Proof. iApply lty_le_dual_choice. Qed.
 
+  Global Instance lty_le_from_forall_l k (M : lty Σ k → lmsg Σ) (S : lsty Σ) :
+    FromForall (lty_le (<?? X> M X) S)%lty (λ X, (lty_le (<??> M X) S)%lty) | 10.
+  Proof. apply lty_le_exist_elim_l. Qed.
+  Global Instance lty_le_from_forall_r k (S : lsty Σ) (M : lty Σ k → lmsg Σ) :
+    FromForall (lty_le S (<!! X> M X))%lty (λ X, (lty_le S (<!!> M X))%lty) | 11.
+  Proof. apply lty_le_exist_elim_r. Qed.
+
+  Global Instance lty_le_from_exist_l k (M : lty Σ k → lmsg Σ) S :
+    FromExist ((<!! X> M X) <: S) (λ X, (<!!> M X) <: S)%I | 10.
+  Proof.
+    rewrite /FromExist. iDestruct 1 as (x) "H".
+    iApply (lty_le_trans with "[] H"). iApply lty_le_exist_intro_l.
+  Qed.
+  Global Instance lty_le_from_exist_r k (M : lty Σ k → lmsg Σ) S :
+    FromExist (S <: <?? X> M X) (λ X, S <: (<??> M X))%I | 11.
+  Proof.
+    rewrite /FromExist. iDestruct 1 as (x) "H".
+    iApply (lty_le_trans with "H"). iApply lty_le_exist_intro_r.
+  Qed.
+
+  Lemma lty_le_base_send A (S1 S2 : lsty Σ) :
+    ▷ (S1 <: S2) -∗
+    (<!!> TY A ; S1) <: (<!!> TY A ; S2).
+  Proof. iIntros "H". iApply lty_le_send. iApply lty_le_refl. eauto. Qed.
+
+  Global Instance lty_le_from_modal_send A (S1 S2 : lsty Σ) :
+    FromModal (modality_instances.modality_laterN 1) (S1 <: S2)
+              ((<!!> TY A; S1) <: (<!!> TY A; S2)) (S1 <: S2).
+  Proof. apply lty_le_base_send. Qed.
+
+  Lemma lty_le_base_recv A (S1 S2 : lsty Σ) :
+    ▷ (S1 <: S2) -∗
+    (<??> TY A ; S1) <: (<??> TY A ; S2).
+  Proof. iIntros "H". iApply lty_le_recv. iApply lty_le_refl. eauto. Qed.
+
+  Global Instance lty_le_from_modal_recv A (S1 S2 : lsty Σ) :
+    FromModal (modality_instances.modality_laterN 1) (S1 <: S2)
+              ((<??> TY A; S1) <: (<??> TY A; S2)) (S1 <: S2).
+  Proof. apply lty_le_base_recv. Qed.
+
 End subtyping_rules.
 
+Hint Extern 0 (environments.envs_entails _ (?x <: ?y)) =>
+  first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.
