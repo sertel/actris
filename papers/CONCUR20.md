@@ -1,3 +1,9 @@
+## Differences
+
+The semantic encoding of ground types use existential quantification in the
+mechanisation (e.g. `λ w. ∃ (x:Z), w = int`, while the paper uses set
+inclusion (e.g. `λ w. w ∈ Z`). The definitions are effectively identical.
+
 ## Examples
 
 The parallel receive example in Section 4 can be found in
