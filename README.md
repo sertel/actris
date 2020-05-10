@@ -1,5 +1,7 @@
 # ACTRIS COQ DEVELOPMENT
 
+For CONCUR 2020 specific remarks see [CONCUR2020.md](CONCUR2020.md).
+
 This directory contains the Coq mechanisation of the Actris framework,
 first presented in the paper
 "Actris: Session Type Based Reasoning in Separation Logic".
@@ -46,8 +48,10 @@ The individual types contain the following:
 
 ## Notation
 
-The following table gives a mapping between the official notation in literature
+The following table gives a mapping between the notation in literature
 and the Coq mechanization:
+
+Dependent Separation Protocols:
 
 |        | Literature                    | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
@@ -57,6 +61,17 @@ and the Coq mechanization:
 | Select | `prot_1 {Q_1}⊕{Q_2} prot_2`   | `prot_1 <{Q_1}+{Q_2}> prot_2`         |
 | Branch | `prot_1 {Q_1}&{Q_2} prot_2`   | `prot_1 <{Q_1}&{Q_2}> prot_2`         |
 | Append | `prot_1 · prot_2`             | `prot_1 <++> prot_2`                  |
+| Dual   | An overlined protocol         | No notation                           |
+
+Semantic Session Types:
+
+|        | Literature                    | Coq mechanization                     |
+|--------|-------------------------------|---------------------------------------|
+| Send   | `!_{X_1 .. X_n} A . S`        | `<!! X_1 .. X_n> TY A ; S`            |
+| Recv   | `?_{X_1 .. X_n} A . S`        | `<?? X_1 .. X_n> TY A ; S`            |
+| End    | `end`                         | `END`                                 |
+| Select | `(+){ S_1 .. S_n }`           | `lty_choice SEND Ss`                  |
+| Branch | `&{ S_1 .. S_n }`             | `lty_choice RECV Ss`                  |
 | Dual   | An overlined protocol         | No notation                           |
 
 ## Coq tactics
@@ -109,6 +124,7 @@ Concretely, the normalization performs the following actions:
 [ActrisProofMode]: theories/channel/proofmode.v
 
 ## Semantic Session Type System
+
 The logical relation for type safety of a semantic session type system is contained
 in the directory [theories/logrel](theories/logrel). The logical relation is
 defined across the following files:
