@@ -1,8 +1,9 @@
 # ACTRIS COQ DEVELOPMENT
 
-This directory contains the Coq mechanisation of the Actris framework,
+This directory contains the Coq mechanization of the Actris framework,
 first presented in the paper
-"Actris: Session Type Based Reasoning in Separation Logic".
+[Actris: Session Type Based Reasoning in Separation Logic](https://iris-project.org/pdfs/2020-popl-actris-final.pdf)
+at POPL'20.
 
 It has been built and tested with the following dependencies
 
@@ -21,28 +22,23 @@ The individual types contain the following:
 - [theories/channel/proto_model.v](theories/channel/proto_model.v): The
   construction of the model of dependent separation protocols as the solution of
   a recursive domain equation.
-- [theories/channel/proto.v](theories/channel/proto.v): The
-  instantiation of protocols with the Iris logic, definition of the connective `↣`
-  for channel endpoint ownership, and lemmas corresponding to the Actris proof rules.
+- [theories/channel/proto.v](theories/channel/proto.v): The instantiation of
+  protocols with the Iris logic, definition of `iProto_own` for channel endpoint
+  ownership, and lemmas corresponding to the Actris proof rules.
   The relevant definitions and proof rules are as follows:
   + `iProto Σ`: The type of protocols.
   + `iProto_message`: The constructor for sends and receives.
   + `iProto_end`: The constructor for terminated protocols.
-  + `iProto_le`: The subprotocol relation for protocols.
+  + `iProto_le`: The subprotocol relation for protocols (notation `⊑`).
 - [theories/channel/channel.v](theories/channel/channel.v): The encoding of
   bidirectional channels in terms of Iris's HeapLang language, with specifications
   defined in terms of the dependent separation protocols.
   The relevant definitions and proof rules are as follows:
-  + `mapsto_proto`: endpoint ownership `↣`.
-  + `new_chan_proto_spec`: proof rule for `new_chan`.
-  + `send_proto_spec` and `send_proto_spec_packed`: proof rules for `send`, the
-    first version is more convenient to use in Coq, but otherwise the same as
-    the latter, which is a more legible rule.
-  + `recv_proto_spec` and `recv_proto_spec_packed`: proof rules for `recv`, the
-    first version is more convenient to use in Coq, but otherwise the same as
-    the latter, which is a more legible rule.
-  + `select_spec`: proof rule for `select`.
-  + `branch_spec`: proof rule for `branch`.
+  + `mapsto_proto`: endpoint ownership (notation `↣`).
+  + `new_chan_spec`, `send_spec` and `recv_spec`: proof rule for `new_chan`,
+    `send`, and `recv`.
+  + `select_spec` and `branch_spec`: proof rule for the derived (binary)
+    `select` and `branch` operations.
 
 ## Notation
 
@@ -51,7 +47,7 @@ and the Coq mechanization:
 
 Dependent Separation Protocols:
 
-|        | Literature                    | Coq mechanization                     |
+|        | POPL paper                    | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
 | Send   | `! x_1 .. x_n <v>{ P }. prot` | `<! x_1 .. x_n> MSG v {{ P }}; prot`  |
 | Recv   | `? x_1 .. x_n <v>{ P }. prot` | `<? x_1 .. x_n> MSG v {{ P }}; prot`  |
@@ -63,7 +59,7 @@ Dependent Separation Protocols:
 
 Semantic Session Types:
 
-|        | Literature                    | Coq mechanization                     |
+|        | CONCUR submission             | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
 | Send   | `!_{X_1 .. X_n} A . S`        | `<!! X_1 .. X_n> TY A ; S`            |
 | Recv   | `?_{X_1 .. X_n} A . S`        | `<?? X_1 .. X_n> TY A ; S`            |
@@ -124,8 +120,8 @@ Concretely, the normalization performs the following actions:
 ## Semantic Session Type System
 
 The logical relation for type safety of a semantic session type system is contained
-in the directory [theories/logrel](theories/logrel). The logical relation is
-defined across the following files:
+in the directory [theories/logrel](theories/logrel).
+The logical relation is defined across the following files:
 
 - [theories/logrel/model.v](theories/logrel/model.v): Definition of the
   notions of a semantic term type and a semantic session type in terms of
@@ -133,10 +129,9 @@ defined across the following files:
   provides the required Coq definitions for creating recursive term/session
   types.
 - [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
-  of the following semantic term types: basic types (integers, booleans,
-  unit), sums, products, copyable/affine functions, universally and
-  existentially quantified types, unique/shared references, and
-  session-typed channels.
+  of the following semantic term types: basic types (integers, Booleans, unit),
+  sums, products, copyable/affine functions, universally and existentially
+  quantified types, unique/shared references, and session-typed channels.
 - [theories/logrel/session_types.v](theories/logrel/session_types.v):
   Definitions of the following semantic session types: sending and receiving
   with session polymorphism, n-ary choice. Session type duality is also
@@ -168,4 +163,5 @@ threads.
 
 ## Paper-specific remarks
 
-For CONCUR 2020 specific remarks see [papers/CONCUR20.md](papers/CONCUR20.md).
+For remarks about the CONCUR 2020 submission, see
+[papers/CONCUR20.md](papers/CONCUR20.md).
