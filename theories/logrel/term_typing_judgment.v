@@ -28,7 +28,7 @@ Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
   intros Hty. apply (heap_adequacy Σ NotStuck e σ (λ _, True))=> // ?.
-  destruct (Hty _) as (A & Γ' & He).
+  destruct (Hty _) as (A & Γ' & He). iIntros "_".
   iDestruct (He) as "He".
   iSpecialize ("He" $!∅).
   iSpecialize ("He" with "[]"); first by rewrite /env_ltyped.
