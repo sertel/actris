@@ -17,3 +17,4 @@ build-dep/
 Makefile.coq
 Makefile.coq.conf
 *.crashcoqide
+_opam
