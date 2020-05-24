@@ -99,7 +99,7 @@ Qed.
 Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
   Inhabited (proto V PROPn PROP) := populate proto_end.
 
-Lemma proto_message_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a1 a2 m1 m2 :
+Lemma proto_message_equivI `{!BiInternalEq SPROP} {V} `{!Cofe PROPn, !Cofe PROP} a1 a2 m1 m2 :
   proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a1 m1 ≡ proto_message a2 m2
   ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧ (∀ v p', m1 v p' ≡ m2 v p').
 Proof.
@@ -108,20 +108,20 @@ Proof.
     - iIntros "Heq". by iRewrite "Heq".
     - iIntros "Heq". rewrite -{2}(proto_fold_unfold (proto_message _ _)).
       iRewrite "Heq". by rewrite proto_fold_unfold. }
-  rewrite /proto_message !proto_unfold_fold bi.option_equivI bi.prod_equivI /=.
-  rewrite bi.discrete_eq bi.discrete_fun_equivI.
-  by setoid_rewrite bi.ofe_morO_equivI.
+  rewrite /proto_message !proto_unfold_fold option_equivI prod_equivI /=.
+  rewrite discrete_eq discrete_fun_equivI.
+  by setoid_rewrite ofe_morO_equivI.
 Qed.
-Lemma proto_message_end_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a m :
+Lemma proto_message_end_equivI `{!BiInternalEq SPROP} {V} `{!Cofe PROPn, !Cofe PROP} a m :
   proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a m ≡ proto_end ⊢@{SPROP} False.
 Proof.
   trans (proto_unfold (proto_message a m) ≡ proto_unfold proto_end : SPROP)%I.
   { iIntros "Heq". by iRewrite "Heq". }
-  by rewrite /proto_message !proto_unfold_fold bi.option_equivI.
+  by rewrite /proto_message !proto_unfold_fold option_equivI.
 Qed.
-Lemma proto_end_message_equivI {SPROP : sbi} {V} `{!Cofe PROPn, !Cofe PROP} a m :
+Lemma proto_end_message_equivI `{!BiInternalEq SPROP} {V} `{!Cofe PROPn, !Cofe PROP} a m :
   proto_end ≡ proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a m ⊢@{SPROP} False.
-Proof. by rewrite bi.internal_eq_sym proto_message_end_equivI. Qed.
+Proof. by rewrite internal_eq_sym proto_message_end_equivI. Qed.
 
 (** The eliminator [proto_elim x f p] is only well-behaved if the function [f]
 is contractive *)

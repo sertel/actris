@@ -96,8 +96,8 @@ Definition iProto_mapsto_def `{!heapG Σ, !chanG Σ}
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
     is_lock (chan_lock_name γ) lk (∃ vsl vsr,
-      llist sbi_internal_eq l vsl ∗
-      llist sbi_internal_eq r vsr ∗
+      llist internal_eq l vsl ∗
+      llist internal_eq r vsr ∗
       iProto_ctx (chan_proto_name γ) vsl vsr) ∗
     iProto_own (chan_proto_name γ) s p.
 Definition iProto_mapsto_aux : seal (@iProto_mapsto_def). by eexists. Qed.
@@ -184,11 +184,11 @@ Section channel.
     {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
     iIntros (Φ _) "HΦ". wp_lam.
-    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (l) "Hl".
-    wp_apply (lnil_spec sbi_internal_eq with "[//]"); iIntros (r) "Hr".
+    wp_apply (lnil_spec internal_eq with "[//]"); iIntros (l) "Hl".
+    wp_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_apply (newlock_spec (∃ vsl vsr,
-      llist sbi_internal_eq l vsl ∗ llist sbi_internal_eq r vsr ∗
+      llist internal_eq l vsl ∗ llist internal_eq r vsr ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame. }
     iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".

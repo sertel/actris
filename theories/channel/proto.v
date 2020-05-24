@@ -352,14 +352,16 @@ Section proto.
     destruct (proto_case p) as [|(a&m&?)]; [by left|right].
     by exists a, (IMsg m).
   Qed.
-  Lemma iProto_message_equivI {SPROP : sbi} a1 a2 m1 m2 :
+  Lemma iProto_message_equivI `{!BiInternalEq SPROP} a1 a2 m1 m2 :
     (<a1> m1) ≡ (<a2> m2) ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧
       (∀ v lp, iMsg_car m1 v lp ≡ iMsg_car m2 v lp).
   Proof. rewrite iProto_message_eq. apply proto_message_equivI. Qed.
-  Lemma iProto_message_end_equivI {SPROP : sbi} a m : (<a> m) ≡ END ⊢@{SPROP} False.
+  Lemma iProto_message_end_equivI `{!BiInternalEq SPROP} a m :
+    (<a> m) ≡ END ⊢@{SPROP} False.
   Proof. rewrite iProto_message_eq iProto_end_eq. apply proto_message_end_equivI. Qed.
-  Lemma iProto_end_message_equivI {SPROP : sbi} a m : END ≡ (<a> m) ⊢@{SPROP} False.
-  Proof. by rewrite bi.internal_eq_sym iProto_message_end_equivI. Qed.
+  Lemma iProto_end_message_equivI `{!BiInternalEq SPROP} a m :
+    END ≡ (<a> m) ⊢@{SPROP} False.
+  Proof. by rewrite internal_eq_sym iProto_message_end_equivI. Qed.
 
   (** ** Non-expansiveness of operators *)
   Global Instance iMsg_contractive v n :
@@ -444,7 +446,7 @@ Section proto.
     iApply prop_ext; iIntros "!>"; iSplit.
     - iDestruct 1 as (pd) "[H Hp']". iRewrite "Hp'".
       iDestruct "H" as (pdd) "[H #Hpd]".
-      iApply (bi.internal_eq_rewrite); [|done]; iIntros "!>".
+      iApply (internal_eq_rewrite); [|done]; iIntros "!>".
       iRewrite "Hpd". by iRewrite ("IH" $! pdd).
     - iIntros "H". destruct (Next_uninj p') as [p'' Hp']. iExists _.
       rewrite Hp'. iSplitL; [by auto|]. iIntros "!>". by iRewrite ("IH" $! p'').
@@ -496,7 +498,7 @@ Section proto.
     iApply iProto_message_equivI; iSplit; [done|]; iIntros (v p') "/=".
     iApply prop_ext; iIntros "!>". iSplit.
     - iDestruct 1 as (p1') "[H Hp']". iRewrite "Hp'".
-      iApply (bi.internal_eq_rewrite); [|done]; iIntros "!>".
+      iApply (internal_eq_rewrite); [|done]; iIntros "!>".
       by iRewrite ("IH" $! p1').
     - iIntros "H". destruct (Next_uninj p') as [p'' Hp']. iExists p''.
       rewrite Hp'. iSplitL; [by auto|]. iIntros "!>". by iRewrite ("IH" $! p'').
@@ -544,7 +546,7 @@ Section proto.
   Proof. solve_proper. Qed.
   Global Instance iProto_le_is_except_0 p1 p2 : IsExcept0 (p1 ⊑ p2).
   Proof.
-    rewrite /IsExcept0 /sbi_except_0. iIntros "[H|$]".
+    rewrite /IsExcept0 /bi_except_0. iIntros "[H|$]".
     rewrite iProto_le_unfold /iProto_le_pre. iLeft. by iMod "H".
   Qed.
 
@@ -956,7 +958,7 @@ Section proto.
   Proof.
     iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓".
     iDestruct (excl_auth_agreeI with "H✓") as "H✓".
-    iDestruct (bi.later_eq_1 with "H✓") as "H✓"; iNext.
+    iDestruct (later_equivI_1 with "H✓") as "H✓"; iNext.
     rewrite /iProto_unfold. assert (∀ p, proto_map iProp_unfold iProp_fold
         (proto_map iProp_fold iProp_unfold p) ≡ p) as help.
     { intros p''. rewrite -proto_map_compose -{2}(proto_map_id p'').
