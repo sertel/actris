@@ -21,7 +21,7 @@ In this file we define the three message-passing connectives:
 
 It is additionaly shown that the channel ownership [c ↣ prot] is closed under
 the subprotocol relation [⊑] *)
-From iris.heap_lang Require Export lifting notation.
+From iris.heap_lang Require Export primitive_laws notation.
 From iris.heap_lang Require Import proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
 From actris.channel Require Export proto.
