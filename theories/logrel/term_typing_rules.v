@@ -271,6 +271,17 @@ Section properties.
     iExists l, v; iSplit=>//. iFrame "Hv Hl".
   Qed.
 
+  Lemma ltyped_free Γ1 Γ2 e A :
+    (Γ1 ⊨ e : ref_uniq A ⫤ Γ2) -∗
+    (Γ1 ⊨ Free e : () ⫤ Γ2).
+  Proof.
+    iIntros "#He" (vs) "!> HΓ1 /=".
+    wp_bind (subst_map vs e).
+    iApply (wp_wand with "(He HΓ1)"). iIntros (v) "[Hv HΓ2]".
+    iDestruct "Hv" as (l w ->) "[Hl Hw]".
+    wp_free. by iFrame "HΓ2".
+  Qed.
+
   Lemma ltyped_load Γ (x : string) A :
     Γ !! x = Some (ref_uniq A)%lty →
     ⊢ Γ ⊨ ! x : A ⫤ <[x := (ref_uniq (copy- A))%lty]> Γ.
