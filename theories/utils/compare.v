@@ -15,7 +15,7 @@ Definition cmp_spec `{!heapG Σ} {A} (I : A → val → iProp Σ)
 Definition IZ `{!heapG Σ} (x : Z) (v : val) : iProp Σ := ⌜v = #x⌝%I.
 Definition cmpZ : val := λ: "x" "y", "x" ≤ "y".
 
-Lemma cmpZ_spec `{!heapG Σ} : ⊢ cmp_spec IZ (≤) cmpZ.
+Lemma cmpZ_spec `{!heapG Σ} : ⊢ cmp_spec IZ (≤)%Z cmpZ.
 Proof.
   rewrite /IZ. iIntros (x x' v v' Φ [-> ->]) "!> HΦ".
   wp_lam. wp_pures. by iApply "HΦ".

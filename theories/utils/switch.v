@@ -27,7 +27,7 @@ Fixpoint map_string_seq {A}
   end.
 
 Lemma lookup_map_string_seq_Some {A} (j i : nat) (xs : list A) :
-  map_string_seq "f" j xs !! ("f" +:+ pretty (i + j)%nat) = xs !! i.
+  map_string_seq "f" j xs !! ("f" +:+ pretty (i + j)) = xs !! i.
 Proof.
   revert i j. induction xs as [|x xs IH]=> -[|i] j //=.
   - by rewrite lookup_insert.
@@ -44,7 +44,7 @@ Proof.
 Qed.
 
 Lemma lookup_map_string_seq_None_lt {A} y i j (xs : list A) :
-  (i < j)%nat → map_string_seq y j xs !! (y +:+ pretty i) = None.
+  i < j → map_string_seq y j xs !! (y +:+ pretty i) = None.
 Proof.
   revert j. induction xs as [|x xs IH]=> j ? //=.
   rewrite lookup_insert_ne; last (intros ?; simplify_eq/=; lia).
