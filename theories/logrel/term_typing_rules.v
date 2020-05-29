@@ -60,7 +60,7 @@ Section properties.
   Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
   Lemma ltyped_bool Γ (b : bool) : ⊢ Γ ⊨ #b : lty_bool.
   Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
-  Lemma ltyped_nat Γ (n : Z) : ⊢ Γ ⊨ #n : lty_int.
+  Lemma ltyped_int Γ (i : Z) : ⊢ Γ ⊨ #i : lty_int.
   Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
 
   (** Arrow properties *)
