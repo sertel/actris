@@ -11,25 +11,26 @@ Section subtyping_rules.
   Implicit Types S : lsty Σ.
 
   (** Generic rules *)
-  Lemma lty_le_refl {k} (M : lty Σ k) : ⊢ M <: M.
+  Lemma lty_le_refl {k} (K : lty Σ k) : ⊢ K <: K.
   Proof. destruct k. by iIntros (v) "!> H". by iModIntro. Qed.
-  Lemma lty_le_trans {k} (M1 M2 M3 : lty Σ k) : M1 <: M2 -∗ M2 <: M3 -∗ M1 <: M3.
+  Lemma lty_le_trans {k} (K1 K2 K3 : lty Σ k) : K1 <: K2 -∗ K2 <: K3 -∗ K1 <: K3.
   Proof.
     destruct k.
     - iIntros "#H1 #H2" (v) "!> H". iApply "H2". by iApply "H1".
     - iIntros "#H1 #H2 !>". by iApply iProto_le_trans.
   Qed.
 
-  Lemma lty_bi_le_refl {k} (M : lty Σ k) : ⊢ M <:> M.
+  Lemma lty_bi_le_refl {k} (K : lty Σ k) : ⊢ K <:> K.
   Proof. iSplit; iApply lty_le_refl. Qed.
-  Lemma lty_bi_le_trans {k} (M1 M2 M3 : lty Σ k) : M1 <:> M2 -∗ M2 <:> M3 -∗ M1 <:> M3.
+  Lemma lty_bi_le_trans {k} (K1 K2 K3 : lty Σ k) :
+    K1 <:> K2 -∗ K2 <:> K3 -∗ K1 <:> K3.
   Proof. iIntros "#[H11 H12] #[H21 H22]". iSplit; by iApply lty_le_trans. Qed.
-  Lemma lty_bi_le_sym {k} (M1 M2 : lty Σ k) : M1 <:> M2 -∗ M2 <:> M1.
+  Lemma lty_bi_le_sym {k} (K1 K2 : lty Σ k) : K1 <:> K2 -∗ K2 <:> K1.
   Proof. iIntros "#[??]"; by iSplit. Qed.
 
-  Lemma lty_le_l {k} (M1 M2 M3 : lty Σ k) : M1 <:> M2 -∗ M2 <: M3 -∗ M1 <: M3.
+  Lemma lty_le_l {k} (K1 K2 K3 : lty Σ k) : K1 <:> K2 -∗ K2 <: K3 -∗ K1 <: K3.
   Proof. iIntros "#[H1 _] #H2". by iApply lty_le_trans. Qed.
-  Lemma lty_le_r {k} (M1 M2 M3 : lty Σ k) : M1 <: M2 -∗ M2 <:> M3 -∗ M1 <: M3.
+  Lemma lty_le_r {k} (K1 K2 K3 : lty Σ k) : K1 <: K2 -∗ K2 <:> K3 -∗ K1 <: K3.
   Proof. iIntros "#H1 #[H2 _]". by iApply lty_le_trans. Qed.
 
   Lemma lty_le_rec_unfold {k} (C : lty Σ k → lty Σ k) `{!Contractive C} :
@@ -40,8 +41,9 @@ Section subtyping_rules.
     - rewrite {2}/lty_rec fixpoint_unfold. iApply lty_le_refl.
   Qed.
 
-  Lemma lty_le_rec {k} (C1 C2 : lty Σ k → lty Σ k) `{Contractive C1, Contractive C2} :
-    (∀ M1 M2, ▷ (M1 <: M2) -∗ C1 M1 <: C2 M2) -∗
+  Lemma lty_le_rec {k} (C1 C2 : lty Σ k → lty Σ k)
+        `{Contractive C1, Contractive C2} :
+    (∀ K1 K2, ▷ (K1 <: K2) -∗ C1 K1 <: C2 K2) -∗
     lty_rec C1 <: lty_rec C2.
   Proof.
     iIntros "#Hle". iLöb as "IH".
@@ -402,12 +404,14 @@ Section subtyping_rules.
     ⊢ (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
   Proof. rewrite /lty_app assoc. iSplit; by iModIntro. Qed.
 
-  Lemma lty_le_app_send A S1 S2 : ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
+  Lemma lty_le_app_send A S1 S2 :
+    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
   Proof.
     rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
     iSplit; by iIntros "!> /=".
   Qed.
-  Lemma lty_le_app_recv A S1 S2 : ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
+  Lemma lty_le_app_recv A S1 S2 :
+    ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
   Proof.
     rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
     iSplit; by iIntros "!> /=".

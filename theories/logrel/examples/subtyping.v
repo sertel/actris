@@ -19,10 +19,8 @@ Section basics.
   Definition prot1 := lty_rec prot1_aux.
 
   Definition prot1'_aux (rec : lsty Σ) : lsty Σ :=
-    <!! X Y> TY (X ⊸ Y); <!!> TY X;
-    <??> TY Y;
-    <!! X Y> TY (X ⊸ Y); <!!> TY X;
-    <??> TY Y; rec.
+    <!! X Y> TY (X ⊸ Y); <!!> TY X; <??> TY Y;
+    <!! X Y> TY (X ⊸ Y); <!!> TY X; <??> TY Y; rec.
   Instance prot1'_aux_contractive : Contractive prot1'_aux.
   Proof. solve_proto_contractive. Qed.
   Definition prot1' := lty_rec prot1'_aux.
@@ -39,13 +37,12 @@ Section basics.
   Proof.
     iApply (lty_le_trans _ prot1').
     { iLöb as "IH".
-      iEval (rewrite /prot1 /prot1').
       iDestruct (lty_le_rec_unfold (prot1_aux)) as "[H1 _]".
       iDestruct (lty_le_rec_unfold (prot1'_aux)) as "[_ H2]".
       iApply (lty_le_trans with "H1"). iApply (lty_le_trans with "[] H2").
-      iIntros (X Y). iExists X, Y. do 3 iModIntro.
+      iIntros (X Y). iExists X, Y. iIntros "!>!>!>".
       iApply (lty_le_trans with "H1").
-      iIntros (X' Y'). iExists X', Y'. do 3 iModIntro.
+      iIntros (X' Y'). iExists X', Y'. iIntros "!>!>!>".
       iApply "IH". }
     iApply lty_le_rec.
     iIntros (S1 S2) "#Hrec".
@@ -56,6 +53,6 @@ Section basics.
                               <!!> TY Y; <??> TY lty_int; S2)).
       { iApply lty_le_swap_recv_send. }
       iModIntro. iApply lty_le_swap_recv_send. }
-    iModIntro. iExists Y, lty_int. by do 3 iModIntro.
+    iModIntro. iExists Y, lty_int. by iIntros "!>!>!>".
   Qed.
 End basics.
