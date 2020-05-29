@@ -57,11 +57,11 @@ Section properties.
 
   (** Basic properties *)
   Lemma ltyped_unit Γ : ⊢ Γ ⊨ #() : ().
-  Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
+  Proof. iIntros "!>" (vs) "HΓ /=". iApply wp_value. eauto. Qed.
   Lemma ltyped_bool Γ (b : bool) : ⊢ Γ ⊨ #b : lty_bool.
-  Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
+  Proof. iIntros "!>" (vs) "HΓ /=". iApply wp_value. eauto. Qed.
   Lemma ltyped_int Γ (i : Z) : ⊢ Γ ⊨ #i : lty_int.
-  Proof. iIntros "!>" (vs) "Henv /=". iApply wp_value. eauto. Qed.
+  Proof. iIntros "!>" (vs) "HΓ /=". iApply wp_value. eauto. Qed.
 
   (** Arrow properties *)
   Lemma ltyped_app Γ1 Γ2 Γ3 e1 e2 A1 A2 :
@@ -481,11 +481,9 @@ Section properties.
       ⊢ Γ ⊨ recv x : A ⫤ <[x:=(chan S)%lty]> Γ.
     Proof.
       iIntros (Hx) "!>". iIntros (vs) "HΓ"=> /=.
-      iDestruct (env_ltyped_lookup with "HΓ") as (v' Heq) "[Hc HΓ]".
-      { by apply Hx. }
+      iDestruct (env_ltyped_lookup _ _ _ _ (Hx) with "HΓ") as (v' Heq) "[Hc HΓ]".
       rewrite Heq.
-      wp_recv (v) as "HA".
-      iSplitL "HA"; first done.
+      wp_recv (v) as "HA". iFrame "HA".
       iDestruct (env_ltyped_insert _ _ x (chan _) _ with "[Hc //] HΓ") as "HΓ"=> /=.
       by rewrite insert_delete (insert_id vs).
     Qed.
