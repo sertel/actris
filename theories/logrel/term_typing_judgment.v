@@ -29,8 +29,6 @@ Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
 Proof.
   intros Hty. apply (heap_adequacy Σ NotStuck e σ (λ _, True))=> // ?.
   destruct (Hty _) as (A & Γ' & He). iIntros "_".
-  iDestruct (He) as "He".
-  iSpecialize ("He" $!∅).
-  iSpecialize ("He" with "[]"); first by rewrite /env_ltyped.
+  iDestruct (He $!∅ with "[]") as "He"; first by rewrite /env_ltyped.
   iEval (rewrite -(subst_map_empty e)). iApply (wp_wand with "He"); auto.
 Qed.

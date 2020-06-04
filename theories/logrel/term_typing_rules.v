@@ -79,8 +79,7 @@ Section properties.
     Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ ∅.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
-    wp_pures.
-    iSplitL; last by iApply env_ltyped_empty.
+    wp_pures. iSplitL; last by iApply env_ltyped_empty.
     iIntros (v) "HA1". wp_pures.
     iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ]") as "He'".
     { iApply (env_ltyped_insert with "[HA1 //] HΓ"). }
