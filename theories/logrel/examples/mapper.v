@@ -23,21 +23,21 @@ Section with_Σ.
     iApply ltyped_let.
     { iApply ltyped_recv. by rewrite insert_commute // lookup_insert. }
     rewrite (insert_commute _ "c" "f") // insert_insert.
-    iApply (ltyped_let _ (<["c":= lty_chan END]>_))=> /=; last first.
+    iApply ltyped_let=> /=; last first.
     { iApply ltyped_var. apply lookup_insert. }
-    rewrite (insert_commute _ "f" "c") // (insert_commute _ "v" "c") //.
     iApply ltyped_send. apply lookup_insert.
+    rewrite (insert_commute _ "f" "c") // (insert_commute _ "v" "c") //.
     iApply (ltyped_frame _ _ _ _ {["c":=_]}).
     { iApply env_split_right=> //. iApply env_split_id_r. }
-    { iApply env_split_right=> //. shelve. iApply env_split_id_r. }
-    iApply ltyped_app.
-    - iApply ltyped_var. apply lookup_insert.
-    - rewrite insert_commute //.
-      iApply (ltyped_frame _ _ _ _ {["f":=_]}).
-      { iApply env_split_right=> //. iApply env_split_id_r. }
-      { iApply env_split_right=> //. shelve. iApply env_split_id_r. }
-      iApply ltyped_var. apply lookup_insert.
-      Unshelve. eauto. eauto.
+    { iApply ltyped_app.
+      - iApply ltyped_var. apply lookup_insert.
+      - rewrite insert_commute //.
+        iApply (ltyped_frame _ _ _ _ {["f":=_]}).
+        { iApply env_split_right=> //. iApply env_split_id_r. }
+        { iApply ltyped_var. apply lookup_insert. }
+        { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
+    }
+    { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
   Qed.
 
 End with_Σ.

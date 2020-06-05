@@ -20,11 +20,11 @@ Section properties.
   (** Frame rule *)
   Lemma ltyped_frame Γ Γ' Γ1 Γ1' Γ2 e A :
     env_split Γ Γ1 Γ2 -∗
-    env_split Γ' Γ1' Γ2 -∗
     (Γ1 ⊨ e : A ⫤ Γ1') -∗
+    env_split Γ' Γ1' Γ2 -∗
     Γ ⊨ e : A ⫤ Γ'.
   Proof.
-    iIntros "#Hsplit #Hsplit' #Htyped !>" (vs) "Henv".
+    iIntros "#Hsplit #Htyped #Hsplit' !>" (vs) "Henv".
     iDestruct ("Hsplit" with "Henv") as "[Henv1 Henv2]".
     iApply (wp_wand with "(Htyped Henv1)").
     iIntros (v) "[$ Henv1']".
