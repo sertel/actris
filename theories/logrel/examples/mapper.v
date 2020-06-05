@@ -13,9 +13,12 @@ Section with_Σ.
     let: "v" := recv "c" in
     send "c" ("f" "v");; "c".
 
-  Lemma mapper_typed :
-    ⊢ ∅ ⊨ mapper_service : (lty_chan (mapper_service_type) ⊸ (lty_chan END))%lty ⫤ ∅.
+  Lemma mapper_typed Γ :
+    ⊢ Γ ⊨ mapper_service : (lty_chan (mapper_service_type) ⊸ (lty_chan END))%lty ⫤ Γ.
   Proof.
+    iApply (ltyped_frame _ _ _ _ Γ).
+    { iApply env_split_id_l. }
+    2: { iApply env_split_id_l. }
     iApply ltyped_lam.
     iApply ltyped_let.
     { iApply ltyped_recv. by rewrite lookup_insert. }
