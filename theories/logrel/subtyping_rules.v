@@ -511,4 +511,4 @@ Section subtyping_rules.
 End subtyping_rules.
 
 Hint Extern 0 (environments.envs_entails _ (?x <: ?y)) =>
-  first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.
+  first [is_evar x; fail 1 | is_evar y; fail 1|iApply lty_le_refl] : core.
