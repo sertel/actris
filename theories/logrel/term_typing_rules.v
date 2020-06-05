@@ -88,6 +88,22 @@ Section properties.
     wp_binop. iFrame.
   Qed.
 
+  (** Conditionals *)
+  Lemma ltyped_if Γ1 Γ2 Γ3 e1 e2 e3 A :
+    (Γ1 ⊨ e1 : lty_bool ⫤ Γ2) -∗
+    (Γ2 ⊨ e2 : A ⫤ Γ3) -∗
+    (Γ2 ⊨ e3 : A ⫤ Γ3) -∗
+    Γ1 ⊨ (if: e1 then e2 else e3) : A ⫤ Γ3.
+  Proof.
+    iIntros "#He1 #He2 #He3 !>" (v) "HΓ1".
+    simpl.
+    wp_apply (wp_wand with "(He1 [HΓ1 //])"). iIntros (b) "[Hbool HΓ2]".
+    rewrite /lty_bool. iDestruct "Hbool" as ([]) "->".
+    - wp_apply (wp_wand with "(He2 [HΓ2 //])"). iIntros (w) "[HA HΓ3]". iFrame.
+    - wp_apply (wp_wand with "(He3 [HΓ2 //])"). iIntros (w) "[HA HΓ3]". iFrame.
+  Qed.
+
+
   (** Arrow properties *)
   Lemma ltyped_app Γ1 Γ2 Γ3 e1 e2 A1 A2 :
     (Γ2 ⊨ e1 : A1 ⊸ A2 ⫤ Γ3) -∗ (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗
