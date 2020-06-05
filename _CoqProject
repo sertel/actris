@@ -33,4 +33,4 @@ theories/logrel/examples/double.v
 theories/logrel/examples/pair.v
 theories/logrel/examples/rec_subtyping.v
 theories/logrel/examples/choice_subtyping.v
-
+theories/logrel/examples/mapper.v
