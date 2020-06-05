@@ -80,16 +80,21 @@ Section with_Σ.
     { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
   Qed.
 
-  Definition mapper_client_rec : expr := λ: "c",
-    send "c" (λ: "x", #9000 < "x");; send "c" #42;;
-    let: "x" := recv "c" in
-    send "c" (λ: "x", #4500 < "x");; send "c" #20;;
-    let: "y" := recv "c" in
-    ("x","y").
-
   Lemma lty_le_rec_unfold_l {k} (C : lty Σ k → lty Σ k) `{!Contractive C} :
     ⊢ lty_rec C <: C (lty_rec C).
   Proof. iApply lty_le_l. iApply lty_le_rec_unfold. iApply lty_le_refl. Qed.
+
+  Definition mapper_client_type_swap (rec : lsty Σ) : lsty Σ :=
+    <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
+    <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
+    <??> TY lty_bool; <??> TY lty_bool; rec.
+
+  Definition mapper_client_rec : expr := λ: "c",
+    send "c" (λ: "x", #9000 < "x");; send "c" #42;;
+    send "c" (λ: "x", #4500 < "x");; send "c" #20;;
+    let: "x" := recv "c" in
+    let: "y" := recv "c" in
+    ("x","y").
 
   Lemma mapper_client_rec_typed Γ :
     ⊢ Γ ⊨ mapper_client_rec :
@@ -98,11 +103,16 @@ Section with_Σ.
     iApply (ltyped_frame _ _ _ _ Γ).
     { iApply env_split_id_l. }
     2: { iApply env_split_id_l. }
-    iApply (ltyped_subsumption _ _ _((lty_chan (mapper_client_type_aux (mapper_client_type_aux (mapper_client_rec_type)))) ⊸ _)).
+    iApply (ltyped_subsumption _ _ _((lty_chan (mapper_client_type_swap mapper_client_rec_type)) ⊸ _)).
     { iApply lty_le_arr.
       - iNext. iApply lty_le_chan. iNext.
         iApply lty_le_trans. iApply lty_le_rec_unfold_l.
-        do 3 iModIntro. iApply lty_le_rec_unfold_l.
+        iModIntro. iModIntro.
+        iApply lty_le_trans.
+        { iModIntro. iApply lty_le_rec_unfold_l. }
+        iApply lty_le_trans. iApply lty_le_swap_recv_send. iModIntro.
+        iApply lty_le_trans. iApply lty_le_swap_recv_send. iModIntro.
+        iModIntro. iModIntro. iApply lty_le_refl.
       - iApply lty_le_refl. }
     iApply ltyped_lam.
     iApply ltyped_let.
@@ -119,12 +129,8 @@ Section with_Σ.
       iApply ltyped_int. }
     rewrite insert_insert /=.
     iApply ltyped_let.
-    { iApply ltyped_recv. apply lookup_insert. }
-    rewrite insert_insert /=.
-    rewrite (insert_commute _ "x" "c") //.
-    iApply ltyped_let.
     { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ (<["c":=_]>(<["x":=_]>∅))).
+      iApply (ltyped_frame _ _ _ _ (<["c":=_]>∅)).
       { iApply env_split_id_l. }
       { iApply ltyped_lam. iApply ltyped_bin_op.
         - iApply ltyped_var. apply lookup_insert.
@@ -138,9 +144,12 @@ Section with_Σ.
     iApply ltyped_let.
     { iApply ltyped_recv. apply lookup_insert. }
     rewrite insert_insert /=.
+    iApply ltyped_let.
+    { iApply ltyped_recv=> //. }
     iApply ltyped_pair.
     - iApply ltyped_var. apply lookup_insert.
     - rewrite (insert_commute _ "c" "x") //= (insert_commute _ "y" "x") //=.
+      rewrite insert_insert.
       iApply (ltyped_frame _ _ _ _ {["x":=_]}).
       { iApply env_split_right=> //=. iApply env_split_id_r. }
       iApply ltyped_var. apply lookup_insert.
