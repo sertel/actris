@@ -31,3 +31,5 @@ theories/logrel/term_typing_rules.v
 theories/logrel/lib/mutex.v
 theories/logrel/examples/double.v
 theories/logrel/examples/pair.v
+theories/logrel/examples/subtyping.v
+
