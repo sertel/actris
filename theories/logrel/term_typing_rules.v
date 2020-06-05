@@ -6,7 +6,7 @@ From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import metatheory.
 From iris.heap_lang.lib Require Export spawn par assert.
-From actris.logrel Require Export subtyping term_typing_judgment session_types.
+From actris.logrel Require Export subtyping term_typing_judgment operators session_types.
 From actris.logrel Require Import environments.
 From actris.utils Require Import switch.
 From actris.channel Require Import proofmode.
@@ -62,6 +62,31 @@ Section properties.
   Proof. iIntros "!>" (vs) "HΓ /=". iApply wp_value. eauto. Qed.
   Lemma ltyped_int Γ (i : Z) : ⊢ Γ ⊨ #i : lty_int.
   Proof. iIntros "!>" (vs) "HΓ /=". iApply wp_value. eauto. Qed.
+
+  (** Operations *)
+  Lemma ltyped_un_op Γ1 Γ2 op e A B :
+    LTyUnOp op A B →
+    (Γ1 ⊨ e : A ⫤ Γ2) -∗
+    Γ1 ⊨ UnOp op e : B ⫤ Γ2.
+  Proof.
+    iIntros (Hop) "#He !>". iIntros (vs) "HΓ1"=> /=.
+    wp_apply (wp_wand with "(He [HΓ1 //])"). iIntros (v1) "[HA HΓ2]".
+    iDestruct (Hop with "HA") as (w Heval) "HB".
+    wp_unop. iFrame.
+  Qed.
+
+  Lemma ltyped_bin_op Γ1 Γ2 Γ3 op e1 e2 A1 A2 B :
+    LTyBinOp op A1 A2 B →
+    (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗
+    (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗
+    Γ1 ⊨ BinOp op e1 e2 : B ⫤ Γ3.
+  Proof.
+    iIntros (Hop) "#He2 #He1 !>". iIntros (vs) "HΓ1"=> /=.
+    wp_apply (wp_wand with "(He2 [HΓ1 //])"). iIntros (v2) "[HA2 HΓ2]".
+    wp_apply (wp_wand with "(He1 [HΓ2 //])"). iIntros (v1) "[HA1 HΓ3]".
+    iDestruct (Hop with "HA1 HA2") as (w Heval) "HB".
+    wp_binop. iFrame.
+  Qed.
 
   (** Arrow properties *)
   Lemma ltyped_app Γ1 Γ2 Γ3 e1 e2 A1 A2 :
