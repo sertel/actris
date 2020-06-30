@@ -2,7 +2,7 @@ From actris.channel Require Import proofmode proto channel.
 From actris.logrel Require Import subtyping_rules term_typing_judgment term_typing_rules environments operators subtyping_rules.
 From iris.proofmode Require Import tactics.
 
-Section with_Σ.
+Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
 
   (** Client typing *)
@@ -245,5 +245,4 @@ Section with_Σ.
     { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
   Qed.
 
-
-End with_Σ.
+End mapper_example.
