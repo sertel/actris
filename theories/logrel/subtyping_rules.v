@@ -348,6 +348,29 @@ Section subtyping_rules.
     iModIntro. by iExists v2.
   Qed.
 
+  Lemma lty_le_swap_branch_select (Ss1 Ss2 : (gmap Z (gmap Z (lsty Σ)))) :
+    (∀ i j Ss1' Ss2',
+        Ss1 !! i = Some Ss1' → Ss2 !! j = Some Ss2' →
+        (is_Some (Ss1' !! j) ∧ is_Some (Ss2' !! i) ∧
+        Ss1' !! j = Ss2' !! i)) →
+    ⊢ lty_branch ((λ Ss, lty_select Ss) <$> Ss1) <:
+      lty_select ((λ Ss, lty_branch Ss) <$> Ss2).
+  Proof.
+    intros Hin.
+    iIntros "!>" (v1 v2).
+    rewrite !lookup_fmap !fmap_is_Some !lookup_total_alt !lookup_fmap.
+    iIntros ">% >%".
+    destruct H1 as [Ss1' Heq1]. destruct H2 as [Ss2' Heq2].
+    rewrite Heq1 Heq2 /=.
+    destruct (Hin v1 v2 Ss1' Ss2' Heq1 Heq2) as (Hin1 & Hin2 & Heq).
+    iApply iProto_le_trans.
+    { iModIntro. iExists v2. by iApply iProto_le_payload_intro_l. }
+    iApply iProto_le_trans; [ iApply iProto_le_base_swap |].
+    iModIntro. iExists v1.
+    iApply iProto_le_trans; [|by iApply iProto_le_payload_intro_r].
+    iModIntro. rewrite !lookup_total_alt. by rewrite Heq.
+  Qed.
+
   Lemma lty_le_select (Ss1 Ss2 : gmap Z (lsty Σ)) :
     ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
     lty_select Ss1 <: lty_select Ss2.
