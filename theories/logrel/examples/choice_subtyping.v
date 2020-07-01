@@ -1,3 +1,8 @@
+(**
+A mechanisation of a binary variant of the subtyping example on page 23 of the paper:
+"On the Preciseness of Subtyping in Session Types"
+https://arxiv.org/pdf/1610.00328.pdf
+*)
 From actris.channel Require Import proofmode proto channel.
 From actris.logrel Require Import subtyping_rules.
 From iris.proofmode Require Import tactics.
@@ -5,122 +10,143 @@ From iris.proofmode Require Import tactics.
 Section choice_example.
   Context `{heapG Σ, chanG Σ}.
 
-  Variables R M P Q S U : ltty Σ.
+  Variables Sr Sm Sp Sq Ss Su : ltty Σ.
+  Variables Srm Ssm Srp Ssp Sr' : ltty Σ.
+  Variables Tr Ts Tu Tr' Ts' Tq : lsty Σ.
 
   (**
-  ?R. ((!M._) <+> (!P._) <+> (!Q._))
+  The subtype
+  ?Sr.((!Srm.Tr) <+> (!Srp.Tr') <+> (!Sq.Tq))
   <&>
-  ?S. ((!M._) <+> (!P._))
+  ?Ss.((!Ssm.Ts) <+> (!Ssp.Ts'))
    *)
   Definition prot_sub : lsty Σ :=
     (lty_branch
-       (<[1%Z:= <??> TY R ;
+       (<[1%Z:= <??> TY Sr ;
          lty_select
-           (<[1%Z:= <!!> TY M ; END]>
-            (<[2%Z:= <!!> TY P ; END]>
-             (<[3%Z:= <!!> TY Q ; END]>∅)))]>
-        (<[2%Z:= <??> TY S ;
+           (<[1%Z:= <!!> TY Srm ; Tr]>
+            (<[2%Z:= <!!> TY Srp ; Tr']>
+             (<[3%Z:= <!!> TY Sq ; Tq]>∅)))]>
+        (<[2%Z:= <??> TY Ss ;
           lty_select
-            (<[1%Z := <!!> TY M ; END]>
-             (<[2%Z := <!!> TY P; END]>∅))]>∅)))%lty.
+            (<[1%Z := <!!> TY Ssm ; Ts]>
+             (<[2%Z := <!!> TY Ssp ; Ts']>∅))]>∅)))%lty.
 
 
   (**
-  !M.((?R._) <&> (?S._) <&> (?U._))
+  The supertype
+  !Sm.((?Sr.Tr) <&> (?Ss.Ts) <&> (?Su.Tu))
   <+>
-  !P.((?R._) <&> (?S._))
+  !Sp.((?Sr'.Tr') <&> (?Ss.Ts'))
    *)
   Definition prot_sup : lsty Σ :=
     (lty_select
-       (<[1%Z:= <!!> TY M ; lty_branch
-                              (<[1%Z:= <??> TY R ; END]>
-                               (<[2%Z:= <??> TY S ; END]>
-                               (<[3%Z:= <??> TY U ; END]>∅)))]>
-        (<[2%Z:= <!!> TY P ; lty_branch
-                               (<[1%Z := <??> TY R ; END]>
-                                (<[2%Z := <??> TY S; END]>∅))]>∅)))%lty.
+       (<[1%Z:= <!!> TY Sm ; lty_branch
+                              (<[1%Z:= <??> TY Sr ; Tr]>
+                               (<[2%Z:= <??> TY Ss ; Ts]>
+                               (<[3%Z:= <??> TY Su ; Tu]>∅)))]>
+        (<[2%Z:= <!!> TY Sp ; lty_branch
+                               (<[1%Z := <??> TY Sr' ; Tr']>
+                                (<[2%Z := <??> TY Ss ; Ts']>∅))]>∅)))%lty.
 
   (**
   Weaken select
-  ?R.((!M._) <+> (!P._))
+  ?Sr.((!Srm.Tr) <+> (!Srp.Tr'))
   <&>
-  ?S.((!M._) <+> (!P._))
+  ?Ss.((!Ssm.Ts) <+> (!Ssp.Ts'))
   *)
   Definition prot1 : lsty Σ :=
     (lty_branch
-       (<[1%Z:= <??> TY R ;
+       (<[1%Z:= <??> TY Sr ;
          lty_select
-           (<[1%Z:= <!!> TY M ; END]>
-            (<[2%Z:= <!!> TY P ; END]>∅))]>
-        (<[2%Z:= <??> TY S ;
+           (<[1%Z:= <!!> TY Srm ; Tr]>
+            (<[2%Z:= <!!> TY Srp ; Tr']>∅))]>
+        (<[2%Z:= <??> TY Ss ;
           lty_select
-            (<[1%Z := <!!> TY M ; END]>
-             (<[2%Z := <!!> TY P; END]>∅))]>∅)))%lty.
+            (<[1%Z := <!!> TY Ssm ; Ts]>
+             (<[2%Z := <!!> TY Ssp; Ts']>∅))]>∅)))%lty.
 
   (**
   Swap recv/select
-  ((?R.!M._) <+> (?R.!P._))
+  ((?Sr.!Srm.Tr) <+> (?Sr.!Srp.Tr'))
   <&>
-  ((?S.!M._) <+> (?S.!P._))
+  ((?Ss.!Ssm.Ts) <+> (?Ss.!Ssp.Ts'))
   *)
   Definition prot2 : lsty Σ :=
     (lty_branch
        (<[1%Z:= lty_select
-                  (<[1%Z:= <??> TY R ; <!!> TY M ; END]>
-                   (<[2%Z:= <??> TY R ; <!!> TY P ; END]>∅))]>
+                  (<[1%Z:= <??> TY Sr ; <!!> TY Srm ; Tr]>
+                   (<[2%Z:= <??> TY Sr ; <!!> TY Srp ; Tr']>∅))]>
         (<[2%Z:= lty_select
-                   (<[1%Z := <??> TY S ; <!!> TY M ; END]>
-                    (<[2%Z := <??> TY S ; <!!> TY P; END]>∅))]>∅)))%lty.
+                   (<[1%Z := <??> TY Ss ; <!!> TY Ssm ; Ts]>
+                    (<[2%Z := <??> TY Ss ; <!!> TY Ssp; Ts']>∅))]>∅)))%lty.
 
   (**
   swap branch/select
-  ((?R.!M._) <&> (?S.!M._))
+  ((?Sr.!Srm.Tr) <&> (?Ss.!Ssm.Ts))
   <+>
-  ((?R.!P._) <&> (?S.!P._))
+  ((?Sr.!Srp.Tr') <&> (?Ss.!Ssp.Ts'))
   *)
   Definition prot3 : lsty Σ :=
     (lty_select
        (<[1%Z:= lty_branch
-                  (<[1%Z:= <??> TY R ; <!!> TY M ; END]>
-                   (<[2%Z:= <??> TY S ; <!!> TY M ; END]>∅))]>
+                  (<[1%Z:= <??> TY Sr ; <!!> TY Srm ; Tr]>
+                   (<[2%Z:= <??> TY Ss ; <!!> TY Ssm ; Ts]>∅))]>
         (<[2%Z:= lty_branch
-                   (<[1%Z := <??> TY R ; <!!> TY P ; END]>
-                    (<[2%Z := <??> TY S ; <!!> TY P; END]>∅))]>∅)))%lty.
+                   (<[1%Z := <??> TY Sr ; <!!> TY Srp ; Tr']>
+                    (<[2%Z := <??> TY Ss ; <!!> TY Ssp; Ts']>∅))]>∅)))%lty.
 
   (**
   swap recv/send
-  ((!M.?R._) <&> (!M.?S._))
+  ((!Srm.?Sr.Tr) <&> (!Ssm.?Ss.Ts))
   <+>
-  ((!P.?R._) <&> (!P.?S._))
+  ((!Srp.?Sr.Tr') <&> (!Ssp.?Ss.Ts'))
   *)
   Definition prot4 : lsty Σ :=
     (lty_select
        (<[1%Z:= lty_branch
-                  (<[1%Z:= <!!> TY M ; <??> TY R ; END]>
-                   (<[2%Z:= <!!> TY M ; <??> TY S ; END]>∅))]>
+                  (<[1%Z:= <!!> TY Srm ; <??> TY Sr ; Tr]>
+                   (<[2%Z:= <!!> TY Ssm ; <??> TY Ss ; Ts]>∅))]>
         (<[2%Z:= lty_branch
-                   (<[1%Z := <!!> TY P ; <??> TY R ; END]>
-                    (<[2%Z := <!!> TY P; <??> TY S ; END]>∅))]>∅)))%lty.
+                   (<[1%Z := <!!> TY Srp ; <??> TY Sr ; Tr']>
+                    (<[2%Z := <!!> TY Ssp ; <??> TY Ss ; Ts']>∅))]>∅)))%lty.
 
   (**
-  Swap branch/send
-  !M.((?R._) <&> (?S._))
+  Subtype messages
+  ((!Sm.?Sr.Tr) <&> (!Sm.?Ss.Ts))
   <+>
-  !P.((?R._) <&> (?S._))
+  ((!Sp.?Sr'.Tr') <&> (!Sp.?Ss.Ts'))
   *)
   Definition prot5 : lsty Σ :=
     (lty_select
-       (<[1%Z:= <!!> TY M ;
-         lty_branch (<[1%Z:= <??> TY R ; END]>
-                     (<[2%Z:= <??> TY S ; END]>∅))]>
-        (<[2%Z:= <!!> TY P ;
+       (<[1%Z:= lty_branch
+                  (<[1%Z:= <!!> TY Sm ; <??> TY Sr ; Tr]>
+                   (<[2%Z:= <!!> TY Sm ; <??> TY Ss ; Ts]>∅))]>
+        (<[2%Z:= lty_branch
+                   (<[1%Z := <!!> TY Sp ; <??> TY Sr' ; Tr']>
+                    (<[2%Z := <!!> TY Sp ; <??> TY Ss ; Ts']>∅))]>∅)))%lty.
+
+  (**
+  Swap branch/send
+  (!Sm.((?Sr.Tr) <&> (?Ss.Ts)))
+  <+>
+  (!Sp.((?Sr'.Tr') <&> (!Sp.?Ss.Ts')))
+  *)
+  Definition prot6 : lsty Σ :=
+    (lty_select
+       (<[1%Z:= <!!> TY Sm ;
+         lty_branch (<[1%Z:= <??> TY Sr ; Tr]>
+                     (<[2%Z:= <??> TY Ss ; Ts]>∅))]>
+        (<[2%Z:= <!!> TY Sp ;
           lty_branch
-            (<[1%Z := <??> TY R ; END]>
-             (<[2%Z := <??> TY S ; END]>∅))]>∅)))%lty.
+            (<[1%Z := <??> TY Sr' ; Tr']>
+             (<[2%Z := <??> TY Ss ; Ts']>∅))]>∅)))%lty.
 
   Lemma subtype_proof :
-    ⊢ prot_sub <: prot_sup.
+    Sm <: Srm -∗ Sm <: Ssm -∗ Sp <: Srp -∗ Sp <: Ssp -∗ Sr <: Sr' -∗
+    prot_sub <: prot_sup.
   Proof.
+    iIntros "#HRM #HSM #HRP #HSP #HR".
     (** Weakening of select *)
     iApply (lty_le_trans _ prot1).
     {
@@ -149,17 +175,17 @@ Section choice_example.
     {
       iApply (lty_le_swap_branch_select
                 (<[1%Z:=
-                     <[1%Z:=(<??> TY R; <!!> TY M; END)%lty]>
-                     (<[2%Z:= (<??> TY R; <!!> TY P; END)%lty]>∅)]>
+                     <[1%Z:=(<??> TY Sr; <!!> TY Srm; Tr)%lty]>
+                     (<[2%Z:= (<??> TY Sr; <!!> TY Srp; Tr')%lty]>∅)]>
                  (<[2%Z:=
-                     <[1%Z:=(<??> TY S; <!!> TY M; END)%lty]>
-                     (<[2%Z:= (<??> TY S; <!!> TY P; END)%lty]>∅)]>∅))
+                     <[1%Z:=(<??> TY Ss; <!!> TY Ssm; Ts)%lty]>
+                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssp; Ts')%lty]>∅)]>∅))
                 (<[1%Z:=
-                     <[1%Z:=(<??> TY R; <!!> TY M; END)%lty]>
-                     (<[2%Z:= (<??> TY S; <!!> TY M; END)%lty]>∅)]>
+                     <[1%Z:=(<??> TY Sr; <!!> TY Srm; Tr)%lty]>
+                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssm; Ts)%lty]>∅)]>
                  (<[2%Z:=
-                     <[1%Z:=(<??> TY R; <!!> TY P; END)%lty]>
-                     (<[2%Z:= (<??> TY S; <!!> TY P; END)%lty]>∅)]>∅))
+                     <[1%Z:=(<??> TY Sr; <!!> TY Srp; Tr')%lty]>
+                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssp; Ts')%lty]>∅)]>∅))
              ).
       intros i j Ss1' Ss2' Hin1 Hin2.
       assert (i = 1%Z ∨ i = 2%Z).
@@ -211,16 +237,33 @@ Section choice_example.
         + rewrite big_sepM2_insert=> //.
           iSplit=> //. iApply lty_le_swap_recv_send.
     }
-    (** Swap branch/send *)
     iApply (lty_le_trans _ prot5).
     {
       iApply lty_le_select. iIntros "!>".
       rewrite big_sepM2_insert=> //. iSplit.
+      - iApply lty_le_branch. iIntros "!>".
+        rewrite big_sepM2_insert=> //. iSplit.
+        + iApply lty_le_send; eauto.
+        + rewrite big_sepM2_insert=> //. iSplit=> //.
+          iApply lty_le_send; eauto.
+      - rewrite big_sepM2_insert=> //. iSplit=> //.
+        iApply lty_le_branch. iIntros "!>".
+        rewrite big_sepM2_insert=> //. iSplit.
+        + iApply lty_le_send; [eauto|].
+          iApply lty_le_recv; eauto.
+        + rewrite big_sepM2_insert=> //. iSplit=> //.
+          iApply lty_le_send; eauto.
+    }
+    (** Swap branch/send *)
+    iApply (lty_le_trans _ prot6).
+    {
+      iApply lty_le_select. iIntros "!>".
+      rewrite big_sepM2_insert=> //. iSplit.
       - iApply (lty_le_swap_branch_send _
-          (<[1%Z:=(<??> TY R; END)%lty]> (<[2%Z:=(<??> TY S; END)%lty]> ∅))).
+          (<[1%Z:=(<??> TY Sr; Tr)%lty]> (<[2%Z:=(<??> TY Ss; Ts)%lty]> ∅))).
       - rewrite big_sepM2_insert=> //. iSplit=> //.
         iApply (lty_le_swap_branch_send _
-          ((<[1%Z:=(<??> TY R; END)%lty]> (<[2%Z:=(<??> TY S; END)%lty]> ∅)))).
+          ((<[1%Z:=(<??> TY Sr'; Tr')%lty]> (<[2%Z:=(<??> TY Ss; Ts')%lty]> ∅)))).
     }
     (** Weaken branch *)
     iApply lty_le_select. iIntros "!>".
