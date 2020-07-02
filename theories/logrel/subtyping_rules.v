@@ -351,10 +351,9 @@ Section subtyping_rules.
   Lemma lty_le_swap_branch_select (Ss1 Ss2 : (gmap Z (gmap Z (lsty Σ)))) :
     (∀ i j Ss1' Ss2',
         Ss1 !! i = Some Ss1' → Ss2 !! j = Some Ss2' →
-        (is_Some (Ss1' !! j) ∧ is_Some (Ss2' !! i) ∧
-        Ss1' !! j = Ss2' !! i)) →
-    ⊢ lty_branch ((λ Ss, lty_select Ss) <$> Ss1) <:
-      lty_select ((λ Ss, lty_branch Ss) <$> Ss2).
+        is_Some (Ss1' !! j) ∧ is_Some (Ss2' !! i) ∧
+        Ss1' !! j = Ss2' !! i) →
+    ⊢ lty_branch (lty_select <$> Ss1) <: lty_select (lty_branch <$> Ss2).
   Proof.
     intros Hin.
     iIntros "!>" (v1 v2).
