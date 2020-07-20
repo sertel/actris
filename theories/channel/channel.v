@@ -235,9 +235,9 @@ Section channel.
   Qed.
 
   Lemma try_recv_spec {TT} c (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ <?.. x> MSG v x {{ ▷ P x }}; p x }}}
+    {{{ c ↣ <?.. x> MSG v x {{ P x }}; p x }}}
       try_recv c
-    {{{ w, RET w; (⌜w = NONEV⌝ ∗ c ↣ <?.. x> MSG v x {{ ▷ P x }}; p x) ∨
+    {{{ w, RET w; (⌜w = NONEV⌝ ∗ c ↣ <?.. x> MSG v x {{ P x }}; p x) ∨
                   (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
     assert (∀ w lp (m : TT → iMsg Σ),
