@@ -104,6 +104,18 @@ Definition prog_swap_twice : val := λ: <>,
   send "c" #11;; send "c" #11;;
   recv "c" + recv "c".
 
+Definition prog_swap_loop : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    let: "go" :=
+      rec: "go" <> :=
+        let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" #() in
+    "go" #()) in
+  send "c" #18;;
+  send "c" #20;;
+  let: "x1" := recv "c" in
+  let: "x2" := recv "c" in
+  "x1" + "x2".
+
 Section proofs.
 Context `{heapG Σ, chanG Σ}.
 
@@ -170,6 +182,12 @@ Definition prot_swap_twice : iProto Σ :=
    <! (y : Z)> MSG #y;
    <?> MSG #20;
    <?> MSG #(x+y); END)%proto.
+
+Definition prot_swap_loop : iProto Σ :=
+  (<! (x : Z)> MSG #x;
+   <! (y : Z)> MSG #y;
+   <?> MSG #(x+2);
+   <?> MSG #(y+2); prot_loop)%proto.
 
 (** Specs and proofs of the respective programs *)
 Lemma prog_spec : {{{ True }}} prog #() {{{ RET #42; True }}}.
@@ -318,4 +336,18 @@ Proof.
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
+
+Lemma prog_loop_swap_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
+  - iAssert (∀ Ψ, WP (rec: "go" <> := let: "x" := recv c in
+      send c ("x" + #2) ;; "go" #())%V #() {{ Ψ }})%I with "[Hc]" as "H".
+    { iIntros (Ψ). iLöb as "IH". wp_recv (x) as "_". wp_send with "[//]".
+      wp_seq. by iApply "IH". }
+    wp_lam. wp_closure. wp_let. iApply "H".
+  - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
+    wp_pures. by iApply "HΦ".
+Qed.
+
 End proofs.
