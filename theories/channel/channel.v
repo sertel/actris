@@ -43,10 +43,11 @@ Definition start_chan : val := λ: "f",
 Definition send : val :=
   λ: "c" "v",
     let: "lk" := Snd "c" in
-    acquire "lk";;
     let: "l" := Fst (Fst "c") in
+    let: "r" := Snd (Fst "c") in
+    acquire "lk";;
     lsnoc "l" "v";;
-    skipN (llength (Snd (Fst "c")));; (* "Ghost" operation for later stripping *)
+    skipN (llength "r");; (* "Ghost" operation for later stripping *)
     release "lk".
 
 Definition try_recv : val :=

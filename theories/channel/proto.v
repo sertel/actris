@@ -708,6 +708,7 @@ Section proto.
     - iApply iProto_le_recv. iIntros (v' p') "(->&Hp&$) !>".
       iExists p2. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
   Qed.
+
   Lemma iProto_le_base_swap v1 v2 P1 P2 p :
     ⊢ (<?> MSG v1 {{ P1 }}; <!> MSG v2 {{ P2 }}; p)
     ⊑ (<!> MSG v2 {{ P2 }}; <?> MSG v1 {{ P1 }}; p).
@@ -1297,6 +1298,7 @@ Section proto.
     FromModal (modality_instances.modality_laterN 1) (p1 ⊑ p2)
               ((<a> MSG v; p1) ⊑ (<a> MSG v; p2)) (p1 ⊑ p2).
   Proof. apply iProto_le_base. Qed.
+
 End proto.
 
 Typeclasses Opaque iProto_ctx iProto_own.
