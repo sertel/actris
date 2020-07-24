@@ -23,140 +23,193 @@ Section with_Σ.
     ProtoUnfold (mapper_prot) (mapper_prot_aux mapper_prot).
   Proof. apply proto_unfold_eq, (fixpoint_unfold mapper_prot_aux). Qed.
 
-  Definition mapper_prot_twice :=
+  Definition map_once prot :=
     (<!> MSG (LitV $ true);
-     <! (x1 : T) (v1 : val)> MSG v1 {{ IT x1 v1 }};
-     <? (w1 : val)> MSG w1 {{ IU (f x1) w1 }};
-     <!> MSG (LitV $ true);
-     <! (x2 : T) (v2 : val)> MSG v2 {{ IT x2 v2 }};
-     <? (w2 : val)> MSG w2 {{ IU (f x2) w2 }};
-      <!> MSG (LitV $ false);
-      END)%proto.
+     <! (x : T) (v : val)> MSG v {{ IT x v }};
+     <? (w : val)> MSG w {{ IU (f x) w }};
+     prot)%proto.
 
-  Definition mapper_prot_twice_swap :=
-    (<!> MSG (LitV $ true) {{ True }};
-     <! (x1 : T) (v1 : val)> MSG v1 {{ IT x1 v1 }};
-     <!> MSG (LitV $ true) {{ True }};
-     <! (x2 : T) (v2 : val)> MSG v2 {{ IT x2 v2 }};
-     <!> MSG (LitV $ false) {{ True }};
-     <? (w1 : val)> MSG w1 {{ IU (f x1) w1 }};
-     <? (w2 : val)> MSG w2 {{ IU (f x2) w2 }};
-    END)%proto.
+  Lemma map_once_mono prot1 prot2 :
+    ▷ (prot1 ⊑ prot2) -∗ map_once prot1 ⊑ map_once prot2.
+  Proof.
+    iIntros "Hsub".
+    rewrite /map_once.
+    iModIntro.
+    iIntros (x v) "Hv". iExists x, v. iFrame "Hv". iModIntro.
+    iIntros (w) "Hw". iExists w. iFrame "Hw". iModIntro.
+    iApply "Hsub".
+  Qed.
+
+  Global Instance map_once_from_modal p1 p2 :
+    FromModal (modality_instances.modality_laterN 1) (p1 ⊑ p2)
+              ((map_once p1) ⊑ (map_once p2)) (p1 ⊑ p2).
+  Proof. apply map_once_mono. Qed.
+
+  Definition mapper_prot_once :=
+    (map_once mapper_prot)%proto.
+
+  Lemma subprot_once :
+    ⊢ mapper_prot ⊑ mapper_prot_once.
+  Proof.
+    rewrite /mapper_prot /mapper_prot_once.
+    rewrite fixpoint_unfold /mapper_prot_aux.
+    rewrite /iProto_choice.
+    iExists true.
+    iModIntro.
+    iApply iProto_le_refl.
+  Qed.
+
+  Definition mapper_prot_twice :=
+    map_once $ map_once $ mapper_prot.
 
   Lemma subprot_twice :
+    ⊢ mapper_prot ⊑ mapper_prot_twice.
+  Proof.
+    iApply iProto_le_trans.
+    { iApply subprot_once. }
+    iModIntro.
+    iApply subprot_once.
+  Qed.
+
+  Definition mapper_prot_twice_swap :=
+    (<!> MSG (LitV $ true);
+     <! (x1 : T) (v1 : val)> MSG v1 {{ IT x1 v1 }};
+     <!> MSG (LitV $ true);
+     <! (x2 : T) (v2 : val)> MSG v2 {{ IT x2 v2 }};
+     <? (w1 : val)> MSG w1 {{ IU (f x1) w1 }};
+     <? (w2 : val)> MSG w2 {{ IU (f x2) w2 }};
+     mapper_prot)%proto.
+
+  Lemma subprot_twice_swap :
     ⊢ mapper_prot ⊑ mapper_prot_twice_swap.
   Proof.
-    rewrite /mapper_prot /mapper_prot_twice.
-    rewrite fixpoint_unfold fixpoint_unfold fixpoint_unfold /mapper_prot_aux.
-    iApply (iProto_le_trans _ mapper_prot_twice).
-    { rewrite /iProto_choice.
-      iExists true. iModIntro.
-      iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
-      iIntros (w1) "Hw1". iExists w1. iFrame "Hw1". iModIntro.
-      iExists true. iModIntro.
-      iIntros (x2 v2) "Hv2". iExists x2, v2. iFrame "Hv2". iModIntro.
-      iIntros (w2) "Hw2". iExists w2. iFrame "Hw2". iModIntro.
-      iExists false. eauto. }
-    rewrite /mapper_prot_twice /mapper_prot_twice_swap.
+    iApply iProto_le_trans.
+    { iApply subprot_twice. }
     iModIntro.
     iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
     iIntros (w1) "Hw1".
-    iApply (iProto_le_trans); first by iApply iProto_le_base_swap.
+    iApply iProto_le_trans.
+    { iApply iProto_le_base_swap. }
     iModIntro.
     iIntros (x2 v2) "Hv2".
     iApply (iProto_le_trans with "[Hv2]").
-    { iModIntro. iExists x2, v2. iFrame "Hv2". iModIntro. iApply iProto_le_refl. }
-    iApply (iProto_le_trans).
-    { iApply iProto_le_base_swap. }
-    iModIntro.
-    iApply iProto_le_trans.
-    { iModIntro. iIntros (w2) "Hw2".
-      iApply iProto_le_trans.
-      { iApply iProto_le_base_swap. }
-      iModIntro. iExists (w2). iSplitL. iExact "Hw2". iApply iProto_le_refl. }
+    { iModIntro. iExists x2, v2. iFrame "Hv2". iApply iProto_le_refl. }
     iApply iProto_le_trans.
     { iApply iProto_le_base_swap. }
     iModIntro.
     iExists (w1). iFrame "Hw1". iModIntro.
-    eauto.
+    iApply iProto_le_refl.
   Qed.
 
-  Fixpoint mapper_prot_list n : iProto Σ :=
-    match n with
-    | O   => (<!> MSG (LitV $ false); END)%proto
-    | S n => (<!> MSG (LitV $ true);
-              <! (x : T) (v : val)> MSG v {{ IT x v }};
-              <? (w : val)> MSG w {{ IU (f x) w }}; mapper_prot_list n)%proto
-    end.
+  Definition mapper_prot_twice_swap_end :=
+    (<!> MSG (LitV $ true);
+     <! (x1 : T) (v1 : val)> MSG v1 {{ IT x1 v1 }};
+     <!> MSG (LitV $ true);
+     <! (x2 : T) (v2 : val)> MSG v2 {{ IT x2 v2 }};
+     <!> MSG (LitV $ false);
+     <? (w1 : val)> MSG w1 {{ IU (f x1) w1 }};
+     <? (w2 : val)> MSG w2 {{ IU (f x2) w2 }};
+     END)%proto.
 
-  Lemma subprot_list n :
-    ⊢ mapper_prot ⊑ mapper_prot_list n.
+  Lemma subprot_twice_swap_end :
+    ⊢ mapper_prot ⊑ mapper_prot_twice_swap_end.
   Proof.
-    iEval (rewrite /mapper_prot).
-    iInduction n as [|n] "IH"; iEval (rewrite fixpoint_unfold /mapper_prot_aux).
-    - rewrite /iProto_choice. iExists false. eauto.
-    - rewrite /iProto_choice /=.
-      iExists true. iModIntro.
-      iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
-      iIntros (w1) "Hw1". iExists w1. iFrame "Hw1". iModIntro. iApply "IH".
+    iApply iProto_le_trans.
+    { iApply subprot_twice_swap. }
+    rewrite /mapper_prot_twice_swap /mapper_prot_twice_swap_end.
+    iModIntro.
+    iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
+    iModIntro.
+    iIntros (x2 v2) "Hv2". iExists x2, v2. iFrame "Hv2". iModIntro.
+    iApply iProto_le_trans.
+    { iIntros (w1) "Hw1". iExists w1. iSplitL. iExact "Hw1". iModIntro.
+      iIntros (w2) "Hw2". iExists w2. iSplitL. iExact "Hw2". iModIntro.
+      rewrite /mapper_prot fixpoint_unfold /mapper_prot_aux /iProto_choice.
+      iExists false. iApply iProto_le_refl. }
+    iApply iProto_le_trans.
+    { iIntros (w1) "Hw1". iExists w1. iSplitL. iExact "Hw1". iModIntro.
+      iIntros (w2) "Hw2".
+      iApply iProto_le_trans.
+      { iApply iProto_le_base_swap. }
+      iModIntro. iExists w2. iSplitL. iExact "Hw2". iApply iProto_le_refl. }
+    iIntros (w1) "Hw1".
+    iApply iProto_le_trans.
+    { iApply iProto_le_base_swap. }
+    iModIntro. iExists w1. iSplitL. iExact "Hw1". iApply iProto_le_refl.
   Qed.
 
-  Fixpoint mapper_prot_list_swap_tail xs :=
-    match xs with
-    | []    => END%proto
-    | x::xs => (<? (w : val)> MSG w {{ IU (f x) w }};
-                    mapper_prot_list_swap_tail xs)%proto
-    end.
-
-  Fixpoint mapper_prot_list_swap n xs :=
+  Fixpoint mapper_prot_n n prot : iProto Σ :=
     match n with
-    | O   => (<!> MSG (LitV $ false); mapper_prot_list_swap_tail (rev xs))%proto
+    | O   => prot
     | S n => (<!> MSG (LitV $ true);
               <! (x : T) (v : val)> MSG v {{ IT x v }};
-              mapper_prot_list_swap n (x::xs))%proto
+              <? (w : val)> MSG w {{ IU (f x) w }}; mapper_prot_n n prot)%proto
     end.
 
-  Fixpoint mapper_prot_list_swap_recv_head xs prot :=
+  Lemma subprot_n n :
+    ⊢ mapper_prot ⊑ mapper_prot_n n mapper_prot.
+  Proof.
+    iInduction n as [|n] "IH"=> //.
+    simpl.
+    iApply (iProto_le_trans).
+    { iApply subprot_once. }
+    rewrite /mapper_prot_once.
+    iModIntro. iApply "IH".
+  Qed.
+
+  Fixpoint recv_list xs prot :=
     match xs with
     | [] => prot
-    | x::xs => (<? w> MSG w {{ IU (f x) w }};
-               mapper_prot_list_swap_recv_head xs prot)%proto
+    | x::xs => (<? (w : val)> MSG w {{ IU (f x) w }};
+               recv_list xs prot)%proto
   end.
 
-  Lemma mapper_prot_list_swap_forward xs w prot :
-    ⊢ (mapper_prot_list_swap_recv_head xs (<!> MSG w; prot))%proto ⊑
-      (<!> MSG w; mapper_prot_list_swap_recv_head xs prot)%proto.
+  Lemma recv_list_mono xs prot1 prot2 :
+    prot1 ⊑ prot2 -∗ recv_list xs prot1 ⊑ recv_list xs prot2.
+  Proof.
+    iIntros "Hsub".
+    iInduction xs as [|xs] "IHxs"=> //.
+    simpl.
+    iIntros (w) "Hw". iExists w. iFrame "Hw". iModIntro.
+    by iApply "IHxs".
+  Qed.
+
+  Fixpoint mapper_prot_n_swap n xs prot :=
+    match n with
+    | O   => recv_list (rev xs) prot%proto
+    | S n => (<!> MSG (LitV $ true);
+              <! (x : T) (v : val)> MSG v {{ IT x v }};
+              mapper_prot_n_swap n (x::xs) prot)%proto
+    end.
+
+  Lemma recv_list_fwd xs v prot :
+    ⊢ recv_list xs (<!> MSG v ; prot)%proto ⊑ (<!> MSG v ; recv_list xs prot)%proto.
   Proof.
     iInduction xs as [|x xs] "IH"=> //=.
-    iIntros (v) "Hv".
-    iApply (iProto_le_trans _ (<!> MSG w; <?> MSG v ;_)%proto); last first.
-    { iModIntro. iExists v. iFrame "Hv". eauto. }
+    iIntros (w) "Hw".
+    iApply (iProto_le_trans _ (<!> MSG v; <?> MSG w ;_)%proto); last first.
+    { iModIntro. iExists w. iFrame "Hw". eauto. }
     iApply iProto_le_trans; last first.
     { iApply iProto_le_base_swap. }
     iModIntro. iApply "IH".
   Qed.
 
-  Lemma subprot_list_swap_general xs n :
-    ⊢  mapper_prot_list_swap_recv_head xs (mapper_prot_list n) ⊑
-       mapper_prot_list_swap n (rev xs).
+  Lemma subprot_n_n_swap n xs prot :
+    ⊢ (recv_list xs (mapper_prot_n n prot)) ⊑ mapper_prot_n_swap n (rev xs) prot.
   Proof.
-    iInduction n as [|n] "IHn" forall (xs).
-    - simpl. rewrite rev_involutive.
+    iInduction n as [|n] "IHn" forall (xs) => //.
+    - iInduction xs as [|x xs] "IHxs"=> //=.
+      rewrite rev_unit /= rev_involutive.
+      iIntros (w1) "Hw1". iExists w1. iFrame "Hw1". iModIntro. iApply "IHxs".
+    - simpl.
       iApply iProto_le_trans.
-      { iApply mapper_prot_list_swap_forward. }
-      iModIntro.
-      iInduction xs as [|x xs] "IHxs"=> //.
-      iIntros (w) "Hw". iExists w. iFrame "Hw". iModIntro. iApply "IHxs".
-    - iApply iProto_le_trans.
-      { iApply mapper_prot_list_swap_forward. }
+      { iApply recv_list_fwd. }
       iModIntro.
       iApply (iProto_le_trans _
               (<! (x : T) (v : val)> MSG v {{ IT x v }};
-               mapper_prot_list_swap_recv_head xs
-    (<? (w : val)> MSG w {{
-     IU (f x) w }}; mapper_prot_list n))%proto).
-      {
-        iInduction xs as [|x xs] "IHxs"=> //=.
+               recv_list xs (<? (w : val)> MSG w {{
+     IU (f x) w }}; mapper_prot_n n prot))%proto).
+      { iInduction xs as [|x xs] "IHxs"=> //.
         iIntros (w) "Hw".
         iApply iProto_le_trans.
         { iModIntro. iApply "IHxs". }
@@ -176,12 +229,45 @@ Section with_Σ.
       iApply "IHxs".
   Qed.
 
-  Lemma subprot_list_swap n :
-    ⊢  mapper_prot ⊑ mapper_prot_list_swap n [].
+  Lemma subprot_n_swap n :
+    ⊢ mapper_prot ⊑ mapper_prot_n_swap n [] mapper_prot.
   Proof.
     iApply iProto_le_trans.
-    { iApply (subprot_list n). }
-    iApply (subprot_list_swap_general [] n).
+    { iApply (subprot_n n). }
+    iInduction n as [|n] "IHn"=> //=.
+    iModIntro.
+    iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
+    iApply (subprot_n_n_swap n [x1]).
+  Qed.
+
+  Fixpoint mapper_prot_n_swap_fwd n xs prot :=
+    match n with
+    | O   => (<!> MSG LitV $ false; recv_list (rev xs) prot)%proto
+    | S n => (<!> MSG (LitV $ true);
+              <! (x : T) (v : val)> MSG v {{ IT x v }};
+              mapper_prot_n_swap_fwd n (x::xs) prot)%proto
+    end.
+
+  Lemma subprot_n_swap_n_swap_end n xs :
+    ⊢ mapper_prot_n_swap n xs mapper_prot ⊑ mapper_prot_n_swap_fwd n xs END%proto.
+  Proof.
+    iInduction n as [|n] "IHn" forall (xs)=> /=.
+    - iApply iProto_le_trans.
+      { iApply recv_list_mono.
+        rewrite /mapper_prot fixpoint_unfold /mapper_prot_aux /iProto_choice.
+        iExists false. iApply iProto_le_refl. }
+      iApply recv_list_fwd.
+    - iModIntro.
+      iIntros (x1 v1) "Hv1". iExists x1, v1. iFrame "Hv1". iModIntro.
+      iApply "IHn".
+  Qed.
+
+  Lemma subprot_n_swap_end n :
+    ⊢ mapper_prot ⊑ mapper_prot_n_swap_fwd n [] END%proto.
+  Proof.
+    iApply iProto_le_trans.
+    { iApply (subprot_n_swap n). }
+    iApply subprot_n_swap_n_swap_end.
   Qed.
 
 End with_Σ.
