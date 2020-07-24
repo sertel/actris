@@ -1234,12 +1234,16 @@ Section proto.
 
   (** The instances below make it possible to use the tactics [iIntros],
   [iExist], [iSplitL]/[iSplitR], [iFrame] and [iModIntro] on [iProto_le] goals. *)
-  Global Instance iProto_le_from_forall_l {A} a (m1 : A → iMsg Σ V) m2 :
-    FromForall ((<? x> m1 x) ⊑ (<a> m2)) (λ x, (<?> m1 x) ⊑ (<a> m2))%I | 10.
-  Proof. apply iProto_le_exist_elim_l. Qed.
-  Global Instance iProto_le_from_forall_r {A} a m1 (m2 : A → iMsg Σ V) :
-    FromForall ((<a> m1) ⊑ (<! x> m2 x)) (λ x, (<a> m1) ⊑ (<!> m2 x))%I | 11.
-  Proof. apply iProto_le_exist_elim_r. Qed.
+  Global Instance iProto_le_from_forall_l {A} a (m1 : A → iMsg Σ V) m2 name :
+    AsIdentName m1 name →
+    FromForall (iProto_message Recv (iMsg_exist m1) ⊑ (<a> m2))
+               (λ x, (<?> m1 x) ⊑ (<a> m2))%I name | 10.
+  Proof. intros _. apply iProto_le_exist_elim_l. Qed.
+  Global Instance iProto_le_from_forall_r {A} a m1 (m2 : A → iMsg Σ V) name :
+    AsIdentName m2 name →
+    FromForall ((<a> m1) ⊑ iProto_message Send (iMsg_exist m2))
+               (λ x, (<a> m1) ⊑ (<!> m2 x))%I name | 11.
+  Proof. intros _. apply iProto_le_exist_elim_r. Qed.
 
   Global Instance iProto_le_from_wand_l a m v P p :
     TCIf (TCEq P True%I) False TCTrue →

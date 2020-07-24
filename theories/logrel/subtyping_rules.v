@@ -497,12 +497,14 @@ Section subtyping_rules.
   [iExist], [iSplitL]/[iSplitR], [iFrame] and [iModIntro] on [lty_le] goals.
   These instances have higher precedence than the ones in [proto.v] to avoid
   needless unfolding of the subtyping relation. *)
-  Global Instance lty_le_from_forall_l k (M : lty Σ k → lmsg Σ) (S : lsty Σ) :
-    FromForall ((<?? X> M X) <: S) (λ X, (<??> M X) <: S)%I | 0.
-  Proof. apply lty_le_exist_elim_l. Qed.
-  Global Instance lty_le_from_forall_r k (S : lsty Σ) (M : lty Σ k → lmsg Σ) :
-    FromForall (S <: (<!! X> M X)) (λ X, S <: (<!!> M X))%I | 1.
-  Proof. apply lty_le_exist_elim_r. Qed.
+  Global Instance lty_le_from_forall_l k (M : lty Σ k → lmsg Σ) (S : lsty Σ) name :
+    AsIdentName M name →
+    FromForall (lty_message Recv (lty_msg_exist M) <: S) (λ X, (<??> M X) <: S)%I name | 0.
+  Proof. intros _. apply lty_le_exist_elim_l. Qed.
+  Global Instance lty_le_from_forall_r k (S : lsty Σ) (M : lty Σ k → lmsg Σ) name :
+    AsIdentName M name →
+    FromForall (S <: lty_message Send (lty_msg_exist M)) (λ X, S <: (<!!> M X))%I name | 1.
+  Proof. intros _. apply lty_le_exist_elim_r. Qed.
 
   Global Instance lty_le_from_exist_l k (M : lty Σ k → lmsg Σ) S :
     FromExist ((<!! X> M X) <: S) (λ X, (<!!> M X) <: S)%I | 0.
