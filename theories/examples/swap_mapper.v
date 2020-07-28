@@ -205,15 +205,59 @@ Section with_Σ.
     iModIntro. iApply "IH".
   Qed.
 
-  Fixpoint recv_list xs prot :=
+  Fixpoint send_all_prot n xs prot :=
+    match n with
+    | O   => prot (rev xs)
+    | S n => (<!> MSG (LitV $ true);
+              <! (x : T) (v : val)> MSG v {{ IT x v }};
+              send_all_prot n (x::xs) prot)%proto
+    end.
+
+  Lemma send_all_spec c l xs xs' prot :
+    {{{ llist IT l xs ∗ c ↣ send_all_prot (length xs) xs' prot }}}
+      send_all c #l
+    {{{ RET #(); llist IT l [] ∗ c ↣ (prot (rev (rev xs ++ xs'))) }}}.
+  Proof.
+    iIntros (Φ) "[Hl Hc] HΦ".
+    iInduction xs as [|x xs] "IH" forall (xs').
+    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+      iApply "HΦ". iFrame. }
+    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_send with "[//]".
+    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). simpl.
+    by rewrite -assoc_L.
+  Qed.
+
+  Fixpoint recv_all_prot xs prot :=
     match xs with
     | [] => prot
     | x::xs => (<? (w : val)> MSG w {{ IU (f x) w }};
-               recv_list xs prot)%proto
+               recv_all_prot xs prot)%proto
   end.
 
-  Lemma recv_list_mono xs prot1 prot2 :
-    prot1 ⊑ prot2 -∗ recv_list xs prot1 ⊑ recv_list xs prot2.
+  Lemma recv_all_spec c p l xs :
+    {{{ llist IU l [] ∗ c ↣ (recv_all_prot xs p) }}}
+      swap_mapper.recv_all c #l #(length xs)
+    {{{ ys, RET #(); ⌜ys = (map f xs)⌝ ∗ llist IU l ys ∗ c ↣ p }}}.
+  Proof.
+    iIntros (Φ) "[Hl Hc] HΦ".
+    iLöb as "IH" forall (xs Φ).
+    destruct xs.
+    { wp_lam. wp_pures. iApply ("HΦ" $![]). simpl. by iFrame. }
+    wp_lam.
+    wp_recv (w) as "Hw".
+    wp_pures.
+    rewrite Nat2Z.inj_succ.
+    replace (Z.succ (Z.of_nat (length xs)) - 1)%Z with (Z.of_nat (length xs)) by lia.
+    wp_apply ("IH" with "Hl Hc").
+    iIntros (ys) "(% & Hl & Hc)".
+    wp_pures. wp_apply (lcons_spec with "[$Hl $Hw]").
+    iIntros "Hl". iApply "HΦ". iFrame. iPureIntro. by f_equiv.
+  Qed.
+
+  Lemma recv_all_mono xs prot1 prot2 :
+    prot1 ⊑ prot2 -∗ recv_all_prot xs prot1 ⊑ recv_all_prot xs prot2.
   Proof.
     iIntros "Hsub".
     iInduction xs as [|xs] "IHxs"=> //.
@@ -222,16 +266,9 @@ Section with_Σ.
     by iApply "IHxs".
   Qed.
 
-  Fixpoint mapper_prot_n_swap n xs prot :=
-    match n with
-    | O   => recv_list (rev xs) prot%proto
-    | S n => (<!> MSG (LitV $ true);
-              <! (x : T) (v : val)> MSG v {{ IT x v }};
-              mapper_prot_n_swap n (x::xs) prot)%proto
-    end.
-
-  Lemma recv_list_fwd xs v prot :
-    ⊢ recv_list xs (<!> MSG v ; prot)%proto ⊑ (<!> MSG v ; recv_list xs prot)%proto.
+  Lemma recv_all_prot_fwd xs v prot :
+    ⊢ recv_all_prot xs (<!> MSG v ; prot)%proto ⊑ 
+      (<!> MSG v ; recv_all_prot xs prot)%proto.
   Proof.
     iInduction xs as [|x xs] "IH"=> //=.
     iIntros (w) "Hw".
@@ -242,19 +279,22 @@ Section with_Σ.
     iModIntro. iApply "IH".
   Qed.
 
+  Definition mapper_prot_n_swap n xs prot :=
+    send_all_prot n xs (λ xs, recv_all_prot xs prot).
+
   Lemma subprot_n_n_swap n xs prot :
-    ⊢ (recv_list xs (mapper_prot_n n prot)) ⊑ mapper_prot_n_swap n (rev xs) prot.
+    ⊢ (recv_all_prot xs (mapper_prot_n n prot)) ⊑ mapper_prot_n_swap n (rev xs) prot.
   Proof.
     iInduction n as [|n] "IHn" forall (xs) => //=.
     - iInduction xs as [|x xs] "IHxs"=> //=.
+      rewrite /mapper_prot_n_swap /send_all_prot.
       rewrite rev_unit /= rev_involutive.
       iIntros (w1) "Hw1". iExists w1. iFrame "Hw1". iModIntro. iApply "IHxs".
     - iApply iProto_le_trans.
-      { iApply recv_list_fwd. }
-      (* iModIntro. *)
+      { iApply recv_all_prot_fwd. }
       iApply (iProto_le_trans _
               (<!> MSG LitV $ true ; <! (x : T) (v : val)> MSG v {{ IT x v }};
-               recv_list xs (<? (w : val)> MSG w {{
+               recv_all_prot xs (<? (w : val)> MSG w {{
      IU (f x) w }}; mapper_prot_n n prot))%proto).
       { iModIntro.
         iInduction xs as [|x xs] "IHxs"=> //.
@@ -266,8 +306,7 @@ Section with_Σ.
         { iModIntro. iExists y,v. iFrame "Hv". eauto. }
         iApply (iProto_le_trans).
         { iApply iProto_le_base_swap. }
-        iModIntro. iExists w. iFrame "Hw". eauto.
-      }
+        iModIntro. iExists w. iFrame "Hw". eauto. }
       iIntros "!>" (x).
       rewrite -(rev_unit xs x).
       iApply (iProto_le_trans); last first.
@@ -287,23 +326,19 @@ Section with_Σ.
     iApply (subprot_n_n_swap n [x]).
   Qed.
 
-  Fixpoint mapper_prot_n_swap_fwd n xs prot :=
-    match n with
-    | O   => (<!> MSG LitV $ false; recv_list (rev xs) prot)%proto
-    | S n => (<!> MSG (LitV $ true);
-              <! (x : T) (v : val)> MSG v {{ IT x v }};
-              mapper_prot_n_swap_fwd n (x::xs) prot)%proto
-    end.
+  Definition mapper_prot_n_swap_fwd n xs prot :=
+    send_all_prot n xs
+                  (λ xs, (<!> MSG LitV $ false; recv_all_prot xs prot))%proto.
 
   Lemma subprot_n_swap_n_swap_end n xs :
     ⊢ mapper_prot_n_swap n xs mapper_prot ⊑ mapper_prot_n_swap_fwd n xs END%proto.
   Proof.
     iInduction n as [|n] "IHn" forall (xs)=> /=.
     - iApply iProto_le_trans.
-      { iApply recv_list_mono.
+      { iApply recv_all_mono.
         rewrite /mapper_prot fixpoint_unfold /mapper_prot_aux /iProto_choice.
         iExists false. iApply iProto_le_refl. }
-      iApply recv_list_fwd.
+      iApply recv_all_prot_fwd.
     - iIntros "!>" (x). iApply "IHn".
   Qed.
 
@@ -333,42 +368,6 @@ Section with_Σ.
       iIntros (w) "HU".
       wp_send with "[$HU]". wp_pures. iApply ("IH" with "Hc HΦ").
     - wp_pures. by iApply "HΦ".
-  Qed.
-
-  Lemma send_all_spec c l xs xs' prot :
-    {{{ llist IT l xs ∗ c ↣ mapper_prot_n_swap_fwd (length xs) xs' prot }}}
-      send_all c #l
-    {{{ RET #(); llist IT l [] ∗ c ↣ (<!> MSG #false; recv_list (rev (rev xs ++ xs')) prot) }}}.
-  Proof.
-    iIntros (Φ) "[Hl Hc] HΦ".
-    iInduction xs as [|x xs] "IH" forall (xs').
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
-      iApply "HΦ". iFrame. }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
-    wp_send with "[//]".
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
-    wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). simpl.
-    by rewrite -assoc_L.
-  Qed.
-
-  Lemma recv_all_spec c p l xs :
-    {{{ llist IU l [] ∗ c ↣ (recv_list xs p) }}}
-      swap_mapper.recv_all c #l #(length xs)
-    {{{ ys, RET #(); ⌜ys = (map f xs)⌝ ∗ llist IU l ys ∗ c ↣ p }}}.
-  Proof.
-    iIntros (Φ) "[Hl Hc] HΦ".
-    iLöb as "IH" forall (xs Φ).
-    destruct xs.
-    { wp_lam. wp_pures. iApply ("HΦ" $![]). simpl. by iFrame. }
-    wp_lam.
-    wp_recv (w) as "Hw".
-    wp_pures.
-    rewrite Nat2Z.inj_succ.
-    replace (Z.succ (Z.of_nat (length xs)) - 1)%Z with (Z.of_nat (length xs)) by lia.
-    wp_apply ("IH" with "Hl Hc").
-    iIntros (ys) "(% & Hl & Hc)".
-    wp_pures. wp_apply (lcons_spec with "[$Hl $Hw]").
-    iIntros "Hl". iApply "HΦ". iFrame. iPureIntro. by f_equiv.
   Qed.
 
   Lemma swap_mapper_client_spec fv l xs :
