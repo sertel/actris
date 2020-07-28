@@ -2,10 +2,36 @@ From actris.channel Require Import proofmode proto channel.
 From iris.proofmode Require Import tactics.
 From actris.utils Require Import llist.
 From iris.heap_lang Require Import notation.
+From actris.examples Require Import sort_fg.
+
+Definition cont := true.
+Definition stop := false.
+
+Definition swap_mapper_service : val :=
+  rec: "go" "f" "c" :=
+    if: ~recv "c" then #()
+    else send "c" ("f" (recv "c"));; "go" "f" "c".
+
+Definition send_all : val :=
+  rec: "go" "c" "xs" :=
+    if: lisnil "xs" then #() else
+    send "c" #cont;; send "c" (lpop "xs");; "go" "c" "xs".
+
+Definition recv_all : val :=
+  rec: "go" "c" "ys" "n" :=
+    if: "n" = #0 then #() else
+    let: "x" := recv "c" in
+    "go" "c" "ys" ("n"-#1);; lcons "x" "ys".
+
+Definition swap_mapper_client : val :=
+  λ: "f" "xs",
+    let: "c" := start_chan (λ: "c", swap_mapper_service "f" "c") in
+    let: "n" := llength "xs" in
+    send_all "c" "xs";; send "c" #false;; recv_all "c" "xs" "n".
 
 Section with_Σ.
   Context `{heapG Σ, chanG Σ}.
-  Context {T U R : Type}.
+  Context {T U : Type}.
   Context (IT : T → val → iProp Σ).
   Context (IU : U → val → iProp Σ).
   Context (f : T → U).
@@ -19,7 +45,7 @@ Section with_Σ.
 
   Definition mapper_prot := fixpoint mapper_prot_aux.
 
-  Global Instance par_map_protocol_unfold :
+  Global Instance mapper_prot_unfold :
     ProtoUnfold (mapper_prot) (mapper_prot_aux mapper_prot).
   Proof. apply proto_unfold_eq, (fixpoint_unfold mapper_prot_aux). Qed.
 
@@ -287,6 +313,89 @@ Section with_Σ.
     iApply iProto_le_trans.
     { iApply (subprot_n_swap n). }
     iApply subprot_n_swap_n_swap_end.
+  Qed.
+
+  Definition fspec (fv : val) : iProp Σ := (∀ x v,
+    {{{ IT x v }}} fv v {{{ u, RET u; IU (f x) u }}})%I.
+
+  Lemma swap_mapper_service_spec c fv p :
+    fspec fv -∗
+    {{{ c ↣ ((iProto_dual mapper_prot) <++> p)%proto }}}
+      swap_mapper_service fv c
+    {{{ RET #(); c ↣ p }}}.
+  Proof.
+    iIntros "#Hfspec !>" (Φ) "Hc HΦ".
+    iLöb as "IH".
+    wp_rec.
+    wp_branch.
+    - wp_recv (x v) as "HT".
+      wp_apply ("Hfspec" with "HT").
+      iIntros (w) "HU".
+      wp_send with "[$HU]". wp_pures. iApply ("IH" with "Hc HΦ").
+    - wp_pures. by iApply "HΦ".
+  Qed.
+
+  Lemma send_all_spec c l xs xs' prot :
+    {{{ llist IT l xs ∗ c ↣ mapper_prot_n_swap_fwd (length xs) xs' prot }}}
+      send_all c #l
+    {{{ RET #(); llist IT l [] ∗ c ↣ (<!> MSG #false; recv_list (rev (rev xs ++ xs')) prot) }}}.
+  Proof.
+    iIntros (Φ) "[Hl Hc] HΦ".
+    iInduction xs as [|x xs] "IH" forall (xs').
+    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+      iApply "HΦ". iFrame. }
+    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_send with "[//]".
+    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). simpl.
+    by rewrite -assoc_L.
+  Qed.
+
+  Lemma recv_all_spec c p l xs :
+    {{{ llist IU l [] ∗ c ↣ (recv_list xs p) }}}
+      swap_mapper.recv_all c #l #(length xs)
+    {{{ ys, RET #(); ⌜ys = (map f xs)⌝ ∗ llist IU l ys ∗ c ↣ p }}}.
+  Proof.
+    iIntros (Φ) "[Hl Hc] HΦ".
+    iLöb as "IH" forall (xs Φ).
+    destruct xs.
+    { wp_lam. wp_pures. iApply ("HΦ" $![]). simpl. by iFrame. }
+    wp_lam.
+    wp_recv (w) as "Hw".
+    wp_pures.
+    rewrite Nat2Z.inj_succ.
+    replace (Z.succ (Z.of_nat (length xs)) - 1)%Z with (Z.of_nat (length xs)) by lia.
+    wp_apply ("IH" with "Hl Hc").
+    iIntros (ys) "(% & Hl & Hc)".
+    wp_pures. wp_apply (lcons_spec with "[$Hl $Hw]").
+    iIntros "Hl". iApply "HΦ". iFrame. iPureIntro. by f_equiv.
+  Qed.
+
+  Lemma swap_mapper_client_spec fv l xs :
+    fspec fv -∗
+    {{{ llist IT l xs }}}
+      swap_mapper_client fv #l
+    {{{ ys, RET #(); ⌜ys = map f xs⌝ ∗ llist IU l ys }}}.
+  Proof.
+    iIntros "#Hfspec !>" (Φ) "HIT HΦ".
+    wp_lam.
+    wp_pures.
+    wp_apply (start_chan_spec mapper_prot); iIntros (c) "// Hc".
+    { wp_lam. rewrite -(iProto_app_end_r (iProto_dual mapper_prot)).
+      iApply (swap_mapper_service_spec _ _ END%proto with "Hfspec Hc").
+      auto. }
+    wp_apply (llength_spec with "HIT"); iIntros "HIT".
+    wp_apply (send_all_spec with "[$HIT Hc]").
+    { iApply (iProto_mapsto_le with "Hc").
+      iApply subprot_n_swap_end. }
+    iIntros "[HIT Hc]".
+    wp_send with "[//]".
+    rewrite right_id.
+    rewrite rev_involutive.
+    wp_apply (recv_all_spec with "[$HIT $Hc]").
+    iIntros (ys) "(% & HIT & Hc)".
+    iApply "HΦ".
+    by iFrame.
   Qed.
 
 End with_Σ.
