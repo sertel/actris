@@ -216,7 +216,7 @@ Section with_Σ.
   Lemma send_all_spec c l xs xs' prot :
     {{{ llist IT l xs ∗ c ↣ send_all_prot (length xs) xs' prot }}}
       send_all c #l
-    {{{ RET #(); llist IT l [] ∗ c ↣ (prot (rev (rev xs ++ xs'))) }}}.
+    {{{ RET #(); llist IT l [] ∗ c ↣ prot (rev (rev xs ++ xs')) }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
@@ -237,7 +237,7 @@ Section with_Σ.
   end.
 
   Lemma recv_all_spec c p l xs :
-    {{{ llist IU l [] ∗ c ↣ (recv_all_prot xs p) }}}
+    {{{ llist IU l [] ∗ c ↣ recv_all_prot xs p }}}
       swap_mapper.recv_all c #l #(length xs)
     {{{ ys, RET #(); ⌜ys = (map f xs)⌝ ∗ llist IU l ys ∗ c ↣ p }}}.
   Proof.
@@ -245,29 +245,26 @@ Section with_Σ.
     iLöb as "IH" forall (xs Φ).
     destruct xs.
     { wp_lam. wp_pures. iApply ("HΦ" $![]). simpl. by iFrame. }
-    wp_lam.
-    wp_recv (w) as "Hw".
-    wp_pures.
+    wp_lam. wp_recv (w) as "Hw". wp_pures.
     rewrite Nat2Z.inj_succ.
     replace (Z.succ (Z.of_nat (length xs)) - 1)%Z with (Z.of_nat (length xs)) by lia.
     wp_apply ("IH" with "Hl Hc").
     iIntros (ys) "(% & Hl & Hc)".
-    wp_pures. wp_apply (lcons_spec with "[$Hl $Hw]").
+    wp_apply (lcons_spec with "[$Hl $Hw]").
     iIntros "Hl". iApply "HΦ". iFrame. iPureIntro. by f_equiv.
   Qed.
 
-  Lemma recv_all_mono xs prot1 prot2 :
+  Lemma recv_all_prot_mono prot1 prot2 xs :
     prot1 ⊑ prot2 -∗ recv_all_prot xs prot1 ⊑ recv_all_prot xs prot2.
   Proof.
     iIntros "Hsub".
     iInduction xs as [|xs] "IHxs"=> //.
-    simpl.
     iIntros (w) "Hw". iExists w. iFrame "Hw". iModIntro.
     by iApply "IHxs".
   Qed.
 
   Lemma recv_all_prot_fwd xs v prot :
-    ⊢ recv_all_prot xs (<!> MSG v ; prot)%proto ⊑ 
+    ⊢ recv_all_prot xs (<!> MSG v ; prot)%proto ⊑
       (<!> MSG v ; recv_all_prot xs prot)%proto.
   Proof.
     iInduction xs as [|x xs] "IH"=> //=.
@@ -335,7 +332,7 @@ Section with_Σ.
   Proof.
     iInduction n as [|n] "IHn" forall (xs)=> /=.
     - iApply iProto_le_trans.
-      { iApply recv_all_mono.
+      { iApply recv_all_prot_mono.
         rewrite /mapper_prot fixpoint_unfold /mapper_prot_aux /iProto_choice.
         iExists false. iApply iProto_le_refl. }
       iApply recv_all_prot_fwd.
@@ -361,10 +358,8 @@ Section with_Σ.
   Proof.
     iIntros "#Hfspec !>" (Φ) "Hc HΦ".
     iLöb as "IH".
-    wp_rec.
-    wp_branch.
-    - wp_recv (x v) as "HT".
-      wp_apply ("Hfspec" with "HT").
+    wp_rec. wp_branch.
+    - wp_recv (x v) as "HT". wp_apply ("Hfspec" with "HT").
       iIntros (w) "HU".
       wp_send with "[$HU]". wp_pures. iApply ("IH" with "Hc HΦ").
     - wp_pures. by iApply "HΦ".
@@ -378,7 +373,6 @@ Section with_Σ.
   Proof.
     iIntros "#Hfspec !>" (Φ) "HIT HΦ".
     wp_lam.
-    wp_pures.
     wp_apply (start_chan_spec mapper_prot); iIntros (c) "// Hc".
     { wp_lam. rewrite -(iProto_app_end_r (iProto_dual mapper_prot)).
       iApply (swap_mapper_service_spec _ _ END%proto with "Hfspec Hc").
@@ -389,8 +383,7 @@ Section with_Σ.
       iApply subprot_n_swap_end. }
     iIntros "[HIT Hc]".
     wp_send with "[//]".
-    rewrite right_id.
-    rewrite rev_involutive.
+    rewrite right_id rev_involutive.
     wp_apply (recv_all_spec with "[$HIT $Hc]").
     iIntros (ys) "(% & HIT & Hc)".
     iApply "HΦ".
