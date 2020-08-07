@@ -27,7 +27,7 @@ Definition swap_mapper_client : val :=
   λ: "f" "xs",
     let: "c" := start_chan (λ: "c", swap_mapper_service "f" "c") in
     let: "n" := llength "xs" in
-    send_all "c" "xs";; send "c" #false;; recv_all "c" "xs" "n".
+    send_all "c" "xs";; recv_all "c" "xs" "n";; send "c" #false.
 
 Section with_Σ.
   Context `{heapG Σ, chanG Σ}.
@@ -380,12 +380,12 @@ Section with_Σ.
     wp_apply (llength_spec with "HIT"); iIntros "HIT".
     wp_apply (send_all_spec with "[$HIT Hc]").
     { iApply (iProto_mapsto_le with "Hc").
-      iApply subprot_n_swap_end. }
+      iApply subprot_n_swap. }
     iIntros "[HIT Hc]".
-    wp_send with "[//]".
     rewrite right_id rev_involutive.
     wp_apply (recv_all_spec with "[$HIT $Hc]").
     iIntros (ys) "(% & HIT & Hc)".
+    wp_select.
     iApply "HΦ".
     by iFrame.
   Qed.
