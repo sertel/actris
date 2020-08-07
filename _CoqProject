@@ -17,8 +17,8 @@ theories/examples/sort_br_del.v
 theories/examples/sort_fg.v
 theories/examples/map.v
 theories/examples/map_reduce.v
-theories/examples/subprotocols.v
 theories/examples/swap_mapper.v
+theories/examples/subprotocols.v
 theories/logrel/model.v
 theories/logrel/telescopes.v
 theories/logrel/subtyping.v

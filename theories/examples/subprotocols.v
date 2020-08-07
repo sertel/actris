@@ -1,6 +1,7 @@
 From actris.channel Require Import proofmode proto channel.
 From iris.proofmode Require Import tactics.
 From actris.utils Require Import llist.
+From actris.examples Require Import swap_mapper.
 
 Section basics.
   Context `{heapG Σ, chanG Σ}.
@@ -26,25 +27,42 @@ Section basics.
     Context (IU : U -> val -> iProp Σ).
     Context (IUR : (U * R) -> val -> iProp Σ).
     Context (IR : R -> iProp Σ).
+    Context (f : T -> U).
 
     Axiom HIT : ∀ v t r, ITR (t,r) v -∗ IT t v ∗ IR r.
     Axiom HIU : ∀ v u r, (IU u v ∗ IR r) -∗ IUR (u,r) v.
 
-    Lemma example :
-      ⊢ (<! (v : val) (t : T)> MSG v {{ IT t v }};
-         <? (w : val) (u : U)> MSG w {{ IU u w }}; END) ⊑
-        (<! (v : val) (t : T) (r: R)> MSG v {{ ITR (t,r) v }};
-         <? (w : val) (u : U)> MSG w {{ IUR (u,r) w }}; END).
+    Lemma example prot prot' :
+      prot ⊑ prot'
+      -∗ (<! (x : T) (v : val)> MSG v {{ IT x v }};
+         <? (w : val)> MSG w {{ IU (f x) w }}; prot) ⊑
+        (<! (x : T * R) (v : val)> MSG v {{ ITR x v }};
+         <? (w : val)> MSG w {{ IUR (f x.1,x.2) w }}; prot').
     Proof.
-      iIntros (v t r) "HTR".
+      iIntros "Hprot" ([t r] v) "HTR".
       iDestruct (HIT with "HTR") as "[HT HR]".
-      iExists v, t. iFrame "HT".
+      iExists t,v. iFrame "HT".
       iModIntro.
-      iIntros (w u) "HU".
+      iIntros (w) "HU".
       iDestruct (HIU with "[$HR $HU]") as "HUR".
-      iExists w, u. iFrame "HUR".
-      eauto.
+      iExists w. iFrame "HUR".
+      iModIntro. iApply "Hprot".
     Qed.
+
+    Lemma mapper_prot_reuse_example :
+      ⊢ mapper_prot IT IU f ⊑ mapper_prot ITR IUR (λ tr, (f tr.1, tr.2)).
+    Proof.
+      iLöb as "IH".
+      iEval (rewrite /mapper_prot).
+      rewrite (fixpoint_unfold (mapper_prot_aux IT _ _)).
+      rewrite (fixpoint_unfold (mapper_prot_aux ITR _ _)).
+      rewrite {1 3}/mapper_prot_aux.
+      rewrite /iProto_choice.
+      iIntros (b). iExists (b).
+      destruct b=> //. iModIntro.
+      iApply example. iApply "IH".
+    Qed.
+
   End program_reuse.
 
 End basics.
