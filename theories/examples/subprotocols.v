@@ -11,6 +11,14 @@ Section basics.
     (<! (l1 : loc)> MSG (#l1, #l2') {{ l1 ↦ #20 }}; END).
   Proof. iIntros "Hl2'" (l1) "Hl1". iExists l1, l2'. by iFrame "Hl1 Hl2'". Qed.
 
+  Lemma framing_example (P Q R : iProp Σ) (v w : val) :
+    ⊢ ((<!> MSG v {{ P }} ; <?> MSG w {{ Q }}; END)%proto ⊑
+       (<!> MSG v {{ P ∗ R }} ; <?> MSG w {{ Q ∗ R }};END)%proto)%proto.
+  Proof.
+    iIntros "[HP HR]". iFrame "HP". iModIntro.
+    iIntros "HQ". iFrame "HQ HR". eauto.
+  Qed.
+
   Section program_reuse.
     Context {T U R : Type}.
     Context (IT : T -> val -> iProp Σ).
