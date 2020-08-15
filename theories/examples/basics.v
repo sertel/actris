@@ -1,4 +1,4 @@
-(** This file includes basic examples that each describe a unique feature of 
+(** This file includes basic examples that each describe a unique feature of
 dependent separation protocols. *)
 From actris.channel Require Import proofmode.
 From iris.heap_lang Require Import lib.spin_lock.
@@ -268,11 +268,9 @@ Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
-  - iAssert (∀ Ψ, WP (rec: "go" <> := let: "x" := recv c in
-      send c ("x" + #2) ;; "go" #())%V #() {{ Ψ }})%I with "[Hc]" as "H".
-    { iIntros (Ψ). iLöb as "IH". wp_recv (x) as "_". wp_send with "[//]".
-      wp_seq. by iApply "IH". }
-    wp_lam. wp_closure. wp_let. iApply "H".
+  - wp_pures. iLöb as "IH".
+    wp_recv (x) as "_". wp_send with "[//]".
+    wp_pures. by iApply "IH".
   - wp_send with "[//]". wp_recv as "_". wp_send with "[//]". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
