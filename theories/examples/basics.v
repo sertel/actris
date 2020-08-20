@@ -116,6 +116,20 @@ Definition prog_swap_loop : val := λ: <>,
   let: "x2" := recv "c" in
   "x1" + "x2".
 
+Definition prog_ref_swap_loop : val := λ: <>,
+  let: "c" := start_chan (λ: "c'",
+    let: "go" :=
+      rec: "go" <> :=
+        let: "l" := recv "c'" in
+        "l" <- !"l" + #2;; send "c'" #();; "go" #() in
+    "go" #()) in
+  let: "l1" := ref #18 in
+  let: "l2" := ref #20 in
+  send "c" "l1";;
+  send "c" "l2";;
+  recv "c";; recv "c";;
+  !"l1" + !"l2".
+
 Section proofs.
 Context `{heapG Σ, chanG Σ}.
 
@@ -157,6 +171,15 @@ Proof. solve_proto_contractive. Qed.
 Definition prot_loop : iProto Σ := fixpoint prot_loop_aux.
 Global Instance prot_loop_unfold :
   ProtoUnfold prot_loop (prot_loop_aux prot_loop).
+Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
+
+Definition prot_ref_loop_aux (rec : iProto Σ) : iProto Σ :=
+  (<! (l : loc) (x : Z)> MSG #l {{ l ↦ #x }}; <?> MSG #() {{ l ↦ #(x+2) }}; rec)%proto.
+Instance prot_ref_loop_contractive : Contractive prot_ref_loop_aux.
+Proof. solve_proto_contractive. Qed.
+Definition prot_ref_loop : iProto Σ := fixpoint prot_ref_loop_aux.
+Global Instance prot_ref_loop_unfold :
+  ProtoUnfold prot_ref_loop (prot_ref_loop_aux prot_ref_loop).
 Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
 
 Definition prot_fun : iProto Σ :=
@@ -335,17 +358,29 @@ Proof.
     wp_pures. by iApply "HΦ".
 Qed.
 
-Lemma prog_loop_swap_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}}.
+Lemma prog_swap_loop_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
-  - iAssert (∀ Ψ, WP (rec: "go" <> := let: "x" := recv c in
-      send c ("x" + #2) ;; "go" #())%V #() {{ Ψ }})%I with "[Hc]" as "H".
-    { iIntros (Ψ). iLöb as "IH". wp_recv (x) as "_". wp_send with "[//]".
-      wp_seq. by iApply "IH". }
-    wp_lam. wp_closure. wp_let. iApply "H".
+  - wp_pures. iLöb as "IH".
+    wp_recv (x) as "_". wp_send with "[//]".
+    wp_pures. by iApply "IH".
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
+Qed.
+
+Lemma prog_ref_swap_loop_spec :
+  {{{ True }}} prog_ref_swap_loop #() {{{ RET #42; True }}}.
+Proof.
+  iIntros (Φ) "_ HΦ". wp_lam.
+  wp_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
+  - do 4 wp_pure _. iLöb as "IH". wp_lam.
+    wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[Hl//]".
+    do 2 wp_pure _. by iApply "IH".
+  - wp_alloc l1 as "Hl1". wp_alloc l2 as "Hl2".
+    wp_send with "[Hl1//]". wp_send with "[Hl2//]".
+    wp_recv as "Hl1". wp_recv as "Hl2".
+    wp_load. wp_load. wp_pures. by iApply "HΦ".
 Qed.
 
 End proofs.
