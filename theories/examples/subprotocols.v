@@ -33,18 +33,18 @@ Section basics.
     Axiom HIU : ∀ v u r, (IU u v ∗ IR r) -∗ IUR (u,r) v.
 
     Lemma example prot prot' :
-      prot ⊑ prot'
-      -∗ (<! (x : T) (v : val)> MSG v {{ IT x v }};
-         <? (w : val)> MSG w {{ IU (f x) w }}; prot) ⊑
-        (<! (x : T * R) (v : val)> MSG v {{ ITR x v }};
-         <? (w : val)> MSG w {{ IUR (f x.1,x.2) w }}; prot').
+      ▷ (prot ⊑ prot') -∗
+           (<! (x : T) (v : val)> MSG v {{ IT x v }};
+           <? (w : val)> MSG w {{ IU (f x) w }}; prot) ⊑
+           (<! (x : T * R) (v : val)> MSG v {{ ITR x v }};
+           <? (w : val)> MSG w {{ IUR (f x.1,x.2) w }}; prot').
     Proof.
-      iIntros "Hprot" ([t r] v) "HTR".
+      iIntros "Hprot".
+      iIntros ([t r] v) "HTR".
       iDestruct (HIT with "HTR") as "[HT HR]".
       iExists t,v. iFrame "HT".
       iModIntro.
-      iIntros (w) "HU".
-      iDestruct (HIU with "[$HR $HU]") as "HUR".
+      iIntros (w) "HU". iDestruct (HIU with "[$HR $HU]") as "HUR".
       iExists w. iFrame "HUR".
       iModIntro. iApply "Hprot".
     Qed.
