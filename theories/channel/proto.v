@@ -338,6 +338,10 @@ Definition iProto_own `{!protoG Σ V}
 Arguments iProto_own {_ _ _} _ _%proto.
 Instance: Params (@iProto_own) 3 := {}.
 
+Instance iProto_own_contractive `{protoG Σ V} γ s :
+  Contractive (iProto_own γ s).
+Proof. solve_contractive. Qed.
+
 (** * Proofs *)
 Section proto.
   Context `{!protoG Σ V}.

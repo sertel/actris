@@ -110,6 +110,10 @@ Instance: Params (@iProto_mapsto) 4 := {}.
 Notation "c ↣ p" := (iProto_mapsto c p)
   (at level 20, format "c  ↣  p").
 
+Instance iProto_mapsto_contractive `{!heapG Σ, !chanG Σ} c :
+  Contractive (iProto_mapsto c).
+Proof. rewrite iProto_mapsto_eq. solve_contractive.
+
 Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
   (<a @ (b : bool)> MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
