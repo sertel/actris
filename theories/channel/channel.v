@@ -110,6 +110,9 @@ Instance: Params (@iProto_mapsto) 4 := {}.
 Notation "c ↣ p" := (iProto_mapsto c p)
   (at level 20, format "c  ↣  p").
 
+Definition iProto_nchoice {Σ} (a : action) (branches : gmap Z (iProp Σ * iProto Σ)) : iProto Σ :=
+  (<a @ (n : Z)> MSG #n {{fst (branches !!! n)}}; snd (branches !!! n))%proto.
+
 Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
   (<a @ (b : bool)> MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
@@ -314,4 +317,31 @@ Section channel.
     rewrite -bi_tforall_forall.
     iIntros "!>" (x) "[Hc H]". iApply "HΦ". iFrame.
   Qed.
+
+  Lemma nselect_spec c (n : Z) branches :
+    {{{ c ↣ iProto_nchoice Send branches ∗ (branches !!! n).1 }}}
+      send c #n
+   {{{ RET #(); c ↣ (branches !!! n).2 }}}.
+  Proof.
+    rewrite /iProto_nchoice. iIntros (Φ) "[Hc HP] HΦ".
+    iApply (send_spec with "[Hc HP] HΦ").
+    iApply (iProto_mapsto_le with "Hc").
+    iIntros "!>". iExists n. by iFrame "HP".
+  Qed.
+
+  Lemma nbranch_spec c branches :
+    {{{ c ↣ (iProto_nchoice Recv branches) }}}
+      recv c
+    {{{ (n : Z) , RET #n; c ↣ (branches !!! n).2 ∗ (branches !!! n).1 }}}.
+  Proof.
+    rewrite /iProto_nchoice. iIntros (Φ) "Hc HΦ".
+    iApply (recv_spec _ (tele_app _)
+                      (tele_app (TT := [tele _ : Z]) (λ n, (branches !!! n).1))%I
+                      (tele_app _) with "[Hc]").
+    { iApply (iProto_mapsto_le with "Hc").
+      iIntros "!> /=" (n) "HP". iExists n. by iSplitL. }
+    rewrite -bi_tforall_forall.
+    iIntros "!>" (n) "[Hc H]". iApply "HΦ". iFrame.
+  Qed.
+
 End channel.
