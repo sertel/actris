@@ -112,7 +112,7 @@ Notation "c ↣ p" := (iProto_mapsto c p)
 
 Instance iProto_mapsto_contractive `{!heapG Σ, !chanG Σ} c :
   Contractive (iProto_mapsto c).
-Proof. rewrite iProto_mapsto_eq. solve_contractive.
+Proof. rewrite iProto_mapsto_eq. solve_contractive. Qed.
 
 Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=

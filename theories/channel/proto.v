@@ -268,6 +268,11 @@ Arguments iProto_le {_ _} _%proto _%proto.
 Instance: Params (@iProto_le) 2 := {}.
 Notation "p ⊑ q" := (iProto_le p q) : bi_scope.
 
+Instance iProto_le_ne {Σ V} : NonExpansive2 (@iProto_le Σ V).
+Proof. solve_proper. Qed.
+Instance iProto_le_proper {Σ V} : Proper ((≡) ==> (≡) ==> (⊣⊢)) (@iProto_le Σ V).
+Proof. solve_proper. Qed.
+
 Fixpoint iProto_interp_aux {Σ V} (n : nat)
     (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   match n with
@@ -544,10 +549,6 @@ Section proto.
   Lemma iProto_le_unfold p1 p2 : iProto_le p1 p2 ≡ iProto_le_pre iProto_le p1 p2.
   Proof. apply: (fixpoint_unfold iProto_le_pre'). Qed.
 
-  Global Instance iProto_le_ne : NonExpansive2 (@iProto_le Σ V).
-  Proof. solve_proper. Qed.
-  Global Instance iProto_le_proper : Proper ((≡) ==> (≡) ==> (⊣⊢)) (@iProto_le Σ V).
-  Proof. solve_proper. Qed.
   Global Instance iProto_le_is_except_0 p1 p2 : IsExcept0 (p1 ⊑ p2).
   Proof.
     rewrite /IsExcept0 /bi_except_0. iIntros "[H|$]".
