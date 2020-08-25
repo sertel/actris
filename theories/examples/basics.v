@@ -375,10 +375,10 @@ Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
   - do 4 wp_pure _. iLöb as "IH". wp_lam.
-    wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[Hl//]".
+    wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
     do 2 wp_pure _. by iApply "IH".
   - wp_alloc l1 as "Hl1". wp_alloc l2 as "Hl2".
-    wp_send with "[Hl1//]". wp_send with "[Hl2//]".
+    wp_send with "[$Hl1]". wp_send with "[$Hl2]".
     wp_recv as "Hl1". wp_recv as "Hl2".
     wp_load. wp_load. wp_pures. by iApply "HΦ".
 Qed.
