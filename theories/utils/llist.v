@@ -75,6 +75,17 @@ Definition lsplit_at : val :=
 
 Definition lsplit : val := λ: "l", lsplit_at "l" (llength "l" `quot` #2).
 
+Definition lreverse_at : val :=
+  rec: "go" "l" "acc" :=
+    match: !"l" with
+      NONE => "acc"
+    | SOME "p" => (lcons (Fst "p") "acc");; "go" (Snd "p") "acc"
+    end.
+
+Definition lreverse : val :=
+  λ: "l", let: "l'" := ref (!"l") in
+          "l" <- !(lreverse_at "l'" (lnil #())).
+
 Section lists.
 Context `{heapG Σ} {A} (I : A → val → iProp Σ).
 Implicit Types i : nat.
@@ -246,4 +257,54 @@ Proof.
   wp_apply (lsplit_at_spec with "Hl"); iIntros (k) "[Hl Hk]".
   iApply "HΦ". iFrame. by rewrite take_drop.
 Qed.
+
+Lemma lreverse_at_spec l xs acc ys :
+  {{{ llist I l xs ∗ llist I acc ys }}}
+    lreverse_at #l #acc
+  {{{ l', RET #l'; llist I l' (reverse xs ++ ys) }}}.
+Proof.
+  iIntros (Φ) "[Hl Hacc] HΦ".
+  iInduction xs as [|x xs] "IH" forall (l acc Φ ys).
+  - wp_lam. wp_pures.
+    wp_load. wp_pures. iApply "HΦ". rewrite app_nil_l. iApply "Hacc".
+  - wp_lam. wp_pures. simpl.
+    iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
+    wp_load. wp_pures. wp_apply (lcons_spec with "[$Hacc $HI]").
+    iIntros "Hacc". wp_pures.
+    iApply ("IH" with "Hl' Hacc").
+    iIntros "!>" (l'') "Hl''".
+    iApply "HΦ". rewrite reverse_cons -app_assoc. iApply "Hl''".
+Qed.
+
+Lemma lreverse_spec l xs :
+  {{{ llist I l xs }}}
+    lreverse #l
+  {{{ RET #(); llist I l (reverse xs) }}}.
+Proof.
+  iIntros (Φ) "Hl HΦ". wp_lam.
+  destruct xs.
+  - wp_load. wp_alloc l' as "Hl'".
+    wp_apply (lnil_spec)=> //.
+    iIntros (lnil) "Hlnil".
+    iAssert (llist I l' []) with "Hl'" as "Hl'".
+    wp_apply (lreverse_at_spec with "[$Hl' $Hlnil]").
+    iIntros (l'') "Hl''".
+    wp_load. wp_store. iApply "HΦ". rewrite app_nil_r. iApply "Hl".
+  - iDestruct "Hl" as (v lcons) "[HI [Hlcons Hrec]]".
+    wp_load. wp_alloc l' as "Hl'".
+    wp_apply (lnil_spec)=> //.
+    iIntros (lnil) "Hlnil".
+    wp_apply (lreverse_at_spec _ (a::xs) with "[Hl' HI Hrec Hlnil]").
+    { iFrame "Hlnil". iExists v, lcons. iFrame. }
+    iIntros (l'') "Hl''".
+    assert (∃ ys, ys = reverse (a :: xs)) as [ys Hys].
+    { by exists (reverse (a :: xs)). }
+    rewrite -Hys. destruct ys.
+    + wp_load. wp_store. by iApply "HΦ".
+    + simpl. iDestruct "Hl''" as (v' lcons') "[HI [Hcons Hrec]]".
+      wp_load. wp_store.
+      iApply "HΦ". rewrite app_nil_r.
+      eauto with iFrame.
+Qed.
+
 End lists.

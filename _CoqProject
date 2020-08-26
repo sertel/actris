@@ -19,6 +19,7 @@ theories/examples/map.v
 theories/examples/map_reduce.v
 theories/examples/swap_mapper.v
 theories/examples/subprotocols.v
+theories/examples/list_rev.v
 theories/logrel/model.v
 theories/logrel/telescopes.v
 theories/logrel/subtyping.v
