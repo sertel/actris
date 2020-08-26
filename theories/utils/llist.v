@@ -265,15 +265,12 @@ Lemma lreverse_at_spec l xs acc ys :
 Proof.
   iIntros (Φ) "[Hl Hacc] HΦ".
   iInduction xs as [|x xs] "IH" forall (l acc Φ ys).
-  - wp_lam. wp_pures.
-    wp_load. wp_pures. iApply "HΦ". rewrite app_nil_l. iApply "Hacc".
-  - wp_lam. wp_pures. simpl.
-    iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
-    wp_load. wp_pures. wp_apply (lcons_spec with "[$Hacc $HI]").
-    iIntros "Hacc". wp_pures.
-    iApply ("IH" with "Hl' Hacc").
-    iIntros "!>" (l'') "Hl''".
-    iApply "HΦ". rewrite reverse_cons -app_assoc. iApply "Hl''".
+  - wp_lam. wp_load. wp_pures. iApply "HΦ". rewrite app_nil_l. iApply "Hacc".
+  - wp_lam. iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
+    wp_load. wp_apply (lcons_spec with "[$Hacc $HI]").
+    iIntros "Hacc". wp_apply ("IH" with "Hl' Hacc").
+    iIntros (l'') "Hl''". iApply "HΦ".
+    rewrite reverse_cons -app_assoc. iApply "Hl''".
 Qed.
 
 Lemma lreverse_spec l xs :

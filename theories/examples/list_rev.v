@@ -25,12 +25,8 @@ Section list_rev_example.
     {{{ RET #(); c ↣ prot }}}.
   Proof.
     iIntros (Φ) "Hc HΦ".
-    wp_lam.
-    wp_recv (l vs) as "Hl".
-    wp_apply (lreverse_spec with "Hl").
-    iIntros "Hl".
-    wp_send with "[$Hl]".
-    iApply ("HΦ" with "Hc").
+    wp_lam. wp_recv (l vs) as "Hl". wp_apply (lreverse_spec with "Hl").
+    iIntros "Hl". wp_send with "[$Hl]". iApply ("HΦ" with "Hc").
   Qed.
 
   Lemma llist_split {T} (IT : T → val → iProp Σ) xs l :
@@ -50,8 +46,7 @@ Section list_rev_example.
       + by iDestruct (big_sepL2_nil_inv_l with "HIT") as %->.
       + iDestruct (big_sepL2_cons_inv_l with "HIT") as (v vs' ->) "[HIT HITs]".
         iDestruct "Hvs" as (w lcons Heq) "[Hl Hvs]".
-        iExists w, lcons.
-        iFrame.
+        iExists w, lcons. iFrame "Hl".
         iSplitL "HIT".
         { by iEval (rewrite -Heq). }
         iApply ("IH" with "Hvs HITs").
@@ -67,11 +62,8 @@ Section list_rev_example.
     iIntros (l xs) "Hl".
     iDestruct (llist_split with "Hl") as (vs) "[Hl HI]".
     iExists l, vs. iFrame "Hl".
-    iModIntro.
-    iIntros "Hl".
-    iSplitL.
-    { rewrite big_sepL2_reverse_2.
-      iApply llist_split. iExists (reverse vs). iFrame. }
+    iModIntro. iIntros "Hl". iSplitL.
+    { rewrite big_sepL2_reverse_2. iApply llist_split. eauto with iFrame. }
     eauto.
   Qed.
 
@@ -86,9 +78,7 @@ Section list_rev_example.
       iApply (list_rev_service_spec with "Hc"). eauto.
     - iDestruct (iProto_mapsto_le _ _ (list_rev_protI IT) with "Hc []") as "Hc".
       { iApply list_rev_subprot. }
-      wp_send (l xs) with "[$Hl]".
-      wp_recv as "Hl".
-      by iApply "HΦ".
+      wp_send (l xs) with "[$Hl]". wp_recv as "Hl". by iApply "HΦ".
   Qed.
 
 End list_rev_example.
