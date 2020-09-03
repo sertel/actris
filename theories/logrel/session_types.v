@@ -7,6 +7,7 @@ From actris.logrel Require Export model telescopes.
 From actris.channel Require Export channel.
 
 Definition lmsg Σ := iMsg Σ.
+Declare Scope lmsg_scope.
 Delimit Scope lmsg_scope with lmsg.
 Bind Scope lmsg_scope with lmsg.
 

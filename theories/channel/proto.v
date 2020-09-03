@@ -67,6 +67,7 @@ Proof. solve_inG. Qed.
 
 (** * Types *)
 Definition iProto Σ V := proto V (iPropO Σ) (iPropO Σ).
+Declare Scope proto_scope.
 Delimit Scope proto_scope with proto.
 Bind Scope proto_scope with iProto.
 Local Open Scope proto.
@@ -79,6 +80,7 @@ End iMsg.
 Arguments IMsg {_ _} _.
 Arguments iMsg_car {_ _} _.
 
+Declare Scope msg_scope.
 Delimit Scope msg_scope with msg.
 Bind Scope msg_scope with iMsg.
 Instance iMsg_inhabited {Σ V} : Inhabited (iMsg Σ V) := populate (IMsg inhabitant).

@@ -55,7 +55,7 @@ Definition proto_auxOF (V : Type) (PROP : ofeT) : oFunctor :=
 
 Definition proto_result (V : Type) := result_2 (proto_auxOF V).
 Definition proto (V : Type) (PROPn PROP : ofeT) `{!Cofe PROPn, !Cofe PROP} : ofeT :=
-  proto_result V PROPn _ PROP _.
+  solution_2_car (proto_result V) PROPn _ PROP _.
 Instance proto_cofe {V} `{!Cofe PROPn, !Cofe PROP} : Cofe (proto V PROPn PROP).
 Proof. apply _. Qed.
 Lemma proto_iso {V} `{!Cofe PROPn, !Cofe PROP} :

@@ -3,11 +3,12 @@ From iris.algebra Require Import cofe_solver.
 (** Version of the cofe_solver for a parametrized functor. Generalize and move
 to Iris. *)
 Record solution_2 (F : ofeT → oFunctor) := Solution2 {
-  solution_2_car :> ∀ An `{!Cofe An} A `{!Cofe A}, ofeT;
+  solution_2_car : ∀ An `{!Cofe An} A `{!Cofe A}, ofeT;
   solution_2_cofe `{!Cofe An, !Cofe A} : Cofe (solution_2_car An A);
   solution_2_iso `{!Cofe An, !Cofe A} :>
     ofe_iso (oFunctor_apply (F A) (solution_2_car A An)) (solution_2_car An A);
 }.
+Arguments solution_2_car {F}.
 Existing Instance solution_2_cofe.
 
 Section cofe_solver_2.

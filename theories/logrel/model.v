@@ -20,13 +20,14 @@ Instance kind_eq_dec : EqDecision kind.
 Proof. solve_decision. Defined.
 Instance kind_inhabited : Inhabited kind := populate tty_kind.
 
-(** Use [Variant] to supress generation of induction schemes *)
+(** Use [Variant] to suppress generation of induction schemes *)
 Variant lty Σ : kind → Type :=
   | Ltty : (val → iProp Σ) → lty Σ tty_kind
   | Lsty : iProto Σ → lty Σ sty_kind.
 Arguments Ltty {_} _%I.
 Arguments Lsty {_} _%proto.
 
+Declare Scope lty_scope.
 Bind Scope lty_scope with lty.
 Delimit Scope lty_scope with lty.
 
