@@ -7,7 +7,7 @@ at POPL'20.
 
 It has been built and tested with the following dependencies
 
- - Coq 8.11.1
+ - Coq 8.11.2
  - The version of Iris in the [opam file](opam)
 
 In order to build, install the above dependencies and then run
