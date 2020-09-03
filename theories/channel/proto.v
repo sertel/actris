@@ -899,6 +899,17 @@ Section proto.
       iSplitL "H"; [iIntros "!>"; by iRewrite "Hp2d"|]. simpl; auto.
   Qed.
 
+  Lemma iProto_le_amber (p1 p2 : iProto Σ V → iProto Σ V)
+    `{Contractive p1, Contractive p2}:
+    □ (∀ rec1 rec2, ▷ (rec1 ⊑ rec2) → p1 rec1 ⊑ p2 rec2) -∗
+    fixpoint p1 ⊑ fixpoint p2.
+  Proof.
+    iIntros "#H". iLöb as "IH".
+    iEval (rewrite (fixpoint_unfold p1)).
+    iEval (rewrite (fixpoint_unfold p2)).
+    iApply "H". iApply "IH".
+  Qed.
+
   Lemma iProto_le_dual_l p1 p2 : iProto_dual p2 ⊑ p1 -∗ iProto_dual p1 ⊑ p2.
   Proof.
     iIntros "H". iEval (rewrite -(involutive iProto_dual p2)).
