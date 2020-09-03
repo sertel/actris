@@ -57,14 +57,17 @@ Section list_rev_example.
      <?> MSG #() {{ llist IT l (reverse xs) }} ; END)%proto.
 
   Lemma list_rev_subprot {T} (IT : T → val → iProp Σ) :
-    ⊢ list_rev_prot ⊑ (list_rev_protI IT).
+    ⊢ list_rev_prot ⊑ list_rev_protI IT.
   Proof.
     iIntros (l xs) "Hl".
-    iDestruct (llist_split with "Hl") as (vs) "[Hl HI]".
+    iDestruct (llist_split with "Hl") as (vs) "[Hl HIT]".
     iExists l, vs. iFrame "Hl".
-    iModIntro. iIntros "Hl". iSplitL.
-    { rewrite big_sepL2_reverse_2. iApply llist_split. eauto with iFrame. }
-    eauto.
+    iModIntro.
+    iIntros "Hl".
+    iSplitL "Hl HIT".
+    { iApply llist_split. rewrite big_sepL2_reverse_2.
+      iExists (reverse vs). iFrame "Hl HIT". }
+    done.
   Qed.
 
   Lemma list_rev_client_spec {T} (IT : T → val → iProp Σ) l xs :
