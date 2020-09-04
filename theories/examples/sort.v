@@ -51,7 +51,7 @@ Section sort.
 
   Definition sort_protocol_func : iProto Σ :=
     (<! A (I : A → val → iProp Σ) (R : A → A → Prop)
-         `{!RelDecision R, !Total R} (cmp : val)>
+         `(!RelDecision R, !Total R) (cmp : val)>
        MSG cmp {{ cmp_spec I R cmp }};
      sort_protocol I R)%proto.
 

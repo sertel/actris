@@ -294,7 +294,7 @@ Section sort_fg.
 
   Definition sort_fg_func_protocol : iProto Σ :=
     (<! A (I : A → val → iProp Σ) (R : A → A → Prop)
-         `{!RelDecision R, !Total R} (cmp : val)>
+         `(!RelDecision R, !Total R) (cmp : val)>
        MSG cmp {{ cmp_spec I R cmp }};
      sort_fg_head_protocol I R [])%proto.
 
