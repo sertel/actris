@@ -104,8 +104,8 @@ Section rules.
   Context `{heapG Σ, lockG Σ}.
 
   (** Mutex properties *)
-  Lemma ltyped_mutex_alloc A :
-    ⊢ ∅ ⊨ mutex_alloc : A → mutex A.
+  Lemma ltyped_mutex_alloc Γ A :
+    ⊢ Γ ⊨ mutex_alloc : A → mutex A ⫤ ∅.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
     iSplitL; last by iApply env_ltyped_empty.

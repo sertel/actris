@@ -216,8 +216,8 @@ Section properties.
   Qed.
 
   (** Sum Properties *)
-  Lemma ltyped_injl Γ e A1 A2 :
-    (Γ ⊨ e : A1) -∗ Γ ⊨ InjL e : A1 + A2.
+  Lemma ltyped_injl Γ1 Γ2 e A1 A2 :
+    (Γ1 ⊨ e : A1 ⫤ Γ2) -∗ Γ1 ⊨ InjL e : A1 + A2 ⫤ Γ2.
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
@@ -225,8 +225,8 @@ Section properties.
     iLeft. iExists v. auto.
   Qed.
 
-  Lemma ltyped_injr Γ e A1 A2 :
-    (Γ ⊨ e : A2) -∗ Γ ⊨ InjR e : A1 + A2.
+  Lemma ltyped_injr Γ1 Γ2 e A1 A2 :
+    (Γ1 ⊨ e : A2 ⫤ Γ2) -∗ Γ1 ⊨ InjR e : A1 + A2 ⫤ Γ2.
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
@@ -276,8 +276,8 @@ Section properties.
   Qed.
 
   (** Existential properties *)
-  Lemma ltyped_pack Γ e k (C : lty Σ k → ltty Σ) M :
-    (Γ ⊨ e : C M) -∗ Γ ⊨ e : ∃ M, C M.
+  Lemma ltyped_pack Γ1 Γ2 e k (C : lty Σ k → ltty Σ) M :
+    (Γ1 ⊨ e : C M ⫤ Γ2) -∗ Γ1 ⊨ e : ∃ M, C M ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists M.
@@ -454,8 +454,8 @@ Section properties.
   Section with_chan.
     Context `{chanG Σ}.
 
-    Lemma ltyped_new_chan S :
-      ⊢ ∅ ⊨ new_chan : () → (chan S * chan (lty_dual S)).
+    Lemma ltyped_new_chan Γ S :
+      ⊢ Γ ⊨ new_chan : () → (chan S * chan (lty_dual S)) ⫤ ∅.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value.
       iSplitL; last by iApply env_ltyped_empty.
