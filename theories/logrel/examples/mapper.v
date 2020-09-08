@@ -25,11 +25,14 @@ Section mapper_example.
     { iApply env_split_id_l. }
     2: { iApply env_split_id_l. }
     iApply ltyped_lam.
+    { iApply env_split_id_r. }
     iApply ltyped_let.
     { iApply ltyped_send. apply lookup_insert.
       iApply (ltyped_frame _ _ _ _ {["c":=_]}).
       { iApply env_split_id_l. }
-      { iApply ltyped_lam. iApply ltyped_bin_op.
+      { iApply ltyped_lam.
+        { iApply env_split_id_r. }
+        iApply ltyped_bin_op.
         - iApply ltyped_var. apply lookup_insert.
         - iApply ltyped_int. }
       { iApply env_split_id_l. } }
@@ -76,11 +79,14 @@ Section mapper_example.
         eauto.
       - iApply lty_le_refl. }
     iApply ltyped_lam.
+    { iApply env_split_id_r. }
     iApply ltyped_let.
     { iApply ltyped_send. apply lookup_insert.
       iApply (ltyped_frame _ _ _ _ {["c":=_]}).
       { iApply env_split_id_l. }
-      { iApply ltyped_lam. iApply ltyped_bin_op.
+      { iApply ltyped_lam.
+        { iApply env_split_id_r. }
+        iApply ltyped_bin_op.
         - iApply ltyped_var. apply lookup_insert.
         - iApply ltyped_int. }
       { iApply env_split_id_l. } }
@@ -92,7 +98,9 @@ Section mapper_example.
     { iApply ltyped_send. apply lookup_insert.
       iApply (ltyped_frame _ _ _ _ (<["c":=_]>∅)).
       { iApply env_split_id_l. }
-      { iApply ltyped_lam. iApply ltyped_bin_op.
+      { iApply ltyped_lam.
+        { iApply env_split_id_r. }
+        iApply ltyped_bin_op.
         - iApply ltyped_var. apply lookup_insert.
         - iApply ltyped_int. }
       { iApply env_split_id_l. } }
@@ -166,11 +174,14 @@ Section mapper_example.
         iApply lty_le_refl.
       - iApply lty_le_refl. }
     iApply ltyped_lam.
+    { iApply env_split_id_r. }
     iApply ltyped_let.
     { iApply ltyped_send. apply lookup_insert.
       iApply (ltyped_frame _ _ _ _ {["c":=_]}).
       { iApply env_split_id_l. }
-      { iApply ltyped_lam. iApply ltyped_bin_op.
+      { iApply ltyped_lam.
+        { iApply env_split_id_r. }
+        iApply ltyped_bin_op.
         - iApply ltyped_var. apply lookup_insert.
         - iApply ltyped_int. }
       { iApply env_split_id_l. } }
@@ -183,7 +194,9 @@ Section mapper_example.
     { iApply ltyped_send. apply lookup_insert.
       iApply (ltyped_frame _ _ _ _ (<["c":=_]>∅)).
       { iApply env_split_id_l. }
-      { iApply ltyped_lam. iApply ltyped_if.
+      { iApply ltyped_lam.
+        { iApply env_split_id_r. }
+        iApply ltyped_if.
         - iApply ltyped_bool.
         - iApply ltyped_int.
         - iApply ltyped_int. }
@@ -223,6 +236,7 @@ Section mapper_example.
     { iApply env_split_id_l. }
     2: { iApply env_split_id_l. }
     iApply ltyped_lam.
+    { iApply env_split_id_r. }
     iApply ltyped_let.
     { iApply ltyped_recv. by rewrite lookup_insert. }
     rewrite insert_insert /=.

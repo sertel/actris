@@ -115,15 +115,17 @@ Section properties.
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
   Qed.
 
-  Lemma ltyped_lam Γ Γ' x e A1 A2 :
-    (<![x:=A1]!> Γ ⊨ e : A2 ⫤ Γ') -∗
-    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ ∅.
+  Lemma ltyped_lam Γ Γ1 Γ2 Γ' x e A1 A2 :
+    env_split Γ Γ1 Γ2 -∗
+    (<![x:=A1]!> Γ1 ⊨ e : A2 ⫤ Γ') -∗
+    Γ ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
   Proof.
-    iIntros "#He" (vs) "!> HΓ /=".
-    wp_pures. iSplitL; last by iApply env_ltyped_empty.
+    iIntros "#Hsplit #He" (vs) "!> HΓ /=".
+    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    wp_pures. iSplitL "HΓ1"; last done.
     iIntros (v) "HA1". wp_pures.
-    iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ]") as "He'".
-    { iApply (env_ltyped_insert with "[HA1 //] HΓ"). }
+    iDestruct ("He" $!((binder_insert x v vs)) with "[HA1 HΓ1]") as "He'".
+    { iApply (env_ltyped_insert with "[HA1 //] HΓ1"). }
     iDestruct (wp_wand _ _ _ _ (ltty_car A2) with "He' []") as "He'".
     { iIntros (w) "[$ _]". }
     destruct x as [|x]; rewrite /= -?subst_map_insert //.
@@ -172,7 +174,7 @@ Section properties.
 
   (** Product properties  *)
   Lemma ltyped_pair Γ1 Γ2 Γ3 e1 e2 A1 A2 :
-    (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗ 
+    (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗
     Γ1 ⊨ (e1,e2) : A1 * A2 ⫤ Γ3.
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
@@ -258,13 +260,16 @@ Section properties.
   Qed.
 
   (** Universal Properties *)
-  Lemma ltyped_tlam Γ e k (C : lty Σ k → ltty Σ) :
-    (∀ M, Γ ⊨ e : C M ⫤ ∅) -∗ Γ ⊨ (λ: <>, e) : ∀ M, C M ⫤ ∅.
+  Lemma ltyped_tlam Γ Γ1 Γ2 Γ' e k (C : lty Σ k → ltty Σ) :
+    env_split Γ Γ1 Γ2 -∗
+    (∀ M, Γ1 ⊨ e : C M ⫤ Γ') -∗
+    Γ ⊨ (λ: <>, e) : ∀ M, C M ⫤ Γ2.
   Proof.
-    iIntros "#He" (vs) "!> HΓ /=". wp_pures.
-    iSplitL; last by iApply env_ltyped_empty.
+    iIntros "#Hsplit #He" (vs) "!> HΓ /=". wp_pures.
+    iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
+    iSplitL "HΓ1"; last done.
     iIntros (M) "/=". wp_pures.
-    iApply (wp_wand with "(He HΓ)"). iIntros (v) "[$ _]".
+    iApply (wp_wand with "(He HΓ1)"). iIntros (v) "[$ _]".
   Qed.
 
   Lemma ltyped_tapp Γ Γ2 e k (C : lty Σ k → ltty Σ) M :
@@ -455,10 +460,9 @@ Section properties.
     Context `{chanG Σ}.
 
     Lemma ltyped_new_chan Γ S :
-      ⊢ Γ ⊨ new_chan : () → (chan S * chan (lty_dual S)) ⫤ ∅.
+      ⊢ Γ ⊨ new_chan : () → (chan S * chan (lty_dual S)) ⫤ Γ.
     Proof.
-      iIntros (vs) "!> HΓ /=". iApply wp_value.
-      iSplitL; last by iApply env_ltyped_empty.
+      iIntros (vs) "!> HΓ /=". iApply wp_value. iFrame "HΓ".
       iIntros "!>" (u) ">->".
       iApply (new_chan_spec with "[//]"); iIntros (c1 c2) "!> [Hp1 Hp2]".
       iExists c1, c2. iSplit=>//. iFrame "Hp1 Hp2".

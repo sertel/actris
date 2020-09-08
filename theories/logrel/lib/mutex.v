@@ -105,10 +105,10 @@ Section rules.
 
   (** Mutex properties *)
   Lemma ltyped_mutex_alloc Γ A :
-    ⊢ Γ ⊨ mutex_alloc : A → mutex A ⫤ ∅.
+    ⊢ Γ ⊨ mutex_alloc : A → mutex A ⫤ Γ.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
+    iFrame "HΓ".
     iIntros "!>" (v) "Hv". rewrite /mutex_alloc. wp_pures.
     wp_alloc l as "Hl".
     wp_bind (newlock _).
