@@ -106,10 +106,10 @@ Section properties.
 
   (** Arrow properties *)
   Lemma ltyped_app Γ1 Γ2 Γ3 e1 e2 A1 A2 :
-    (Γ2 ⊨ e1 : A1 ⊸ A2 ⫤ Γ3) -∗ (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗
+    (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⊸ A2 ⫤ Γ3) -∗
     Γ1 ⊨ e1 e2 : A2 ⫤ Γ3.
   Proof.
-    iIntros "#H1 #H2". iIntros (vs) "!> HΓ /=".
+    iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
     wp_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf HΓ]".
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
@@ -172,10 +172,10 @@ Section properties.
 
   (** Product properties  *)
   Lemma ltyped_pair Γ1 Γ2 Γ3 e1 e2 A1 A2 :
-    (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗ (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗
+    (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗ 
     Γ1 ⊨ (e1,e2) : A1 * A2 ⫤ Γ3.
   Proof.
-    iIntros "#H1 #H2". iIntros (vs) "!> HΓ /=".
+    iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H2 [HΓ //])"); iIntros (w2) "[HA2 HΓ]".
     wp_apply (wp_wand with "(H1 [HΓ //])"); iIntros (w1) "[HA1 HΓ]".
     wp_pures. iFrame "HΓ". iExists w1, w2. by iFrame.
@@ -590,10 +590,10 @@ Section properties.
       let: "y" := recv "c" in
       switch_body "y" 0 xs (assert: #false) $ λ i, ("f" +:+ pretty i) "c".
 
-    Lemma ltyped_branch Ss A xs :
+    Lemma ltyped_branch Γ Ss A xs :
       (∀ x, x ∈ xs ↔ is_Some (Ss !! x)) →
-      ⊢ ∅ ⊨ branch xs : chan (lty_branch Ss) ⊸
-        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A.
+      ⊢ Γ ⊨ branch xs : chan (lty_branch Ss) ⊸
+        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A ⫤ ∅.
     Proof.
       iIntros (Hdom) "!>". iIntros (vs) "Hvs".
       iApply wp_value.

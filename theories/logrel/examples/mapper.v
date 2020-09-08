@@ -108,9 +108,10 @@ Section mapper_example.
     { iApply ltyped_recv=> //. }
     iApply ltyped_pair.
     - iApply ltyped_var. apply lookup_insert.
-    - rewrite (insert_commute _ "c" "x") //= (insert_commute _ "y" "x") //=.
+    - rewrite insert_insert.
+      rewrite (insert_commute _ "c" "x") //=.
       rewrite insert_insert.
-      iApply (ltyped_frame _ _ _ _ {["x":=_]}).
+      iApply (ltyped_frame _ _ _ _ {["y":=_]}).
       { iApply env_split_right=> //=. iApply env_split_id_r. }
       iApply ltyped_var. apply lookup_insert.
       iApply env_split_right=> //; last by iApply env_split_id_r=> //=. eauto.
@@ -198,9 +199,9 @@ Section mapper_example.
     { iApply ltyped_recv=> //. }
     iApply ltyped_pair.
     - iApply ltyped_var. apply lookup_insert.
-    - rewrite (insert_commute _ "c" "x") //= (insert_commute _ "y" "x") //=.
+    - rewrite insert_insert. rewrite (insert_commute _ "c" "x") //=.
       rewrite insert_insert.
-      iApply (ltyped_frame _ _ _ _ {["x":=_]}).
+      iApply (ltyped_frame _ _ _ _ {["y":=_]}).
       { iApply env_split_right=> //=. iApply env_split_id_r. }
       iApply ltyped_var. apply lookup_insert.
       iApply env_split_right=> //; last by iApply env_split_id_r=> //=. eauto.
@@ -236,8 +237,8 @@ Section mapper_example.
     { iApply env_split_right=> //. iApply env_split_id_r. }
     { iApply ltyped_app.
       - iApply ltyped_var. apply lookup_insert.
-      - rewrite insert_commute //.
-        iApply (ltyped_frame _ _ _ _ {["f":=_]}).
+      - rewrite insert_insert.
+        iApply (ltyped_frame _ _ _ _ {["v":=_]}).
         { iApply env_split_right=> //. iApply env_split_id_r. }
         { iApply ltyped_var. apply lookup_insert. }
         { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
