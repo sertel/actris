@@ -19,6 +19,7 @@ Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
 
 Definition lty_msg_texist {Σ} {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) : lmsg Σ :=
   ktele_fold (@lty_msg_exist Σ) (λ x, x) (ktele_bind M).
+Arguments lty_msg_texist {_ !_} _%lmsg /.
 
 Definition lty_end {Σ} : lsty Σ := Lsty END.
 
@@ -74,6 +75,11 @@ Infix "<++>" := lty_app (at level 60) : lty_scope.
 Notation "( S <++>.)" := (lty_app S) (only parsing) : lty_scope.
 Notation "(.<++> T )" := (λ S, lty_app S T) (only parsing) : lty_scope.
 
+Class LtyMsgTele {Σ} {kt : ktele Σ} (M : lmsg Σ)
+    (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :=
+  lty_msg_tele : M ≡ (∃.. x, TY ktele_app A x; ktele_app S x)%lmsg.
+Hint Mode LtyMsgTele ! - ! - - : typeclass_instances.
+
 Section session_types.
   Context {Σ : gFunctors}.
 
@@ -115,4 +121,13 @@ Section session_types.
   Proof. solve_proper. Qed.
   Global Instance lty_app_proper : Proper ((≡) ==> (≡) ==> (≡)) (@lty_app Σ).
   Proof. apply ne_proper_2, _. Qed.
+
+  Global Instance lty_msg_tele_base (A : ltty Σ) (S : lsty Σ) :
+    LtyMsgTele (kt:=KTeleO) (TY A ; S) A S.
+  Proof. done. Qed.
+  Global Instance lty_msg_tele_exist {k} {kt : lty Σ k → ktele Σ}
+    (M : lty Σ k → lmsg Σ) A S :
+    (∀ x, LtyMsgTele (kt:=kt x) (M x) (A x) (S x)) →
+    LtyMsgTele (kt:=KTeleS kt) (∃ x, M x) A S.
+  Proof. intros HM. rewrite /LtyMsgTele /=. f_equiv=> x. apply HM. Qed.
 End session_types.

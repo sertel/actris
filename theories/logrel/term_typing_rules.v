@@ -495,20 +495,22 @@ Section properties.
       iApply (iProto_le_trans with "IH"). iIntros (Xs). by iExists (LTysS _ _).
     Qed.
 
-    Lemma ltyped_recv_texist {kt} Γ1 Γ2 (xc : string) (x : binder) (e : expr)
-        (A : ltys Σ kt → ltty Σ) (S : ltys Σ kt → lsty Σ) (B : ltty Σ) :
+    Lemma ltyped_recv_texist {kt} Γ1 Γ2 M (xc : string) (x : binder) (e : expr)
+        (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) (B : ltty Σ) :
+      LtyMsgTele M A S →
       (∀ Ys,
-        <![x:=A Ys]!> $ <[xc:=(chan (S Ys))%lty]> Γ1 ⊨ e : B ⫤ Γ2) -∗
-      <[xc:=(chan (<??.. Xs> TY A Xs; S Xs))%lty]> Γ1 ⊨
+        <![x:=ktele_app A Ys]!> $ <[xc:=(chan (ktele_app S Ys))%lty]> Γ1 ⊨ e : B ⫤ Γ2) -∗
+      <[xc:=(chan (<??> M))%lty]> Γ1 ⊨
         (let: x := recv xc in e) : B ⫤ binder_delete x Γ2.
     Proof.
-      iIntros "#He !>". iIntros (vs) "HΓ /=".
+      rewrite /LtyMsgTele.
+      iIntros (HM) "#He !>". iIntros (vs) "HΓ /=".
       iDestruct (env_ltyped_lookup with "HΓ") as (c Hxc) "[Hc HΓ]".
       { by apply lookup_insert. }
       rewrite Hxc.
       iAssert (c ↣ <? (Xs : ltys Σ kt) (v : val)>
-        MSG v {{ ▷ ltty_car (A Xs) v }}; lsty_car (S Xs)) with "[Hc]" as "Hc".
-      { iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
+        MSG v {{ ▷ ltty_car (ktele_app A Xs) v }}; lsty_car (ktele_app S Xs)) with "[Hc]" as "Hc".
+      { iApply (iProto_mapsto_le with "Hc"); iIntros "!>". rewrite HM.
         iApply iProto_le_lmsg_texist. }
       wp_recv (Xs v) as "HA". wp_pures.
       rewrite -subst_map_binder_insert.
