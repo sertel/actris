@@ -157,6 +157,8 @@ Section term_types.
   Global Instance lty_ref_shr_ne `{heapG Σ} : NonExpansive lty_ref_shr.
   Proof. solve_proper. Qed.
 
+  Global Instance lty_chan_contractive `{heapG Σ, chanG Σ} : Contractive lty_chan.
+  Proof. solve_contractive. Qed.
   Global Instance lty_chan_ne `{heapG Σ, chanG Σ} : NonExpansive lty_chan.
   Proof. solve_proper. Qed.
 End term_types.
