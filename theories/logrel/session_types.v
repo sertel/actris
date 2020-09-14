@@ -112,10 +112,10 @@ Section session_types.
            (@lty_choice Σ a).
   Proof.
     intros n Ss Ts Heq. rewrite /lty_choice.
-    do 4 f_equiv.
+    do 2 f_equiv. f_equiv => i.
     rewrite !lookup_total_alt.
-    specialize (Heq a0).
-    destruct (Ss !! a0), (Ts !! a0);
+    specialize (Heq i).
+    destruct (Ss !! i), (Ts !! i);
       [ f_contractive | contradiction | contradiction | done ].
     - f_equiv. split; intros H; eauto.
     - by rewrite Heq.
