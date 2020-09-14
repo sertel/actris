@@ -107,6 +107,19 @@ Section session_types.
   Proof. solve_proper. Qed.
   Global Instance lty_choice_proper a : Proper ((≡) ==> (≡)) (@lty_choice Σ a).
   Proof. apply ne_proper, _. Qed.
+  Global Instance lty_choice_contractive a :
+    Proper (map_relation (dist_later n) (λ _, False) (λ _, False) ==> dist n)
+           (@lty_choice Σ a).
+  Proof.
+    intros n Ss Ts Heq. rewrite /lty_choice.
+    do 4 f_equiv.
+    rewrite !lookup_total_alt.
+    specialize (Heq a0).
+    destruct (Ss !! a0), (Ts !! a0);
+      [ f_contractive | contradiction | contradiction | done ].
+    - f_equiv. split; intros H; eauto.
+    - by rewrite Heq.
+  Qed.
   Global Instance lty_dual_ne : NonExpansive (@lty_dual Σ).
   Proof. solve_proper. Qed.
   Global Instance lty_dual_proper : Proper ((≡) ==> (≡)) (@lty_dual Σ).
