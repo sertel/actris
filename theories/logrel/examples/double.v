@@ -131,8 +131,8 @@ Section double.
     iIntros (c) "Hc".
     iApply (wp_prog (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
     { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
-      iIntros "!> !>" (v1). iMod 1 as %[x1 ->]. iExists #x1.
-      iIntros "!>" (v2). iMod 1 as %[x2 ->]. iExists #x2. iSplitL; last done.
+      iIntros "!> !>" (v1). iDestruct 1 as %[x1 ->]. iExists #x1.
+      iIntros "!>" (v2). iDestruct 1 as %[x2 ->]. iExists #x2. iSplitL; last done.
       rewrite /ltty_car /=. auto. }
     iIntros "!>" (v1 v2 [[[k1 ->] [k2 ->]]|[[k1 ->] [k2 ->]]]);
       iExists _, _; iSplit; by eauto.

@@ -242,7 +242,7 @@ Section subtyping_rules.
 
   (** Session subtyping *)
   Lemma lty_le_send A1 A2 S1 S2 :
-    ▷ (A2 <: A1) -∗ ▷ (S1 <: S2) -∗
+    (A2 <: A1) -∗ ▷ (S1 <: S2) -∗
     (<!!> TY A1 ; S1) <: (<!!> TY A2 ; S2).
   Proof.
     iIntros "#HAle #HSle !>" (v) "H". iExists v.
@@ -250,7 +250,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_recv A1 A2 S1 S2 :
-    ▷ (A1 <: A2) -∗ ▷ (S1 <: S2) -∗
+    (A1 <: A2) -∗ ▷ (S1 <: S2) -∗
     (<??> TY A1 ; S1) <: (<??> TY A2 ; S2).
   Proof.
     iIntros "#HAle #HSle !>" (v) "H". iExists v.
@@ -329,7 +329,7 @@ Section subtyping_rules.
     iApply iProto_le_trans;
       [iApply iProto_le_base; iApply (iProto_le_exist_intro_l _ x2)|]; simpl.
     iApply iProto_le_payload_elim_r.
-    iMod 1 as %HSs. revert HSs.
+    iDestruct 1 as %HSs. revert HSs.
     rewrite !lookup_total_alt !lookup_fmap fmap_is_Some; iIntros ([S ->]) "/=".
     iApply iProto_le_trans; [iApply iProto_le_base_swap|]. iSplitL; [by eauto|].
     iModIntro. by iExists v1.
@@ -342,7 +342,7 @@ Section subtyping_rules.
     iApply iProto_le_trans;
       [|iApply iProto_le_base; iApply (iProto_le_exist_intro_r _ x1)]; simpl.
     iApply iProto_le_payload_elim_l.
-    iMod 1 as %HSs. revert HSs.
+    iDestruct 1 as %HSs. revert HSs.
     rewrite !lookup_total_alt !lookup_fmap fmap_is_Some; iIntros ([S ->]) "/=".
     iApply iProto_le_trans; [|iApply iProto_le_base_swap]. iSplitL; [by eauto|].
     iModIntro. by iExists v2.
@@ -358,7 +358,7 @@ Section subtyping_rules.
     intros Hin.
     iIntros "!>" (v1 v2).
     rewrite !lookup_fmap !fmap_is_Some !lookup_total_alt !lookup_fmap.
-    iIntros ">% >%".
+    iIntros "H1 H2". iDestruct "H1" as %H1. iDestruct "H2" as %H2.
     destruct H1 as [Ss1' Heq1]. destruct H2 as [Ss2' Heq2].
     rewrite Heq1 Heq2 /=.
     destruct (Hin v1 v2 Ss1' Ss2' Heq1 Heq2) as (Hin1 & Hin2 & Heq).
@@ -374,7 +374,7 @@ Section subtyping_rules.
     ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
     lty_select Ss1 <: lty_select Ss2.
   Proof.
-    iIntros "#H !>" (x); iMod 1 as %[S2 HSs2]. iExists x.
+    iIntros "#H !>" (x); iDestruct 1 as %[S2 HSs2]. iExists x.
     iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
     assert (is_Some (Ss1 !! x)) as [S1 HSs1] by naive_solver.
     rewrite HSs1. iSplitR; [by eauto|].
@@ -385,7 +385,7 @@ Section subtyping_rules.
     Ss2 ⊆ Ss1 →
     ⊢ lty_select Ss1 <: lty_select Ss2.
   Proof.
-    intros; iIntros "!>" (x); iMod 1 as %[S HSs2]. iExists x.
+    intros; iIntros "!>" (x); iDestruct 1 as %[S HSs2]. iExists x.
     assert (Ss1 !! x = Some S) as HSs1 by eauto using lookup_weaken.
     rewrite HSs1. iSplitR; [by eauto|].
     iIntros "!>". by rewrite !lookup_total_alt HSs1 HSs2 /=.
@@ -395,7 +395,7 @@ Section subtyping_rules.
     ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
     lty_branch Ss1 <: lty_branch Ss2.
   Proof.
-    iIntros "#H !>" (x); iMod 1 as %[S1 HSs1]. iExists x.
+    iIntros "#H !>" (x); iDestruct 1 as %[S1 HSs1]. iExists x.
     iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
     assert (is_Some (Ss2 !! x)) as [S2 HSs2] by naive_solver.
     rewrite HSs2. iSplitR; [by eauto|].
@@ -406,7 +406,7 @@ Section subtyping_rules.
     Ss1 ⊆ Ss2 →
     ⊢ lty_branch Ss1 <: lty_branch Ss2.
   Proof.
-    intros; iIntros "!>" (x); iMod 1 as %[S HSs1]. iExists x.
+    intros; iIntros "!>" (x); iDestruct 1 as %[S HSs1]. iExists x.
     assert (Ss2 !! x = Some S) as HSs2 by eauto using lookup_weaken.
     rewrite HSs2. iSplitR; [by eauto|].
     iIntros "!>". by rewrite !lookup_total_alt HSs1 HSs2 /=.
@@ -446,7 +446,7 @@ Section subtyping_rules.
       setoid_rewrite iMsg_app_base; setoid_rewrite lookup_total_alt;
       setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
     iSplit; iIntros "!> /="; destruct a;
-      iIntros (x); iExists x; iMod 1 as %[S ->]; iSplitR; eauto.
+      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
   Qed.
   Lemma lty_le_app_select A Ss S2 :
     ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
@@ -483,7 +483,7 @@ Section subtyping_rules.
       setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
       setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
     iSplit; iIntros "!> /="; destruct a;
-      iIntros (x); iExists x; iMod 1 as %[S ->]; iSplitR; eauto.
+      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
   Qed.
 
   Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :

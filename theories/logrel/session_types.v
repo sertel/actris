@@ -12,7 +12,7 @@ Delimit Scope lmsg_scope with lmsg.
 Bind Scope lmsg_scope with lmsg.
 
 Definition lty_msg_base {Σ} (A : ltty Σ) (S : lsty Σ) : lmsg Σ :=
-  (∃ v, MSG v {{ ▷ ltty_car A v}} ; (lsty_car S))%msg.
+  (∃ v, MSG v {{ ltty_car A v}} ; (lsty_car S))%msg.
 
 Definition lty_msg_exist {Σ} {k} (M : lty Σ k → lmsg Σ) : lmsg Σ :=
   (∃ X, M X)%msg.
@@ -27,7 +27,7 @@ Definition lty_message {Σ} (a : action) (M : lmsg Σ) : lsty Σ :=
   Lsty (<a> M).
 
 Definition lty_choice {Σ} (a : action) (Ss : gmap Z (lsty Σ)) : lsty Σ :=
-  Lsty (<a@(x : Z)> MSG #x {{ ▷ ⌜is_Some (Ss !! x)⌝ }}; lsty_car (Ss !!! x)).
+  Lsty (<a@(x : Z)> MSG #x {{ ⌜is_Some (Ss !! x)⌝ }}; lsty_car (Ss !!! x)).
 
 Definition lty_dual {Σ} (S : lsty Σ) : lsty Σ :=
   Lsty (iProto_dual (lsty_car S)).
@@ -94,8 +94,8 @@ Section session_types.
   Global Instance lty_msg_base_proper :
     Proper ((≡) ==> (≡) ==> (≡)) (@lty_msg_base Σ).
   Proof. rewrite /lty_msg_base. apply ne_proper_2, _. Qed.
-  Global Instance lty_msg_base_contractive n :
-    Proper (dist_later n ==> dist_later n ==> dist n) (@lty_msg_base Σ).
+  Global Instance lty_msg_base_contractive n A :
+    Proper (dist_later n ==> dist n) (@lty_msg_base Σ A).
   Proof. solve_contractive. Qed.
 
   Global Instance lty_message_ne a : NonExpansive (@lty_message Σ a).
@@ -107,11 +107,6 @@ Section session_types.
   Proof. solve_proper. Qed.
   Global Instance lty_choice_proper a : Proper ((≡) ==> (≡)) (@lty_choice Σ a).
   Proof. apply ne_proper, _. Qed.
-  Global Instance lty_choice_contractive a : Contractive (@lty_choice Σ a).
-  Proof.
-    intros n Ss Ts Heq. rewrite /lty_choice.
-    do 4 f_equiv; f_contractive; [ f_contractive | ]; by rewrite Heq.
-  Qed.
   Global Instance lty_dual_ne : NonExpansive (@lty_dual Σ).
   Proof. solve_proper. Qed.
   Global Instance lty_dual_proper : Proper ((≡) ==> (≡)) (@lty_dual Σ).
