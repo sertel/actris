@@ -448,10 +448,10 @@ Section subtyping_rules.
     iSplit; iIntros "!> /="; destruct a;
       iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
   Qed.
-  Lemma lty_le_app_select A Ss S2 :
+  Lemma lty_le_app_select Ss S2 :
     ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
   Proof. apply lty_le_app_choice. Qed.
-  Lemma lty_le_app_branch A Ss S2 :
+  Lemma lty_le_app_branch Ss S2 :
     ⊢ lty_branch Ss <++> S2 <:> lty_branch ((.<++> S2) <$> Ss)%lty.
   Proof. apply lty_le_app_choice. Qed.
 
