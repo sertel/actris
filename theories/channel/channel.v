@@ -259,8 +259,7 @@ Section channel.
         iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
-      iMod (iProto_recv_l with "Hctx H") as "H". wp_pures.
-      iMod "H" as (q) "(Hctx & H & Hm)".
+      iMod (iProto_recv_l with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
@@ -272,8 +271,7 @@ Section channel.
         iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
-      iMod (iProto_recv_r with "Hctx H") as "H". wp_pures.
-      iMod "H" as (q) "(Hctx & H & Hm)".
+      iMod (iProto_recv_r with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].

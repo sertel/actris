@@ -150,7 +150,7 @@ Section choice_example.
     (** Weakening of select *)
     iApply (lty_le_trans _ prot1).
     {
-      iApply lty_le_branch. iIntros "!>".
+      iApply lty_le_branch.
       rewrite big_sepM2_insert=> //.
       iSplit.
       - iApply lty_le_recv; [iApply lty_le_refl | ].
@@ -163,7 +163,7 @@ Section choice_example.
     (** Swap recv/select *)
     iApply (lty_le_trans _ prot2).
     {
-      iApply lty_le_branch. iIntros "!>".
+      iApply lty_le_branch.
       rewrite big_sepM2_insert=> //.
       iSplit.
       - iApply lty_le_swap_recv_select.
@@ -223,7 +223,7 @@ Section choice_example.
     (** Swap recv/send *)
     iApply (lty_le_trans _ prot4).
     {
-      iApply lty_le_select. iIntros "!>".
+      iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply lty_le_branch. iIntros "!>".
         rewrite big_sepM2_insert=> //. iSplit.
@@ -239,7 +239,7 @@ Section choice_example.
     }
     iApply (lty_le_trans _ prot5).
     {
-      iApply lty_le_select. iIntros "!>".
+      iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply lty_le_branch. iIntros "!>".
         rewrite big_sepM2_insert=> //. iSplit.
@@ -257,7 +257,7 @@ Section choice_example.
     (** Swap branch/send *)
     iApply (lty_le_trans _ prot6).
     {
-      iApply lty_le_select. iIntros "!>".
+      iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply (lty_le_swap_branch_send _
           (<[1%Z:=(<??> TY Sr; Tr)%lty]> (<[2%Z:=(<??> TY Ss; Ts)%lty]> ∅))).
@@ -266,7 +266,7 @@ Section choice_example.
           ((<[1%Z:=(<??> TY Sr'; Tr')%lty]> (<[2%Z:=(<??> TY Ss; Ts')%lty]> ∅)))).
     }
     (** Weaken branch *)
-    iApply lty_le_select. iIntros "!>".
+    iApply lty_le_select.
     rewrite big_sepM2_insert=> //. iSplit=> //.
     - iApply lty_le_send; [iApply lty_le_refl|].
       iApply lty_le_branch_subseteq.

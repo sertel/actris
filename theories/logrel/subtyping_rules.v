@@ -371,15 +371,15 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_select (Ss1 Ss2 : gmap Z (lsty Σ)) :
-    ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
+    ([∗ map] S1;S2 ∈ Ss1; Ss2, ▷ (S1 <: S2)) -∗
     lty_select Ss1 <: lty_select Ss2.
   Proof.
     iIntros "#H !>" (x); iDestruct 1 as %[S2 HSs2]. iExists x.
-    iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
+    iDestruct (big_sepM2_forall with "H") as (?) "{H} H".
     assert (is_Some (Ss1 !! x)) as [S1 HSs1] by naive_solver.
+    iSpecialize ("H" with "[//] [//]").
     rewrite HSs1. iSplitR; [by eauto|].
-    iIntros "!>". rewrite !lookup_total_alt HSs1 HSs2 /=.
-    by iApply ("H" with "[] []").
+    iIntros "!>". by rewrite !lookup_total_alt HSs1 HSs2 /=.
   Qed.
   Lemma lty_le_select_subseteq (Ss1 Ss2 : gmap Z (lsty Σ)) :
     Ss2 ⊆ Ss1 →
@@ -392,15 +392,15 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_branch (Ss1 Ss2 : gmap Z (lsty Σ)) :
-    ▷ ([∗ map] S1;S2 ∈ Ss1; Ss2, S1 <: S2) -∗
+    ([∗ map] S1;S2 ∈ Ss1; Ss2, ▷ (S1 <: S2)) -∗
     lty_branch Ss1 <: lty_branch Ss2.
   Proof.
     iIntros "#H !>" (x); iDestruct 1 as %[S1 HSs1]. iExists x.
-    iDestruct (big_sepM2_forall with "H") as "{H} [>% H]".
+    iDestruct (big_sepM2_forall with "H") as (?) "{H} H".
     assert (is_Some (Ss2 !! x)) as [S2 HSs2] by naive_solver.
+    iSpecialize ("H" with "[//] [//]").
     rewrite HSs2. iSplitR; [by eauto|].
-    iIntros "!>". rewrite !lookup_total_alt HSs1 HSs2 /=.
-    by iApply ("H" with "[] []").
+    iIntros "!>". by rewrite !lookup_total_alt HSs1 HSs2 /=.
   Qed.
   Lemma lty_le_branch_subseteq (Ss1 Ss2 : gmap Z (lsty Σ)) :
     Ss1 ⊆ Ss2 →
