@@ -113,10 +113,10 @@ Section double.
     - iIntros (v1 v2) "[[[H1 Hγ]|H1] [[H2 Hγ']|H2]] !>".
       + by iDestruct (own_valid_2 with "Hγ Hγ'") as %[].
       + iDestruct "H2" as (v2') "(_&H1'&HP)".
-        iDestruct (own_valid_2 with "H1 H1'") as %[_ [=->]%agree_op_invL'].
+        iDestruct (own_valid_2 with "H1 H1'") as %[_ [=->]%to_agree_op_inv_L].
         iApply "HΦ"; auto.
       + iDestruct "H1" as (v1') "(_&H2'&HP)".
-        iDestruct (own_valid_2 with "H2 H2'") as %[_ [=->]%agree_op_invL'].
+        iDestruct (own_valid_2 with "H2 H2'") as %[_ [=->]%to_agree_op_inv_L].
         iApply "HΦ"; auto.
       + iDestruct "H1" as (v1') "[H1 _]"; iDestruct "H2" as (v2') "(_&H2&_)".
         by iDestruct (own_valid_2 with "H1 H2") as %[].
