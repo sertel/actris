@@ -6,7 +6,8 @@ From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import metatheory.
 From iris.heap_lang.lib Require Export spawn par assert.
-From actris.logrel Require Export subtyping term_typing_judgment operators session_types.
+From actris.logrel Require Export subtyping term_typing_judgment operators
+     session_types.
 From actris.logrel Require Import environments.
 From actris.utils Require Import switch.
 From actris.channel Require Import proofmode.
@@ -438,12 +439,12 @@ Section properties.
     (** Parallel composition properties *)
     Lemma ltyped_par Γ Γ' Γ1 Γ1' Γ2 Γ2' e1 e2 A B :
       env_split Γ Γ1 Γ2 -∗
-      env_split Γ' Γ1' Γ2' -∗
       (Γ1 ⊨ e1 : A ⫤ Γ1') -∗
       (Γ2 ⊨ e2 : B ⫤ Γ2') -∗
+      env_split Γ' Γ1' Γ2' -∗
       Γ ⊨ e1 ||| e2 : A * B ⫤ Γ'.
     Proof.
-      iIntros "#Hsplit #Hsplit' #H1 #H2" (vs) "!> HΓ /=".
+      iIntros "#Hsplit #H1 #H2 #Hsplit'" (vs) "!> HΓ /=".
       iDestruct ("Hsplit" with "HΓ") as "[HΓ1 HΓ2]".
       wp_apply (wp_par with "[HΓ1] [HΓ2]").
       - iApply ("H1" with "HΓ1").
@@ -460,10 +461,10 @@ Section properties.
     Context `{chanG Σ}.
 
     Lemma ltyped_new_chan Γ S :
-      ⊢ Γ ⊨ new_chan : () → (chan S * chan (lty_dual S)) ⫤ Γ.
+      ⊢ Γ ⊨ new_chan : () ⊸ (chan S * chan (lty_dual S)) ⫤ Γ.
     Proof.
       iIntros (vs) "!> HΓ /=". iApply wp_value. iFrame "HΓ".
-      iIntros "!>" (u) ">->".
+      iIntros (u) ">->".
       iApply (new_chan_spec with "[//]"); iIntros (c1 c2) "!> [Hp1 Hp2]".
       iExists c1, c2. iSplit=>//. iFrame "Hp1 Hp2".
     Qed.
