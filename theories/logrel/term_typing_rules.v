@@ -108,6 +108,17 @@ Section term_typing_rules.
     iApply ("Hf" $! v with "HA1").
   Qed.
 
+  Lemma ltyped_app_copy Γ1 Γ2 Γ3 e1 e2 A1 A2 :
+    (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 → A2 ⫤ Γ3) -∗
+    Γ1 ⊨ e1 e2 : A2 ⫤ Γ3.
+  Proof.
+    iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
+    wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
+    wp_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf HΓ]".
+    iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
+  Qed.
+
+
   Lemma ltyped_lam Γ1 Γ2 x e A1 A2 :
     (env_cons x A1 Γ1 ⊨ e : A2 ⫤ []) -∗
     Γ1 ++ Γ2 ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
