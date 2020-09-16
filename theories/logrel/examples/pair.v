@@ -7,22 +7,14 @@ can be assigned the type
   chan (?int.?int.end) ⊸ (int * int)
 
 by exclusively using the semantic typing rules. *)
-From actris.logrel Require Export environments term_typing_rules.
+From actris.logrel Require Export term_typing_rules.
 From iris.proofmode Require Import tactics.
 
 Definition prog : expr := λ: "c", (recv "c", recv "c").
 
-Section pair.
-  Context `{heapG Σ, chanG Σ}.
-
-  Lemma prog_typed :
-    ⊢ ∅ ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
-  Proof.
-    rewrite /prog.
-    iApply ltyped_lam.
-    { iApply env_split_id_r. }
-    iApply ltyped_pair. iApply ltyped_recv.
-    2:{ iApply ltyped_recv. by rewrite /binder_insert lookup_insert. }
-    by rewrite lookup_insert.
-  Qed.
-End pair.
+Lemma prog_typed `{heapG Σ, chanG Σ} :
+  ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
+Proof.
+  iApply (ltyped_lam []); simpl. iApply ltyped_post_nil.
+  iApply ltyped_pair; [by iApply ltyped_recv|by iApply ltyped_recv].
+Qed.

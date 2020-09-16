@@ -123,11 +123,10 @@ Section double.
   Qed.
 
   Lemma prog_typed :
-    ⊢ ∅ ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
+    ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
   Proof.
     iIntros (vs) "!> HΓ /=".
-    iApply wp_value.
-    iSplitL; last by iApply env_ltyped_empty.
+    iApply wp_value. iSplitL; last by iApply env_ltyped_nil.
     iIntros (c) "Hc".
     iApply (wp_prog (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
     { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").

@@ -1,7 +1,7 @@
-From actris.channel Require Import proofmode proto channel.
-From actris.logrel Require Import subtyping_rules term_typing_judgment term_typing_rules environments operators subtyping_rules.
-From iris.proofmode Require Import tactics.
+From actris.logrel Require Import subtyping_rules term_typing_rules.
+From actris.channel Require Import proofmode.
 
+(* FIXME
 Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
 
@@ -16,31 +16,22 @@ Section mapper_example.
     lty_rec mapper_client_type_aux.
 
   Definition mapper_client : expr := λ: "c",
-    send "c" (λ: "x", #9000 < "x");; send "c" #42;; recv "c".
+    send "c" (λ: "x", #9000 < "x");;
+    send "c" #42;;
+    recv "c".
 
   Lemma mapper_client_typed Γ :
-    ⊢ Γ ⊨ mapper_client : (lty_chan (mapper_client_type) ⊸ lty_bool)%lty ⫤ Γ.
+    ⊢ Γ ⊨ mapper_client : lty_chan (mapper_client_type) ⊸ lty_bool.
   Proof.
-    iApply (ltyped_frame _ _ _ _ Γ).
-    { iApply env_split_id_l. }
-    2: { iApply env_split_id_l. }
-    iApply ltyped_lam.
-    { iApply env_split_id_r. }
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ {["c":=_]}).
-      { iApply env_split_id_l. }
-      { iApply ltyped_lam.
-        { iApply env_split_id_r. }
-        iApply ltyped_bin_op.
-        - iApply ltyped_var. apply lookup_insert.
-        - iApply ltyped_int. }
-      { iApply env_split_id_l. } }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply ltyped_int. }
-    rewrite insert_insert /=. iApply ltyped_recv. apply lookup_insert.
+    iApply (ltyped_frame _ [] []).
+    iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post. iApply ltyped_let.
+    { iApply ltyped_send; last first.
+      { iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post.
+        iApply ltyped_bin_op; [by iApply ltyped_var|]. by iApply ltyped_int. }
+      done. }
+    simpl. iApply ltyped_let.
+    { by iApply ltyped_send; [|by iApply ltyped_int]. }
+    simpl. by iApply ltyped_recv.
   Qed.
 
   (** Recursion and Swapping *)
@@ -62,9 +53,12 @@ Section mapper_example.
 
   Lemma mapper_client_rec_typed Γ :
     ⊢ Γ ⊨ mapper_client_rec :
-      (lty_chan (mapper_client_rec_type) ⊸ (lty_bool * lty_bool))%lty ⫤ Γ.
+          lty_chan (mapper_client_rec_type) ⊸ (lty_bool * lty_bool).
   Proof.
-    iApply (ltyped_frame _ _ _ _ Γ).
+    iApply (ltyped_frame _ [] []).
+    iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post. iApply ltyped_let.
+
+
     { iApply env_split_id_l. }
     2: { iApply env_split_id_l. }
     iApply (ltyped_subsumption _ _ _((lty_chan (mapper_client_type_swap mapper_client_rec_type)) ⊸ _)).
@@ -261,3 +255,4 @@ Section mapper_example.
   Qed.
 
 End mapper_example.
+*)
