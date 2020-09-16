@@ -482,10 +482,6 @@ Section subtyping_rules.
         iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
   Qed.
 
-  Lemma lty_le_app_send A S1 S2 :
-    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
-  Proof. rewrite lty_app_send. iSplit; iApply lty_le_refl. Qed.
-
   Lemma lty_le_app_recv_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) S2 :
     LtyMsgTele M A S →
     ⊢ (<??> M) <++> S2 <:>
@@ -502,9 +498,12 @@ Section subtyping_rules.
         iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
   Qed.
 
+  Lemma lty_le_app_send A S1 S2 :
+    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
+  Proof. by apply (lty_le_app_send_exist (kt:=KTeleO)). Qed.
   Lemma lty_le_app_recv A S1 S2 :
     ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
-  Proof. rewrite lty_app_recv. iSplit; iApply lty_le_refl. Qed.
+  Proof. by apply (lty_le_app_recv_exist (kt:=KTeleO)). Qed.
 
   Lemma lty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
     ⊢ lty_choice a Ss <++> S2 <:> lty_choice a ((.<++> S2) <$> Ss)%lty.
@@ -573,9 +572,9 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_dual_send A S : ⊢ lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
-  Proof. apply lty_le_dual_message. Qed.
+  Proof. by apply (lty_le_dual_send_exist (kt:=KTeleO)). Qed.
   Lemma lty_le_dual_recv A S : ⊢ lty_dual (<??> TY A; S) <:> (<!!> TY A; lty_dual S).
-  Proof. apply lty_le_dual_message. Qed.
+  Proof. by apply (lty_le_dual_recv_exist (kt:=KTeleO)). Qed.
 
   Lemma lty_le_dual_choice a (Ss : gmap Z (lsty Σ)) :
     ⊢ lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
