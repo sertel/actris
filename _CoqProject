@@ -36,6 +36,7 @@ theories/logrel/term_typing_judgment.v
 theories/logrel/subtyping_rules.v
 theories/logrel/term_typing_rules.v
 theories/logrel/session_typing_rules.v
+theories/logrel/napp.v
 theories/logrel/lib/mutex.v
 theories/logrel/lib/par_start.v
 theories/logrel/examples/double.v
