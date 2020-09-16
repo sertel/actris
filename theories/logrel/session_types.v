@@ -124,6 +124,8 @@ Section session_types.
   Proof. solve_proper. Qed.
   Global Instance lty_dual_proper : Proper ((≡) ==> (≡)) (@lty_dual Σ).
   Proof. apply ne_proper, _. Qed.
+  Global Instance lty_dual_involutive : Involutive (≡) (@lty_dual Σ).
+  Proof. intros S. rewrite /lty_dual. apply iProto_dual_involutive. Qed.
 
   Global Instance lty_app_ne : NonExpansive2 (@lty_app Σ).
   Proof. solve_proper. Qed.
@@ -138,4 +140,28 @@ Section session_types.
     (∀ x, LtyMsgTele (kt:=kt x) (M x) (A x) (S x)) →
     LtyMsgTele (kt:=KTeleS kt) (∃ x, M x) A S.
   Proof. intros HM. rewrite /LtyMsgTele /=. f_equiv=> x. apply HM. Qed.
+
+  Global Instance lty_app_end_l : LeftId (≡) END%lty (@lty_app Σ).
+  Proof. intros S1. rewrite /lty_app. apply iProto_app_end_l. Qed.
+
+  Global Instance lty_app_end_r : RightId (≡) END%lty (@lty_app Σ).
+  Proof. intros S1. rewrite /lty_app. apply iProto_app_end_r. Qed.
+
+  Global Instance lty_app_assoc : Assoc (≡) (@lty_app Σ).
+  Proof. intros S1 S2 S3. rewrite /lty_app. apply iProto_app_assoc. Qed.
+
+  Lemma lty_app_send (A : ltty Σ) S1 S2 :
+    ((<!!> TY A; S1) <++> S2)%lty ≡ ((<!!> TY A; S1 <++> S2))%lty.
+  Proof.
+    rewrite /lty_message /lty_msg_base !/lty_app iProto_app_message iMsg_app_exist.
+    do 4 f_equiv. by rewrite iMsg_app_base.
+  Qed.
+
+  Lemma lty_app_recv (A : ltty Σ) S1 S2 :
+    ((<??> TY A; S1) <++> S2)%lty ≡ ((<??> TY A; S1 <++> S2))%lty.
+  Proof.
+    rewrite /lty_message /lty_msg_base !/lty_app iProto_app_message iMsg_app_exist.
+    do 4 f_equiv. by rewrite iMsg_app_base.
+  Qed.
+
 End session_types.

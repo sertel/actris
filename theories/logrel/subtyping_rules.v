@@ -412,87 +412,6 @@ Section subtyping_rules.
     iIntros "!>". by rewrite !lookup_total_alt HSs1 HSs2 /=.
   Qed.
 
-  (** Algebraic laws *)
-  Lemma lty_le_app S11 S12 S21 S22 :
-    (S11 <: S21) -∗ (S12 <: S22) -∗
-    (S11 <++> S12) <: (S21 <++> S22).
-  Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
-
-  Lemma lty_le_app_id_l S : ⊢ (END <++> S) <:> S.
-  Proof. rewrite /lty_app left_id. iSplit; by iModIntro. Qed.
-  Lemma lty_le_app_id_r S : ⊢ (S <++> END) <:> S.
-  Proof. rewrite /lty_app right_id. iSplit; by iModIntro. Qed.
-  Lemma lty_le_app_assoc S1 S2 S3 :
-    ⊢ (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
-  Proof. rewrite /lty_app assoc. iSplit; by iModIntro. Qed.
-
-  Lemma lty_le_app_send A S1 S2 :
-    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
-  Proof.
-    rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
-    iSplit; by iIntros "!> /=".
-  Qed.
-  Lemma lty_le_app_recv A S1 S2 :
-    ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
-  Proof.
-    rewrite /lty_app iProto_app_message iMsg_app_exist. setoid_rewrite iMsg_app_base.
-    iSplit; by iIntros "!> /=".
-  Qed.
-
-  Lemma lty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
-    ⊢ lty_choice a Ss <++> S2 <:> lty_choice a ((.<++> S2) <$> Ss)%lty.
-  Proof.
-    rewrite /lty_app /lty_choice iProto_app_message iMsg_app_exist;
-      setoid_rewrite iMsg_app_base; setoid_rewrite lookup_total_alt;
-      setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
-    iSplit; iIntros "!> /="; destruct a;
-      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
-  Qed.
-  Lemma lty_le_app_select Ss S2 :
-    ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
-  Proof. apply lty_le_app_choice. Qed.
-  Lemma lty_le_app_branch Ss S2 :
-    ⊢ lty_branch Ss <++> S2 <:> lty_branch ((.<++> S2) <$> Ss)%lty.
-  Proof. apply lty_le_app_choice. Qed.
-
-  Lemma lty_le_dual S1 S2 : S2 <: S1 -∗ lty_dual S1 <: lty_dual S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
-  Lemma lty_le_dual_l S1 S2 : lty_dual S2 <: S1 -∗ lty_dual S1 <: S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual_l. Qed.
-  Lemma lty_le_dual_r S1 S2 : S2 <: lty_dual S1 -∗ S1 <: lty_dual S2.
-  Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
-
-  Lemma lty_le_dual_end : ⊢ lty_dual (Σ:=Σ) END <:> END.
-  Proof. rewrite /lty_dual iProto_dual_end=> /=. apply lty_bi_le_refl. Qed.
-
-  Lemma lty_le_dual_message a A S :
-    ⊢ lty_dual (lty_message a (TY A; S)) <:> lty_message (action_dual a) (TY A; (lty_dual S)).
-  Proof.
-    rewrite /lty_dual iProto_dual_message iMsg_dual_exist.
-    setoid_rewrite iMsg_dual_base. iSplit; by iIntros "!> /=".
-  Qed.
-  Lemma lty_le_dual_send A S : ⊢ lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
-  Proof. apply lty_le_dual_message. Qed.
-  Lemma lty_le_dual_recv A S : ⊢ lty_dual (<??> TY A; S) <:> (<!!> TY A; lty_dual S).
-  Proof. apply lty_le_dual_message. Qed.
-
-  Lemma lty_le_dual_choice a (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
-  Proof.
-    rewrite /lty_dual /lty_choice iProto_dual_message iMsg_dual_exist;
-      setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
-      setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
-    iSplit; iIntros "!> /="; destruct a;
-      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
-  Qed.
-
-  Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_select Ss) <:> lty_branch (lty_dual <$> Ss).
-  Proof. iApply lty_le_dual_choice. Qed.
-  Lemma lty_le_dual_branch (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
-  Proof. iApply lty_le_dual_choice. Qed.
-
   (** The instances below make it possible to use the tactics [iIntros],
   [iExist], [iSplitL]/[iSplitR], [iFrame] and [iModIntro] on [lty_le] goals.
   These instances have higher precedence than the ones in [proto.v] to avoid
@@ -532,6 +451,149 @@ Section subtyping_rules.
   Proof.
     rewrite /FromModal. iIntros "H". iApply lty_le_recv. iApply lty_le_refl. done.
   Qed.
+
+  (** Algebraic laws *)
+  Lemma lty_le_app S11 S12 S21 S22 :
+    (S11 <: S21) -∗ (S12 <: S22) -∗
+    (S11 <++> S12) <: (S21 <++> S22).
+  Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
+
+  Lemma lty_le_app_id_l S : ⊢ (END <++> S) <:> S.
+  Proof. rewrite left_id. iSplit; by iModIntro. Qed.
+  Lemma lty_le_app_id_r S : ⊢ (S <++> END) <:> S.
+  Proof. rewrite right_id. iSplit; by iModIntro. Qed.
+  Lemma lty_le_app_assoc S1 S2 S3 :
+    ⊢ (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
+  Proof. rewrite assoc. iSplit; by iModIntro. Qed.
+
+  Lemma lty_le_app_send_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) S2 :
+    LtyMsgTele M A S →
+    ⊢ (<!!> M) <++> S2 <:>
+        <!!.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
+  Proof.
+    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /lty_app /lty_message iProto_app_message /=.
+    induction kt as [|k kt IH]; rewrite iMsg_app_exist.
+    - iSplit; iIntros (v); iExists v; rewrite iMsg_app_base; eauto.
+    - iSplit.
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply IH | iApply lty_le_refl ].
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
+  Qed.
+
+  Lemma lty_le_app_send A S1 S2 :
+    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
+  Proof. rewrite lty_app_send. iSplit; iApply lty_le_refl. Qed.
+
+  Lemma lty_le_app_recv_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) S2 :
+    LtyMsgTele M A S →
+    ⊢ (<??> M) <++> S2 <:>
+        <??.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
+  Proof.
+    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /lty_app /lty_message iProto_app_message /=.
+    induction kt as [|k kt IH]; rewrite iMsg_app_exist.
+    - iSplit; iIntros (v); iExists v; rewrite iMsg_app_base; eauto.
+    - iSplit.
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply IH | iApply lty_le_refl ].
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
+  Qed.
+
+  Lemma lty_le_app_recv A S1 S2 :
+    ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
+  Proof. rewrite lty_app_recv. iSplit; iApply lty_le_refl. Qed.
+
+  Lemma lty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
+    ⊢ lty_choice a Ss <++> S2 <:> lty_choice a ((.<++> S2) <$> Ss)%lty.
+  Proof.
+    rewrite /lty_app /lty_choice iProto_app_message iMsg_app_exist;
+      setoid_rewrite iMsg_app_base; setoid_rewrite lookup_total_alt;
+      setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
+    iSplit; iIntros "!> /="; destruct a;
+      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
+  Qed.
+  Lemma lty_le_app_select Ss S2 :
+    ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
+  Proof. apply lty_le_app_choice. Qed.
+  Lemma lty_le_app_branch Ss S2 :
+    ⊢ lty_branch Ss <++> S2 <:> lty_branch ((.<++> S2) <$> Ss)%lty.
+  Proof. apply lty_le_app_choice. Qed.
+
+  Lemma lty_le_dual S1 S2 : S2 <: S1 -∗ lty_dual S1 <: lty_dual S2.
+  Proof. iIntros "#H !>". by iApply iProto_le_dual. Qed.
+  Lemma lty_le_dual_l S1 S2 : lty_dual S2 <: S1 -∗ lty_dual S1 <: S2.
+  Proof. iIntros "#H !>". by iApply iProto_le_dual_l. Qed.
+  Lemma lty_le_dual_r S1 S2 : S2 <: lty_dual S1 -∗ S1 <: lty_dual S2.
+  Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
+
+  Lemma lty_le_dual_end : ⊢ lty_dual (Σ:=Σ) END <:> END.
+  Proof. rewrite /lty_dual iProto_dual_end=> /=. apply lty_bi_le_refl. Qed.
+
+  Lemma lty_le_dual_message a A S :
+    ⊢ lty_dual (lty_message a (TY A; S)) <:>
+      lty_message (action_dual a) (TY A; (lty_dual S)).
+  Proof.
+    rewrite /lty_dual iProto_dual_message iMsg_dual_exist.
+    setoid_rewrite iMsg_dual_base. iSplit; by iIntros "!> /=".
+  Qed.
+
+  Lemma lty_le_dual_send_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :
+    LtyMsgTele M A S →
+    ⊢ lty_dual (<!!> M) <:>
+        <??.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
+  Proof.
+    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /lty_dual /lty_message iProto_dual_message /=.
+    induction kt as [|k kt IH]; rewrite iMsg_dual_exist.
+    - iSplit; iIntros (v); iExists v; rewrite iMsg_dual_base; eauto.
+    - iSplit.
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply IH | iApply lty_le_refl ].
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
+  Qed.
+
+  Lemma lty_le_dual_recv_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :
+    LtyMsgTele M A S →
+    ⊢ lty_dual (<??> M) <:>
+      <!!.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
+  Proof.
+    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /lty_dual /lty_message iProto_dual_message /=.
+    induction kt as [|k kt IH]; rewrite iMsg_dual_exist.
+    - iSplit; iIntros (v); iExists v; rewrite iMsg_dual_base; eauto.
+    - iSplit.
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply IH | iApply lty_le_refl ].
+      + iIntros (v). iExists v.
+        iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
+  Qed.
+
+  Lemma lty_le_dual_send A S : ⊢ lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
+  Proof. apply lty_le_dual_message. Qed.
+  Lemma lty_le_dual_recv A S : ⊢ lty_dual (<??> TY A; S) <:> (<!!> TY A; lty_dual S).
+  Proof. apply lty_le_dual_message. Qed.
+
+  Lemma lty_le_dual_choice a (Ss : gmap Z (lsty Σ)) :
+    ⊢ lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
+  Proof.
+    rewrite /lty_dual /lty_choice iProto_dual_message iMsg_dual_exist;
+      setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
+      setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
+    iSplit; iIntros "!> /="; destruct a;
+      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
+  Qed.
+
+  Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :
+    ⊢ lty_dual (lty_select Ss) <:> lty_branch (lty_dual <$> Ss).
+  Proof. iApply lty_le_dual_choice. Qed.
+  Lemma lty_le_dual_branch (Ss : gmap Z (lsty Σ)) :
+    ⊢ lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
+  Proof. iApply lty_le_dual_choice. Qed.
+
 End subtyping_rules.
 
 Hint Extern 0 (environments.envs_entails _ (?x <: ?y)) =>
