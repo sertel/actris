@@ -113,42 +113,41 @@ Section properties.
 
   Lemma ltyped_lam Γ1 Γ2 x e A1 A2 :
     (env_cons x A1 Γ1 ⊨ e : A2 ⫤ []) -∗
-    Γ1 ++ Γ2 ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ env_filter_eq x Γ1 ++ Γ2.
+    Γ1 ++ Γ2 ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
-    rewrite {2}(env_filter_eq_perm Γ1 x) (comm _ (env_filter_eq x Γ1)) -assoc.
     iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
     iIntros (v) "HA1". wp_pures.
     iDestruct ("He" $! (binder_insert x v vs) with "[HA1 HΓ1]") as "He'".
-    { iApply (env_ltyped_insert with "[HA1 //] HΓ1"). }
+    { by iApply (env_ltyped_insert' with "HA1"). }
     rewrite subst_map_binder_insert.
     iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
   Qed.
 
   (* Typing rule for introducing copyable functions *)
-  (* FIXME
+  Definition env_copy_minus : env Σ → env Σ :=
+    fmap (λ xA, EnvItem (env_item_name xA) (lty_copy_minus  (env_item_type xA))).
+
   Lemma ltyped_rec Γ1 Γ2 f x e A1 A2 :
-    (env_cons f (A1 → A2) (env_cons x A1 Γ1) ⊨ e : A2 ⫤ []) -∗
+    (env_cons f (A1 → A2) (env_cons x A1 (env_copy_minus Γ1)) ⊨ e : A2 ⫤ []) -∗
     Γ1 ++ Γ2 ⊨ (rec: f x := e) : A1 → A2 ⫤ Γ2.
   Proof.
     iIntros "#He". iIntros (vs) "!> HΓ /=". wp_pures.
     iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
+    iAssert (<pers> env_ltyped vs (env_copy_minus Γ1))%I as "{HΓ1} #HΓ1".
+    { iClear "He". rewrite /env_copy_minus big_sepL_persistently big_sepL_fmap.
+      iApply (big_sepL_impl with "HΓ1"). iIntros "!>" (k [y B] _) "/=".
+      iDestruct 1 as (v ?) "HB". iExists v. iSplit; [by auto|].
+      by iDestruct (coreP_intro with "HB") as "{HB} #HB". }
     iLöb as "IH".
     iIntros (v) "!> HA1". wp_pures. set (r := RecV f x _).
-(*
-    iDestruct ("He" $! (<![f:=r]!> $ <![x:=v]!> vs) with "[HΓ HA1]") as "He'".
-    { iApply (env_ltyped_insert with "IH").
-      iApply (env_ltyped_insert with "HA1 HΓ"). }
-    iDestruct (wp_wand _ _ _ _ (ltty_car A2) with "He' []") as "He'".
-    { iIntros (w) "[$ _]". }
-    destruct x as [|x], f as [|f]; rewrite /= -?subst_map_insert //.
-    destruct (decide (x = f)) as [->|].
-    - by rewrite subst_subst delete_idemp !insert_insert -subst_map_insert.
-    - rewrite subst_subst_ne // -subst_map_insert.
-      by rewrite -delete_insert_ne // -subst_map_insert.
+    iDestruct ("He" $! (binder_insert f r (binder_insert x v vs))
+      with "[HΓ1 HA1]") as "He'".
+    { iApply (env_ltyped_insert' with "IH").
+      by iApply (env_ltyped_insert' with "HA1"). }
+    rewrite !subst_map_binder_insert_2.
+    iApply (wp_wand with "He'"). iIntros (w) "[$ _]".
   Qed.
-*)
-  Qed. *)
 
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗

@@ -146,6 +146,15 @@ Section env.
     apply lookup_insert_Some; naive_solver.
   Qed.
 
+  Lemma env_ltyped_insert' Γ vs x A v :
+    ltty_car A v -∗
+    env_ltyped vs Γ -∗
+    env_ltyped (binder_insert x v vs) (env_cons x A Γ).
+  Proof.
+    rewrite {1}(env_filter_eq_perm Γ x) env_ltyped_app.
+    iIntros "HA [_ HΓ]". by iApply (env_ltyped_insert with "HA").
+  Qed.
+
   Lemma env_ltyped_delete Γ x v vs :
     env_ltyped (binder_insert x v vs) Γ -∗
     env_ltyped vs (env_filter_ne x Γ).
