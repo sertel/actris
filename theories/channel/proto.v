@@ -890,8 +890,8 @@ Section proto.
       iSplitL "H"; [iIntros "!>"; by iRewrite "Hp2d"|]. simpl; auto.
   Qed.
 
-  Lemma iProto_le_amber (p1 p2 : iProto Σ V → iProto Σ V)
-    `{Contractive p1, Contractive p2}:
+  Lemma iProto_le_amber_internal (p1 p2 : iProto Σ V → iProto Σ V)
+      `{Contractive p1, Contractive p2}:
     □ (∀ rec1 rec2, ▷ (rec1 ⊑ rec2) → p1 rec1 ⊑ p2 rec2) -∗
     fixpoint p1 ⊑ fixpoint p2.
   Proof.
@@ -899,6 +899,17 @@ Section proto.
     iEval (rewrite (fixpoint_unfold p1)).
     iEval (rewrite (fixpoint_unfold p2)).
     iApply "H". iApply "IH".
+  Qed.
+  Lemma iProto_le_amber_external (p1 p2 : iProto Σ V → iProto Σ V)
+      `{Contractive p1, Contractive p2}:
+    (∀ rec1 rec2, (⊢ rec1 ⊑ rec2) → ⊢ p1 rec1 ⊑ p2 rec2) →
+    ⊢ fixpoint p1 ⊑ fixpoint p2.
+  Proof.
+    intros IH. apply fixpoint_ind.
+    - by intros p1' p2' -> ?.
+    - exists (fixpoint p2). iApply iProto_le_refl.
+    - intros p' ?. rewrite (fixpoint_unfold p2). by apply IH.
+    - apply bi.limit_preserving_entails; [done|solve_proper].
   Qed.
 
   Lemma iProto_le_dual_l p1 p2 : iProto_dual p2 ⊑ p1 -∗ iProto_dual p1 ⊑ p2.
