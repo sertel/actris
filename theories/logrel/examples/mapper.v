@@ -1,4 +1,4 @@
-From actris.logrel Require Import subtyping_rules term_typing_rules.
+From actris.logrel Require Import term_typing_rules session_typing_rules.
 From actris.channel Require Import proofmode.
 
 Section mapper_example.

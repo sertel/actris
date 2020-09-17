@@ -1,4 +1,4 @@
-From actris.logrel Require Export term_typing_rules.
+From actris.logrel Require Export term_typing_rules session_typing_rules.
 From actris.channel Require Import proofmode.
 
 Definition par_start : expr := λ: "e1" "e2",
