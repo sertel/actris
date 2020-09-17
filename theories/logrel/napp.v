@@ -25,7 +25,7 @@ Section with_Σ.
      (lty_napp R n <++> R)%lty ≡ (R <++> lty_napp R n)%lty.
   Proof. by rewrite -lty_napp_S_l lty_napp_S_r. Qed.
 
-  Lemma napp_swap T R n :
+  Lemma lty_napp_swap T R n :
     R <++> T <: T <++> R -∗
     lty_napp R n <++> T <: T <++> lty_napp R n.
   Proof.

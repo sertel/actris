@@ -187,7 +187,23 @@ Section mapper_example.
   Definition recv_type (B : ltty Σ) : lsty Σ :=
     (<??> TY B ; END)%lty.
 
-  Lemma mapper_rec_client_unfold_app A B :
+  Lemma recv_type_send_type_swap A B :
+    ⊢ (recv_type B <++> send_type A <: send_type A <++> recv_type B)%lty.
+  Proof.
+    iApply lty_le_trans.
+    rewrite lty_app_recv lty_app_end_l.
+    iApply lty_le_swap_recv_select. rewrite fmap_insert fmap_empty.
+    iPoseProof (lty_le_app_select) as "[_ Hle]".
+    iApply (lty_le_trans); last by iApply "Hle".
+    rewrite fmap_insert fmap_empty.
+    iApply lty_le_select.
+    iApply big_sepM2_insert=> //.
+    iSplit=> //.
+    rewrite lty_app_send lty_app_end_l.
+    iApply lty_le_swap_recv_send.
+  Qed.
+
+  Lemma mapper_type_rec_client_unfold_app A B :
     ⊢ mapper_type_rec_client A B <:
         (send_type A <++> (recv_type B <++> mapper_type_rec_client A B))%lty.
   Proof.
@@ -207,22 +223,6 @@ Section mapper_example.
     iApply lty_le_refl.
   Qed.
 
-  Lemma recv_send_swap A B :
-    ⊢ (recv_type B <++> send_type A <: send_type A <++> recv_type B)%lty.
-  Proof.
-    iApply lty_le_trans.
-    rewrite lty_app_recv lty_app_end_l.
-    iApply lty_le_swap_recv_select. rewrite fmap_insert fmap_empty.
-    iPoseProof (lty_le_app_select) as "[_ Hle]".
-    iApply (lty_le_trans); last by iApply "Hle".
-    rewrite fmap_insert fmap_empty.
-    iApply lty_le_select.
-    iApply big_sepM2_insert=> //.
-    iSplit=> //.
-    rewrite lty_app_send lty_app_end_l.
-    iApply lty_le_swap_recv_send.
-  Qed.
-
   Lemma mapper_type_rec_client_unfold_app_n A B n :
     ⊢ mapper_type_rec_client A B <:
          lty_napp (send_type A) n <++> (lty_napp (recv_type B) n <++>
@@ -237,26 +237,26 @@ Section mapper_example.
     { iApply lty_le_app; [ iApply lty_le_refl | ].
       iEval (rewrite -assoc assoc).
       iApply lty_le_app; [ | iApply lty_le_refl ].
-      iApply napp_swap. iApply recv_send_swap. }
+      iApply lty_napp_swap. iApply recv_type_send_type_swap. }
     iEval (rewrite -assoc).
     iApply (lty_le_trans with "IH").
     iApply lty_le_app; [ iApply lty_le_refl | ].
     iApply lty_le_app; [ iApply lty_le_refl | ].
-    iApply mapper_rec_client_unfold_app.
+    iApply mapper_type_rec_client_unfold_app.
   Qed.
 
-  Lemma recv_send_swap_n A B n :
+  Lemma recv_mapper_type_rec_client_unfold_app A B n :
     ⊢ (lty_napp (recv_type B) n <++> mapper_type_rec_client A B) <:
       (send_type A <++>
                  (lty_napp (recv_type B) (S n) <++> mapper_type_rec_client A B)).
   Proof.
     iApply lty_le_trans.
     { iApply lty_le_app;
-        [ iApply lty_le_refl | iApply mapper_rec_client_unfold_app ]. }
+        [ iApply lty_le_refl | iApply mapper_type_rec_client_unfold_app ]. }
     iEval (rewrite assoc).
     iApply lty_le_trans.
     { iApply lty_le_app; [ | iApply lty_le_refl ].
-      iApply napp_swap. iApply recv_send_swap. }
+      iApply lty_napp_swap. iApply recv_type_send_type_swap. }
     iEval (rewrite -assoc (assoc _ (lty_napp _ _))).
     rewrite -lty_napp_S_r.
     iApply lty_le_refl.
@@ -297,7 +297,7 @@ Section mapper_example.
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     simpl.
     iDestruct (iProto_mapsto_le c with "Hc []") as "Hc".
-    { iApply recv_send_swap_n. }
+    { iApply recv_mapper_type_rec_client_unfold_app. }
     wp_send with "[]"; first by eauto.
     rewrite lookup_total_insert.
     wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
