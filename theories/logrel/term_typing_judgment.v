@@ -52,17 +52,3 @@ Proof.
   iDestruct (He $!∅ with "[]") as "He"; first by rewrite /env_ltyped.
   iEval (rewrite -(subst_map_empty e)). iApply (wp_wand with "He"); auto.
 Qed.
-
-Theorem ltyped_mono `{!heapG Σ} Γ1 Γ1' Γ2 Γ2' e τ1 τ2 :
-  (■ ∀ vs, env_ltyped Γ1 vs -∗ env_ltyped Γ1' vs) -∗
-  (■ ∀ vs, env_ltyped Γ2' vs -∗ env_ltyped Γ2 vs) -∗
-  τ1 <: τ2 -∗ (Γ1' ⊨ e : τ1 ⫤ Γ2') -∗ (Γ1 ⊨ e : τ2 ⫤ Γ2).
-Proof.
-  iIntros "#HΓ1 #HΓ2 #Hle #Hltyped" (vs) "!> Henv".
-  iDestruct ("HΓ1" with "Henv") as "Henv".
-  iDestruct ("Hltyped" with "Henv") as "Hltyped'".
-  iApply (wp_wand with "Hltyped'").
-  iIntros (v) "[H1 Henv]".
-  iDestruct ("HΓ2" with "Henv") as "Henv".
-  iFrame "Henv". by iApply "Hle".
-Qed.
