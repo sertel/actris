@@ -165,6 +165,17 @@ Section properties.
     iApply env_ltyped_app. iFrame "HΓ2eq". by iApply env_ltyped_delete.
   Qed.
 
+  Lemma ltyped_seq Γ1 Γ2 Γ3 e1 e2 A B :
+    (Γ1 ⊨ e1 : A ⫤ Γ2) -∗
+    (Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+    Γ1 ⊨ (e1 ;; e2) : B ⫤ Γ3.
+  Proof.
+    iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
+    wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[_ HΓ2]". wp_pures.
+    wp_apply (wp_wand with "(He2 HΓ2)"); iIntros (w) "[HB HΓ3]". wp_pures.
+    iFrame "HB HΓ3".
+  Qed.
+
   (** Product properties  *)
   Lemma ltyped_pair Γ1 Γ2 Γ3 e1 e2 A1 A2 :
     (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗

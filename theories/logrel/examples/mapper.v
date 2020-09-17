@@ -1,7 +1,6 @@
 From actris.logrel Require Import subtyping_rules term_typing_rules.
 From actris.channel Require Import proofmode.
 
-(* FIXME
 Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
 
@@ -24,99 +23,68 @@ Section mapper_example.
     ⊢ Γ ⊨ mapper_client : lty_chan (mapper_client_type) ⊸ lty_bool.
   Proof.
     iApply (ltyped_frame _ [] []).
-    iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post. iApply ltyped_let.
+    iApply (ltyped_lam []); simpl.
+    iApply ltyped_post_nil. iApply ltyped_let.
     { iApply ltyped_send; last first.
-      { iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post.
+      { iApply (ltyped_lam []); simpl. iApply ltyped_post_nil.
         iApply ltyped_bin_op; [by iApply ltyped_var|]. by iApply ltyped_int. }
       done. }
-    simpl. iApply ltyped_let.
+    iApply ltyped_let.
     { by iApply ltyped_send; [|by iApply ltyped_int]. }
-    simpl. by iApply ltyped_recv.
+    by iApply ltyped_recv.
   Qed.
 
   (** Recursion and Swapping *)
-  Lemma lty_le_rec_unfold_l {k} (C : lty Σ k → lty Σ k) `{!Contractive C} :
-    ⊢ lty_rec C <: C (lty_rec C).
-  Proof. iApply lty_le_l. iApply lty_le_rec_unfold. iApply lty_le_refl. Qed.
-
   Definition mapper_client_type_swap (rec : lsty Σ) : lsty Σ :=
     <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
     <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
     <??> TY lty_bool; <??> TY lty_bool; rec.
 
-  Definition mapper_client_rec : expr := λ: "c",
+  Definition mapper_client_twice : expr := λ: "c",
     send "c" (λ: "x", #9000 < "x");; send "c" #42;;
     send "c" (λ: "x", #4500 < "x");; send "c" #20;;
     let: "x" := recv "c" in
     let: "y" := recv "c" in
     ("x","y").
 
-  Lemma mapper_client_rec_typed Γ :
-    ⊢ Γ ⊨ mapper_client_rec :
+  Lemma mapper_client_twice_typed Γ :
+    ⊢ Γ ⊨ mapper_client_twice :
           lty_chan (mapper_client_rec_type) ⊸ (lty_bool * lty_bool).
   Proof.
-    iApply (ltyped_frame _ [] []).
-    iApply (ltyped_lam []); simpl. iApply ltyped_weaken_post. iApply ltyped_let.
-
-
-    { iApply env_split_id_l. }
-    2: { iApply env_split_id_l. }
-    iApply (ltyped_subsumption _ _ _((lty_chan (mapper_client_type_swap mapper_client_rec_type)) ⊸ _)).
-    { iApply lty_le_arr.
-      - iNext. iApply lty_le_chan. iNext.
-        iApply lty_le_trans. iApply lty_le_rec_unfold_l.
-        iModIntro. iModIntro.
-        iApply lty_le_trans.
-        { iModIntro. iApply lty_le_rec_unfold_l. }
-        iApply lty_le_trans. iApply lty_le_swap_recv_send. iModIntro.
-        iApply lty_le_trans. iApply lty_le_swap_recv_send. iModIntro.
-        eauto.
-      - iApply lty_le_refl. }
-    iApply ltyped_lam.
-    { iApply env_split_id_r. }
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ {["c":=_]}).
-      { iApply env_split_id_l. }
-      { iApply ltyped_lam.
-        { iApply env_split_id_r. }
-        iApply ltyped_bin_op.
-        - iApply ltyped_var. apply lookup_insert.
-        - iApply ltyped_int. }
-      { iApply env_split_id_l. } }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert. iApply ltyped_int. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ (<["c":=_]>∅)).
-      { iApply env_split_id_l. }
-      { iApply ltyped_lam.
-        { iApply env_split_id_r. }
-        iApply ltyped_bin_op.
-        - iApply ltyped_var. apply lookup_insert.
-        - iApply ltyped_int. }
-      { iApply env_split_id_l. } }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply ltyped_int. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_recv. apply lookup_insert. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_recv=> //. }
-    iApply ltyped_pair.
-    - iApply ltyped_var. apply lookup_insert.
-    - rewrite insert_insert.
-      rewrite (insert_commute _ "c" "x") //=.
-      rewrite insert_insert.
-      iApply (ltyped_frame _ _ _ _ {["y":=_]}).
-      { iApply env_split_right=> //=. iApply env_split_id_r. }
-      iApply ltyped_var. apply lookup_insert.
-      iApply env_split_right=> //; last by iApply env_split_id_r=> //=. eauto.
+    iApply (ltyped_subsumption _ _ _ _ _ _
+      ((lty_chan (mapper_client_type_swap mapper_client_rec_type)) ⊸ _)%lty);
+      [ iApply env_le_refl | | iApply env_le_refl | ].
+    { iApply lty_le_arr; [ | iApply lty_le_refl ].
+      iApply lty_le_chan.
+      iApply lty_le_l; [ iApply lty_le_rec_unfold | ].
+      iIntros "!>!>!>!>".
+      iApply lty_le_trans.
+      { iApply lty_le_recv; [ iApply lty_le_refl | ].
+        iApply lty_le_l; [ iApply lty_le_rec_unfold | iApply lty_le_refl ]. }
+      iApply lty_le_trans; [ iApply lty_le_swap_recv_send | ].
+      iIntros "!>".
+      iApply lty_le_trans; [ iApply lty_le_swap_recv_send | ].
+      iIntros "!>".
+      iApply lty_le_refl. }
+    iApply (ltyped_lam []).
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+      iApply (ltyped_lam []). iApply ltyped_post_nil.
+      iApply ltyped_bin_op;
+        [ by iApply ltyped_var | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+      iApply (ltyped_lam []). iApply ltyped_post_nil.
+      iApply ltyped_bin_op;
+        [ by iApply ltyped_var | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    iApply ltyped_post_nil.
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_pair; [ by iApply ltyped_var | by iApply ltyped_var ].
   Qed.
 
   Definition mapper_client_type_poly_aux (rec : lsty Σ) : lsty Σ :=
@@ -134,84 +102,55 @@ Section mapper_example.
     <!!> TY (lty_bool ⊸ lty_int); <!!> TY lty_bool;
     <??> TY lty_bool; <??> TY lty_int; rec.
 
-  Definition mapper_client_rec_poly : expr := λ: "c",
+  Definition mapper_client_twice_poly : expr := λ: "c",
     send "c" (λ: "x", #9000 < "x");; send "c" #42;;
     send "c" (λ: "x", if: #true then #1 else #0);; send "c" #true;;
     let: "x" := recv "c" in
     let: "y" := recv "c" in
     ("x","y").
 
-  Lemma mapper_client_rec_poly_typed Γ :
-    ⊢ Γ ⊨ mapper_client_rec_poly :
+  Lemma mapper_client_twice_poly_typed Γ :
+    ⊢ Γ ⊨ mapper_client_twice_poly :
       (lty_chan (mapper_client_rec_type_poly) ⊸ (lty_bool * lty_int))%lty ⫤ Γ.
   Proof.
-    iApply (ltyped_frame _ _ _ _ Γ).
-    { iApply env_split_id_l. }
-    2: { iApply env_split_id_l. }
-    iApply (ltyped_subsumption _ _ _
-      ((lty_chan (mapper_client_type_poly_swap mapper_client_rec_type_poly)) ⊸ _)).
-    { iApply lty_le_arr.
-      - iNext. iApply lty_le_chan. iNext.
-        iApply lty_le_trans. iApply lty_le_rec_unfold_l.
-        rewrite /mapper_client_type_poly_aux.
-        rewrite /mapper_client_type_poly_swap.
-        iExists lty_int, lty_bool.
-        iModIntro. iModIntro.
-        iApply lty_le_trans.
-        { iModIntro. iApply lty_le_rec_unfold_l. }
-        iApply lty_le_trans; last first.
-        { iModIntro. iApply lty_le_swap_recv_send. }
-        iApply lty_le_trans; last first.
-        { iApply lty_le_swap_recv_send. }
-        iModIntro.
-        iExists lty_bool, lty_int.
-        iApply lty_le_refl.
-      - iApply lty_le_refl. }
-    iApply ltyped_lam.
-    { iApply env_split_id_r. }
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ {["c":=_]}).
-      { iApply env_split_id_l. }
-      { iApply ltyped_lam.
-        { iApply env_split_id_r. }
-        iApply ltyped_bin_op.
-        - iApply ltyped_var. apply lookup_insert.
-        - iApply ltyped_int. }
-      { iApply env_split_id_l. } }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply ltyped_int. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert.
-      iApply (ltyped_frame _ _ _ _ (<["c":=_]>∅)).
-      { iApply env_split_id_l. }
-      { iApply ltyped_lam.
-        { iApply env_split_id_r. }
-        iApply ltyped_if.
-        - iApply ltyped_bool.
-        - iApply ltyped_int.
-        - iApply ltyped_int. }
-      { iApply env_split_id_l. } }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_send. apply lookup_insert. iApply ltyped_bool. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_recv. apply lookup_insert. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_recv=> //. }
-    iApply ltyped_pair.
-    - iApply ltyped_var. apply lookup_insert.
-    - rewrite insert_insert. rewrite (insert_commute _ "c" "x") //=.
-      rewrite insert_insert.
-      iApply (ltyped_frame _ _ _ _ {["y":=_]}).
-      { iApply env_split_right=> //=. iApply env_split_id_r. }
-      iApply ltyped_var. apply lookup_insert.
-      iApply env_split_right=> //; last by iApply env_split_id_r=> //=. eauto.
+    iApply (ltyped_subsumption _ _ _ _ _ _
+      ((lty_chan (mapper_client_type_poly_swap mapper_client_rec_type_poly))
+         ⊸ _)%lty);
+      [ iApply env_le_refl | | iApply env_le_refl | ].
+    { iApply lty_le_arr; [ | iApply lty_le_refl ].
+      iApply lty_le_chan.
+      iApply lty_le_l; [ iApply lty_le_rec_unfold | ].
+      iExists lty_int, lty_bool.
+      iIntros "!>!>!>!>".
+      iApply lty_le_trans.
+      { iApply lty_le_recv; [ iApply lty_le_refl | ].
+        iApply lty_le_l; [ iApply lty_le_rec_unfold | iApply lty_le_refl ]. }
+      iApply lty_le_trans.
+      { iIntros "!>". iExists lty_bool, lty_int. iApply lty_le_refl. }
+      iApply lty_le_trans; [ iApply lty_le_swap_recv_send | ].
+      iIntros "!>".
+      iApply lty_le_trans; [ iApply lty_le_swap_recv_send | ].
+      iIntros "!>".
+      iApply lty_le_refl. }
+    iApply (ltyped_lam []).
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+      iApply (ltyped_lam []). iApply ltyped_post_nil.
+      iApply ltyped_bin_op;
+        [ by iApply ltyped_var | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+      iApply (ltyped_lam []). iApply ltyped_post_nil.
+      iApply ltyped_if;
+        [ iApply ltyped_bool | iApply ltyped_int | iApply ltyped_int ]. }
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_bool ]. }
+    iApply ltyped_post_nil.
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_pair; [ by iApply ltyped_var | by iApply ltyped_var ].
   Qed.
 
   (** Service typing *)
@@ -226,33 +165,16 @@ Section mapper_example.
   Lemma mapper_service_typed Γ :
     ⊢ Γ ⊨ mapper_service : (lty_chan (mapper_service_type) ⊸ (lty_chan END))%lty ⫤ Γ.
   Proof.
-    iApply (ltyped_frame _ _ _ _ Γ).
-    { iApply env_split_id_l. }
-    2: { iApply env_split_id_l. }
-    iApply ltyped_lam.
-    { iApply env_split_id_r. }
-    iApply ltyped_let.
-    { iApply ltyped_recv. by rewrite lookup_insert. }
-    rewrite insert_insert /=.
-    iApply ltyped_let.
-    { iApply ltyped_recv. by rewrite insert_commute // lookup_insert. }
-    rewrite (insert_commute _ "c" "f") // insert_insert.
-    iApply ltyped_let=> /=; last first.
-    { iApply ltyped_var. apply lookup_insert. }
-    iApply ltyped_send. apply lookup_insert.
-    rewrite (insert_commute _ "f" "c") // (insert_commute _ "v" "c") //.
-    iApply (ltyped_frame _ _ _ _ {["c":=_]}).
-    { iApply env_split_right=> //. iApply env_split_id_r. }
-    { iApply ltyped_app.
-      - iApply ltyped_var. apply lookup_insert.
-      - rewrite insert_insert.
-        iApply (ltyped_frame _ _ _ _ {["v":=_]}).
-        { iApply env_split_right=> //. iApply env_split_id_r. }
-        { iApply ltyped_var. apply lookup_insert. }
-        { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
-    }
-    { iApply env_split_right=> //; last by iApply env_split_id_r. eauto. }
+    iApply (ltyped_lam []). iApply ltyped_post_nil.
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_let; [ by iApply ltyped_recv | ].
+    iApply ltyped_seq.
+    { iApply (ltyped_send _ [EnvItem "f" _; EnvItem "v" _; EnvItem "c" _]);
+        [ done | ].
+      iApply ltyped_app; [ by iApply ltyped_var | ]=> /=.
+      rewrite !(Permutation_swap (EnvItem "f" _)).
+      by iApply ltyped_var. }
+    by iApply ltyped_var.
   Qed.
 
 End mapper_example.
-*)
