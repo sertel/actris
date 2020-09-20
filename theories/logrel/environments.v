@@ -10,9 +10,10 @@ relations on environments are defined:
 In addition, some lemmas/rules about these definitions are proved, corresponding
 to the syntactic typing rules that are typically found in substructural type
 systems. *)
-From actris.logrel Require Export term_types subtyping.
-From iris.proofmode Require Import tactics.
 From iris.algebra Require Export list.
+From iris.bi.lib Require Import core.
+From actris.logrel Require Export term_types subtyping_rules.
+From iris.proofmode Require Import tactics.
 
 Inductive env_item Σ := EnvItem {
   env_item_name : string;
@@ -204,5 +205,23 @@ Section env.
     rewrite /env_le /=. iIntros "#H #H' !>" (vs) "Hvs".
     iDestruct (env_ltyped_app with "Hvs") as "[Hvs1 Hvs2]".
     iApply env_ltyped_app. iSplitL "Hvs1"; [by iApply "H"|by iApply "H'"].
+  Qed.
+  Lemma env_le_copy x A :
+    ⊢ env_le [EnvItem x A] [EnvItem x A; EnvItem x (copy- A)].
+  Proof.
+    iIntros "!>" (vs) "Hvs".
+    iDestruct (env_ltyped_cons with "Hvs") as (v ?) "[HA _]".
+    iAssert (ltty_car (copy- A) v)%lty as "#HAm"; [by iApply coreP_intro|].
+    iApply env_ltyped_cons. iExists _; iSplit; [done|]. iFrame "HA".
+    iApply env_ltyped_cons. iExists _; iSplit; [done|]. iFrame "HAm".
+    iApply env_ltyped_nil.
+  Qed.
+  Lemma env_le_copyable x A :
+    lty_copyable A -∗
+    env_le [EnvItem x A] [EnvItem x A; EnvItem x A].
+  Proof.
+    iIntros "#H". iApply env_le_trans; [iApply env_le_copy|].
+    iApply env_le_cons; [iApply lty_le_refl|].
+    iApply env_le_cons; [by iApply lty_le_copy_inv_elim_copyable|iApply env_le_nil].
   Qed.
 End env.
