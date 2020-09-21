@@ -53,18 +53,18 @@ Section compute_example.
   Context `{heapG Σ, chanG Σ, lockG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
 
-  Definition compute_type_client_aux (A : ltty Σ) (rec : lsty Σ) : lsty Σ :=
-    lty_select $ <[cont := (<!!> TY () ⊸ A; <??> TY A ; rec)%lty]> $
+  Definition compute_type_client_aux (rec : lsty Σ) : lsty Σ :=
+    lty_select $ <[cont := (<!! A> TY () ⊸ A; <??> TY A ; rec)%lty]> $
                  <[stop := END%lty]>∅.
-  Instance compute_type_client_contractive A :
-    Contractive (compute_type_client_aux A).
+  Instance compute_type_client_contractive :
+    Contractive (compute_type_client_aux).
   Proof. solve_proto_contractive. Qed.
-  Definition compute_type_client A : lsty Σ :=
-    lty_rec (compute_type_client_aux A).
-  Global Instance compute_type_client_unfold A :
-    ProtoUnfold (lsty_car (compute_type_client A))
-                (lsty_car (compute_type_client_aux A (compute_type_client A))).
-  Proof. apply proto_unfold_eq, (fixpoint_unfold (compute_type_client_aux A)). Qed.
+  Definition compute_type_client : lsty Σ :=
+    lty_rec (compute_type_client_aux).
+  Global Instance compute_type_client_unfold :
+    ProtoUnfold (lsty_car (compute_type_client))
+                (lsty_car (compute_type_client_aux compute_type_client)).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold compute_type_client_aux). Qed.
 
   Definition list_pred (A : ltty Σ) : val → val → iProp Σ :=
     (λ v w : val, ⌜v = w⌝ ∗ ltty_car A v)%I.
@@ -112,16 +112,24 @@ Section compute_example.
         (if b then True else own γ 1%Qp) ∗
         counter ↦ #n ∗
         c ↣ (lsty_car (lty_napp (recv_type A) n <++>
-               (if b then compute_type_client A else END)%lty)))%I.
+               (if b then compute_type_client else END)%lty)))%I.
 
   Lemma compute_type_client_unfold_app_cont A :
-    ⊢ compute_type_client A <:
-        (cont_type A <++> (recv_type A <++> compute_type_client A)).
+    ⊢ compute_type_client <:
+        (cont_type A <++> (recv_type A <++> compute_type_client)).
   Proof.
     rewrite {1}/compute_type_client /lty_rec fixpoint_unfold.
-    replace (fixpoint (compute_type_client_aux A)) with
-        (compute_type_client A) by eauto.
+    replace (fixpoint (compute_type_client_aux)) with
+        (compute_type_client) by eauto.
     rewrite /compute_type_client_aux.
+    iApply lty_le_trans.
+    { iApply lty_le_select.
+      iApply (big_sepM2_insert _ _ (<[stop:=END%lty]>∅));
+              [ done | done | ].
+      iSplit.
+      - iExists A. iApply lty_le_refl.
+      - iApply big_sepM2_insert; [ done | done | ].
+        iSplit; [ iApply lty_le_refl | done ]. }
     iApply lty_le_trans.
     { iApply lty_le_select_subseteq.
       apply insert_mono, insert_subseteq; done. }
@@ -134,12 +142,12 @@ Section compute_example.
     iApply lty_le_refl.
   Qed.
 
-  Lemma compute_type_client_unfold_app_stop A :
-    ⊢ compute_type_client A <: lty_select (<[stop := END%lty]>∅).
+  Lemma compute_type_client_unfold_app_stop :
+    ⊢ compute_type_client <: lty_select (<[stop := END%lty]>∅).
   Proof.
     rewrite {1}/compute_type_client /lty_rec fixpoint_unfold.
-    replace (fixpoint (compute_type_client_aux A)) with
-        (compute_type_client A) by eauto.
+    replace (fixpoint (compute_type_client_aux)) with
+        (compute_type_client) by eauto.
     rewrite /compute_type_client_aux.
     iApply lty_le_select_subseteq.
     rewrite insert_commute; [ | eauto ].
@@ -307,7 +315,7 @@ Section compute_example.
 
   Lemma ltyped_compute_client Γ (A : ltty Σ) :
     ⊢ Γ ⊨ compute_client : lty_list (() ⊸ A) ⊸
-                           chan (compute_type_client A) ⊸
+                           chan compute_type_client ⊸
                            lty_list A.
   Proof.
     iApply ltyped_val_ltyped.
@@ -347,8 +355,8 @@ Section compute_example.
     by iApply llist_lty_list.
   Qed.
 
-  Lemma lty_le_compute_type_dual A :
-    ⊢ lty_dual compute_type_service <: compute_type_client A.
+  Lemma lty_le_compute_type_dual :
+    ⊢ lty_dual compute_type_service <: compute_type_client.
   Proof.
     rewrite /compute_type_client /compute_type_service.
     iLöb as "IH".
@@ -359,8 +367,8 @@ Section compute_example.
     iApply lty_le_branch. rewrite fmap_insert fmap_insert fmap_empty.
     iApply big_sepM2_insert; [ done | done | ].
     iSplit.
-    - iApply lty_le_l; [ iApply lty_le_dual_send | ].
-      iExists A.
+    - iApply lty_le_l; [ iApply lty_le_dual_send_exist | ].
+      iIntros (As). iExists (As).
       iApply lty_le_recv; [ iApply lty_le_refl | ].
       iApply lty_le_l; [ iApply lty_le_dual_recv | ].
       iApply lty_le_send; [ iApply lty_le_refl | ].
