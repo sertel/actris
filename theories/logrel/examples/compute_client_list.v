@@ -122,7 +122,7 @@ Section compute_example.
     rewrite /compute_type_client_aux.
     iApply lty_le_trans.
     { iApply lty_le_select_subseteq.
-      apply insert_mono, insert_subseteq=> //. }
+      apply insert_mono, insert_subseteq; done. }
     rewrite /cont_type /recv_type.
     iPoseProof (lty_le_app_select) as "[_ Hle]".
     iApply (lty_le_trans); last by iApply "Hle".
@@ -141,7 +141,7 @@ Section compute_example.
     rewrite /compute_type_client_aux.
     iApply lty_le_select_subseteq.
     rewrite insert_commute; [ | eauto ].
-    apply insert_mono, insert_subseteq=> //.
+    apply insert_mono, insert_subseteq; done.
   Qed.
 
   Lemma recv_type_cont_type_swap A B :
@@ -154,8 +154,8 @@ Section compute_example.
     iApply (lty_le_trans); last by iApply "Hle".
     rewrite fmap_insert fmap_empty.
     iApply lty_le_select.
-    iApply big_sepM2_insert=> //.
-    iSplit=> //.
+    iApply big_sepM2_insert; [ done | done |  ].
+    iSplit; [ | done ].
     rewrite lty_app_send lty_app_end_l.
     iApply lty_le_swap_recv_send.
   Qed.
@@ -170,8 +170,8 @@ Section compute_example.
     iApply (lty_le_trans); last by iApply "Hle".
     rewrite fmap_insert fmap_empty.
     iApply lty_le_select.
-    iApply big_sepM2_insert=> //.
-    iSplit=> //.
+    iApply big_sepM2_insert; [ done | done |  ].
+    iSplit; [ | done ].
     rewrite lty_app_end_l. eauto.
   Qed.
 
@@ -291,14 +291,14 @@ Section compute_example.
     iIntros "Hlys".
     iInduction ys as [|y ys] "IH" forall (lys).
     - iExists lys, NONEV. rewrite /llist. iFrame "Hlys".
-      iSplit=> //.
+      iSplit; [ done | ].
       rewrite /lty_list /lty_rec fixpoint_unfold.
       iLeft. eauto.
     - iDestruct "Hlys" as (vb l'') "[[-> HB] [Hl' Hrec]]".
       iExists lys, _. iFrame "Hl'".
-      iSplit=> //.
+      iSplit; [ done | ].
       rewrite /lty_list /lty_rec. iEval (rewrite fixpoint_unfold).
-      iRight. iExists _. iSplit=> //. iExists _, _. iSplit=> //.
+      iRight. iExists _. iSplit; [ done | ]. iExists _, _. iSplit; [ done | ].
       iFrame "HB". by iApply ("IH" with "Hrec").
   Qed.
 
@@ -308,7 +308,7 @@ Section compute_example.
                            ref_uniq (lty_list A).
   Proof.
     iApply ltyped_val_ltyped.
-    iApply ltyped_val_lam=> //.
+    iApply ltyped_val_lam.
     iApply ltyped_post_nil.
     iApply (ltyped_lam [EnvItem "xs" _]).
     iIntros "!>" (vs) "HΓ". simplify_map_eq.
@@ -352,7 +352,7 @@ Section compute_example.
     iApply lty_le_r; [ | iApply lty_bi_le_sym; iApply lty_le_rec_unfold ].
     iApply lty_le_l; [ iApply lty_le_dual_select | ].
     iApply lty_le_branch. rewrite fmap_insert fmap_insert fmap_empty.
-    iApply big_sepM2_insert=> //.
+    iApply big_sepM2_insert; [ done | done | ].
     iSplit.
     - iApply lty_le_l; [ iApply lty_le_dual_send | ].
       iExists A.
@@ -360,8 +360,8 @@ Section compute_example.
       iApply lty_le_l; [ iApply lty_le_dual_recv | ].
       iApply lty_le_send; [ iApply lty_le_refl | ].
       iIntros "!>!>!>". iApply lty_le_dual_l. iApply "IH".
-    - iApply big_sepM2_insert=> //.
-      iSplit=> //. iApply lty_le_l; [ iApply lty_le_dual_end | iApply lty_le_refl ].
+    - iApply big_sepM2_insert; [ done | done | ]. iSplit; [ | done ].
+      iApply lty_le_l; [ iApply lty_le_dual_end | iApply lty_le_refl ].
   Qed.
 
   Lemma ltyped_compute_list_par A e Γ Γ' :
