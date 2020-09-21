@@ -144,6 +144,7 @@ Section term_typing_rules.
     iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
   Qed.
 
+  (* TODO: This might be derivable from rec value rule *)
   Lemma ltyped_val_lam x e A1 A2 :
     ((env_cons x A1 []) ⊨ e : A2 ⫤ []) -∗
     ⊨ᵥ (λ: x, e) : A1 ⊸ A2.
