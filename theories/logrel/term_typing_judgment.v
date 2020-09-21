@@ -43,8 +43,8 @@ Section ltyped.
 End ltyped.
 
 Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
-  tc_opaque (■ (ltty_car A) v)%I.
-Instance: Params (@ltyped_val) 2 := {}.
+  tc_opaque (■ ltty_car A v)%I.
+Instance: Params (@ltyped_val) 3 := {}.
 Notation "⊨ᵥ v : A" := (ltyped_val v A)
                          (at level 100, v at next level, A at level 200).
 Arguments ltyped_val : simpl never.
@@ -54,11 +54,11 @@ Section ltyped_val.
 
   Global Instance ltyped_val_plain v A : Plain (ltyped_val v A).
   Proof. rewrite /ltyped_val /=. apply _. Qed.
-  Global Instance ltyped_val_ne n :
-    Proper ((=) ==> dist n ==> dist n) (@ltyped_val Σ _).
+  Global Instance ltyped_val_ne n v :
+    Proper (dist n ==> dist n) (@ltyped_val Σ _ v).
   Proof. solve_proper. Qed.
-  Global Instance ltyped_val_proper :
-    Proper ((=) ==> (≡) ==> (≡)) (@ltyped_val Σ _).
+  Global Instance ltyped_val_proper v :
+    Proper ((≡) ==> (≡)) (@ltyped_val Σ _ v).
   Proof. solve_proper. Qed.
 
 End ltyped_val.
@@ -70,7 +70,7 @@ Section ltyped_rel.
   Proof.
     iIntros "#HA" (vs) "!> HΓ".
     iApply wp_value. iFrame "HΓ".
-    rewrite /ltyped_val. simpl.
+    rewrite /ltyped_val /=.
     iApply "HA".
   Qed.
 

@@ -165,7 +165,7 @@ Section session_types.
   Qed.
 
   Lemma lsty_car_app (S T : lsty Σ) :
-    (lsty_car S <++> lsty_car T)%proto ≡ lsty_car (S <++> T).
+    lsty_car (S <++> T) = (lsty_car S <++> lsty_car T)%proto.
   Proof. eauto. Qed.
 
 End session_types.

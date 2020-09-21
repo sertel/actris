@@ -79,7 +79,7 @@ Section compute_example.
               (lty_chan compute_type_service → ())%lty);
       [ iApply env_le_refl | iApply lty_le_copy_elim | iApply env_le_refl | ].
     iApply ltyped_val_ltyped.
-    iApply ltyped_rec_val.
+    iApply ltyped_val_rec.
     iApply ltyped_post_nil.
     iApply ltyped_app.
     { iApply (ltyped_lam []). iApply ltyped_post_nil. iApply ltyped_unit. }
@@ -256,7 +256,7 @@ Section compute_example.
       { iApply iProto_le_trans.
         { iApply iProto_le_app; [ iApply iProto_le_refl | ].
           iApply compute_type_client_unfold_app_stop. }
-        rewrite lsty_car_app.
+        rewrite -lsty_car_app.
         iApply lsty_car_mono.
         iApply lty_napp_swap.
         iApply recv_type_stop_type_swap. }
@@ -267,7 +267,7 @@ Section compute_example.
         iSplitL "Hf".
         - iRight. iFrame "Hf". done.
         - rewrite lookup_total_insert.
-          rewrite lsty_car_app lty_app_end_l lty_app_end_r.
+          rewrite -lsty_car_app lty_app_end_l lty_app_end_r.
           iFrame "Hcounter Hc". }
       iIntros "_". wp_pures. iApply "HΦ". iFrame "Hl Hlk Hsf". }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
@@ -282,7 +282,7 @@ Section compute_example.
       rewrite assoc. rewrite assoc. rewrite assoc.
       iApply iProto_le_app; [ | iApply iProto_le_refl ].
       iApply iProto_le_app; [ | iApply iProto_le_refl ].
-      rewrite lsty_car_app.
+      rewrite -lsty_car_app.
       iApply lsty_car_mono.
       iApply lty_napp_swap.
       iApply recv_type_cont_type_swap. }
@@ -299,7 +299,7 @@ Section compute_example.
       rewrite assoc.
       rewrite left_id.
       rewrite assoc.
-      repeat rewrite lsty_car_app.
+      repeat rewrite -lsty_car_app.
       rewrite -lty_napp_S_r.
       rewrite Nat.add_succ_r.
       rewrite -plus_n_O.
@@ -374,7 +374,7 @@ Section compute_example.
                            ref_uniq (lty_list A).
   Proof.
     iApply ltyped_val_ltyped.
-    iApply ltyped_lam_val=> //.
+    iApply ltyped_val_lam=> //.
     iApply ltyped_post_nil.
     iApply (ltyped_lam [EnvItem "xs" _]).
     iIntros "!>" (vs) "HΓ". simpl.
@@ -467,8 +467,7 @@ Section compute_example.
       iApply ltyped_compute_client. }
     iApply ltyped_app.
     { iApply ltyped_compute_service. }
-    iApply ltyped_subsumption;
-      [ iApply env_le_refl | | iApply env_le_refl | ].
+    iApply ltyped_subsumption; [ iApply env_le_refl | | iApply env_le_refl | ].
     { iApply lty_le_arr; [ iApply lty_le_refl | ].
       iApply lty_le_arr; [ | iApply lty_le_refl ].
       iApply lty_le_arr; [ | iApply lty_le_refl ].
