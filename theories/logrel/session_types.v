@@ -164,4 +164,8 @@ Section session_types.
     do 4 f_equiv. by rewrite iMsg_app_base.
   Qed.
 
+  Lemma lsty_car_app (S T : lsty Σ) :
+    (lsty_car S <++> lsty_car T)%proto ≡ lsty_car (S <++> T).
+  Proof. eauto. Qed.
+
 End session_types.
