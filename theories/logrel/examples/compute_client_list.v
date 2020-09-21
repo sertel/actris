@@ -22,14 +22,14 @@ Definition recv_all_par : val :=
   rec: "go" "c" "ys" "n" "lk" "counter" :=
     if: "n" = #0 then #() else
       acquire "lk";;
-        if: (#0 = !"counter") then
-          release "lk";; "go" "c" "ys" "n" "lk" "counter"
-        else
-          let: "x" := recv "c" in
-          "counter" <- !"counter"-#1;;
-          release "lk";;
-          "go" "c" "ys" ("n"-#1) "lk" "counter";;
-          lcons "x" "ys".
+      if: (#0 = !"counter") then
+        release "lk";; "go" "c" "ys" "n" "lk" "counter"
+      else
+        let: "x" := recv "c" in
+        "counter" <- !"counter"-#1;;
+        release "lk";;
+        "go" "c" "ys" ("n"-#1) "lk" "counter";;
+        lcons "x" "ys".
 
 Definition compute_client : val :=
   λ: "xs" "c",
@@ -41,7 +41,7 @@ Definition compute_client : val :=
     recv_all_par "c" "ys" "n" "lk" "counter");; "ys".
 
 Definition lty_list_aux `{!heapG Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
-  () + (A * ref_uniq X).
+  ref_uniq (() + (A * X)).
 Instance lty_list_aux_contractive `{!heapG Σ} A :
   Contractive (@lty_list_aux Σ _ A).
 Proof. solve_proto_contractive. Qed.
@@ -70,27 +70,29 @@ Section compute_example.
     (λ v w : val, ⌜v = w⌝ ∗ ltty_car A v)%I.
 
   Lemma llength_spec A (l : loc) :
-    ⊢ {{{ ltty_car (ref_uniq (list A)) #l }}} llength #l
+    ⊢ {{{ ltty_car (list A) #l }}} llength #l
       {{{ xs (n:Z), RET #n; ⌜Z.of_nat (length xs) = n⌝ ∗
                             llist (λ v w , ⌜v = w⌝ ∗ ltty_car A v) l xs }}}.
   Proof.
     iIntros "!>" (Φ) "Hl HΦ".
     iLöb as "IH" forall (l Φ).
-    iDestruct "Hl" as (ltmp l' [=<-]) "[Hl Hl']".
     wp_lam.
     rewrite {2}/lty_list /lty_rec /lty_list_aux fixpoint_unfold.
-    iDestruct "Hl'" as "[Hl' | Hl']".
-    - iDestruct "Hl'" as (xs ->) "Hl'".
-      wp_load. wp_pures.
+    iDestruct "Hl" as (ltmp l' [=<-]) "[Hl [ Hl' | Hl' ]]".
+    - wp_load. iDestruct "Hl'" as (xs ->) "Hl'". wp_pures.
       iAssert (llist (list_pred A) l [])%I with "[Hl Hl']" as "Hl".
       { rewrite /llist. iDestruct "Hl'" as %->. iApply "Hl". }
       iApply "HΦ". eauto with iFrame.
-    - iDestruct "Hl'" as (xs ->) "Hl'".
-      wp_load. wp_pures.
+    - wp_load. iDestruct "Hl'" as (xs ->) "Hl'". wp_pures.
       iDestruct "Hl'" as (x vl' ->) "[HA Hl']".
+      (* iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']". *)
+      wp_pures.
+      rewrite fixpoint_unfold.
       iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']".
       wp_apply ("IH" with "[Hl' Hl'']").
-      { iExists _, _. iFrame "Hl' Hl''". done. }
+      { rewrite /lty_list /lty_rec.
+        iEval (rewrite fixpoint_unfold).
+        iExists _, _. iFrame "Hl' Hl''". done. }
       iIntros (ys n) "[<- H]".
       iAssert (llist (list_pred A) l (x :: ys))%I with "[Hl HA H]" as "Hl".
       { iExists x, l'. eauto with iFrame. }
@@ -286,26 +288,27 @@ Section compute_example.
 
   Lemma llist_lty_list lys ys A :
     llist (list_pred A) lys ys -∗
-    ltty_car (ref_uniq (lty_list A)) #lys.
+    ltty_car (lty_list A) #lys.
   Proof.
     iIntros "Hlys".
     iInduction ys as [|y ys] "IH" forall (lys).
-    - iExists lys, NONEV. rewrite /llist. iFrame "Hlys".
+    - rewrite /lty_list /lty_rec fixpoint_unfold.
+      iExists lys, NONEV. rewrite /llist. iFrame "Hlys".
       iSplit; [ done | ].
-      rewrite /lty_list /lty_rec fixpoint_unfold.
       iLeft. eauto.
     - iDestruct "Hlys" as (vb l'') "[[-> HB] [Hl' Hrec]]".
+      iEval (rewrite /lty_list /lty_rec fixpoint_unfold).
       iExists lys, _. iFrame "Hl'".
       iSplit; [ done | ].
-      rewrite /lty_list /lty_rec. iEval (rewrite fixpoint_unfold).
+      rewrite /lty_list /lty_rec.
       iRight. iExists _. iSplit; [ done | ]. iExists _, _. iSplit; [ done | ].
       iFrame "HB". by iApply ("IH" with "Hrec").
   Qed.
 
   Lemma ltyped_compute_client Γ (A : ltty Σ) :
-    ⊢ Γ ⊨ compute_client : ref_uniq (lty_list (() ⊸ A)) ⊸
+    ⊢ Γ ⊨ compute_client : lty_list (() ⊸ A) ⊸
                            chan (compute_type_client A) ⊸
-                           ref_uniq (lty_list A).
+                           lty_list A.
   Proof.
     iApply ltyped_val_ltyped.
     iApply ltyped_val_lam.
@@ -314,9 +317,11 @@ Section compute_example.
     iIntros "!>" (vs) "HΓ". simplify_map_eq.
     iDestruct (env_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
     iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vlxs ->) "[Hlxs HΓ]".
+    rewrite /lty_list /lty_rec fixpoint_unfold.
     iDestruct "Hlxs" as (l' v ->) "[Hlxs Hv]".
     wp_apply (llength_spec with "[Hlxs Hv]").
-    { iExists l', v. eauto with iFrame. }
+    { iEval (rewrite /lty_list /lty_rec fixpoint_unfold).
+      iExists l', v. eauto with iFrame. }
     iIntros (xs n) "[<- Hlxs]".
     wp_alloc counter as "Hcounter".
     wp_apply (lnil_spec); [ done | ].
@@ -365,9 +370,9 @@ Section compute_example.
   Qed.
 
   Lemma ltyped_compute_list_par A e Γ Γ' :
-    (Γ ⊨ e : ref_uniq (lty_list (() ⊸ A)) ⫤ Γ') -∗
+    (Γ ⊨ e : lty_list (() ⊸ A) ⫤ Γ') -∗
     Γ ⊨ par_start (compute_service) (compute_client e) :
-      (() * (ref_uniq (lty_list A))) ⫤ Γ'.
+      (() * (lty_list A)) ⫤ Γ'.
   Proof.
     iIntros "He".
     iApply (ltyped_app with "[He]").
