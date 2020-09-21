@@ -114,7 +114,7 @@ Section compute_example.
 
   Lemma compute_type_client_unfold_app_cont A :
     ⊢ compute_type_client A <:
-        (cont_type A <++> (recv_type A <++> compute_type_client A))%lty.
+        (cont_type A <++> (recv_type A <++> compute_type_client A)).
   Proof.
     rewrite {1}/compute_type_client /lty_rec fixpoint_unfold.
     replace (fixpoint (compute_type_client_aux A)) with
@@ -145,7 +145,7 @@ Section compute_example.
   Qed.
 
   Lemma recv_type_cont_type_swap A B :
-    ⊢ (recv_type B <++> cont_type A <: cont_type A <++> recv_type B)%lty.
+    ⊢ recv_type B <++> cont_type A <: cont_type A <++> recv_type B.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.
@@ -161,7 +161,7 @@ Section compute_example.
   Qed.
 
   Lemma recv_type_stop_type_swap B :
-    ⊢ (recv_type B <++> stop_type <: stop_type <++> recv_type B)%lty.
+    ⊢ recv_type B <++> stop_type <: stop_type <++> recv_type B.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.
