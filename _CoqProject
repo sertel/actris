@@ -45,3 +45,4 @@ theories/logrel/examples/rec_subtyping.v
 theories/logrel/examples/choice_subtyping.v
 theories/logrel/examples/mapper.v
 theories/logrel/examples/mapper_list.v
+theories/logrel/examples/compute_list_par.v
