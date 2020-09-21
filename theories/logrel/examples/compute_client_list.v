@@ -41,7 +41,7 @@ Definition compute_client : val :=
     recv_all_par "c" "ys" "n" "lk" "counter");; "ys".
 
 Definition lty_list_aux `{!heapG Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
-  (() + (A * ref_uniq X))%lty.
+  () + (A * ref_uniq X).
 Instance lty_list_aux_contractive `{!heapG Σ} A :
   Contractive (@lty_list_aux Σ _ A).
 Proof. solve_proto_contractive. Qed.
