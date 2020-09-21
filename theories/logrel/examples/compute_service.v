@@ -15,14 +15,14 @@ Definition compute_service : val :=
     (λ: "c", let: "v" := recv "c" in
              send "c" ("v" #());; "go" "c")
     (λ: "c", #()).
- 
+
 Section compute_example.
   Context `{heapG Σ, chanG Σ, spawnG Σ}.
 
   Definition compute_type_service_aux (rec : lsty Σ) : lsty Σ :=
     lty_branch $ <[cont := (<?? A> TY () ⊸ A; <!!> TY A ; rec)%lty]> $
                  <[stop := END%lty]> $ ∅.
-  Instance mapper_type_rec_service_contractive :
+  Instance mapper_type_service_contractive :
     Contractive (compute_type_service_aux).
   Proof. solve_proto_contractive. Qed.
   Definition compute_type_service : lsty Σ :=

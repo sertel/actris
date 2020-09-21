@@ -56,7 +56,7 @@ Section compute_example.
   Definition compute_type_client_aux (A : ltty Σ) (rec : lsty Σ) : lsty Σ :=
     lty_select $ <[cont := (<!!> TY () ⊸ A; <??> TY A ; rec)%lty]> $
                  <[stop := END%lty]>∅.
-  Instance compute_type_rec_client_contractive A :
+  Instance compute_type_client_contractive A :
     Contractive (compute_type_client_aux A).
   Proof. solve_proto_contractive. Qed.
   Definition compute_type_client A : lsty Σ :=
