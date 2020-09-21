@@ -1,21 +1,19 @@
-From actris.channel Require Import proofmode proto channel.
-From actris.logrel Require Import session_types subtyping_rules
-     term_typing_judgment term_typing_rules session_typing_rules
-     environments telescopes napp.
-From actris.utils Require Import llist.
-From actris.logrel.lib Require Import par_start.
-From iris.proofmode Require Import tactics.
-From iris.heap_lang Require Import metatheory.
 From iris.algebra Require Import frac.
+From iris.heap_lang Require Import metatheory.
+From actris.utils Require Import llist.
+From actris.channel Require Import proofmode proto channel.
+From actris.logrel Require Import term_typing_rules session_typing_rules
+     subtyping_rules napp.
+From actris.logrel.lib Require Import par_start.
 
 Definition cont : Z := 1.
 Definition stop : Z := 2.
 
 Definition compute_service : val :=
   rec: "go" "c":=
-    (branch [cont;stop]) "c"
+    branch [cont;stop] "c"
     (λ: "c", let: "v" := recv "c" in
-     send "c" ("v" #());; "go" "c")
+             send "c" ("v" #());; "go" "c")
     (λ: "c", #()).
 
 Definition send_all_par : val :=
@@ -26,19 +24,21 @@ Definition send_all_par : val :=
       acquire "lk";;
         select "c" #cont;; send "c" (lpop "xs");;
         "counter" <- !"counter"+#1;;
-      release "lk";; "go" "c" "xs" "lk" "counter".
+      release "lk";;
+      "go" "c" "xs" "lk" "counter".
 
 Definition recv_all_par : val :=
   rec: "go" "c" "ys" "n" "lk" "counter" :=
     if: "n" = #0 then #() else
       acquire "lk";;
-        if: (#0 = !"counter")
-        then release "lk";; "go" "c" "ys" "n" "lk" "counter"
+        if: (#0 = !"counter") then
+          release "lk";; "go" "c" "ys" "n" "lk" "counter"
         else
           let: "x" := recv "c" in
           "counter" <- !"counter"-#1;;
           release "lk";;
-          "go" "c" "ys" ("n"-#1) "lk" "counter";; lcons "x" "ys".
+          "go" "c" "ys" ("n"-#1) "lk" "counter";;
+          lcons "x" "ys".
 
 Definition compute_client : val :=
   λ: "xs" "c",
@@ -63,15 +63,15 @@ Section compute_example.
   Context `{!inG Σ fracR}.
 
   Definition compute_type_service_aux (rec : lsty Σ) : lsty Σ :=
-    lty_branch
-      (<[cont := (<?? A> TY () ⊸ A; <!!> TY A ; rec)%lty]>
-       (<[stop := END%lty]>∅)).
+    lty_branch $ <[cont := (<?? A> TY () ⊸ A; <!!> TY A ; rec)%lty]> $
+                 <[stop := END%lty]> $ ∅.
   Instance mapper_type_rec_service_contractive :
     Contractive (compute_type_service_aux).
   Proof. solve_proto_contractive. Qed.
   Definition compute_type_service : lsty Σ :=
     lty_rec (compute_type_service_aux).
 
+  (** This judgement is checked only with the typing rules of the type system *)
   Lemma ltyped_compute_service Γ :
     ⊢ Γ ⊨ compute_service : lty_chan compute_type_service ⊸ () ⫤ Γ.
   Proof.
@@ -95,8 +95,7 @@ Section compute_example.
       pose proof (ltys_O_inv Ys') as HYs'.
       rewrite HYs HYs' /=.
       iApply ltyped_seq.
-      { iApply (ltyped_send _
-                  [EnvItem "v" _; EnvItem "c" _; EnvItem "go" _]);
+      { iApply (ltyped_send _ [EnvItem "v" _; EnvItem "c" _; EnvItem "go" _]);
           [ done | ].
         iApply ltyped_app; [ by iApply ltyped_unit | ]=> /=.
         by iApply ltyped_var. }
@@ -116,8 +115,8 @@ Section compute_example.
   Qed.
 
   Definition compute_type_client_aux (A : ltty Σ) (rec : lsty Σ) : lsty Σ :=
-    lty_select (<[cont := (<!!> TY () ⊸ A; <??> TY A ; rec)%lty]>
-                (<[stop := END%lty]>∅)).
+    lty_select $ <[cont := (<!!> TY () ⊸ A; <??> TY A ; rec)%lty]> $
+                 <[stop := END%lty]>∅.
   Instance compute_type_rec_client_contractive A :
     Contractive (compute_type_client_aux A).
   Proof. solve_proto_contractive. Qed.
@@ -125,7 +124,7 @@ Section compute_example.
     lty_rec (compute_type_client_aux A).
   Global Instance compute_type_client_unfold A :
     ProtoUnfold (lsty_car (compute_type_client A))
-                (lsty_car ((compute_type_client_aux A) (compute_type_client A))).
+                (lsty_car (compute_type_client_aux A (compute_type_client A))).
   Proof. apply proto_unfold_eq, (fixpoint_unfold (compute_type_client_aux A)). Qed.
 
   Definition list_pred (A : ltty Σ) : val → val → iProp Σ :=
@@ -167,9 +166,9 @@ Section compute_example.
     (<??> TY A ; END)%lty.
 
   Definition compute_type_invariant
-             γ (A : ltty Σ) (c : val) counter : iProp Σ :=
-    (∃ (n : nat) b,
-        ((⌜b = true⌝) ∨ (own γ 1%Qp ∗ ⌜b = false⌝)) ∗
+             γ (A : ltty Σ) (c : val) (counter : loc) : iProp Σ :=
+    (∃ (n : nat) (b : bool),
+        (if b then True else own γ 1%Qp) ∗
         counter ↦ #n ∗
         c ↣ (lsty_car (lty_napp (recv_type A) n <++>
                (if b then compute_type_client A else END)%lty)))%I.
@@ -250,7 +249,7 @@ Section compute_example.
       rewrite /select.
       wp_apply (acquire_spec with "Hlk").
       iIntros "[Hlocked HI]".
-      iDestruct "HI" as (n b) "([-> | [Hf' _]] & Hcounter & Hc)"; last first.
+      iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
       { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
       iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
       { iApply iProto_le_trans.
@@ -264,16 +263,13 @@ Section compute_example.
       wp_apply (release_spec with "[-HΦ Hl]").
       { iFrame "Hlk Hlocked".
         iExists n, false.
-        iSplitL "Hf".
-        - iRight. iFrame "Hf". done.
-        - rewrite lookup_total_insert.
-          rewrite -lsty_car_app lty_app_end_l lty_app_end_r.
-          iFrame "Hcounter Hc". }
+        rewrite lookup_total_insert -lsty_car_app lty_app_end_l lty_app_end_r.
+        iFrame "Hf Hcounter Hc". }
       iIntros "_". wp_pures. iApply "HΦ". iFrame "Hl Hlk Hsf". }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     wp_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
-    iDestruct "HI" as (n b) "([-> | [Hf' _]] & Hcounter & Hc)"; last first.
+    iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
     { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
     iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
     { iApply iProto_le_trans.
@@ -303,7 +299,6 @@ Section compute_example.
       rewrite -lty_napp_S_r.
       rewrite Nat.add_succ_r.
       rewrite -plus_n_O.
-      iSplitR; [ by iLeft | ].
       replace (Z.of_nat n + 1)%Z with (Z.of_nat (S n)) by lia.
       iFrame "Hc Hcounter". }
     iIntros "_". wp_pures.
@@ -321,14 +316,14 @@ Section compute_example.
   Proof.
     iIntros (Φ) "(Hl & #Hlk) HΦ".
     iLöb as "IH" forall (n Φ).
-    destruct n.
+    destruct n as [ | n ].
     { wp_lam. wp_pures. iApply "HΦ". by iFrame "Hl Hlk". }
     wp_lam.
     wp_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
     iDestruct "HI" as (m b) "(Hb & Hcounter & Hc)".
     wp_load.
-    destruct m.
+    destruct m as [ | m ].
     { wp_apply (release_spec with "[$Hlocked $Hlk Hb Hcounter Hc]").
       { iExists 0, b. iFrame "Hb Hcounter Hc". }
       iIntros "_". wp_pures. iApply ("IH" with "Hl").
@@ -342,7 +337,7 @@ Section compute_example.
       iExists m, b. iFrame "Hb Hcounter Hc". }
     iIntros "_".
     wp_pures.
-    replace ((Z.of_nat (S n)) - 1)%Z with (Z.of_nat (n)) by lia.
+    replace (Z.of_nat (S n) - 1)%Z with (Z.of_nat (n)) by lia.
     wp_apply ("IH" with "Hl").
     iIntros (ys). iDestruct 1 as (Heq) "(Hl & Hc)".
     wp_apply (lcons_spec with "[$Hl $Hw//]").
@@ -377,32 +372,7 @@ Section compute_example.
     iApply ltyped_val_lam=> //.
     iApply ltyped_post_nil.
     iApply (ltyped_lam [EnvItem "xs" _]).
-    iIntros "!>" (vs) "HΓ". simpl.
-    rewrite (lookup_delete_ne _ "lk" "c")=> //.
-    rewrite (lookup_delete_ne _ "lk" "xs")=> //.
-    rewrite (lookup_delete_ne _ "lk" "counter")=> //.
-    rewrite (lookup_delete_ne _ "lk" "n")=> //.
-    rewrite (lookup_delete_ne _ "lk" "ys")=> //.
-    rewrite (lookup_delete_ne _ "ys" "c")=> //.
-    rewrite (lookup_delete_ne _ "ys" "xs")=> //.
-    rewrite (lookup_delete_ne _ "ys" "counter")=> //.
-    rewrite (lookup_delete_ne _ "ys" "n")=> //.
-    rewrite (lookup_delete_ne _ "counter" "c")=> //.
-    rewrite (lookup_delete_ne _ "counter" "xs")=> //.
-    rewrite (lookup_delete_ne _ "counter" "n")=> //.
-    rewrite (lookup_delete_ne _ "n" "c")=> //.
-    rewrite (lookup_delete_ne _ "n" "xs")=> //.
-    rewrite (delete_commute _ "lk" "ys")=> //.
-    rewrite (lookup_delete_ne _ "ys" "lk")=> //.
-    rewrite (delete_commute _ "lk" "counter")=> //.
-    rewrite (lookup_delete_ne _ "counter" "lk")=> //.
-    rewrite (delete_commute _ "lk" "n")=> //.
-    rewrite (lookup_delete_ne _ "n" "lk")=> //.
-    rewrite (delete_commute _ "ys" "counter")=> //.
-    rewrite (lookup_delete_ne _ "counter" "ys")=> //.
-    rewrite (delete_commute _ "counter" "n")=> //.
-    rewrite (lookup_delete_ne _ "n" "counter")=> //.
-    rewrite !lookup_delete=> //.
+    iIntros "!>" (vs) "HΓ". simplify_map_eq.
     iDestruct (env_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
     iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vlxs ->) "[Hlxs HΓ]".
     iDestruct "Hlxs" as (l' v ->) "[Hlxs Hv]".
@@ -415,8 +385,7 @@ Section compute_example.
     iMod (own_alloc 1%Qp) as (γf) "Hf"; [ done | ].
     wp_apply (newlock_spec (compute_type_invariant γf A vc counter)
                 with "[Hcounter Hc]").
-    { iExists 0, true. simpl. rewrite left_id. iSplitR; [ by iLeft |  ].
-      iFrame. }
+    { iExists 0, true. repeat rewrite left_id. iFrame "Hcounter Hc". }
     iIntros (lk γ) "#Hlk".
     wp_apply (par_spec
                 (λ v, ⌜v = #()⌝)%I
@@ -431,7 +400,7 @@ Section compute_example.
     iDestruct "Hw2" as (ys) "(-> & Hlys)".
     iIntros "!>".
     wp_pures. iFrame "HΓ".
-      by iApply llist_lty_list.
+    by iApply llist_lty_list.
   Qed.
 
   Lemma lty_le_compute_type_dual A :
