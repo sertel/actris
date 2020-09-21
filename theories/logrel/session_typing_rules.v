@@ -25,11 +25,11 @@ Section session_typing_rules.
   Qed.
 
   Lemma ltyped_send Γ Γ' (x : string) e A S :
-    env_filter_eq x Γ' = [EnvItem x (chan (<!!> TY A; S))] →
+    Γ' !! x = Some (chan (<!!> TY A; S))%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
     Γ ⊨ send x e : () ⫤ env_cons x (chan S) Γ'.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm') "#He !>". iIntros (vs) "HΓ /=".
+    iIntros (HΓx%env_lookup_perm) "#He !>". iIntros (vs) "HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ'") as (c Hvs) "[Hc HΓ']". rewrite Hvs.
@@ -49,7 +49,7 @@ Section session_typing_rules.
 
   Lemma ltyped_recv_texist {kt} Γ1 Γ2 M x (xc : string) (e : expr)
       (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) (B : ltty Σ) :
-    env_filter_eq xc Γ1 = [EnvItem xc (chan (<??> M))] →
+    Γ1 !! xc = Some (chan (<??> M))%lty →
     LtyMsgTele M A S →
     (∀ Ys,
       env_cons x (ktele_app A Ys) (env_cons xc (chan (ktele_app S Ys)) Γ1) ⊨ e : B ⫤ Γ2) -∗
@@ -57,7 +57,7 @@ Section session_typing_rules.
           env_filter_eq x (env_filter_ne xc Γ1) ++ env_filter_ne x Γ2.
   Proof.
     rewrite /LtyMsgTele.
-    iIntros (HΓxc%env_filter_eq_perm' HM) "#He !>". iIntros (vs) "HΓ1 /=".
+    iIntros (HΓxc%env_lookup_perm HM) "#He !>". iIntros (vs) "HΓ1 /=".
     rewrite {2}HΓxc /=.
     iDestruct (env_ltyped_cons with "HΓ1") as (c Hvs) "[Hc HΓ1]". rewrite Hvs.
     rewrite {2}(env_filter_eq_perm (env_filter_ne xc Γ1) x).
@@ -79,10 +79,10 @@ Section session_typing_rules.
   Qed.
 
   Lemma ltyped_recv Γ (x : string) A S :
-    env_filter_eq x Γ = [EnvItem x (chan (<??> TY A; S))] →
+    Γ !! x = Some (chan (<??> TY A; S))%lty →
     ⊢ Γ ⊨ recv x : A ⫤ env_cons x (chan S) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm') "!>". iIntros (vs) "HΓ /=".
+    iIntros (HΓx%env_lookup_perm) "!>". iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
     wp_recv (v) as "HA". iFrame "HA". iApply env_ltyped_cons; eauto with iFrame.
@@ -91,11 +91,11 @@ Section session_typing_rules.
   Definition select : val := λ: "c" "i", send "c" "i".
 
   Lemma ltyped_select Γ (x : string) (i : Z) (S : lsty Σ) Ss :
+    Γ !! x = Some (chan (lty_select Ss))%lty →
     Ss !! i = Some S →
-    env_filter_eq x Γ = [EnvItem x (chan (lty_select Ss))] →
     ⊢ Γ ⊨ select x #i : () ⫤ env_cons x (chan S) Γ.
   Proof.
-    iIntros (Hin HΓx%env_filter_eq_perm'); iIntros "!>" (vs) "HΓ /=".
+    iIntros (HΓx%env_lookup_perm Hin); iIntros "!>" (vs) "HΓ /=".
     rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
     rewrite /select. wp_send with "[]"; [by eauto|]. iSplit; [done|].

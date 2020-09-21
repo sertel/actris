@@ -10,9 +10,10 @@ relations on environments are defined:
 In addition, some lemmas/rules about these definitions are proved, corresponding
 to the syntactic typing rules that are typically found in substructural type
 systems. *)
-From actris.logrel Require Export term_types subtyping.
-From iris.proofmode Require Import tactics.
 From iris.algebra Require Export list.
+From iris.bi.lib Require Import core.
+From actris.logrel Require Export term_types subtyping_rules.
+From iris.proofmode Require Import tactics.
 
 Inductive env_item Σ := EnvItem {
   env_item_name : string;
@@ -56,6 +57,12 @@ Arguments env_filter_ne _ !_ !_ / : simpl nomatch.
 factored out. *)
 Arguments filter _ _ _ _ _ !_ / : simpl nomatch.
 
+Instance env_lookup {Σ} : Lookup string (ltty Σ) (env Σ) := λ x Γ,
+  match env_filter_eq x Γ with
+  | [EnvItem _ A] => Some A
+  | _ => None
+  end.
+
 Definition env_cons {Σ} (b : binder) (A : ltty Σ) (Γ : env Σ) : env Σ :=
   if b is BNamed x then EnvItem x A :: env_filter_ne x Γ else Γ.
 
@@ -83,10 +90,6 @@ Section env.
     - rewrite filter_cons_True /=; last naive_solver.
       by rewrite -Permutation_middle -IH.
   Qed.
-  Lemma env_filter_eq_perm' Γ Γ' x :
-    env_filter_eq x Γ = Γ' →
-    Γ ≡ₚ Γ' ++ env_filter_ne x Γ.
-  Proof. intros <-. apply env_filter_eq_perm. Qed.
 
   Lemma env_filter_ne_anon Γ : env_filter_ne BAnon Γ = Γ.
   Proof. induction Γ as [|[y A] Γ IH]; by f_equal/=. Qed.
@@ -102,6 +105,18 @@ Section env.
     x ≠ BNamed y →
     env_filter_ne x (EnvItem y A :: Γ) = EnvItem y A :: env_filter_ne x Γ.
   Proof. intros. rewrite /env_filter_ne filter_cons_True; naive_solver. Qed.
+
+  Lemma env_lookup_perm Γ x A:
+    Γ !! x = Some A →
+    Γ ≡ₚ EnvItem x A :: env_filter_ne x Γ.
+  Proof.
+    rewrite /lookup /env_lookup=> ?.
+    destruct (env_filter_eq x Γ) as [|[x' ?] [|??]] eqn:Hx; simplify_eq/=.
+    assert (EnvItem x' A ∈ env_filter_eq x Γ)
+      as [? _]%elem_of_list_filter; simplify_eq/=.
+    { rewrite Hx. set_solver. }
+    by rewrite {1}(env_filter_eq_perm Γ x') Hx.
+  Qed.
 
   (** env typing *)
   Global Instance env_ltyped_Permutation vs :
@@ -204,5 +219,23 @@ Section env.
     rewrite /env_le /=. iIntros "#H #H' !>" (vs) "Hvs".
     iDestruct (env_ltyped_app with "Hvs") as "[Hvs1 Hvs2]".
     iApply env_ltyped_app. iSplitL "Hvs1"; [by iApply "H"|by iApply "H'"].
+  Qed.
+  Lemma env_le_copy x A :
+    ⊢ env_le [EnvItem x A] [EnvItem x A; EnvItem x (copy- A)].
+  Proof.
+    iIntros "!>" (vs) "Hvs".
+    iDestruct (env_ltyped_cons with "Hvs") as (v ?) "[HA _]".
+    iAssert (ltty_car (copy- A) v)%lty as "#HAm"; [by iApply coreP_intro|].
+    iApply env_ltyped_cons. iExists _; iSplit; [done|]. iFrame "HA".
+    iApply env_ltyped_cons. iExists _; iSplit; [done|]. iFrame "HAm".
+    iApply env_ltyped_nil.
+  Qed.
+  Lemma env_le_copyable x A :
+    lty_copyable A -∗
+    env_le [EnvItem x A] [EnvItem x A; EnvItem x A].
+  Proof.
+    iIntros "#H". iApply env_le_trans; [iApply env_le_copy|].
+    iApply env_le_cons; [iApply lty_le_refl|].
+    iApply env_le_cons; [by iApply lty_le_copy_inv_elim_copyable|iApply env_le_nil].
   Qed.
 End env.

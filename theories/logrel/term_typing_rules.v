@@ -26,10 +26,10 @@ Section term_typing_rules.
 
   (** Variable properties *)
   Lemma ltyped_var Γ (x : string) A :
-    env_filter_eq x Γ = [EnvItem x A] →
+    Γ !! x = Some A →
     ⊢ Γ ⊨ x : A ⫤ env_cons x (copy- A) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm') "!>"; iIntros (vs) "HΓ /=".
+    iIntros (HΓx%env_lookup_perm) "!>"; iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]". rewrite Hvs.
     iAssert (ltty_car (copy- A) v)%lty as "#HAm"; [by iApply coreP_intro|].
@@ -196,10 +196,10 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_fst Γ A1 A2 (x : string) :
-    env_filter_eq x Γ = [EnvItem x (A1 * A2)] →
+    Γ !! x = Some (A1 * A2)%lty →
     ⊢ Γ ⊨ Fst x : A1 ⫤ env_cons x (copy- A1 * A2) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm' vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A1) v1)%lty as "#HA1m"; [by iApply coreP_intro|].
@@ -208,10 +208,10 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_snd Γ A1 A2 (x : string) :
-    env_filter_eq x Γ = [EnvItem x (A1 * A2)] →
+    Γ !! x = Some (A1 * A2)%lty →
     ⊢ Γ ⊨ Snd x : A2 ⫤ env_cons x (A1 * copy- A2) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm' vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A2) v2)%lty as "#HA2m"; [by iApply coreP_intro|].
@@ -317,10 +317,10 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_load Γ (x : string) A :
-    env_filter_eq x Γ = [EnvItem x (ref_uniq A)] →
+    Γ !! x = Some (ref_uniq A)%lty →
     ⊢ Γ ⊨ ! x : A ⫤ env_cons x (ref_uniq (copy- A)) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm' vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (l w ->) "[? HA]". wp_load.
     iAssert (ltty_car (copy- A) w)%lty as "#HAm"; [by iApply coreP_intro|].
@@ -329,11 +329,11 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_store Γ Γ' (x : string) e A B :
-    env_filter_eq x Γ' = [EnvItem x (ref_uniq A)] →
+    Γ' !! x = Some (ref_uniq A)%lty →
     (Γ ⊨ e : B ⫤ Γ') -∗
     Γ ⊨ x <- e : () ⫤ env_cons x (ref_uniq B) Γ'.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm') "#He"; iIntros (vs) "!> HΓ /=".
+    iIntros (HΓx%env_lookup_perm) "#He"; iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ'") as (vl Hvs) "[HA HΓ']"; rewrite Hvs.

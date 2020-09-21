@@ -118,10 +118,10 @@ Section rules.
   Qed.
 
   Lemma ltyped_mutex_acquire Γ (x : string) A :
-    env_filter_eq x Γ = [EnvItem x (mutex A)] →
+    Γ !! x = Some (mutex A)%lty →
     ⊢ Γ ⊨ mutex_acquire x : A ⫤ env_cons x (mutex_guard A) Γ.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm' vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (vl Hvs) "[Hlock HΓ]"; rewrite Hvs.
     iDestruct "Hlock" as (γ l lk ->) "#Hlock". rewrite /mutex_acquire.
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinner]".
@@ -131,11 +131,11 @@ Section rules.
   Qed.
 
   Lemma ltyped_mutex_release Γ Γ' (x : string) e A :
-    env_filter_eq x Γ' = [EnvItem x (mutex_guard A)] →
+    Γ' !! x = Some (mutex_guard A)%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
     Γ ⊨ mutex_release x e : () ⫤ env_cons x (mutex A) Γ'.
   Proof.
-    iIntros (HΓx%env_filter_eq_perm') "#He". iIntros (vs) "!> HΓ /=".
+    iIntros (HΓx%env_lookup_perm) "#He". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ'") as (vl Hvs) "[Hguard HΓ']"; rewrite Hvs.
