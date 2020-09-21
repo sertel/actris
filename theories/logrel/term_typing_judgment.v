@@ -42,6 +42,7 @@ Section ltyped.
   Qed.
 End ltyped.
 
+(* TODO: Elaborate on why this is needed *)
 Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ltty_car A v)%I.
 Instance: Params (@ltyped_val) 3 := {}.
