@@ -118,7 +118,6 @@ Section term_typing_rules.
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
   Qed.
 
-
   Lemma ltyped_lam Γ1 Γ2 x e A1 A2 :
     (env_cons x A1 Γ1 ⊨ e : A2 ⫤ []) -∗
     Γ1 ++ Γ2 ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
@@ -129,6 +128,20 @@ Section term_typing_rules.
     iDestruct ("He" $! (binder_insert x v vs) with "[HA1 HΓ1]") as "He'".
     { by iApply (env_ltyped_insert' with "HA1"). }
     rewrite subst_map_binder_insert.
+    iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
+  Qed.
+
+  Lemma ltyped_lam_val x e A1 A2 :
+    ([EnvItem x A1] ⊨ e : A2 ⫤ []) -∗
+    ⊨ᵥ (λ: x, e) : A1 ⊸ A2.
+  Proof.
+    iIntros "#He !>" (v) "HA1".
+    wp_pures.
+    iDestruct ("He" $!(binder_insert x v ∅) with "[HA1]") as "He'".
+    { replace ([EnvItem x A1]) with (env_cons x A1 []) by done.
+      iApply (env_ltyped_insert' ∅ ∅ x A1 v with "HA1").
+      iApply env_ltyped_nil. }
+    rewrite subst_map_binder_insert /= delete_empty subst_map_empty.
     iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
   Qed.
 
@@ -156,6 +169,24 @@ Section term_typing_rules.
     rewrite !subst_map_binder_insert_2.
     iApply (wp_wand with "He'"). iIntros (w) "[$ _]".
   Qed.
+
+  Lemma ltyped_rec_val f x e A1 A2 :
+    (env_cons f (A1 → A2) (env_cons x A1 []) ⊨ e : A2 ⫤ []) -∗
+    ⊨ᵥ (rec: f x := e)%V : A1 → A2.
+  Proof.
+    iIntros "#He". simpl. iLöb as "IH".
+    iIntros (v) "!>!> HA1". wp_pures. set (r := RecV f x _).
+    iDestruct ("He"$! (binder_insert f r (binder_insert x v ∅))
+                 with "[HA1]") as "He'".
+    { iApply (env_ltyped_insert').
+      { rewrite /ltyped_val /=. iApply "IH". }
+      iApply (env_ltyped_insert' with "HA1").
+      iApply env_ltyped_nil. }
+    rewrite !subst_map_binder_insert_2 !binder_delete_empty subst_map_empty.
+    iApply (wp_wand with "He'").
+    iIntros (w) "[$ _]".
+  Qed.
+
 
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗
