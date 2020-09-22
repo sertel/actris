@@ -1,11 +1,12 @@
-(** This file contains definitions related to type ctxironments. The following
-relations on ctxironments are defined:
+(** This file contains definitions related to type contexts.
+Contexts are encoded as lists of value and type pairs, for which
+lifted operations are defined such as [ctx_cons x A Γ].
 
+The following relations on contexts are defined:
 - [ctx_ltyped Γ vs]: This relation indicates that the value map [vs] contains a
-  value for each type in the semantic type ctxironment [Γ].
-- [ctx_split Γ Γ1 Γ2]: The semantic type ctxironment [Γ] can be split into
-  (semantically disjoint) [Γ1] and [Γ2].
-- [ctx_copy Γ Γ']: [Γ'] is a copyable sub-ctxironment of [Γ].
+  value for each type in the semantic type context [Γ].
+- [ctx_le Γ Γ']: This relation indicates that the context [Γ]
+  subsumes that of [Γ'].
 
 In addition, some lemmas/rules about these definitions are proved, corresponding
 to the syntactic typing rules that are typically found in substructural type
