@@ -44,7 +44,7 @@ Section basics.
       iApply (lty_le_trans with "H1").
       iIntros (X' Y'). iExists X', Y'. iIntros "!>!>!>".
       iApply "IH". }
-    iApply lty_le_rec.
+    iApply lty_le_rec_internal.
     iIntros (S1 S2) "#Hrec".
     iIntros (X). iExists X, lty_bool. iIntros "!> !>" (Y).
     iApply (lty_le_trans _ (<??> TY lty_bool; <!!> TY Y ⊸ lty_int;

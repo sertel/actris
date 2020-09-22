@@ -41,8 +41,8 @@ Section subtyping_rules.
     - rewrite {2}/lty_rec fixpoint_unfold. iApply lty_le_refl.
   Qed.
 
-  Lemma lty_le_rec {k} (C1 C2 : lty Σ k → lty Σ k)
-        `{Contractive C1, Contractive C2} :
+  Lemma lty_le_rec_internal {k} (C1 C2 : lty Σ k → lty Σ k)
+      `{Contractive C1, Contractive C2} :
     (∀ K1 K2, ▷ (K1 <: K2) -∗ C1 K1 <: C2 K2) -∗
     lty_rec C1 <: lty_rec C2.
   Proof.
@@ -50,6 +50,17 @@ Section subtyping_rules.
     iApply lty_le_l; [iApply lty_le_rec_unfold|].
     iApply lty_le_r; [|iApply lty_bi_le_sym; iApply lty_le_rec_unfold].
     by iApply "Hle".
+  Qed.
+  Lemma lty_le_rec_external {k} (C1 C2 : lty Σ k → lty Σ k)
+      `{Contractive C1, Contractive C2} :
+    (∀ K1 K2, (K1 <: K2) → C1 K1 <: C2 K2) →
+    lty_rec C1 <: lty_rec C2.
+  Proof.
+    intros IH. rewrite /lty_rec. apply fixpoint_ind.
+    - by intros K1' K2' -> ?.
+    - exists (fixpoint C2). iApply lty_le_refl.
+    - intros K' ?. rewrite (fixpoint_unfold C2). by apply IH.
+    - apply bi.limit_preserving_entails; [done|solve_proper].
   Qed.
 
   (** Term subtyping *)
