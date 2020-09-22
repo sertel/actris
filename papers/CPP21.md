@@ -15,7 +15,7 @@
 ## Examples
 
 - The parallel receive example in Section 4 can be found in
-  [theories/logrel/examples/double.v](../theories/logrel/examples/double.v):
+  [theories/logrel/examples/par_recv.v](../theories/logrel/examples/par_recv.v):
   This program performs two ``racy'' parallel receives on the same channel from
   two different threads, using locks to allow the channel to be shared.
 - The parallel compute client example in Section 4 can be found in
