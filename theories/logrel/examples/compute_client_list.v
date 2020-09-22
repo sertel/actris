@@ -1,10 +1,26 @@
+(** This file contains an example of a client that uses the
+compute service of [theories/logrel/examples/compute_service.v]
+which has the type:
+
+  μ rec. & { cont : ? (X:★) (() ⊸ X). ! X. rec,
+             stop : end }
+
+It does so to compute the results of an input list with type
+[list (() ⊸A)], into a list with type [list A], sending the
+computations in parallel with receiving the results.
+
+The client cannot be type checked with the rules of the type system,
+as (1) its behaviour depends on the length of the list, and (2)
+it shares the channel endpoint which changes between concurrent accesses.
+Its typing judgement can however be manually verified, after which
+it is composed with the type checked service. *)
 From iris.algebra Require Import frac.
 From iris.heap_lang Require Import metatheory.
 From actris.utils Require Import llist.
 From actris.channel Require Import proofmode proto channel.
 From actris.logrel Require Import term_typing_rules session_typing_rules
      subtyping_rules napp.
-From actris.logrel.lib Require Import par_start.
+From actris.logrel.lib Require Import list par_start.
 From actris.logrel.examples Require Import compute_service.
 
 Definition send_all_par : val :=
@@ -40,15 +56,6 @@ Definition compute_client : val :=
    (send_all_par "c" "xs" "lk" "counter" |||
     recv_all_par "c" "ys" "n" "lk" "counter");; "ys".
 
-Definition lty_list_aux `{!heapG Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
-  ref_uniq (() + (A * X)).
-Instance lty_list_aux_contractive `{!heapG Σ} A :
-  Contractive (@lty_list_aux Σ _ A).
-Proof. solve_proto_contractive. Qed.
-Definition lty_list `{!heapG Σ} (A : ltty Σ) : ltty Σ := lty_rec (lty_list_aux A).
-
-Notation "'list' A" := (lty_list A) (at level 10) : lty_scope.
-
 Section compute_example.
   Context `{heapG Σ, chanG Σ, lockG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
@@ -65,39 +72,6 @@ Section compute_example.
     ProtoUnfold (lsty_car (compute_type_client))
                 (lsty_car (compute_type_client_aux compute_type_client)).
   Proof. apply proto_unfold_eq, (fixpoint_unfold compute_type_client_aux). Qed.
-
-  Definition list_pred (A : ltty Σ) : val → val → iProp Σ :=
-    (λ v w : val, ⌜v = w⌝ ∗ ltty_car A v)%I.
-
-  Lemma llength_spec A (l : loc) :
-    ⊢ {{{ ltty_car (list A) #l }}} llength #l
-      {{{ xs (n:Z), RET #n; ⌜Z.of_nat (length xs) = n⌝ ∗
-                            llist (λ v w , ⌜v = w⌝ ∗ ltty_car A v) l xs }}}.
-  Proof.
-    iIntros "!>" (Φ) "Hl HΦ".
-    iLöb as "IH" forall (l Φ).
-    wp_lam.
-    rewrite {2}/lty_list /lty_rec /lty_list_aux fixpoint_unfold.
-    iDestruct "Hl" as (ltmp l' [=<-]) "[Hl [ Hl' | Hl' ]]".
-    - wp_load. iDestruct "Hl'" as (xs ->) "Hl'". wp_pures.
-      iAssert (llist (list_pred A) l [])%I with "[Hl Hl']" as "Hl".
-      { rewrite /llist. iDestruct "Hl'" as %->. iApply "Hl". }
-      iApply "HΦ". eauto with iFrame.
-    - wp_load. iDestruct "Hl'" as (xs ->) "Hl'". wp_pures.
-      iDestruct "Hl'" as (x vl' ->) "[HA Hl']".
-      (* iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']". *)
-      wp_pures.
-      rewrite fixpoint_unfold.
-      iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']".
-      wp_apply ("IH" with "[Hl' Hl'']").
-      { rewrite /lty_list /lty_rec.
-        iEval (rewrite fixpoint_unfold).
-        iExists _, _. iFrame "Hl' Hl''". done. }
-      iIntros (ys n) "[<- H]".
-      iAssert (llist (list_pred A) l (x :: ys))%I with "[Hl HA H]" as "Hl".
-      { iExists x, l'. eauto with iFrame. }
-      wp_pures. iApply "HΦ". iFrame "Hl". by rewrite (Nat2Z.inj_add 1).
-  Qed.
 
   Definition cont_type (A : ltty Σ) : lsty Σ :=
     (lty_select (<[ cont := <!!> TY () ⊸ A ; END ]>∅))%lty.
@@ -186,10 +160,10 @@ Section compute_example.
   Qed.
 
   Lemma send_all_par_spec γ γf A c l xs lk counter :
-    {{{ llist (list_pred (() ⊸ A)) l xs ∗ own γf 1%Qp ∗
+    {{{ llist (llist_type_pred (() ⊸ A)) l xs ∗ own γf 1%Qp ∗
         is_lock γ lk (compute_type_invariant γf A c counter) }}}
       send_all_par c #l lk #counter
-    {{{ RET #(); llist (list_pred (() ⊸ A)) l [] ∗
+    {{{ RET #(); llist (llist_type_pred (() ⊸ A)) l [] ∗
                  is_lock γ lk (compute_type_invariant γf A c counter) }}}.
   Proof.
     iIntros (Φ) "(Hl & Hf & #Hlk) HΦ".
@@ -256,11 +230,11 @@ Section compute_example.
   Qed.
 
   Lemma recv_all_par_spec γ γf A c l n lk counter :
-    {{{ llist (list_pred A) l [] ∗
+    {{{ llist (llist_type_pred A) l [] ∗
         is_lock γ lk (compute_type_invariant γf A c counter) }}}
       recv_all_par c #l #n lk #counter
     {{{ ys, RET #(); ⌜n = length ys⌝ ∗
-                     llist (list_pred A) l ys ∗
+                     llist (llist_type_pred A) l ys ∗
                      is_lock γ lk (compute_type_invariant γf A c counter)  }}}.
   Proof.
     iIntros (Φ) "(Hl & #Hlk) HΦ".
@@ -294,25 +268,6 @@ Section compute_example.
     iPureIntro. by rewrite Heq.
   Qed.
 
-  Lemma llist_lty_list lys ys A :
-    llist (list_pred A) lys ys -∗
-    ltty_car (lty_list A) #lys.
-  Proof.
-    iIntros "Hlys".
-    iInduction ys as [|y ys] "IH" forall (lys).
-    - rewrite /lty_list /lty_rec fixpoint_unfold.
-      iExists lys, NONEV. rewrite /llist. iFrame "Hlys".
-      iSplit; [ done | ].
-      iLeft. eauto.
-    - iDestruct "Hlys" as (vb l'') "[[-> HB] [Hl' Hrec]]".
-      iEval (rewrite /lty_list /lty_rec fixpoint_unfold).
-      iExists lys, _. iFrame "Hl'".
-      iSplit; [ done | ].
-      rewrite /lty_list /lty_rec.
-      iRight. iExists _. iSplit; [ done | ]. iExists _, _. iSplit; [ done | ].
-      iFrame "HB". by iApply ("IH" with "Hrec").
-  Qed.
-
   Lemma ltyped_compute_client Γ (A : ltty Σ) :
     ⊢ Γ ⊨ compute_client : lty_list (() ⊸ A) ⊸
                            chan compute_type_client ⊸
@@ -341,7 +296,7 @@ Section compute_example.
     iIntros (lk γ) "#Hlk".
     wp_apply (par_spec
                 (λ v, ⌜v = #()⌝)%I
-                (λ v, ∃ ys, ⌜v = #()⌝ ∗ llist (list_pred A) lys ys)%I
+                (λ v, ∃ ys, ⌜v = #()⌝ ∗ llist (llist_type_pred A) lys ys)%I
                 with "[Hlxs Hf] [Hlys]").
     { wp_apply (send_all_par_spec with "[$Hlxs $Hf $Hlk]").
       iIntros "(Hlxs & _)". eauto. }

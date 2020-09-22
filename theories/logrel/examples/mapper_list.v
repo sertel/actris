@@ -1,14 +1,31 @@
+(** This file contains an example of a client that uses a service
+with the type:
+
+  ? (X,Y:★) (X ⊸ Y). μ rec. & { cont : ?X. !Y. rec,
+                                stop : end }
+
+It does so to map the values of an input list with type
+[list A] using an input function [A → B], into a list with
+type [list B].
+
+The client cannot be type checked with the rules of the type system,
+as its behaviour depends on the length of the list.
+Its typing judgement can however be manually verified, after which
+it is composed with the type checked service. *)
 From actris.channel Require Import proofmode proto channel.
 From actris.logrel Require Import session_types subtyping_rules
      term_typing_judgment term_typing_rules session_typing_rules
      environments telescopes napp.
 From actris.utils Require Import llist.
-From actris.logrel.lib Require Import par_start.
+From actris.logrel.lib Require Import list par_start.
 From iris.proofmode Require Import tactics.
+
+Definition cont : Z := 1.
+Definition stop : Z := 2.
 
 Definition mapper_service_aux : expr := λ: "f" "c",
   (rec: "go" "f" "c":=
-    (branch [1%Z;2%Z]) "c"
+    (branch [cont;stop]) "c"
     (λ: "c", let: "v" := recv "c" in
      send "c" ("f" "v");; "go" "f" "c")
     (λ: "c", #())) "f" "c".
@@ -21,19 +38,19 @@ Definition mapper_service : expr :=
 Definition send_all : val :=
   rec: "go" "c" "xs" :=
     if: lisnil "xs" then #() else
-      send "c" #1;; send "c" (lpop "xs");; "go" "c" "xs".
+      select "c" #cont;; send "c" (lpop "xs");; "go" "c" "xs".
 
 Definition recv_all : val :=
   rec: "go" "c" "ys" "n" :=
     if: "n" = #0 then #() else
       let: "x" := recv "c" in
-      "go" "c" "ys" ("n"-#1);; lcons "x" "ys".
+      "go" "c" "ys" ("n"-#1%Z);; lcons "x" "ys".
 
 Definition mapper_client : expr :=
   (λ: "f" "xs" "c",
    send "c" "f";;
    let: "n" := llength "xs" in
-   send_all "c" "xs";; recv_all "c" "xs" "n";; send "c" #2%Z;; "xs")%E.
+   send_all "c" "xs";; recv_all "c" "xs" "n";; select "c" #stop;; "xs")%E.
 
 Definition mapper_prog : expr :=
   (λ: "f" "xs",
@@ -44,9 +61,8 @@ Section mapper_example.
 
   Definition mapper_type_rec_service_aux (A : ltty Σ) (B : ltty Σ) (rec : lsty Σ)
     : lsty Σ :=
-    lty_branch
-      (<[1%Z := (<??> TY A; <!!> TY B ; rec)%lty]>
-       (<[2%Z := END%lty]>∅)).
+    lty_branch $ <[cont := (<??> TY A; <!!> TY B ; rec)%lty]>
+               $ <[stop := END%lty]> $ ∅.
   Instance mapper_type_rec_service_contractive A B :
     Contractive (mapper_type_rec_service_aux A B).
   Proof. solve_proto_contractive. Qed.
@@ -125,8 +141,8 @@ Section mapper_example.
 
   Definition mapper_type_rec_client_aux
              (A : ltty Σ) (B : ltty Σ) (rec : lsty Σ) : lsty Σ :=
-    lty_select (<[1%Z := (<!!> TY A; <??> TY B ; rec)%lty]>
-                (<[2%Z := END%lty]>∅)).
+    lty_select $ <[cont := (<!!> TY A; <??> TY B ; rec)%lty]>
+               $ <[stop := END%lty]> $ ∅.
   Instance mapper_type_rec_client_contractive A B :
     Contractive (mapper_type_rec_client_aux A B).
   Proof. solve_proto_contractive. Qed.
@@ -138,52 +154,11 @@ Section mapper_example.
                            (mapper_type_rec_client A B))).
   Proof. apply proto_unfold_eq,
          (fixpoint_unfold (mapper_type_rec_client_aux A B)). Qed.
-
   Definition mapper_type_client : lsty Σ :=
     <!! A B> TY A → B ; mapper_type_rec_client A B.
 
-  Definition lty_list_aux (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
-    (() + (A * ref_uniq X))%lty.
-  Instance lty_list_aux_contractive A :
-    Contractive (lty_list_aux A).
-  Proof. solve_proto_contractive. Qed.
-  Definition lty_list (A : ltty Σ) : ltty Σ := lty_rec (lty_list_aux A).
-
-  Notation "'list' A" := (lty_list A) (at level 10) : lty_scope.
-
-  Definition list_pred (A : ltty Σ) : val → val → iProp Σ :=
-    (λ v w : val, ⌜v = w⌝ ∗ ltty_car A v)%I.
-
-  Lemma llength_spec A (l : loc) :
-    ⊢ {{{ ltty_car (ref_uniq (list A)) #l }}} llength #l
-      {{{ xs (n:Z), RET #n; ⌜Z.of_nat (length xs) = n⌝ ∗
-                            llist (λ v w , ⌜v = w⌝ ∗ ltty_car A v) l xs }}}.
-  Proof.
-    iIntros "!>" (Φ) "Hl HΦ".
-    iLöb as "IH" forall (l Φ).
-    iDestruct "Hl" as (ltmp l' [=]) "[Hl Hl']"; rewrite -H2.
-    wp_lam.
-    rewrite {2}/lty_list /lty_rec /lty_list_aux fixpoint_unfold.
-    iDestruct "Hl'" as "[Hl' | Hl']".
-    - iDestruct "Hl'" as (xs ->) "Hl'".
-      wp_load. wp_pures.
-      iAssert (llist (list_pred A) l [])%I with "[Hl Hl']" as "Hl".
-      { rewrite /llist. iDestruct "Hl'" as %->. iApply "Hl". }
-      iApply "HΦ". eauto with iFrame.
-    - iDestruct "Hl'" as (xs ->) "Hl'".
-      wp_load. wp_pures.
-      iDestruct "Hl'" as (x vl' ->) "[HA Hl']".
-      iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']".
-      wp_apply ("IH" with "[Hl' Hl'']").
-      { iExists _, _. iFrame "Hl' Hl''". done. }
-      iIntros (ys n) "[<- H]".
-      iAssert (llist (list_pred A) l (x :: ys))%I with "[Hl HA H]" as "Hl".
-      { iExists x, l'. eauto with iFrame. }
-      wp_pures. iApply "HΦ". iFrame "Hl". by rewrite (Nat2Z.inj_add 1).
-  Qed.
-
   Definition send_type (A : ltty Σ) : lsty Σ :=
-    (lty_select (<[1%Z := <!!> TY A ; END ]>∅))%lty.
+    (lty_select (<[cont := <!!> TY A ; END ]>∅))%lty.
   Definition recv_type (B : ltty Σ) : lsty Σ :=
     (<??> TY B ; END)%lty.
 
@@ -263,16 +238,17 @@ Section mapper_example.
   Qed.
 
   Lemma send_all_spec_upfront A c l xs ty :
-    {{{ llist (list_pred A) l xs ∗
+    {{{ llist (llist_type_pred A) l xs ∗
         c ↣ lsty_car (lty_napp (send_type A) (length xs) <++> ty) }}}
       send_all c #l
-    {{{ RET #(); llist (list_pred A) l [] ∗ c ↣ lsty_car ty }}}.
+    {{{ RET #(); llist (llist_type_pred A) l [] ∗ c ↣ lsty_car ty }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH".
     { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply "HΦ". iFrame. }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    rewrite /select.
     wp_send with "[]"; first by eauto.
     rewrite lookup_total_insert.
     wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
@@ -283,10 +259,10 @@ Section mapper_example.
   Qed.
 
   Lemma send_all_spec_aux A B c l xs n :
-    {{{ llist (list_pred A) l xs ∗
+    {{{ llist (llist_type_pred A) l xs ∗
         c ↣ lsty_car (lty_napp (recv_type B) n <++> (mapper_type_rec_client A B)) }}}
       send_all c #l
-    {{{ RET #(); llist (list_pred A) l [] ∗
+    {{{ RET #(); llist (llist_type_pred A) l [] ∗
                  c ↣ lsty_car (lty_napp (recv_type B) (length xs + n) <++>
                                              (mapper_type_rec_client A B)) }}}.
   Proof.
@@ -298,6 +274,7 @@ Section mapper_example.
     simpl.
     iDestruct (iProto_mapsto_le c with "Hc []") as "Hc".
     { iApply recv_mapper_type_rec_client_unfold_app. }
+    rewrite /select.
     wp_send with "[]"; first by eauto.
     rewrite lookup_total_insert.
     wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
@@ -308,10 +285,10 @@ Section mapper_example.
   Qed.
 
   Lemma send_all_spec_ad_hoc A B c l xs :
-    {{{ llist (list_pred A) l xs ∗
+    {{{ llist (llist_type_pred A) l xs ∗
         c ↣ lsty_car (mapper_type_rec_client A B) }}}
       send_all c #l
-    {{{ RET #(); llist (list_pred A) l [] ∗
+    {{{ RET #(); llist (llist_type_pred A) l [] ∗
                  c ↣ lsty_car (lty_napp (recv_type B) (length xs)
                                              <++> (mapper_type_rec_client A B)) }}}.
   Proof.
@@ -323,11 +300,11 @@ Section mapper_example.
   Qed.
 
   Lemma recv_all_spec B c ty l n :
-    {{{ llist (list_pred B) l [] ∗
+    {{{ llist (llist_type_pred B) l [] ∗
               c ↣ lsty_car (lty_napp (recv_type B) n <++> ty) }}}
       recv_all c #l #n
     {{{ ys, RET #(); ⌜n = length ys⌝ ∗
-                     llist (list_pred B) l ys ∗ c ↣ lsty_car ty }}}.
+                     llist (llist_type_pred B) l ys ∗ c ↣ lsty_car ty }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iLöb as "IH" forall (n Φ).
@@ -343,11 +320,11 @@ Section mapper_example.
     iPureIntro. by rewrite H1.
   Qed.
 
-    Lemma ltyped_mapper_client_ad_hoc Γ (A B : ltty Σ) :
+  Lemma ltyped_mapper_client_ad_hoc Γ (A B : ltty Σ) :
     ⊢ Γ ⊨ mapper_client : (A → B) ⊸
-                          ref_uniq (lty_list A) ⊸
+                          lty_list A ⊸
                           chan mapper_type_client ⊸
-                          ref_uniq (lty_list B).
+                          lty_list B.
   Proof.
     iApply (ltyped_lam []).
     iApply (ltyped_lam [EnvItem "f" _]).
@@ -360,9 +337,8 @@ Section mapper_example.
     iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
     iDestruct (env_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
-    iDestruct "Hl" as (l' v ->) "[Hl Hv]".
-    wp_apply (llength_spec with "[Hl Hv]").
-    { iExists l', v. eauto with iFrame. }
+    iDestruct (list_type_loc with "Hl") as %[l ->].
+    wp_apply (llength_spec A with "Hl").
     iIntros (xs n) "[<- Hl]".
     wp_pures.
     wp_apply (send_all_spec_ad_hoc with "[$Hl $Hc]").
@@ -370,33 +346,18 @@ Section mapper_example.
     wp_apply (recv_all_spec with "[Hl $Hc //]").
     iIntros (ys). iDestruct 1 as (Hlen) "[Hl Hc]".
     rewrite /mapper_type_rec_client /lty_rec fixpoint_unfold.
+    rewrite /select.
     wp_send with "[]"; first by eauto.
     wp_pures.
     iFrame.
-    rewrite /lty_list.
-    iRevert (Hlen).
-    iInduction ys as [|y ys] "IH" forall (l' xs); iIntros (Hlen).
-    - iExists l', NONEV. rewrite /llist. iFrame "Hl".
-      iSplit=> //.
-      rewrite /lty_rec. rewrite (fixpoint_unfold (lty_list_aux B)).
-      iLeft. eauto.
-    - iDestruct "Hl" as (vb l'') "[[-> HB] [Hl' Hrec]]".
-      iExists l', _.
-      iFrame "Hl'".
-      iSplit=> //.
-      rewrite /lty_rec.
-      rewrite {2}(fixpoint_unfold (lty_list_aux B)).
-      iRight. iExists _. iSplit=> //.
-      iExists _, _.
-      iSplit=> //.
-      iFrame "HB". by iApply ("IH" with "Hrec Hc").
+    by iApply llist_lty_list.
   Qed.
 
   Lemma ltyped_mapper_client_upfront Γ (A B : ltty Σ) :
     ⊢ Γ ⊨ mapper_client : (A → B) ⊸
-                          ref_uniq (lty_list A) ⊸
+                          lty_list A ⊸
                           chan mapper_type_client ⊸
-                          ref_uniq (lty_list B).
+                          lty_list B.
   Proof.
     iApply (ltyped_lam []).
     iApply (ltyped_lam [EnvItem "f" _]).
@@ -409,9 +370,8 @@ Section mapper_example.
     iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
     iDestruct (env_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
-    iDestruct "Hl" as (l' v ->) "[Hl Hv]".
-    wp_apply (llength_spec with "[Hl Hv]").
-    { iExists l', v. eauto with iFrame. }
+    iDestruct (list_type_loc with "Hl") as %[l ->].
+    wp_apply (llength_spec with "Hl").
     iIntros (xs n) "[<- Hl]".
     wp_pures.
     iDestruct (iProto_mapsto_le vc with "Hc []") as "Hc".
@@ -421,25 +381,11 @@ Section mapper_example.
     wp_apply (recv_all_spec with "[Hl $Hc //]").
     iIntros (ys). iDestruct 1 as (Hlen) "[Hl Hc]".
     rewrite /mapper_type_rec_client /lty_rec fixpoint_unfold.
+    rewrite /select.
     wp_send with "[]"; first by eauto.
     wp_pures.
     iFrame.
-    rewrite /lty_list.
-    iRevert (Hlen).
-    iInduction ys as [|y ys] "IH" forall (l' xs); iIntros (Hlen).
-    - iExists l', NONEV. rewrite /llist. iFrame "Hl".
-      iSplit=> //.
-      rewrite /lty_rec. rewrite (fixpoint_unfold (lty_list_aux B)).
-      iLeft. eauto.
-    - iDestruct "Hl" as (vb l'') "[[-> HB] [Hl' Hrec]]".
-      iExists l', _.
-      iFrame "Hl'".
-      iSplit=> //.
-      rewrite /lty_rec {2}(fixpoint_unfold (lty_list_aux B)).
-      iRight. iExists _. iSplit=> //.
-      iExists _, _.
-      iSplit=> //.
-      iFrame "HB". by iApply ("IH" with "Hrec Hc").
+    by iApply llist_lty_list.
   Qed.
 
   Lemma lty_le_mapper_type_client_dual :
@@ -469,10 +415,10 @@ Section mapper_example.
     Context `{!spawnG Σ}.
 
     Lemma ltyped_mapper_prog A B e1 e2 Γ Γ' Γ'' :
-      (Γ ⊨ e2 : ref_uniq (lty_list A) ⫤ Γ') -∗
+      (Γ ⊨ e2 : lty_list A ⫤ Γ') -∗
       (Γ' ⊨ e1 : (A → B) ⫤ Γ'') -∗
       Γ ⊨ par_start (mapper_service) (mapper_client e1 e2) :
-        (() * (ref_uniq (lty_list B))) ⫤ Γ''.
+        (() * lty_list B) ⫤ Γ''.
     Proof.
       iIntros "He2 He1".
       iApply (ltyped_app with "[He2 He1]").

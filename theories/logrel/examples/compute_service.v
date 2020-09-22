@@ -1,3 +1,10 @@
+(** This file contains a computation service with the type
+
+  μ rec. & { cont : ? (X:★) (() ⊸ X). ! X. rec,
+             stop : end }
+
+It recursively receives computations, computes them, and then
+sends back the results. *)
 From iris.algebra Require Import frac.
 From iris.heap_lang Require Import metatheory.
 From actris.utils Require Import llist.

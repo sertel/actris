@@ -11,6 +11,8 @@
   instead of an n-ary rule with multiple premises.
 - The disjunction of the compute client list invariant is encoded using a boolean
   flag, as it makes mechanisation easier.
+- The mechanisation employs a typing judgement for values (`ltyped_val`),
+  for technical reasons.
 
 ## Examples
 
@@ -23,4 +25,5 @@
   This program sends computation requests and receives their results in parallel,
   analogous to the producer-consumer pattern. It uses a lock to share the channel
   and a shared counter, that keeps track of the number of computations in transit.
-  The computation service can be found in [theories/logrel/examples/compute_service.v](../theories/logrel/examples/compute_service.v)
+  The computation service can be found in [theories/logrel/examples/compute_service.v](../theories/logrel/examples/compute_service.v). The definition of the list type
+  and the weakest precondition for `llength` can be found in [theories/logrel/lib/list.v](../theories/logrel/lib/list.v)
