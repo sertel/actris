@@ -1,5 +1,6 @@
 (**
-A mechanisation of a binary variant of the subtyping example on page 23 of the paper:
+A mechanisation of a binary variant of the subtyping
+example on page 23 of the paper:
 "On the Preciseness of Subtyping in Session Types"
 https://arxiv.org/pdf/1610.00328.pdf
 *)

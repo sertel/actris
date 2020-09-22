@@ -1,3 +1,5 @@
+(** This file defines a program for parallel composition of
+programs indexed by a channel [λ c, e], and its typing judgement. *)
 From actris.logrel Require Export term_typing_rules session_typing_rules.
 From actris.channel Require Import proofmode.
 

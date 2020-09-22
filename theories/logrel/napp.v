@@ -1,3 +1,7 @@
+(** This file defines an operator [lty_napp] used to iteratively
+append a session type to itself a finite number of times.
+It includes lemmas for swapping a type [R] over an iteration of
+arbitrary length of another type [T] *)
 From actris.logrel Require Import term_typing_rules session_types subtyping_rules.
 From actris.channel Require Import proofmode.
 

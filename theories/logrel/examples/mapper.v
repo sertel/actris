@@ -1,10 +1,19 @@
+(** This file contains an example of a client for a mapper service
+with the type:
+
+  μ rec. ? (X,Y:★) (X ⊸ Y). ?X. !Y. rec
+
+It shows increasingly complicating uses of the service,
+employing swapping and polymorphism to send multiple function
+and values of different types, before requesting the results.
+ *)
 From actris.logrel Require Import term_typing_rules session_typing_rules.
 From actris.channel Require Import proofmode.
 
 Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
 
-  (** Client typing *)
+  (** Client type as dual of service type *)
   Definition mapper_client_type_aux (rec : lsty Σ) : lsty Σ :=
     <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int; <??> TY lty_bool; rec.
   Definition mapper_client_type : lsty Σ :=
@@ -14,6 +23,7 @@ Section mapper_example.
   Definition mapper_client_rec_type : lsty Σ :=
     lty_rec mapper_client_type_aux.
 
+  (** Client that uses the service once *)
   Definition mapper_client : expr := λ: "c",
     send "c" (λ: "x", #9000 < "x");;
     send "c" #42;;
@@ -34,7 +44,7 @@ Section mapper_example.
     by iApply ltyped_recv.
   Qed.
 
-  (** Recursion and Swapping *)
+  (** Client that uses the service twice, using recursion and swapping *)
   Definition mapper_client_type_swap (rec : lsty Σ) : lsty Σ :=
     <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
     <!!> TY (lty_int ⊸ lty_bool); <!!> TY lty_int;
@@ -87,13 +97,13 @@ Section mapper_example.
     iApply ltyped_pair; [ by iApply ltyped_var | by iApply ltyped_var ].
   Qed.
 
+  (** Client that also make use of polymorphism, to send
+   different types *)
   Definition mapper_client_type_poly_aux (rec : lsty Σ) : lsty Σ :=
     <!! X Y> TY (X ⊸ Y); <!!> TY X; <??> TY Y; rec.
-
   Instance mapper_client_type_poly_contractive :
     Contractive mapper_client_type_poly_aux.
   Proof. solve_proto_contractive. Qed.
-
   Definition mapper_client_rec_type_poly : lsty Σ :=
     lty_rec mapper_client_type_poly_aux.
 
@@ -151,30 +161,6 @@ Section mapper_example.
     iApply ltyped_let; [ by iApply ltyped_recv | ].
     iApply ltyped_let; [ by iApply ltyped_recv | ].
     iApply ltyped_pair; [ by iApply ltyped_var | by iApply ltyped_var ].
-  Qed.
-
-  (** Service typing *)
-  Definition mapper_service_type : lsty Σ :=
-    <??> TY (lty_int ⊸ lty_bool); <??> TY lty_int; <!!> TY lty_bool; END.
-
-  Definition mapper_service : expr := λ: "c",
-    let: "f" := recv "c" in
-    let: "v" := recv "c" in
-    send "c" ("f" "v");; "c".
-
-  Lemma mapper_service_typed Γ :
-    ⊢ Γ ⊨ mapper_service : (lty_chan (mapper_service_type) ⊸ (lty_chan END))%lty ⫤ Γ.
-  Proof.
-    iApply (ltyped_lam []). iApply ltyped_post_nil.
-    iApply ltyped_let; [ by iApply ltyped_recv | ].
-    iApply ltyped_let; [ by iApply ltyped_recv | ].
-    iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "f" _; EnvItem "v" _; EnvItem "c" _]);
-        [ done | ].
-      iApply ltyped_app; [ by iApply ltyped_var | ]=> /=.
-      rewrite !(Permutation_swap (EnvItem "f" _)).
-      by iApply ltyped_var. }
-    by iApply ltyped_var.
   Qed.
 
 End mapper_example.
