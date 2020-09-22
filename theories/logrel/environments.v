@@ -74,6 +74,8 @@ Instance: Params (@env_ltyped) 2 := {}.
 Definition env_le {Σ} (Γ1 Γ2 : env Σ) : iProp Σ :=
   tc_opaque (■ ∀ vs, env_ltyped vs Γ1 -∗ env_ltyped vs Γ2)%I.
 Instance: Params (@env_le) 1 := {}.
+Infix "<env:" := env_le (at level 70) : bi_scope.
+Notation "Γ1 <env: Γ2" := (⊢ Γ1 <env: Γ2) (at level 70) : type_scope.
 
 Section env.
   Context {Σ : gFunctors}.
@@ -183,7 +185,7 @@ Section env.
   Qed.
 
   (** Environment subtyping *)
-  Global Instance env_le_plain Γ1 Γ2 : Plain (env_le Γ1 Γ2).
+  Global Instance env_le_plain Γ1 Γ2 : Plain (Γ1 <env: Γ2).
   Proof. rewrite /env_le /=. apply _. Qed.
 
   Global Instance env_le_Permutation : Proper ((≡ₚ) ==> (≡ₚ) ==> (≡)) (@env_le Σ).
@@ -196,17 +198,17 @@ Section env.
   Global Instance env_le_proper : Proper ((≡) ==> (≡) ==> (≡)) (@env_le Σ).
   Proof. apply (ne_proper_2 _). Qed.
 
-  Lemma env_le_refl Γ : ⊢ env_le Γ Γ.
+  Lemma env_le_refl Γ : Γ <env: Γ.
   Proof. iIntros (vs); auto. Qed.
-  Lemma env_le_trans Γ1 Γ2 Γ3 : env_le Γ1 Γ2 -∗ env_le Γ2 Γ3 -∗ env_le Γ1 Γ3.
+  Lemma env_le_trans Γ1 Γ2 Γ3 : Γ1 <env: Γ2 -∗ Γ2 <env: Γ3 -∗ Γ1 <env: Γ3.
   Proof.
     rewrite /env_le /=.
     iIntros "#H1 #H2 !>" (vs) "Hvs". iApply "H2". by iApply "H1".
   Qed.
-  Lemma env_le_nil Γ : ⊢ env_le Γ [].
+  Lemma env_le_nil Γ : Γ <env: [].
   Proof. iIntros (vs) "!> _". iApply env_ltyped_nil. Qed.
   Lemma env_le_cons x Γ1 Γ2 A1 A2 :
-    A1 <: A2 -∗ env_le Γ1 Γ2 -∗ env_le (EnvItem x A1 :: Γ1) (EnvItem x A2 :: Γ2).
+    A1 <: A2 -∗ Γ1 <env: Γ2 -∗ EnvItem x A1 :: Γ1 <env: EnvItem x A2 :: Γ2.
   Proof.
     rewrite /env_le /=. iIntros "#H #H' !>" (vs) "Hvs".
     iDestruct (env_ltyped_cons with "Hvs") as (v ?) "[Hv Hvs]".
@@ -214,14 +216,14 @@ Section env.
     iSplitL "Hv"; [by iApply "H"|by iApply "H'"].
   Qed.
   Lemma env_le_app Γ1 Γ2 Γ1' Γ2' :
-    env_le Γ1 Γ2 -∗ env_le Γ1' Γ2' -∗ env_le (Γ1 ++ Γ1') (Γ2 ++ Γ2').
+    Γ1 <env: Γ2 -∗ Γ1' <env: Γ2' -∗ Γ1 ++ Γ1' <env: Γ2 ++ Γ2'.
   Proof.
     rewrite /env_le /=. iIntros "#H #H' !>" (vs) "Hvs".
     iDestruct (env_ltyped_app with "Hvs") as "[Hvs1 Hvs2]".
     iApply env_ltyped_app. iSplitL "Hvs1"; [by iApply "H"|by iApply "H'"].
   Qed.
   Lemma env_le_copy x A :
-    ⊢ env_le [EnvItem x A] [EnvItem x A; EnvItem x (copy- A)].
+    [EnvItem x A] <env: [EnvItem x A; EnvItem x (copy- A)].
   Proof.
     iIntros "!>" (vs) "Hvs".
     iDestruct (env_ltyped_cons with "Hvs") as (v ?) "[HA _]".
@@ -232,7 +234,7 @@ Section env.
   Qed.
   Lemma env_le_copyable x A :
     lty_copyable A -∗
-    env_le [EnvItem x A] [EnvItem x A; EnvItem x A].
+    [EnvItem x A] <env: [EnvItem x A; EnvItem x A].
   Proof.
     iIntros "#H". iApply env_le_trans; [iApply env_le_copy|].
     iApply env_le_cons; [iApply lty_le_refl|].

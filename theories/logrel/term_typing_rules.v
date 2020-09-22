@@ -27,7 +27,7 @@ Section term_typing_rules.
   (** Variable properties *)
   Lemma ltyped_var Γ (x : string) A :
     Γ !! x = Some A →
-    ⊢ Γ ⊨ x : A ⫤ env_cons x (copy- A) Γ.
+    Γ ⊨ x : A ⫤ env_cons x (copy- A) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm) "!>"; iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
@@ -38,7 +38,7 @@ Section term_typing_rules.
 
   (** Subtyping *)
   Theorem ltyped_subsumption Γ1 Γ2 Γ1' Γ2' e τ τ' :
-    env_le Γ1 Γ1' -∗ τ' <: τ -∗ env_le Γ2' Γ2 -∗
+    Γ1 <env: Γ1' -∗ τ' <: τ -∗ Γ2' <env: Γ2 -∗
     (Γ1' ⊨ e : τ' ⫤ Γ2') -∗ (Γ1 ⊨ e : τ ⫤ Γ2).
   Proof.
     iIntros "#HleΓ1 #Hle #HleΓ2 #He" (vs) "!> HΓ1".
@@ -60,24 +60,24 @@ Section term_typing_rules.
   Qed.
 
   (** Basic properties *)
-  Lemma ltyped_val_unit : ⊢ ⊨ᵥ #() : ().
+  Lemma ltyped_val_unit : ⊨ᵥ #() : ().
   Proof. eauto. Qed.
-  Lemma ltyped_unit Γ : ⊢ Γ ⊨ #() : ().
+  Lemma ltyped_unit Γ : Γ ⊨ #() : ().
   Proof. iApply ltyped_val_ltyped. iApply ltyped_val_unit. Qed.
-  Lemma ltyped_val_bool (b : bool) : ⊢ ⊨ᵥ #b : lty_bool.
+  Lemma ltyped_val_bool (b : bool) : ⊨ᵥ #b : lty_bool.
   Proof. eauto. Qed.
-  Lemma ltyped_bool Γ (b : bool) : ⊢ Γ ⊨ #b : lty_bool.
+  Lemma ltyped_bool Γ (b : bool) : Γ ⊨ #b : lty_bool.
   Proof. iApply ltyped_val_ltyped. iApply ltyped_val_bool. Qed.
-  Lemma ltyped_val_int (z: Z) : ⊢ ⊨ᵥ #z : lty_int.
+  Lemma ltyped_val_int (z: Z) : ⊨ᵥ #z : lty_int.
   Proof. eauto. Qed.
-  Lemma ltyped_int Γ (i : Z) : ⊢ Γ ⊨ #i : lty_int.
+  Lemma ltyped_int Γ (i : Z) : Γ ⊨ #i : lty_int.
   Proof. iApply ltyped_val_ltyped. iApply ltyped_val_int. Qed.
 
   (** Operations *)
   Lemma ltyped_un_op Γ1 Γ2 op e A B :
     LTyUnOp op A B →
     (Γ1 ⊨ e : A ⫤ Γ2) -∗
-    Γ1 ⊨ UnOp op e : B ⫤ Γ2.
+    (Γ1 ⊨ UnOp op e : B ⫤ Γ2).
   Proof.
     iIntros (Hop) "#He !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He [HΓ1 //])"). iIntros (v1) "[HA $]".
@@ -88,7 +88,7 @@ Section term_typing_rules.
     LTyBinOp op A1 A2 B →
     (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗
     (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗
-    Γ1 ⊨ BinOp op e1 e2 : B ⫤ Γ3.
+    (Γ1 ⊨ BinOp op e1 e2 : B ⫤ Γ3).
   Proof.
     iIntros (Hop) "#He2 #He1 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He2 [HΓ1 //])"). iIntros (v2) "[HA2 HΓ2]".
@@ -101,7 +101,7 @@ Section term_typing_rules.
     (Γ1 ⊨ e1 : lty_bool ⫤ Γ2) -∗
     (Γ2 ⊨ e2 : A ⫤ Γ3) -∗
     (Γ2 ⊨ e3 : A ⫤ Γ3) -∗
-    Γ1 ⊨ (if: e1 then e2 else e3) : A ⫤ Γ3.
+    (Γ1 ⊨ (if: e1 then e2 else e3) : A ⫤ Γ3).
   Proof.
     iIntros "#He1 #He2 #He3 !>" (v) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 [HΓ1 //])"). iIntros (b) "[Hbool HΓ2]".
@@ -113,7 +113,7 @@ Section term_typing_rules.
   (** Arrow properties *)
   Lemma ltyped_app Γ1 Γ2 Γ3 e1 e2 A1 A2 :
     (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⊸ A2 ⫤ Γ3) -∗
-    Γ1 ⊨ e1 e2 : A2 ⫤ Γ3.
+    (Γ1 ⊨ e1 e2 : A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
@@ -123,7 +123,7 @@ Section term_typing_rules.
 
   Lemma ltyped_app_copy Γ1 Γ2 Γ3 e1 e2 A1 A2 :
     (Γ1 ⊨ e2 : A1 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 → A2 ⫤ Γ3) -∗
-    Γ1 ⊨ e1 e2 : A2 ⫤ Γ3.
+    (Γ1 ⊨ e1 e2 : A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
@@ -146,7 +146,7 @@ Section term_typing_rules.
 
   (* TODO: This might be derivable from rec value rule *)
   Lemma ltyped_val_lam x e A1 A2 :
-    ((env_cons x A1 []) ⊨ e : A2 ⫤ []) -∗
+    (env_cons x A1 [] ⊨ e : A2 ⫤ []) -∗
     ⊨ᵥ (λ: x, e) : A1 ⊸ A2.
   Proof.
     iIntros "#He !>" (v) "HA1".
@@ -203,7 +203,7 @@ Section term_typing_rules.
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗
     (env_cons x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
-    Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3.
+    (Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HA1 HΓ2]". wp_pures.
@@ -219,7 +219,7 @@ Section term_typing_rules.
   Lemma ltyped_seq Γ1 Γ2 Γ3 e1 e2 A B :
     (Γ1 ⊨ e1 : A ⫤ Γ2) -∗
     (Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-    Γ1 ⊨ (e1 ;; e2) : B ⫤ Γ3.
+    (Γ1 ⊨ (e1 ;; e2) : B ⫤ Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[_ HΓ2]". wp_pures.
@@ -230,7 +230,7 @@ Section term_typing_rules.
   (** Product properties  *)
   Lemma ltyped_pair Γ1 Γ2 Γ3 e1 e2 A1 A2 :
     (Γ1 ⊨ e2 : A2 ⫤ Γ2) -∗ (Γ2 ⊨ e1 : A1 ⫤ Γ3) -∗
-    Γ1 ⊨ (e1,e2) : A1 * A2 ⫤ Γ3.
+    (Γ1 ⊨ (e1,e2) : A1 * A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(H2 [HΓ //])"); iIntros (w2) "[HA2 HΓ]".
@@ -240,7 +240,7 @@ Section term_typing_rules.
 
   Lemma ltyped_fst Γ A1 A2 (x : string) :
     Γ !! x = Some (A1 * A2)%lty →
-    ⊢ Γ ⊨ Fst x : A1 ⫤ env_cons x (copy- A1 * A2) Γ.
+    Γ ⊨ Fst x : A1 ⫤ env_cons x (copy- A1 * A2) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
@@ -252,7 +252,7 @@ Section term_typing_rules.
 
   Lemma ltyped_snd Γ A1 A2 (x : string) :
     Γ !! x = Some (A1 * A2)%lty →
-    ⊢ Γ ⊨ Snd x : A2 ⫤ env_cons x (A1 * copy- A2) Γ.
+    Γ ⊨ Snd x : A2 ⫤ env_cons x (A1 * copy- A2) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
@@ -264,7 +264,8 @@ Section term_typing_rules.
 
   (** Sum Properties *)
   Lemma ltyped_injl Γ1 Γ2 e A1 A2 :
-    (Γ1 ⊨ e : A1 ⫤ Γ2) -∗ Γ1 ⊨ InjL e : A1 + A2 ⫤ Γ2.
+    (Γ1 ⊨ e : A1 ⫤ Γ2) -∗
+    (Γ1 ⊨ InjL e : A1 + A2 ⫤ Γ2).
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
@@ -273,7 +274,8 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_injr Γ1 Γ2 e A1 A2 :
-    (Γ1 ⊨ e : A2 ⫤ Γ2) -∗ Γ1 ⊨ InjR e : A1 + A2 ⫤ Γ2.
+    (Γ1 ⊨ e : A2 ⫤ Γ2) -∗
+    (Γ1 ⊨ InjR e : A1 + A2 ⫤ Γ2).
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(HA [HΓ //])").
@@ -298,8 +300,8 @@ Section term_typing_rules.
 
   (** Universal Properties *)
   Lemma ltyped_tlam Γ1 Γ2 Γ' e k (C : lty Σ k → ltty Σ) :
-    (∀ M, Γ1 ⊨ e : C M ⫤ []) -∗
-    Γ1 ++ Γ2 ⊨ (λ: <>, e) : ∀ M, C M ⫤ Γ2.
+    (∀ K, Γ1 ⊨ e : C K ⫤ []) -∗
+    (Γ1 ++ Γ2 ⊨ (λ: <>, e) : (∀ X, C X) ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
     iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
@@ -307,8 +309,9 @@ Section term_typing_rules.
     iApply (wp_wand with "(He HΓ1)"). iIntros (v) "[$ _]".
   Qed.
 
-  Lemma ltyped_tapp Γ Γ2 e k (C : lty Σ k → ltty Σ) M :
-    (Γ ⊨ e : ∀ M, C M ⫤ Γ2) -∗ Γ ⊨ e #() : C M ⫤ Γ2.
+  Lemma ltyped_tapp Γ Γ2 e k (C : lty Σ k → ltty Σ) K :
+    (Γ ⊨ e : (∀ X, C X) ⫤ Γ2) -∗
+    (Γ ⊨ e #() : C K ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ] /=".
@@ -316,17 +319,17 @@ Section term_typing_rules.
   Qed.
 
   (** Existential properties *)
-  Lemma ltyped_pack Γ1 Γ2 e k (C : lty Σ k → ltty Σ) M :
-    (Γ1 ⊨ e : C M ⫤ Γ2) -∗ Γ1 ⊨ e : ∃ M, C M ⫤ Γ2.
+  Lemma ltyped_pack Γ1 Γ2 e k (C : lty Σ k → ltty Σ) K :
+    (Γ1 ⊨ e : C K ⫤ Γ2) -∗ Γ1 ⊨ e : (∃ X, C X) ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists M.
+    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists K.
   Qed.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
-    (Γ1 ⊨ e1 : ∃ M, C M ⫤ Γ2) -∗
-    (∀ Y, env_cons x (C Y) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-    Γ1 ⊨ (let: x := e1 in e2) : B ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3.
+    (Γ1 ⊨ e1 : (∃ X, C X) ⫤ Γ2) -∗
+    (∀ K, env_cons x (C K) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+    (Γ1 ⊨ (let: x := e1 in e2) : B ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HC HΓ2]".
@@ -361,7 +364,7 @@ Section term_typing_rules.
 
   Lemma ltyped_load Γ (x : string) A :
     Γ !! x = Some (ref_uniq A)%lty →
-    ⊢ Γ ⊨ ! x : A ⫤ env_cons x (ref_uniq (copy- A)) Γ.
+    Γ ⊨ ! x : A ⫤ env_cons x (ref_uniq (copy- A)) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
@@ -374,7 +377,7 @@ Section term_typing_rules.
   Lemma ltyped_store Γ Γ' (x : string) e A B :
     Γ' !! x = Some (ref_uniq A)%lty →
     (Γ ⊨ e : B ⫤ Γ') -∗
-    Γ ⊨ x <- e : () ⫤ env_cons x (ref_uniq B) Γ'.
+    (Γ ⊨ x <- e : () ⫤ env_cons x (ref_uniq B) Γ').
   Proof.
     iIntros (HΓx%env_lookup_perm) "#He"; iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
@@ -388,7 +391,7 @@ Section term_typing_rules.
   (** Mutable Shared Reference properties *)
   Lemma ltyped_upgrade_shared  Γ Γ' e A :
     (Γ ⊨ e : ref_uniq (copy A) ⫤ Γ') -∗
-    Γ ⊨ e : ref_shr A ⫤ Γ'.
+    (Γ ⊨ e : ref_shr A ⫤ Γ').
   Proof.
     iIntros "#He" (vs) "!> HΓ". iApply wp_fupd.
     iApply (wp_wand with "(He HΓ)"). iIntros (v) "[Hv $]".
@@ -448,7 +451,7 @@ Section term_typing_rules.
   Lemma ltyped_par `{spawnG Σ} Γ1 Γ1' Γ2 Γ2' e1 e2 A B :
     (Γ1 ⊨ e1 : A ⫤ Γ1') -∗
     (Γ2 ⊨ e2 : B ⫤ Γ2') -∗
-    Γ1 ++ Γ2 ⊨ e1 ||| e2 : A * B ⫤ Γ1' ++ Γ2'.
+    (Γ1 ++ Γ2 ⊨ e1 ||| e2 : A * B ⫤ Γ1' ++ Γ2').
   Proof.
     iIntros "#He1 #He2 !>" (vs) "HΓ /=".
     iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 HΓ2]".

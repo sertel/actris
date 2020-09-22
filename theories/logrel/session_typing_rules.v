@@ -16,7 +16,7 @@ Section session_typing_rules.
   Implicit Types Γ : env Σ.
 
   Lemma ltyped_new_chan Γ S :
-    ⊢ Γ ⊨ new_chan : () ⊸ (chan S * chan (lty_dual S)) ⫤ Γ.
+    Γ ⊨ new_chan : () ⊸ (chan S * chan (lty_dual S)) ⫤ Γ.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value. iFrame "HΓ".
     iIntros (u) ">->".
@@ -27,7 +27,7 @@ Section session_typing_rules.
   Lemma ltyped_send Γ Γ' (x : string) e A S :
     Γ' !! x = Some (chan (<!!> TY A; S))%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
-    Γ ⊨ send x e : () ⫤ env_cons x (chan S) Γ'.
+    (Γ ⊨ send x e : () ⫤ env_cons x (chan S) Γ').
   Proof.
     iIntros (HΓx%env_lookup_perm) "#He !>". iIntros (vs) "HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
@@ -80,7 +80,7 @@ Section session_typing_rules.
 
   Lemma ltyped_recv Γ (x : string) A S :
     Γ !! x = Some (chan (<??> TY A; S))%lty →
-    ⊢ Γ ⊨ recv x : A ⫤ env_cons x (chan S) Γ.
+    Γ ⊨ recv x : A ⫤ env_cons x (chan S) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm) "!>". iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
@@ -93,7 +93,7 @@ Section session_typing_rules.
   Lemma ltyped_select Γ (x : string) (i : Z) (S : lsty Σ) Ss :
     Γ !! x = Some (chan (lty_select Ss))%lty →
     Ss !! i = Some S →
-    ⊢ Γ ⊨ select x #i : () ⫤ env_cons x (chan S) Γ.
+    Γ ⊨ select x #i : () ⫤ env_cons x (chan S) Γ.
   Proof.
     iIntros (HΓx%env_lookup_perm Hin); iIntros "!>" (vs) "HΓ /=".
     rewrite {1}HΓx /=.
@@ -149,8 +149,8 @@ Section session_typing_rules.
 
   Lemma ltyped_branch Γ Ss A xs :
     (∀ x, x ∈ xs ↔ is_Some (Ss !! x)) →
-    ⊢ Γ ⊨ branch xs : chan (lty_branch Ss) ⊸
-      lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A ⫤ Γ.
+    Γ ⊨ branch xs : chan (lty_branch Ss) ⊸
+        lty_arr_list ((λ x, (chan (Ss !!! x) ⊸ A)%lty) <$> xs) A ⫤ Γ.
   Proof.
     iIntros (Hdom) "!>". iIntros (vs) "$". iApply wp_value.
     iIntros (c) "Hc". wp_lam.

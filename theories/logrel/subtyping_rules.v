@@ -11,7 +11,7 @@ Section subtyping_rules.
   Implicit Types S : lsty Σ.
 
   (** Generic rules *)
-  Lemma lty_le_refl {k} (K : lty Σ k) : ⊢ K <: K.
+  Lemma lty_le_refl {k} (K : lty Σ k) : K <: K.
   Proof. destruct k. by iIntros (v) "!> H". by iModIntro. Qed.
   Lemma lty_le_trans {k} (K1 K2 K3 : lty Σ k) : K1 <: K2 -∗ K2 <: K3 -∗ K1 <: K3.
   Proof.
@@ -20,7 +20,7 @@ Section subtyping_rules.
     - iIntros "#H1 #H2 !>". by iApply iProto_le_trans.
   Qed.
 
-  Lemma lty_bi_le_refl {k} (K : lty Σ k) : ⊢ K <:> K.
+  Lemma lty_bi_le_refl {k} (K : lty Σ k) : K <:> K.
   Proof. iSplit; iApply lty_le_refl. Qed.
   Lemma lty_bi_le_trans {k} (K1 K2 K3 : lty Σ k) :
     K1 <:> K2 -∗ K2 <:> K3 -∗ K1 <:> K3.
@@ -34,7 +34,7 @@ Section subtyping_rules.
   Proof. iIntros "#H1 #[H2 _]". by iApply lty_le_trans. Qed.
 
   Lemma lty_le_rec_unfold {k} (C : lty Σ k → lty Σ k) `{!Contractive C} :
-    ⊢ lty_rec C <:> C (lty_rec C).
+    lty_rec C <:> C (lty_rec C).
   Proof.
     iSplit.
     - rewrite {1}/lty_rec fixpoint_unfold. iApply lty_le_refl.
@@ -53,14 +53,14 @@ Section subtyping_rules.
   Qed.
 
   (** Term subtyping *)
-  Lemma lty_le_any A : ⊢ A <: any.
+  Lemma lty_le_any A : A <: any.
   Proof. by iIntros (v) "!> H". Qed.
   Lemma lty_copyable_any : ⊢@{iPropI Σ} lty_copyable any.
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
 
   Lemma lty_le_copy A B : A <: B -∗ copy A <: copy B.
   Proof. iIntros "#Hle". iIntros (v) "!> #HA !>". by iApply "Hle". Qed.
-  Lemma lty_le_copy_elim A : ⊢ copy A <: A.
+  Lemma lty_le_copy_elim A : copy A <: A.
   Proof. by iIntros (v) "!> #H". Qed.
   Lemma lty_copyable_copy A : ⊢@{iPropI Σ} lty_copyable (copy A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
@@ -70,9 +70,9 @@ Section subtyping_rules.
     iIntros "#Hle !>" (v) "#HA". iApply (coreP_wand (ltty_car A v) with "[] HA").
     iIntros "{HA} !> !>". iApply "Hle".
   Qed.
-  Lemma lty_le_copy_inv_intro A : ⊢ A <: copy- A.
+  Lemma lty_le_copy_inv_intro A : A <: copy- A.
   Proof. iIntros "!>" (v). iApply coreP_intro. Qed.
-  Lemma lty_le_copy_inv_elim A : ⊢ copy- (copy A) <: A.
+  Lemma lty_le_copy_inv_elim A : copy- (copy A) <: A.
   Proof. iIntros (v) "!> #H". iApply (coreP_elim with "H"). Qed.
   Lemma lty_copyable_copy_inv A : ⊢ lty_copyable (copy- A).
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
@@ -121,7 +121,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_prod_copy A B :
-    ⊢ copy A * copy B <:> copy (A * B).
+    copy A * copy B <:> copy (A * B).
   Proof.
     iSplit; iModIntro; iIntros (v) "#Hv"; iDestruct "Hv" as (v1 v2 ->) "[Hv1 Hv2]".
     - iModIntro. iExists v1, v2. iSplit; [done|]. iSplitL; auto.
@@ -145,7 +145,7 @@ Section subtyping_rules.
     - iDestruct ("H2" with "H") as "H2'". iRight; eauto.
   Qed.
   Lemma lty_le_sum_copy A B :
-    ⊢ copy A + copy B <:> copy (A + B).
+    copy A + copy B <:> copy (A + B).
   Proof.
     iSplit; iModIntro; iIntros (v);
       iDestruct 1 as "#[Hv|Hv]"; iDestruct "Hv" as (w ?) "Hw";
@@ -177,10 +177,10 @@ Section subtyping_rules.
     iIntros "#Hle" (v) "!>". iDestruct 1 as (A) "H". iExists A. by iApply "Hle".
   Qed.
   Lemma lty_le_exist_elim C B :
-    ⊢ C B <: ∃ A, C A.
+    C B <: ∃ A, C A.
   Proof. iIntros "!>" (v) "Hle". by iExists B. Qed.
   Lemma lty_le_exist_copy F :
-    ⊢ (∃ A, copy (F A)) <:> copy (∃ A, F A).
+    (∃ A, copy (F A)) <:> copy (∃ A, F A).
   Proof.
     iSplit; iIntros "!>" (v); iDestruct 1 as (A) "#Hv";
       iExists A; repeat iModIntro; iApply "Hv".
@@ -272,11 +272,11 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_exist_intro_l k (M : lty Σ k → lmsg Σ) (A : lty Σ k) :
-    ⊢ (<!! X> M X) <: (<!!> M A).
+    (<!! X> M X) <: (<!!> M A).
   Proof. iIntros "!>". iApply (iProto_le_exist_intro_l). Qed.
 
   Lemma lty_le_exist_intro_r k (M : lty Σ k → lmsg Σ) (A : lty Σ k) :
-    ⊢ (<??> M A) <: (<?? X> M X).
+    (<??> M A) <: (<?? X> M X).
   Proof. iIntros "!>". iApply (iProto_le_exist_intro_r). Qed.
 
   Lemma lty_le_texist_elim_l {kt} (M : ltys Σ kt → lmsg Σ) S :
@@ -298,21 +298,21 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_texist_intro_l {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) Ks :
-    ⊢ (<!!.. Xs> M Xs) <: (<!!> M Ks).
+    (<!!.. Xs> M Xs) <: (<!!> M Ks).
   Proof.
     induction Ks as [|k kT X Xs IH]; simpl; [iApply lty_le_refl|].
     iApply lty_le_trans; [by iApply lty_le_exist_intro_l|]. iApply IH.
   Qed.
 
   Lemma lty_le_texist_intro_r {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) Ks :
-    ⊢ (<??> M Ks) <: (<??.. Xs> M Xs).
+    (<??> M Ks) <: (<??.. Xs> M Xs).
   Proof.
     induction Ks as [|k kt X Xs IH]; simpl; [iApply lty_le_refl|].
     iApply lty_le_trans; [|by iApply lty_le_exist_intro_r]. iApply IH.
   Qed.
 
   Lemma lty_le_swap_recv_send A1 A2 S :
-    ⊢ (<??> TY A1; <!!> TY A2; S) <: (<!!> TY A2; <??> TY A1; S).
+    (<??> TY A1; <!!> TY A2; S) <: (<!!> TY A2; <??> TY A1; S).
   Proof.
     iIntros "!>" (v1 v2).
     iApply iProto_le_trans;
@@ -323,7 +323,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_swap_recv_select A Ss :
-    ⊢ (<??> TY A; lty_select Ss) <: lty_select ((λ S, <??> TY A; S) <$> Ss)%lty.
+    (<??> TY A; lty_select Ss) <: lty_select ((λ S, <??> TY A; S) <$> Ss)%lty.
   Proof.
     iIntros "!>" (v1 x2).
     iApply iProto_le_trans;
@@ -336,7 +336,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_swap_branch_send A Ss :
-    ⊢ lty_branch ((λ S, <!!> TY A; S) <$> Ss)%lty <: (<!!> TY A; lty_branch Ss).
+    lty_branch ((λ S, <!!> TY A; S) <$> Ss)%lty <: (<!!> TY A; lty_branch Ss).
   Proof.
     iIntros "!>" (x1 v2).
     iApply iProto_le_trans;
@@ -353,7 +353,7 @@ Section subtyping_rules.
         Ss1 !! i = Some Ss1' → Ss2 !! j = Some Ss2' →
         is_Some (Ss1' !! j) ∧ is_Some (Ss2' !! i) ∧
         Ss1' !! j = Ss2' !! i) →
-    ⊢ lty_branch (lty_select <$> Ss1) <: lty_select (lty_branch <$> Ss2).
+    lty_branch (lty_select <$> Ss1) <: lty_select (lty_branch <$> Ss2).
   Proof.
     intros Hin.
     iIntros "!>" (v1 v2).
@@ -383,7 +383,7 @@ Section subtyping_rules.
   Qed.
   Lemma lty_le_select_subseteq (Ss1 Ss2 : gmap Z (lsty Σ)) :
     Ss2 ⊆ Ss1 →
-    ⊢ lty_select Ss1 <: lty_select Ss2.
+    lty_select Ss1 <: lty_select Ss2.
   Proof.
     intros; iIntros "!>" (x); iDestruct 1 as %[S HSs2]. iExists x.
     assert (Ss1 !! x = Some S) as HSs1 by eauto using lookup_weaken.
@@ -404,7 +404,7 @@ Section subtyping_rules.
   Qed.
   Lemma lty_le_branch_subseteq (Ss1 Ss2 : gmap Z (lsty Σ)) :
     Ss1 ⊆ Ss2 →
-    ⊢ lty_branch Ss1 <: lty_branch Ss2.
+    lty_branch Ss1 <: lty_branch Ss2.
   Proof.
     intros; iIntros "!>" (x); iDestruct 1 as %[S HSs1]. iExists x.
     assert (Ss2 !! x = Some S) as HSs2 by eauto using lookup_weaken.
@@ -458,17 +458,17 @@ Section subtyping_rules.
     (S11 <++> S12) <: (S21 <++> S22).
   Proof. iIntros "#H1 #H2 !>". by iApply iProto_le_app. Qed.
 
-  Lemma lty_le_app_id_l S : ⊢ (END <++> S) <:> S.
+  Lemma lty_le_app_id_l S : (END <++> S) <:> S.
   Proof. rewrite left_id. iSplit; by iModIntro. Qed.
-  Lemma lty_le_app_id_r S : ⊢ (S <++> END) <:> S.
+  Lemma lty_le_app_id_r S : (S <++> END) <:> S.
   Proof. rewrite right_id. iSplit; by iModIntro. Qed.
   Lemma lty_le_app_assoc S1 S2 S3 :
-    ⊢ (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
+    (S1 <++> S2) <++> S3 <:> S1 <++> (S2 <++> S3).
   Proof. rewrite assoc. iSplit; by iModIntro. Qed.
 
   Lemma lty_le_app_send_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) S2 :
     LtyMsgTele M A S →
-    ⊢ (<!!> M) <++> S2 <:>
+    (<!!> M) <++> S2 <:>
         <!!.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
   Proof.
     rewrite /LtyMsgTele. iIntros (->).
@@ -484,7 +484,7 @@ Section subtyping_rules.
 
   Lemma lty_le_app_recv_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) S2 :
     LtyMsgTele M A S →
-    ⊢ (<??> M) <++> S2 <:>
+    (<??> M) <++> S2 <:>
         <??.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
   Proof.
     rewrite /LtyMsgTele. iIntros (->).
@@ -499,14 +499,14 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_app_send A S1 S2 :
-    ⊢ (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
+    (<!!> TY A; S1) <++> S2 <:> (<!!> TY A; S1 <++> S2).
   Proof. by apply (lty_le_app_send_exist (kt:=KTeleO)). Qed.
   Lemma lty_le_app_recv A S1 S2 :
-    ⊢ (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
+    (<??> TY A; S1) <++> S2 <:> (<??> TY A; S1 <++> S2).
   Proof. by apply (lty_le_app_recv_exist (kt:=KTeleO)). Qed.
 
   Lemma lty_le_app_choice a (Ss : gmap Z (lsty Σ)) S2 :
-    ⊢ lty_choice a Ss <++> S2 <:> lty_choice a ((.<++> S2) <$> Ss)%lty.
+    lty_choice a Ss <++> S2 <:> lty_choice a ((.<++> S2) <$> Ss)%lty.
   Proof.
     rewrite /lty_app /lty_choice iProto_app_message iMsg_app_exist;
       setoid_rewrite iMsg_app_base; setoid_rewrite lookup_total_alt;
@@ -515,10 +515,10 @@ Section subtyping_rules.
       iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
   Qed.
   Lemma lty_le_app_select Ss S2 :
-    ⊢ lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
+    lty_select Ss <++> S2 <:> lty_select ((.<++> S2) <$> Ss)%lty.
   Proof. apply lty_le_app_choice. Qed.
   Lemma lty_le_app_branch Ss S2 :
-    ⊢ lty_branch Ss <++> S2 <:> lty_branch ((.<++> S2) <$> Ss)%lty.
+    lty_branch Ss <++> S2 <:> lty_branch ((.<++> S2) <$> Ss)%lty.
   Proof. apply lty_le_app_choice. Qed.
 
   Lemma lty_le_dual S1 S2 : S2 <: S1 -∗ lty_dual S1 <: lty_dual S2.
@@ -528,11 +528,11 @@ Section subtyping_rules.
   Lemma lty_le_dual_r S1 S2 : S2 <: lty_dual S1 -∗ S1 <: lty_dual S2.
   Proof. iIntros "#H !>". by iApply iProto_le_dual_r. Qed.
 
-  Lemma lty_le_dual_end : ⊢ lty_dual (Σ:=Σ) END <:> END.
+  Lemma lty_le_dual_end : lty_dual (Σ:=Σ) END <:> END.
   Proof. rewrite /lty_dual iProto_dual_end=> /=. apply lty_bi_le_refl. Qed.
 
   Lemma lty_le_dual_message a A S :
-    ⊢ lty_dual (lty_message a (TY A; S)) <:>
+    lty_dual (lty_message a (TY A; S)) <:>
       lty_message (action_dual a) (TY A; (lty_dual S)).
   Proof.
     rewrite /lty_dual iProto_dual_message iMsg_dual_exist.
@@ -541,7 +541,7 @@ Section subtyping_rules.
 
   Lemma lty_le_dual_send_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :
     LtyMsgTele M A S →
-    ⊢ lty_dual (<!!> M) <:>
+    lty_dual (<!!> M) <:>
         <??.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
   Proof.
     rewrite /LtyMsgTele. iIntros (->).
@@ -557,7 +557,7 @@ Section subtyping_rules.
 
   Lemma lty_le_dual_recv_exist {kt} M (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :
     LtyMsgTele M A S →
-    ⊢ lty_dual (<??> M) <:>
+    lty_dual (<??> M) <:>
       <!!.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
   Proof.
     rewrite /LtyMsgTele. iIntros (->).
@@ -571,13 +571,13 @@ Section subtyping_rules.
         iApply lty_le_l; [ iApply lty_bi_le_sym; iApply IH | iApply lty_le_refl ].
   Qed.
 
-  Lemma lty_le_dual_send A S : ⊢ lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
+  Lemma lty_le_dual_send A S : lty_dual (<!!> TY A; S) <:> (<??> TY A; lty_dual S).
   Proof. by apply (lty_le_dual_send_exist (kt:=KTeleO)). Qed.
-  Lemma lty_le_dual_recv A S : ⊢ lty_dual (<??> TY A; S) <:> (<!!> TY A; lty_dual S).
+  Lemma lty_le_dual_recv A S : lty_dual (<??> TY A; S) <:> (<!!> TY A; lty_dual S).
   Proof. by apply (lty_le_dual_recv_exist (kt:=KTeleO)). Qed.
 
   Lemma lty_le_dual_choice a (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
+    lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
   Proof.
     rewrite /lty_dual /lty_choice iProto_dual_message iMsg_dual_exist;
       setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
@@ -587,10 +587,10 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_select Ss) <:> lty_branch (lty_dual <$> Ss).
+    lty_dual (lty_select Ss) <:> lty_branch (lty_dual <$> Ss).
   Proof. iApply lty_le_dual_choice. Qed.
   Lemma lty_le_dual_branch (Ss : gmap Z (lsty Σ)) :
-    ⊢ lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
+    lty_dual (lty_branch Ss) <:> lty_select (lty_dual <$> Ss).
   Proof. iApply lty_le_dual_choice. Qed.
 
 End subtyping_rules.

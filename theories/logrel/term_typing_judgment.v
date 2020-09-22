@@ -19,9 +19,14 @@ Definition ltyped `{!heapG Σ}
 Instance: Params (@ltyped) 2 := {}.
 
 Notation "Γ1 ⊨ e : A ⫤ Γ2" := (ltyped Γ1 Γ2 e A)
-  (at level 100, e at next level, A at level 200).
-Notation "Γ ⊨ e : A" := (Γ ⊨ e : A ⫤ Γ)
-  (at level 100, e at next level, A at level 200).
+  (at level 100, e at next level, A at level 200) : bi_scope.
+Notation "Γ ⊨ e : A" := (Γ ⊨ e : A ⫤ Γ)%I
+  (at level 100, e at next level, A at level 200) : bi_scope.
+
+Notation "Γ1 ⊨ e : A ⫤ Γ2" := (⊢ Γ1 ⊨ e : A ⫤ Γ2)
+  (at level 100, e at next level, A at level 200) : type_scope.
+Notation "Γ ⊨ e : A" := (⊢ Γ ⊨ e : A ⫤ Γ)
+  (at level 100, e at next level, A at level 200) : type_scope.
 
 Section ltyped.
   Context `{!heapG Σ}.
@@ -54,7 +59,9 @@ Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ltty_car A v)%I.
 Instance: Params (@ltyped_val) 3 := {}.
 Notation "⊨ᵥ v : A" := (ltyped_val v A)
-                         (at level 100, v at next level, A at level 200).
+  (at level 100, v at next level, A at level 200) : bi_scope.
+Notation "⊨ᵥ v : A" := (⊢ ⊨ᵥ v : A)
+  (at level 100, v at next level, A at level 200) : stdpp_scope.
 Arguments ltyped_val : simpl never.
 
 Section ltyped_val.
@@ -85,7 +92,7 @@ Section ltyped_rel.
 End ltyped_rel.
 
 Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
-  (∀ `{heapG Σ}, ∃ A, ⊢ [] ⊨ e : A ⫤ []) →
+  (∀ `{heapG Σ}, ∃ A, [] ⊨ e : A ⫤ []) →
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
