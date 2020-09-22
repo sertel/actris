@@ -61,7 +61,7 @@ Section compute_example.
   Context `{!inG Σ fracR}.
 
   Definition compute_type_client_aux (rec : lsty Σ) : lsty Σ :=
-    lty_select $ <[cont := (<!! A> TY () ⊸ A; <??> TY A ; rec)%lty]> $
+    lty_select $ <[cont := (<!! X> TY () ⊸ X; <??> TY X ; rec)%lty]> $
                  <[stop := END%lty]>∅.
   Instance compute_type_client_contractive :
     Contractive (compute_type_client_aux).
@@ -144,8 +144,8 @@ Section compute_example.
     iApply lty_le_swap_recv_send.
   Qed.
 
-  Lemma recv_type_stop_type_swap B :
-    ⊢ recv_type B <++> stop_type <: stop_type <++> recv_type B.
+  Lemma recv_type_stop_type_swap A :
+    ⊢ recv_type A <++> stop_type <: stop_type <++> recv_type A.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.

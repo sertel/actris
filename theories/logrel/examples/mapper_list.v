@@ -1,17 +1,25 @@
-(** This file contains an example of a client that uses a service
-with the type:
+(** This file contains an example of a mapper service and a client.
+The service has the type:
 
   ? (X,Y:★) (X ⊸ Y). μ rec. & { cont : ?X. !Y. rec,
                                 stop : end }
 
-It does so to map the values of an input list with type
+The client uses the service to map the values of an input list with type
 [list A] using an input function [A → B], into a list with
-type [list B].
+type [list B], sending all of the values up front, and only then
+request the results.
 
 The client cannot be type checked with the rules of the type system,
 as its behaviour depends on the length of the list.
 Its typing judgement can however be manually verified, after which
-it is composed with the type checked service. *)
+it is composed with the type checked service.
+
+The file contains two proofs of the sending phase of the client.
+An ad hoc version, where the recursive type is unfolded iteratively,
+and have select and sends swapped ahead of the receives.
+An upfront version, where it using subtyping to unfold the recursive
+type an amount of types corresponding to the size of the list, after
+which all selects and seands are swapped ahead of all receives immediately. *)
 From actris.channel Require Import proofmode proto channel.
 From actris.logrel Require Import session_types subtyping_rules
      term_typing_judgment term_typing_rules session_typing_rules
@@ -23,14 +31,14 @@ From iris.proofmode Require Import tactics.
 Definition cont : Z := 1.
 Definition stop : Z := 2.
 
-Definition mapper_service_aux : expr := λ: "f" "c",
-  (rec: "go" "f" "c":=
+Definition mapper_service_aux : val :=
+  rec: "go" "f" "c":=
     (branch [cont;stop]) "c"
     (λ: "c", let: "v" := recv "c" in
      send "c" ("f" "v");; "go" "f" "c")
-    (λ: "c", #())) "f" "c".
+    (λ: "c", #()).
 
-Definition mapper_service : expr :=
+Definition mapper_service : val :=
   λ: "c",
     let: "f" := recv "c" in
     mapper_service_aux "f" "c".
@@ -46,15 +54,15 @@ Definition recv_all : val :=
       let: "x" := recv "c" in
       "go" "c" "ys" ("n"-#1%Z);; lcons "x" "ys".
 
-Definition mapper_client : expr :=
-  (λ: "f" "xs" "c",
+Definition mapper_client : val :=
+  λ: "f" "xs" "c",
    send "c" "f";;
    let: "n" := llength "xs" in
-   send_all "c" "xs";; recv_all "c" "xs" "n";; select "c" #stop;; "xs")%E.
+   send_all "c" "xs";; recv_all "c" "xs" "n";; select "c" #stop;; "xs".
 
-Definition mapper_prog : expr :=
-  (λ: "f" "xs",
-   par_start (mapper_service) (mapper_client "f" "xs"))%E.
+Definition mapper_prog : val :=
+  λ: "f" "xs",
+   par_start (mapper_service) (mapper_client "f" "xs").
 
 Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
@@ -73,16 +81,11 @@ Section mapper_example.
     ⊢ Γ ⊨ mapper_service_aux : (A → B) ⊸ lty_chan (mapper_type_rec_service A B) ⊸
                                        () ⫤ Γ.
   Proof.
-    iApply (ltyped_lam []).
-    iApply (ltyped_lam [EnvItem "f" _]).
-    iApply ltyped_app; [ by iApply ltyped_var | ].
-    iApply ltyped_app; [ by iApply ltyped_var | ].
     iApply (ltyped_subsumption _ _ _ _ _ _
               ((A → B) → lty_chan (mapper_type_rec_service A B) ⊸ ())%lty);
-      [ | iApply lty_le_copy_elim | iApply env_le_refl | ].
-    { iApply env_le_cons. iApply lty_le_copy_inv_elim. iApply env_le_refl. }
-    iApply ltyped_post_nil.
-    iApply (ltyped_rec []).
+      [ iApply env_le_refl | iApply lty_le_copy_elim | iApply env_le_refl | ].
+    iApply ltyped_val_ltyped.
+    iApply ltyped_val_rec.
     iApply (ltyped_lam [EnvItem "go" _; EnvItem "f" _]).
     iApply ltyped_post_nil.
     iApply ltyped_app.
@@ -119,12 +122,13 @@ Section mapper_example.
   Qed.
 
   Definition mapper_type_service : lsty Σ :=
-    <?? A B> TY A → B ; mapper_type_rec_service A B.
+    <?? X Y> TY X → Y ; mapper_type_rec_service X Y.
 
   Lemma ltyped_mapper_service Γ :
     ⊢ Γ ⊨ mapper_service : lty_chan (mapper_type_service) ⊸ () ⫤ Γ.
   Proof.
-    iApply (ltyped_lam []).
+    iApply ltyped_val_ltyped.
+    iApply ltyped_val_lam.
     iApply ltyped_post_nil.
     iApply ltyped_recv_texist; [ done | apply _ | ].
     iIntros (Ys).
@@ -326,7 +330,8 @@ Section mapper_example.
                           chan mapper_type_client ⊸
                           lty_list B.
   Proof.
-    iApply (ltyped_lam []).
+    iApply ltyped_val_ltyped.
+    iApply ltyped_val_lam.
     iApply (ltyped_lam [EnvItem "f" _]).
     iApply (ltyped_lam [EnvItem "xs" _; EnvItem "f" _]).
     iIntros (vs) "!> HΓ /=".
@@ -359,7 +364,8 @@ Section mapper_example.
                           chan mapper_type_client ⊸
                           lty_list B.
   Proof.
-    iApply (ltyped_lam []).
+    iApply ltyped_val_ltyped.
+    iApply ltyped_val_lam.
     iApply (ltyped_lam [EnvItem "f" _]).
     iApply (ltyped_lam [EnvItem "xs" _; EnvItem "f" _]).
     iIntros (vs) "!> HΓ /=".
