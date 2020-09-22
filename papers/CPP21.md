@@ -12,8 +12,8 @@
 - The disjunction of the compute client list invariant is encoded using a boolean
   flag, as it makes mechanisation easier.
 - The mechanisation employs a typing judgement for values (`ltyped_val`),
-  for technical reasons.
-
+  for technical reasons. More details on this is found in
+  [theories/logrel/term_typing_judgment.v](../theories/logrel/term_typing_judgment.v)
 ## Examples
 
 - The parallel receive example in Section 4 can be found in

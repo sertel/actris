@@ -42,7 +42,14 @@ Section ltyped.
   Qed.
 End ltyped.
 
-(* TODO: Elaborate on why this is needed *)
+(** Expressions and values are defined mutually recursive in HeapLang,
+which means that only after a step of reduction we get that e.g.
+Pair (Val v1, Val v2) = PairV (v1,v2).
+This makes typing of values tricky, for technical reasons.
+To circumvent this, we make use of the following typing judgement for values,
+that lets us type check values without requiring reduction steps.
+The value typing judgement subsumes the typing judgement on expressions,
+as made precise by the [ltyped_val_ltyped] lemma. *)
 Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ltty_car A v)%I.
 Instance: Params (@ltyped_val) 3 := {}.
