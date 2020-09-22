@@ -2,7 +2,6 @@
 these lemmas are semantic versions of the syntactic typing judgments typically
 found in a syntactic type system. *)
 From iris.bi.lib Require Import core.
-From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Import metatheory.
 From iris.heap_lang.lib Require Export par.
 From actris.logrel Require Export subtyping_rules term_typing_judgment operators.
@@ -11,7 +10,7 @@ From actris.channel Require Import proofmode.
 Section term_typing_rules.
   Context `{heapG Σ}.
   Implicit Types A B : ltty Σ.
-  Implicit Types Γ : env Σ.
+  Implicit Types Γ : ctx Σ.
 
   (** Frame rule *)
   Lemma ltyped_frame Γ Γ1 Γ2 e A :
@@ -19,26 +18,26 @@ Section term_typing_rules.
     (Γ1 ++ Γ ⊨ e : A ⫤ Γ2 ++ Γ).
   Proof.
     iIntros "#He !>" (vs) "HΓ".
-    iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 HΓ]".
+    iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 HΓ]".
     iApply (wp_wand with "(He HΓ1)").
-    iIntros (v) "[$ HΓ2]". by iApply (env_ltyped_app with "[$]").
+    iIntros (v) "[$ HΓ2]". by iApply (ctx_ltyped_app with "[$]").
   Qed.
 
   (** Variable properties *)
   Lemma ltyped_var Γ (x : string) A :
     Γ !! x = Some A →
-    Γ ⊨ x : A ⫤ env_cons x (copy- A) Γ.
+    Γ ⊨ x : A ⫤ ctx_cons x (copy- A) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm) "!>"; iIntros (vs) "HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm) "!>"; iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]". rewrite Hvs.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]". rewrite Hvs.
     iAssert (ltty_car (copy- A) v)%lty as "#HAm"; [by iApply coreP_intro|].
-    iApply wp_value. iFrame "HA". iApply env_ltyped_cons. eauto with iFrame.
+    iApply wp_value. iFrame "HA". iApply ctx_ltyped_cons. eauto with iFrame.
   Qed.
 
   (** Subtyping *)
   Theorem ltyped_subsumption Γ1 Γ2 Γ1' Γ2' e τ τ' :
-    Γ1 <env: Γ1' -∗ τ' <: τ -∗ Γ2' <env: Γ2 -∗
+    Γ1 <ctx: Γ1' -∗ τ' <: τ -∗ Γ2' <ctx: Γ2 -∗
     (Γ1' ⊨ e : τ' ⫤ Γ2') -∗ (Γ1 ⊨ e : τ ⫤ Γ2).
   Proof.
     iIntros "#HleΓ1 #Hle #HleΓ2 #He" (vs) "!> HΓ1".
@@ -56,7 +55,7 @@ Section term_typing_rules.
     (Γ1 ⊨ e : τ ⫤ Γ2) -∗ (Γ1 ⊨ e : τ ⫤ []).
   Proof.
     iApply ltyped_subsumption;
-      [iApply env_le_refl|iApply lty_le_refl|iApply env_le_nil].
+      [iApply ctx_le_refl|iApply lty_le_refl|iApply ctx_le_nil].
   Qed.
 
   (** Basic properties *)
@@ -132,44 +131,44 @@ Section term_typing_rules.
   Qed.
 
   Lemma ltyped_lam Γ1 Γ2 x e A1 A2 :
-    (env_cons x A1 Γ1 ⊨ e : A2 ⫤ []) -∗
+    (ctx_cons x A1 Γ1 ⊨ e : A2 ⫤ []) -∗
     Γ1 ++ Γ2 ⊨ (λ: x, e) : A1 ⊸ A2 ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
-    iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
+    iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 $]".
     iIntros (v) "HA1". wp_pures.
     iDestruct ("He" $! (binder_insert x v vs) with "[HA1 HΓ1]") as "He'".
-    { by iApply (env_ltyped_insert' with "HA1"). }
+    { by iApply (ctx_ltyped_insert' with "HA1"). }
     rewrite subst_map_binder_insert.
     iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
   Qed.
 
   (* TODO: This might be derivable from rec value rule *)
   Lemma ltyped_val_lam x e A1 A2 :
-    (env_cons x A1 [] ⊨ e : A2 ⫤ []) -∗
+    (ctx_cons x A1 [] ⊨ e : A2 ⫤ []) -∗
     ⊨ᵥ (λ: x, e) : A1 ⊸ A2.
   Proof.
     iIntros "#He !>" (v) "HA1".
     wp_pures.
     iDestruct ("He" $!(binder_insert x v ∅) with "[HA1]") as "He'".
-    { iApply (env_ltyped_insert' ∅ ∅ x A1 v with "HA1").
-      iApply env_ltyped_nil. }
+    { iApply (ctx_ltyped_insert' ∅ ∅ x A1 v with "HA1").
+      iApply ctx_ltyped_nil. }
     rewrite subst_map_binder_insert /= binder_delete_empty subst_map_empty.
     iApply (wp_wand with "He'"). by iIntros (w) "[$ _]".
   Qed.
 
   (* Typing rule for introducing copyable functions *)
-  Definition env_copy_minus : env Σ → env Σ :=
-    fmap (λ xA, EnvItem (env_item_name xA) (lty_copy_minus  (env_item_type xA))).
+  Definition ctx_copy_minus : ctx Σ → ctx Σ :=
+    fmap (λ xA, CtxItem (ctx_item_name xA) (lty_copy_minus (ctx_item_type xA))).
 
   Lemma ltyped_rec Γ1 Γ2 f x e A1 A2 :
-    (env_cons f (A1 → A2) (env_cons x A1 (env_copy_minus Γ1)) ⊨ e : A2 ⫤ []) -∗
+    (ctx_cons f (A1 → A2) (ctx_cons x A1 (ctx_copy_minus Γ1)) ⊨ e : A2 ⫤ []) -∗
     Γ1 ++ Γ2 ⊨ (rec: f x := e) : A1 → A2 ⫤ Γ2.
   Proof.
     iIntros "#He". iIntros (vs) "!> HΓ /=". wp_pures.
-    iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
-    iAssert (<pers> env_ltyped vs (env_copy_minus Γ1))%I as "{HΓ1} #HΓ1".
-    { iClear "He". rewrite /env_copy_minus big_sepL_persistently big_sepL_fmap.
+    iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 $]".
+    iAssert (<pers> ctx_ltyped vs (ctx_copy_minus Γ1))%I as "{HΓ1} #HΓ1".
+    { iClear "He". rewrite /ctx_copy_minus big_sepL_persistently big_sepL_fmap.
       iApply (big_sepL_impl with "HΓ1"). iIntros "!>" (k [y B] _) "/=".
       iDestruct 1 as (v ?) "HB". iExists v. iSplit; [by auto|].
       by iDestruct (coreP_intro with "HB") as "{HB} #HB". }
@@ -177,24 +176,24 @@ Section term_typing_rules.
     iIntros (v) "!> HA1". wp_pures. set (r := RecV f x _).
     iDestruct ("He" $! (binder_insert f r (binder_insert x v vs))
       with "[HΓ1 HA1]") as "He'".
-    { iApply (env_ltyped_insert' with "IH").
-      by iApply (env_ltyped_insert' with "HA1"). }
+    { iApply (ctx_ltyped_insert' with "IH").
+      by iApply (ctx_ltyped_insert' with "HA1"). }
     rewrite !subst_map_binder_insert_2.
     iApply (wp_wand with "He'"). iIntros (w) "[$ _]".
   Qed.
 
   Lemma ltyped_val_rec f x e A1 A2 :
-    (env_cons f (A1 → A2) (env_cons x A1 []) ⊨ e : A2 ⫤ []) -∗
+    (ctx_cons f (A1 → A2) (ctx_cons x A1 []) ⊨ e : A2 ⫤ []) -∗
     ⊨ᵥ (rec: f x := e) : A1 → A2.
   Proof.
     iIntros "#He". simpl. iLöb as "IH".
     iIntros (v) "!>!> HA1". wp_pures. set (r := RecV f x _).
     iDestruct ("He"$! (binder_insert f r (binder_insert x v ∅))
                  with "[HA1]") as "He'".
-    { iApply (env_ltyped_insert').
+    { iApply (ctx_ltyped_insert').
       { rewrite /ltyped_val /=. iApply "IH". }
-      iApply (env_ltyped_insert' with "HA1").
-      iApply env_ltyped_nil. }
+      iApply (ctx_ltyped_insert' with "HA1").
+      iApply ctx_ltyped_nil. }
     rewrite !subst_map_binder_insert_2 !binder_delete_empty subst_map_empty.
     iApply (wp_wand with "He'").
     iIntros (w) "[$ _]".
@@ -202,18 +201,18 @@ Section term_typing_rules.
 
   Lemma ltyped_let Γ1 Γ2 Γ3 x e1 e2 A1 A2 :
     (Γ1 ⊨ e1 : A1 ⫤ Γ2) -∗
-    (env_cons x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
-    (Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3).
+    (ctx_cons x A1 Γ2 ⊨ e2 : A2 ⫤ Γ3) -∗
+    (Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ ctx_filter_eq x Γ2 ++ ctx_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HA1 HΓ2]". wp_pures.
-    rewrite {3}(env_filter_eq_perm Γ2 x).
-    iDestruct (env_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
+    rewrite {3}(ctx_filter_eq_perm Γ2 x).
+    iDestruct (ctx_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
     iDestruct ("He2" $! (binder_insert x v vs) with "[HA1 HΓ2neq]") as "He'".
-    { by iApply (env_ltyped_insert with "HA1"). }
+    { by iApply (ctx_ltyped_insert with "HA1"). }
     rewrite subst_map_binder_insert. iApply (wp_wand with "He'").
     iIntros (w) "[$ HΓ3]".
-    iApply env_ltyped_app. iFrame "HΓ2eq". by iApply env_ltyped_delete.
+    iApply ctx_ltyped_app. iFrame "HΓ2eq". by iApply ctx_ltyped_delete.
   Qed.
 
   Lemma ltyped_seq Γ1 Γ2 Γ3 e1 e2 A B :
@@ -240,25 +239,25 @@ Section term_typing_rules.
 
   Lemma ltyped_fst Γ A1 A2 (x : string) :
     Γ !! x = Some (A1 * A2)%lty →
-    Γ ⊨ Fst x : A1 ⫤ env_cons x (copy- A1 * A2) Γ.
+    Γ ⊨ Fst x : A1 ⫤ ctx_cons x (copy- A1 * A2) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
+    iIntros (HΓx%ctx_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A1) v1)%lty as "#HA1m"; [by iApply coreP_intro|].
-    iFrame "HA1". iApply env_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA1". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists v1, v2. eauto with iFrame.
   Qed.
 
   Lemma ltyped_snd Γ A1 A2 (x : string) :
     Γ !! x = Some (A1 * A2)%lty →
-    Γ ⊨ Snd x : A2 ⫤ env_cons x (A1 * copy- A2) Γ.
+    Γ ⊨ Snd x : A2 ⫤ ctx_cons x (A1 * copy- A2) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
+    iIntros (HΓx%ctx_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A2) v2)%lty as "#HA2m"; [by iApply coreP_intro|].
-    iFrame "HA2". iApply env_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA2". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists v1, v2. eauto with iFrame.
   Qed.
 
@@ -304,7 +303,7 @@ Section term_typing_rules.
     (Γ1 ++ Γ2 ⊨ (λ: <>, e) : (∀ X, C X) ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
-    iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 $]".
+    iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 $]".
     iIntros (M) "/=". wp_pures.
     iApply (wp_wand with "(He HΓ1)"). iIntros (v) "[$ _]".
   Qed.
@@ -328,19 +327,19 @@ Section term_typing_rules.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
     (Γ1 ⊨ e1 : (∃ X, C X) ⫤ Γ2) -∗
-    (∀ K, env_cons x (C K) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
-    (Γ1 ⊨ (let: x := e1 in e2) : B ⫤ env_filter_eq x Γ2 ++ env_filter_ne x Γ3).
+    (∀ K, ctx_cons x (C K) Γ2 ⊨ e2 : B ⫤ Γ3) -∗
+    (Γ1 ⊨ (let: x := e1 in e2) : B ⫤ ctx_filter_eq x Γ2 ++ ctx_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HC HΓ2]".
     iDestruct "HC" as (X) "HX". wp_pures.
-    rewrite {3}(env_filter_eq_perm Γ2 x).
-    iDestruct (env_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
+    rewrite {3}(ctx_filter_eq_perm Γ2 x).
+    iDestruct (ctx_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
     iDestruct ("He2" $! X (binder_insert x v vs) with "[HX HΓ2neq]") as "He'".
-    { by iApply (env_ltyped_insert with "HX"). }
+    { by iApply (ctx_ltyped_insert with "HX"). }
     rewrite subst_map_binder_insert. iApply (wp_wand with "He'").
-    iIntros (w) "[$ HΓ3]". iApply env_ltyped_app.
-    iFrame "HΓ2eq". by iApply env_ltyped_delete.
+    iIntros (w) "[$ HΓ3]". iApply ctx_ltyped_app.
+    iFrame "HΓ2eq". by iApply ctx_ltyped_delete.
   Qed.
 
   (** Mutable Unique Reference properties *)
@@ -364,27 +363,27 @@ Section term_typing_rules.
 
   Lemma ltyped_load Γ (x : string) A :
     Γ !! x = Some (ref_uniq A)%lty →
-    Γ ⊨ ! x : A ⫤ env_cons x (ref_uniq (copy- A)) Γ.
+    Γ ⊨ ! x : A ⫤ ctx_cons x (ref_uniq (copy- A)) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
+    iIntros (HΓx%ctx_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (l w ->) "[? HA]". wp_load.
     iAssert (ltty_car (copy- A) w)%lty as "#HAm"; [by iApply coreP_intro|].
-    iFrame "HA". iApply env_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists l, w. eauto with iFrame.
   Qed.
 
   Lemma ltyped_store Γ Γ' (x : string) e A B :
     Γ' !! x = Some (ref_uniq A)%lty →
     (Γ ⊨ e : B ⫤ Γ') -∗
-    (Γ ⊨ x <- e : () ⫤ env_cons x (ref_uniq B) Γ').
+    (Γ ⊨ x <- e : () ⫤ ctx_cons x (ref_uniq B) Γ').
   Proof.
-    iIntros (HΓx%env_lookup_perm) "#He"; iIntros (vs) "!> HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm) "#He"; iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
     rewrite {2}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ'") as (vl Hvs) "[HA HΓ']"; rewrite Hvs.
+    iDestruct (ctx_ltyped_cons with "HΓ'") as (vl Hvs) "[HA HΓ']"; rewrite Hvs.
     iDestruct "HA" as (l w ->) "[? HA]". wp_store. iSplit; [done|].
-    iApply env_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ'".
+    iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ'".
     iExists l, v. eauto with iFrame.
   Qed.
 
@@ -454,10 +453,10 @@ Section term_typing_rules.
     (Γ1 ++ Γ2 ⊨ e1 ||| e2 : A * B ⫤ Γ1' ++ Γ2').
   Proof.
     iIntros "#He1 #He2 !>" (vs) "HΓ /=".
-    iDestruct (env_ltyped_app with "HΓ") as "[HΓ1 HΓ2]".
+    iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 HΓ2]".
     wp_apply (wp_par with "(He1 HΓ1) (He2 HΓ2)").
     iIntros (v1 v2) "[[HA HΓ1'] [HB HΓ2']] !>". iSplitL "HA HB".
     + iExists v1, v2. by iFrame.
-    + iApply env_ltyped_app. by iFrame.
+    + iApply ctx_ltyped_app. by iFrame.
   Qed.
 End term_typing_rules.

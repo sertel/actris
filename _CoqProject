@@ -28,7 +28,7 @@ theories/examples/list_rev.v
 theories/logrel/model.v
 theories/logrel/telescopes.v
 theories/logrel/subtyping.v
-theories/logrel/environments.v
+theories/logrel/contexts.v
 theories/logrel/term_types.v
 theories/logrel/session_types.v
 theories/logrel/operators.v

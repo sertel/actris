@@ -24,12 +24,10 @@ This type former is strongly inspired by the [Mutex] type in the standard
 library of Rust, which has also been semantically modelled in the LambdaRust
 project.
 *)
-From iris.base_logic.lib Require Import invariants.
-From iris.heap_lang Require Export spin_lock.
-From actris.logrel Require Export term_types term_typing_judgment subtyping.
-From actris.logrel Require Import environments.
-From actris.channel Require Import proofmode.
+From iris.heap_lang.lib Require Export spin_lock.
 From iris.heap_lang Require Import metatheory.
+From actris.channel Require Import proofmode.
+From actris.logrel Require Export term_types term_typing_judgment subtyping.
 
 (** Mutex functions *)
 Definition mutex_alloc : val := λ: "x", (newlock #(), ref "x").
@@ -104,7 +102,7 @@ Section rules.
 
   (** Mutex properties *)
   Lemma ltyped_mutex_alloc Γ A :
-    ⊢ Γ ⊨ mutex_alloc : A → mutex A ⫤ Γ.
+    Γ ⊨ mutex_alloc : A → mutex A ⫤ Γ.
   Proof.
     iIntros (vs) "!> HΓ /=". iApply wp_value.
     iIntros "{$HΓ} !>" (v) "Hv". rewrite /mutex_alloc. wp_pures.
@@ -119,26 +117,26 @@ Section rules.
 
   Lemma ltyped_mutex_acquire Γ (x : string) A :
     Γ !! x = Some (mutex A)%lty →
-    ⊢ Γ ⊨ mutex_acquire x : A ⫤ env_cons x (mutex_guard A) Γ.
+    Γ ⊨ mutex_acquire x : A ⫤ ctx_cons x (mutex_guard A) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (vl Hvs) "[Hlock HΓ]"; rewrite Hvs.
+    iIntros (HΓx%ctx_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (vl Hvs) "[Hlock HΓ]"; rewrite Hvs.
     iDestruct "Hlock" as (γ l lk ->) "#Hlock". rewrite /mutex_acquire.
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinner]".
     iDestruct "Hinner" as (v) "[Hl HA]".
-    wp_load. iFrame "HA". iApply env_ltyped_cons.
+    wp_load. iFrame "HA". iApply ctx_ltyped_cons.
     iFrame "HΓ". iExists _; iSplit; [done|]. iExists γ, l, lk, v. auto with iFrame.
   Qed.
 
   Lemma ltyped_mutex_release Γ Γ' (x : string) e A :
     Γ' !! x = Some (mutex_guard A)%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
-    Γ ⊨ mutex_release x e : () ⫤ env_cons x (mutex A) Γ'.
+    (Γ ⊨ mutex_release x e : () ⫤ ctx_cons x (mutex A) Γ').
   Proof.
-    iIntros (HΓx%env_lookup_perm) "#He". iIntros (vs) "!> HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm) "#He". iIntros (vs) "!> HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ'") as (vl Hvs) "[Hguard HΓ']"; rewrite Hvs.
+    iDestruct (ctx_ltyped_cons with "HΓ'") as (vl Hvs) "[Hguard HΓ']"; rewrite Hvs.
     iDestruct "Hguard" as (γ l lk inner ->) "(#Hlock & Hlocked & Hinner)".
     rewrite /mutex_release. wp_store.
     iAssert (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
@@ -147,7 +145,7 @@ Section rules.
     wp_apply (release_spec γ _ (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
       with "[$Hlock $Hlocked $Hinner]").
     iIntros "_". iSplit; [done|].
-    iApply env_ltyped_cons. iFrame "HΓ'". iExists _; iSplit; [done|].
+    iApply ctx_ltyped_cons. iFrame "HΓ'". iExists _; iSplit; [done|].
     iExists γ, l, lk. auto.
   Qed.
 End rules.

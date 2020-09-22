@@ -20,13 +20,10 @@ and have select and sends swapped ahead of the receives.
 An upfront version, where it using subtyping to unfold the recursive
 type an amount of types corresponding to the size of the list, after
 which all selects and seands are swapped ahead of all receives immediately. *)
-From actris.channel Require Import proofmode proto channel.
-From actris.logrel Require Import session_types subtyping_rules
-     term_typing_judgment term_typing_rules session_typing_rules
-     environments telescopes napp.
 From actris.utils Require Import llist.
+From actris.channel Require Import proofmode.
+From actris.logrel Require Import session_typing_rules napp.
 From actris.logrel.lib Require Import list par_start.
-From iris.proofmode Require Import tactics.
 
 Definition cont : Z := 1.
 Definition stop : Z := 2.
@@ -67,55 +64,53 @@ Definition mapper_prog : val :=
 Section mapper_example.
   Context `{heapG Σ, chanG Σ}.
 
-  Definition mapper_type_rec_service_aux (A : ltty Σ) (B : ltty Σ) (rec : lsty Σ)
-    : lsty Σ :=
+  Definition mapper_type_rec_service_aux (A B : ltty Σ) (rec : lsty Σ) : lsty Σ :=
     lty_branch $ <[cont := (<??> TY A; <!!> TY B ; rec)%lty]>
                $ <[stop := END%lty]> $ ∅.
-  Instance mapper_type_rec_service_contractive A B :
+  Instance mapper_type_rec_service_contractive (A B : ltty Σ) :
     Contractive (mapper_type_rec_service_aux A B).
   Proof. solve_proto_contractive. Qed.
-  Definition mapper_type_rec_service A B : lsty Σ :=
+  Definition mapper_type_rec_service (A B : ltty Σ) : lsty Σ :=
     lty_rec (mapper_type_rec_service_aux A B).
 
   Lemma ltyped_mapper_aux_service Γ A B :
-    ⊢ Γ ⊨ mapper_service_aux : (A → B) ⊸ lty_chan (mapper_type_rec_service A B) ⊸
+    Γ ⊨ mapper_service_aux : (A → B) ⊸ lty_chan (mapper_type_rec_service A B) ⊸
                                        () ⫤ Γ.
   Proof.
     iApply (ltyped_subsumption _ _ _ _ _ _
               ((A → B) → lty_chan (mapper_type_rec_service A B) ⊸ ())%lty);
-      [ iApply env_le_refl | iApply lty_le_copy_elim | iApply env_le_refl | ].
+      [ iApply ctx_le_refl | iApply lty_le_copy_elim | iApply ctx_le_refl | ].
     iApply ltyped_val_ltyped.
     iApply ltyped_val_rec.
-    iApply (ltyped_lam [EnvItem "go" _; EnvItem "f" _]).
+    iApply (ltyped_lam [CtxItem "go" _; CtxItem "f" _]).
     iApply ltyped_post_nil.
     iApply ltyped_app.
     { iApply (ltyped_lam []). iApply ltyped_post_nil. iApply ltyped_unit. }
     iApply ltyped_app.
-    {
-      simpl. rewrite !(Permutation_swap (EnvItem "f" _))
-                     !(Permutation_swap (EnvItem "go" _)).
-      iApply (ltyped_lam [EnvItem "go" _; EnvItem "f" _]).
+    { simpl. rewrite !(Permutation_swap (CtxItem "f" _))
+                     !(Permutation_swap (CtxItem "go" _)).
+      iApply (ltyped_lam [CtxItem "go" _; CtxItem "f" _]).
       iApply ltyped_post_nil.
       iApply ltyped_let; [ by iApply ltyped_recv | ].
       iApply ltyped_seq.
       { iApply (ltyped_send _
-                  [EnvItem "f" _; EnvItem "v" _; EnvItem "c" _; EnvItem "go" _]);
+                  [CtxItem "f" _; CtxItem "v" _; CtxItem "c" _; CtxItem "go" _]);
           [ done | ].
         iApply ltyped_app_copy; [ by iApply ltyped_var | ]=> /=.
-        rewrite !(Permutation_swap (EnvItem "f" _)).
+        rewrite !(Permutation_swap (CtxItem "f" _)).
         by iApply ltyped_var. }
-      simpl. rewrite !(Permutation_swap (EnvItem "f" _)).
-      iApply ltyped_subsumption; [ | iApply lty_le_refl | iApply env_le_refl | ].
-      { iApply env_le_cons; [ | iApply env_le_refl ].
+      simpl. rewrite !(Permutation_swap (CtxItem "f" _)).
+      iApply ltyped_subsumption; [ | iApply lty_le_refl | iApply ctx_le_refl | ].
+      { iApply ctx_le_cons; [ | iApply ctx_le_refl ].
         iApply lty_le_copy_inv_elim_copyable. iApply lty_copyable_arr_copy. }
       iApply ltyped_app; [ by iApply ltyped_var | ].
       iApply ltyped_app; [ by iApply ltyped_var | ].
-      simpl. rewrite !(Permutation_swap (EnvItem "go" _)).
-      iApply ltyped_subsumption; [ iApply env_le_refl | | iApply env_le_refl | ].
+      simpl. rewrite !(Permutation_swap (CtxItem "go" _)).
+      iApply ltyped_subsumption; [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
       { iApply lty_le_copy_elim. }
       by iApply ltyped_var. }
     iApply ltyped_app; [ by iApply ltyped_var | ].
-    iApply ltyped_subsumption; [ iApply env_le_refl | | iApply env_le_refl | ].
+    iApply ltyped_subsumption; [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
     { iApply lty_le_arr; [ | iApply lty_le_refl ]. iApply lty_le_chan.
       iApply lty_le_l; [ iApply lty_le_rec_unfold | iApply lty_le_refl ]. }
     iApply ltyped_branch. intros x. rewrite -elem_of_dom. set_solver.
@@ -125,7 +120,7 @@ Section mapper_example.
     <?? X Y> TY X → Y ; mapper_type_rec_service X Y.
 
   Lemma ltyped_mapper_service Γ :
-    ⊢ Γ ⊨ mapper_service : lty_chan (mapper_type_service) ⊸ () ⫤ Γ.
+    Γ ⊨ mapper_service : lty_chan (mapper_type_service) ⊸ () ⫤ Γ.
   Proof.
     iApply ltyped_val_ltyped.
     iApply ltyped_val_lam.
@@ -139,12 +134,12 @@ Section mapper_example.
     pose proof (ltys_O_inv Ks') as HKs'.
     rewrite HYs HKs HKs' /=.
     iApply (ltyped_subsumption _ []);
-      [ iApply env_le_nil | iApply lty_le_refl | iApply env_le_refl | ].
+      [ iApply ctx_le_nil | iApply lty_le_refl | iApply ctx_le_refl | ].
     iApply ltyped_mapper_aux_service.
   Qed.
 
   Definition mapper_type_rec_client_aux
-             (A : ltty Σ) (B : ltty Σ) (rec : lsty Σ) : lsty Σ :=
+             (A B : ltty Σ) (rec : lsty Σ) : lsty Σ :=
     lty_select $ <[cont := (<!!> TY A; <??> TY B ; rec)%lty]>
                $ <[stop := END%lty]> $ ∅.
   Instance mapper_type_rec_client_contractive A B :
@@ -164,10 +159,10 @@ Section mapper_example.
   Definition send_type (A : ltty Σ) : lsty Σ :=
     (lty_select (<[cont := <!!> TY A ; END ]>∅))%lty.
   Definition recv_type (B : ltty Σ) : lsty Σ :=
-    (<??> TY B ; END)%lty.
+    <??> TY B ; END.
 
   Lemma recv_type_send_type_swap A B :
-    ⊢ (recv_type B <++> send_type A <: send_type A <++> recv_type B)%lty.
+    recv_type B <++> send_type A <: send_type A <++> recv_type B.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.
@@ -183,8 +178,8 @@ Section mapper_example.
   Qed.
 
   Lemma mapper_type_rec_client_unfold_app A B :
-    ⊢ mapper_type_rec_client A B <:
-        (send_type A <++> (recv_type B <++> mapper_type_rec_client A B))%lty.
+    mapper_type_rec_client A B <:
+      send_type A <++> (recv_type B <++> mapper_type_rec_client A B).
   Proof.
     rewrite {1}/mapper_type_rec_client /lty_rec fixpoint_unfold.
     replace (fixpoint (mapper_type_rec_client_aux A B)) with
@@ -203,9 +198,9 @@ Section mapper_example.
   Qed.
 
   Lemma mapper_type_rec_client_unfold_app_n A B n :
-    ⊢ mapper_type_rec_client A B <:
-         lty_napp (send_type A) n <++> (lty_napp (recv_type B) n <++>
-                                           mapper_type_rec_client A B).
+    mapper_type_rec_client A B <:
+       lty_napp (send_type A) n <++> (lty_napp (recv_type B) n <++>
+                                         mapper_type_rec_client A B).
   Proof.
     iInduction n as [|n] "IH"; simpl; [ | ].
     { rewrite /send_type /recv_type /=.
@@ -225,9 +220,9 @@ Section mapper_example.
   Qed.
 
   Lemma recv_mapper_type_rec_client_unfold_app A B n :
-    ⊢ (lty_napp (recv_type B) n <++> mapper_type_rec_client A B) <:
-      (send_type A <++>
-                 (lty_napp (recv_type B) (S n) <++> mapper_type_rec_client A B)).
+    lty_napp (recv_type B) n <++> mapper_type_rec_client A B <:
+    send_type A <++>
+               (lty_napp (recv_type B) (S n) <++> mapper_type_rec_client A B).
   Proof.
     iApply lty_le_trans.
     { iApply lty_le_app;
@@ -264,11 +259,11 @@ Section mapper_example.
 
   Lemma send_all_spec_aux A B c l xs n :
     {{{ llist (llist_type_pred A) l xs ∗
-        c ↣ lsty_car (lty_napp (recv_type B) n <++> (mapper_type_rec_client A B)) }}}
+        c ↣ lsty_car (lty_napp (recv_type B) n <++> mapper_type_rec_client A B) }}}
       send_all c #l
     {{{ RET #(); llist (llist_type_pred A) l [] ∗
                  c ↣ lsty_car (lty_napp (recv_type B) (length xs + n) <++>
-                                             (mapper_type_rec_client A B)) }}}.
+                                             mapper_type_rec_client A B) }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (n).
@@ -294,7 +289,7 @@ Section mapper_example.
       send_all c #l
     {{{ RET #(); llist (llist_type_pred A) l [] ∗
                  c ↣ lsty_car (lty_napp (recv_type B) (length xs)
-                                             <++> (mapper_type_rec_client A B)) }}}.
+                                             <++> mapper_type_rec_client A B) }}}.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iApply (send_all_spec_aux _ _ _ _ _ 0 with "[$Hl Hc]").
@@ -325,22 +320,22 @@ Section mapper_example.
   Qed.
 
   Lemma ltyped_mapper_client_ad_hoc Γ (A B : ltty Σ) :
-    ⊢ Γ ⊨ mapper_client : (A → B) ⊸
-                          lty_list A ⊸
-                          chan mapper_type_client ⊸
-                          lty_list B.
+    Γ ⊨ mapper_client : (A → B) ⊸
+                        lty_list A ⊸
+                        chan mapper_type_client ⊸
+                        lty_list B.
   Proof.
     iApply ltyped_val_ltyped.
     iApply ltyped_val_lam.
-    iApply (ltyped_lam [EnvItem "f" _]).
-    iApply (ltyped_lam [EnvItem "xs" _; EnvItem "f" _]).
+    iApply (ltyped_lam [CtxItem "f" _]).
+    iApply (ltyped_lam [CtxItem "xs" _; CtxItem "f" _]).
     iIntros (vs) "!> HΓ /=".
     rewrite (lookup_delete_ne _ "n" "c")=> //.
     rewrite (lookup_delete_ne _ "n" "xs")=> //.
     rewrite lookup_delete=> //.
-    iDestruct (env_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
-    iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
-    iDestruct (env_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
     iDestruct (list_type_loc with "Hl") as %[l ->].
     wp_apply (llength_spec A with "Hl").
@@ -359,22 +354,22 @@ Section mapper_example.
   Qed.
 
   Lemma ltyped_mapper_client_upfront Γ (A B : ltty Σ) :
-    ⊢ Γ ⊨ mapper_client : (A → B) ⊸
-                          lty_list A ⊸
-                          chan mapper_type_client ⊸
-                          lty_list B.
+    Γ ⊨ mapper_client : (A → B) ⊸
+                        lty_list A ⊸
+                        chan mapper_type_client ⊸
+                        lty_list B.
   Proof.
     iApply ltyped_val_ltyped.
     iApply ltyped_val_lam.
-    iApply (ltyped_lam [EnvItem "f" _]).
-    iApply (ltyped_lam [EnvItem "xs" _; EnvItem "f" _]).
+    iApply (ltyped_lam [CtxItem "f" _]).
+    iApply (ltyped_lam [CtxItem "xs" _; CtxItem "f" _]).
     iIntros (vs) "!> HΓ /=".
     rewrite (lookup_delete_ne _ "n" "c")=> //.
     rewrite (lookup_delete_ne _ "n" "xs")=> //.
     rewrite (lookup_delete)=> //.
-    iDestruct (env_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
-    iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
-    iDestruct (env_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "xs" with "HΓ") as (vl ->) "[Hl HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
     iDestruct (list_type_loc with "Hl") as %[l ->].
     wp_apply (llength_spec with "Hl").
@@ -395,7 +390,7 @@ Section mapper_example.
   Qed.
 
   Lemma lty_le_mapper_type_client_dual :
-    ⊢ lty_dual mapper_type_service <: mapper_type_client.
+    lty_dual mapper_type_service <: mapper_type_client.
   Proof.
     rewrite /mapper_type_client /mapper_type_service.
     iApply lty_le_l; [ iApply lty_le_dual_recv_exist | ]=> /=.
@@ -423,8 +418,8 @@ Section mapper_example.
     Lemma ltyped_mapper_prog A B e1 e2 Γ Γ' Γ'' :
       (Γ ⊨ e2 : lty_list A ⫤ Γ') -∗
       (Γ' ⊨ e1 : (A → B) ⫤ Γ'') -∗
-      Γ ⊨ par_start (mapper_service) (mapper_client e1 e2) :
-        (() * lty_list B) ⫤ Γ''.
+      (Γ ⊨ par_start (mapper_service) (mapper_client e1 e2) :
+        (() * lty_list B) ⫤ Γ'').
     Proof.
       iIntros "He2 He1".
       iApply (ltyped_app with "[He2 He1]").
@@ -434,7 +429,7 @@ Section mapper_example.
       iApply ltyped_app.
       { iApply ltyped_mapper_service. }
       iApply ltyped_subsumption;
-        [ iApply env_le_refl | | iApply env_le_refl | ].
+        [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
       { iApply lty_le_arr; [ iApply lty_le_refl | ].
         iApply lty_le_arr; [ | iApply lty_le_refl ].
         iApply lty_le_arr; [ | iApply lty_le_refl ].

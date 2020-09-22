@@ -13,7 +13,7 @@ Section session_typing_rules.
   Context `{!heapG Σ, !chanG Σ}.
   Implicit Types A B : ltty Σ.
   Implicit Types S T : lsty Σ.
-  Implicit Types Γ : env Σ.
+  Implicit Types Γ : ctx Σ.
 
   Lemma ltyped_new_chan Γ S :
     Γ ⊨ new_chan : () ⊸ (chan S * chan (lty_dual S)) ⫤ Γ.
@@ -27,14 +27,14 @@ Section session_typing_rules.
   Lemma ltyped_send Γ Γ' (x : string) e A S :
     Γ' !! x = Some (chan (<!!> TY A; S))%lty →
     (Γ ⊨ e : A ⫤ Γ') -∗
-    (Γ ⊨ send x e : () ⫤ env_cons x (chan S) Γ').
+    (Γ ⊨ send x e : () ⫤ ctx_cons x (chan S) Γ').
   Proof.
-    iIntros (HΓx%env_lookup_perm) "#He !>". iIntros (vs) "HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm) "#He !>". iIntros (vs) "HΓ /=".
     wp_apply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ'") as (c Hvs) "[Hc HΓ']". rewrite Hvs.
+    iDestruct (ctx_ltyped_cons with "HΓ'") as (c Hvs) "[Hc HΓ']". rewrite Hvs.
     wp_send with "[HA //]". iSplitR; [done|].
-    iDestruct (env_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ'") as "HΓ' /=".
+    iDestruct (ctx_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ'") as "HΓ' /=".
     by rewrite  (insert_id vs).
  Qed.
 
@@ -52,16 +52,16 @@ Section session_typing_rules.
     Γ1 !! xc = Some (chan (<??> M))%lty →
     LtyMsgTele M A S →
     (∀ Ys,
-      env_cons x (ktele_app A Ys) (env_cons xc (chan (ktele_app S Ys)) Γ1) ⊨ e : B ⫤ Γ2) -∗
+      ctx_cons x (ktele_app A Ys) (ctx_cons xc (chan (ktele_app S Ys)) Γ1) ⊨ e : B ⫤ Γ2) -∗
     Γ1 ⊨ (let: x := recv xc in e) : B ⫤
-          env_filter_eq x (env_filter_ne xc Γ1) ++ env_filter_ne x Γ2.
+          ctx_filter_eq x (ctx_filter_ne xc Γ1) ++ ctx_filter_ne x Γ2.
   Proof.
     rewrite /LtyMsgTele.
-    iIntros (HΓxc%env_lookup_perm HM) "#He !>". iIntros (vs) "HΓ1 /=".
+    iIntros (HΓxc%ctx_lookup_perm HM) "#He !>". iIntros (vs) "HΓ1 /=".
     rewrite {2}HΓxc /=.
-    iDestruct (env_ltyped_cons with "HΓ1") as (c Hvs) "[Hc HΓ1]". rewrite Hvs.
-    rewrite {2}(env_filter_eq_perm (env_filter_ne xc Γ1) x).
-    iDestruct (env_ltyped_app with "HΓ1") as "[HΓ1eq HΓ1neq]".
+    iDestruct (ctx_ltyped_cons with "HΓ1") as (c Hvs) "[Hc HΓ1]". rewrite Hvs.
+    rewrite {2}(ctx_filter_eq_perm (ctx_filter_ne xc Γ1) x).
+    iDestruct (ctx_ltyped_app with "HΓ1") as "[HΓ1eq HΓ1neq]".
     iAssert (c ↣ <? (Xs : ltys Σ kt) (v : val)>
       MSG v {{ ltty_car (ktele_app A Xs) v }};
         lsty_car (ktele_app S Xs)) with "[Hc]" as "Hc".
@@ -69,23 +69,23 @@ Section session_typing_rules.
       iApply iProto_le_lmsg_texist. }
     wp_recv (Xs v) as "HA". wp_pures. rewrite -subst_map_binder_insert.
     wp_apply (wp_wand with "(He [- HΓ1eq])").
-    { iApply (env_ltyped_insert _ _ x with "HA").
+    { iApply (ctx_ltyped_insert _ _ x with "HA").
       destruct (decide (x = xc)) as [->|].
-      - by rewrite env_filter_ne_cons.
-      - rewrite env_filter_ne_cons_ne //.
-        iApply env_ltyped_cons. eauto with iFrame. }
+      - by rewrite ctx_filter_ne_cons.
+      - rewrite ctx_filter_ne_cons_ne //.
+        iApply ctx_ltyped_cons. eauto with iFrame. }
     iIntros (w) "[$ HΓ]".
-    iApply env_ltyped_app. iFrame "HΓ1eq". by iApply env_ltyped_delete.
+    iApply ctx_ltyped_app. iFrame "HΓ1eq". by iApply ctx_ltyped_delete.
   Qed.
 
   Lemma ltyped_recv Γ (x : string) A S :
     Γ !! x = Some (chan (<??> TY A; S))%lty →
-    Γ ⊨ recv x : A ⫤ env_cons x (chan S) Γ.
+    Γ ⊨ recv x : A ⫤ ctx_cons x (chan S) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm) "!>". iIntros (vs) "HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm) "!>". iIntros (vs) "HΓ /=".
     rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
-    wp_recv (v) as "HA". iFrame "HA". iApply env_ltyped_cons; eauto with iFrame.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
+    wp_recv (v) as "HA". iFrame "HA". iApply ctx_ltyped_cons; eauto with iFrame.
   Qed.
 
   Definition select : val := λ: "c" "i", send "c" "i".
@@ -93,13 +93,13 @@ Section session_typing_rules.
   Lemma ltyped_select Γ (x : string) (i : Z) (S : lsty Σ) Ss :
     Γ !! x = Some (chan (lty_select Ss))%lty →
     Ss !! i = Some S →
-    Γ ⊨ select x #i : () ⫤ env_cons x (chan S) Γ.
+    Γ ⊨ select x #i : () ⫤ ctx_cons x (chan S) Γ.
   Proof.
-    iIntros (HΓx%env_lookup_perm Hin); iIntros "!>" (vs) "HΓ /=".
+    iIntros (HΓx%ctx_lookup_perm Hin); iIntros "!>" (vs) "HΓ /=".
     rewrite {1}HΓx /=.
-    iDestruct (env_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
+    iDestruct (ctx_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
     rewrite /select. wp_send with "[]"; [by eauto|]. iSplit; [done|].
-    iDestruct (env_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ") as "HΓ' /=".
+    iDestruct (ctx_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ") as "HΓ' /=".
     by rewrite insert_id // lookup_total_alt Hin.
   Qed.
 

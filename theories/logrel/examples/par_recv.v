@@ -17,7 +17,6 @@ From iris.algebra Require Import frac auth excl updates.
 From iris.heap_lang.lib Require Export par spin_lock.
 From actris.channel Require Import proofmode.
 From actris.logrel Require Export term_typing_judgment session_types.
-From actris.logrel Require Import environments.
 
 Definition prog : val := λ: "c",
   let: "lock" := newlock #() in
@@ -41,9 +40,9 @@ Section double.
     (<? (x : Z)> MSG #x; <? (y : Z)> MSG #y; END)%proto.
 
   Definition chan_inv (c : val) (γ : gname) : iProp Σ :=
-    (c ↣ prog_prot ∨
+    c ↣ prog_prot ∨
      (own γ (1/2)%Qp ∗ c ↣ <? (x : Z)> MSG #x; END) ∨
-     (own γ 1%Qp ∗ c ↣ END))%I.
+     (own γ 1%Qp ∗ c ↣ END).
 
   Lemma wp_prog c :
     {{{ ▷ c ↣ prog_prot }}}
@@ -101,7 +100,7 @@ Section double.
   Qed.
 
   Lemma prog_typed :
-    ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
+    [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
   Proof.
     iIntros (vs) "!> HΓ /=".
     iApply wp_value.
@@ -126,13 +125,13 @@ Section double_fc.
 
   Definition chan_inv_fc (γ γ1 γ2 : gname) (P : val → val → iProp Σ) (c : val) :
     iProp Σ :=
-    (own γ (Excl ()) ∗ c ↣ prog_prot_fc P ∨
+    own γ (Excl ()) ∗ c ↣ prog_prot_fc P ∨
      (∃ b v1,
        own (if b : bool then γ1 else γ2) (3/4, to_agree (Some v1))%Qp ∗
        c ↣ <? (v2 : val)> MSG v2 {{ P v1 v2 }}; END) ∨
      (∃ v1 v2,
        own γ1 (1/4, to_agree (Some v1))%Qp ∗
-       own γ2 (1/4, to_agree (Some v2))%Qp))%I.
+       own γ2 (1/4, to_agree (Some v2))%Qp).
 
   Lemma wp_prog_fc P c :
     {{{ ▷ c ↣ prog_prot_fc P }}}
@@ -212,10 +211,10 @@ Section double_fc.
   Qed.
 
   Lemma prog_typed_fc :
-    ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
+    [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
   Proof.
     iIntros (vs) "!> HΓ /=".
-    iApply wp_value. iSplitL; last by iApply env_ltyped_nil.
+    iApply wp_value. iSplitL; last by iApply ctx_ltyped_nil.
     iIntros (c) "Hc".
     iApply (wp_prog_fc (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
     { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").

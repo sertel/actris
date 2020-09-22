@@ -5,12 +5,9 @@
 
 It recursively receives computations, computes them, and then
 sends back the results. *)
-From iris.algebra Require Import frac.
 From iris.heap_lang Require Import metatheory.
-From actris.utils Require Import llist.
-From actris.channel Require Import proofmode proto channel.
-From actris.logrel Require Import term_typing_rules session_typing_rules
-     subtyping_rules napp.
+From actris.channel Require Import proofmode.
+From actris.logrel Require Import session_typing_rules.
 From actris.logrel.lib Require Import par_start.
 
 Definition cont : Z := 1.
@@ -37,11 +34,11 @@ Section compute_example.
 
   (** This judgement is checked only with the typing rules of the type system *)
   Lemma ltyped_compute_service Γ :
-    ⊢ Γ ⊨ compute_service : lty_chan compute_type_service ⊸ () ⫤ Γ.
+    Γ ⊨ compute_service : lty_chan compute_type_service ⊸ () ⫤ Γ.
   Proof.
     iApply (ltyped_subsumption _ _ _ _ _ _
               (lty_chan compute_type_service → ())%lty);
-      [ iApply env_le_refl | iApply lty_le_copy_elim | iApply env_le_refl | ].
+      [ iApply ctx_le_refl | iApply lty_le_copy_elim | iApply ctx_le_refl | ].
     iApply ltyped_val_ltyped.
     iApply ltyped_val_rec.
     iApply ltyped_post_nil.
@@ -51,7 +48,7 @@ Section compute_example.
               (chan (<?? A> TY () ⊸ A; <!!> TY A; compute_type_service) ⊸ ())%lty).
     {
       simpl.
-      iApply (ltyped_lam [EnvItem "go" _]).
+      iApply (ltyped_lam [CtxItem "go" _]).
       iApply ltyped_post_nil.
       iApply ltyped_recv_texist; [ done | apply _ | ].
       iIntros (Ys).
@@ -59,19 +56,19 @@ Section compute_example.
       pose proof (ltys_O_inv Ys') as HYs'.
       rewrite HYs HYs' /=.
       iApply ltyped_seq.
-      { iApply (ltyped_send _ [EnvItem "v" _; EnvItem "c" _; EnvItem "go" _]);
+      { iApply (ltyped_send _ [CtxItem "v" _; CtxItem "c" _; CtxItem "go" _]);
           [ done | ].
         iApply ltyped_app; [ by iApply ltyped_unit | ]=> /=.
         by iApply ltyped_var. }
       simpl.
       iApply ltyped_app; [ by iApply ltyped_var | ].
-      simpl. rewrite !(Permutation_swap (EnvItem "go" _)).
-      iApply ltyped_subsumption; [ | | iApply env_le_refl | ].
-      { iApply env_le_cons; [ iApply lty_le_refl | iApply env_le_nil ]. }
+      simpl. rewrite !(Permutation_swap (CtxItem "go" _)).
+      iApply ltyped_subsumption; [ | | iApply ctx_le_refl | ].
+      { iApply ctx_le_cons; [ iApply lty_le_refl | iApply ctx_le_nil ]. }
       { iApply lty_le_copy_elim. }
       by iApply ltyped_var. }
     iApply ltyped_app; [ by iApply ltyped_var | ].
-    iApply ltyped_subsumption; [ iApply env_le_nil | | iApply env_le_refl | ].
+    iApply ltyped_subsumption; [ iApply ctx_le_nil | | iApply ctx_le_refl | ].
     { iApply lty_le_arr; [ | iApply lty_le_refl ]. iApply lty_le_chan.
       iApply lty_le_l; [ iApply lty_le_rec_unfold | iApply lty_le_refl ]. }
     rewrite /compute_type_service_aux.

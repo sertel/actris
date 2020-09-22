@@ -58,12 +58,12 @@ Section mapper_example.
     ("x","y").
 
   Lemma mapper_client_twice_typed Γ :
-    ⊢ Γ ⊨ mapper_client_twice :
+    Γ ⊨ mapper_client_twice :
           lty_chan (mapper_client_rec_type) ⊸ (lty_bool * lty_bool).
   Proof.
     iApply (ltyped_subsumption _ _ _ _ _ _
       ((lty_chan (mapper_client_type_swap mapper_client_rec_type)) ⊸ _)%lty);
-      [ iApply env_le_refl | | iApply env_le_refl | ].
+      [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
     { iApply lty_le_arr; [ | iApply lty_le_refl ].
       iApply lty_le_chan.
       iApply lty_le_l; [ iApply lty_le_rec_unfold | ].
@@ -78,19 +78,19 @@ Section mapper_example.
       iApply lty_le_refl. }
     iApply (ltyped_lam []).
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | ].
       iApply (ltyped_lam []). iApply ltyped_post_nil.
       iApply ltyped_bin_op;
         [ by iApply ltyped_var | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | ].
       iApply (ltyped_lam []). iApply ltyped_post_nil.
       iApply ltyped_bin_op;
         [ by iApply ltyped_var | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | iApply ltyped_int ]. }
     iApply ltyped_post_nil.
     iApply ltyped_let; [ by iApply ltyped_recv | ].
     iApply ltyped_let; [ by iApply ltyped_recv | ].
@@ -120,13 +120,13 @@ Section mapper_example.
     ("x","y").
 
   Lemma mapper_client_twice_poly_typed Γ :
-    ⊢ Γ ⊨ mapper_client_twice_poly :
-      (lty_chan (mapper_client_rec_type_poly) ⊸ (lty_bool * lty_int))%lty ⫤ Γ.
+    Γ ⊨ mapper_client_twice_poly :
+      lty_chan (mapper_client_rec_type_poly) ⊸ (lty_bool * lty_int) ⫤ Γ.
   Proof.
     iApply (ltyped_subsumption _ _ _ _ _ _
       ((lty_chan (mapper_client_type_poly_swap mapper_client_rec_type_poly))
          ⊸ _)%lty);
-      [ iApply env_le_refl | | iApply env_le_refl | ].
+      [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
     { iApply lty_le_arr; [ | iApply lty_le_refl ].
       iApply lty_le_chan.
       iApply lty_le_l; [ iApply lty_le_rec_unfold | ].
@@ -144,19 +144,19 @@ Section mapper_example.
       iApply lty_le_refl. }
     iApply (ltyped_lam []).
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | ].
       iApply (ltyped_lam []). iApply ltyped_post_nil.
       iApply ltyped_bin_op;
         [ by iApply ltyped_var | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_int ]. }
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | ].
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | ].
       iApply (ltyped_lam []). iApply ltyped_post_nil.
       iApply ltyped_if;
         [ iApply ltyped_bool | iApply ltyped_int | iApply ltyped_int ]. }
     iApply ltyped_seq.
-    { iApply (ltyped_send _ [EnvItem "c" _]); [ done | iApply ltyped_bool ]. }
+    { iApply (ltyped_send _ [CtxItem "c" _]); [ done | iApply ltyped_bool ]. }
     iApply ltyped_post_nil.
     iApply ltyped_let; [ by iApply ltyped_recv | ].
     iApply ltyped_let; [ by iApply ltyped_recv | ].

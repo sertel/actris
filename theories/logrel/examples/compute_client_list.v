@@ -17,9 +17,8 @@ it is composed with the type checked service. *)
 From iris.algebra Require Import frac.
 From iris.heap_lang Require Import metatheory.
 From actris.utils Require Import llist.
-From actris.channel Require Import proofmode proto channel.
-From actris.logrel Require Import term_typing_rules session_typing_rules
-     subtyping_rules napp.
+From actris.channel Require Import proofmode.
+From actris.logrel Require Import session_typing_rules napp.
 From actris.logrel.lib Require Import list par_start.
 From actris.logrel.examples Require Import compute_service.
 
@@ -82,15 +81,15 @@ Section compute_example.
 
   Definition compute_type_invariant
              γ (A : ltty Σ) (c : val) (counter : loc) : iProp Σ :=
-    (∃ (n : nat) (b : bool),
-        (if b then True else own γ 1%Qp) ∗
-        counter ↦ #n ∗
-        c ↣ (lsty_car (lty_napp (recv_type A) n <++>
-               (if b then compute_type_client else END)%lty)))%I.
+    ∃ (n : nat) (b : bool),
+      (if b then True else own γ 1%Qp) ∗
+      counter ↦ #n ∗
+      c ↣ (lsty_car (lty_napp (recv_type A) n <++>
+             (if b then compute_type_client else END)%lty)).
 
   Lemma compute_type_client_unfold_app_cont A :
-    ⊢ compute_type_client <:
-        (cont_type A <++> (recv_type A <++> compute_type_client)).
+    compute_type_client <:
+      (cont_type A <++> (recv_type A <++> compute_type_client)).
   Proof.
     rewrite {1}/compute_type_client /lty_rec fixpoint_unfold.
     replace (fixpoint (compute_type_client_aux)) with
@@ -117,7 +116,7 @@ Section compute_example.
   Qed.
 
   Lemma compute_type_client_unfold_app_stop :
-    ⊢ compute_type_client <: lty_select (<[stop := END%lty]>∅).
+    compute_type_client <: lty_select (<[stop := END%lty]>∅).
   Proof.
     rewrite {1}/compute_type_client /lty_rec fixpoint_unfold.
     replace (fixpoint (compute_type_client_aux)) with
@@ -129,7 +128,7 @@ Section compute_example.
   Qed.
 
   Lemma recv_type_cont_type_swap A B :
-    ⊢ recv_type B <++> cont_type A <: cont_type A <++> recv_type B.
+    recv_type B <++> cont_type A <: cont_type A <++> recv_type B.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.
@@ -145,7 +144,7 @@ Section compute_example.
   Qed.
 
   Lemma recv_type_stop_type_swap A :
-    ⊢ recv_type A <++> stop_type <: stop_type <++> recv_type A.
+    recv_type A <++> stop_type <: stop_type <++> recv_type A.
   Proof.
     iApply lty_le_trans.
     rewrite lty_app_recv lty_app_end_l.
@@ -269,17 +268,17 @@ Section compute_example.
   Qed.
 
   Lemma ltyped_compute_client Γ (A : ltty Σ) :
-    ⊢ Γ ⊨ compute_client : lty_list (() ⊸ A) ⊸
-                           chan compute_type_client ⊸
-                           lty_list A.
+    Γ ⊨ compute_client : lty_list (() ⊸ A) ⊸
+                         chan compute_type_client ⊸
+                         lty_list A.
   Proof.
     iApply ltyped_val_ltyped.
     iApply ltyped_val_lam.
     iApply ltyped_post_nil.
-    iApply (ltyped_lam [EnvItem "xs" _]).
+    iApply (ltyped_lam [CtxItem "xs" _]).
     iIntros "!>" (vs) "HΓ". simplify_map_eq.
-    iDestruct (env_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
-    iDestruct (env_ltyped_cons _ _ "xs" with "HΓ") as (vlxs ->) "[Hlxs HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "c" with "HΓ") as (vc ->) "[Hc HΓ]".
+    iDestruct (ctx_ltyped_cons _ _ "xs" with "HΓ") as (vlxs ->) "[Hlxs HΓ]".
     rewrite /lty_list /lty_rec fixpoint_unfold.
     iDestruct "Hlxs" as (l' v ->) "[Hlxs Hv]".
     wp_apply (llength_spec with "[Hlxs Hv]").
@@ -311,7 +310,7 @@ Section compute_example.
   Qed.
 
   Lemma lty_le_compute_type_dual :
-    ⊢ lty_dual compute_type_service <: compute_type_client.
+    lty_dual compute_type_service <: compute_type_client.
   Proof.
     rewrite /compute_type_client /compute_type_service.
     iLöb as "IH".
@@ -334,8 +333,8 @@ Section compute_example.
 
   Lemma ltyped_compute_list_par A e Γ Γ' :
     (Γ ⊨ e : lty_list (() ⊸ A) ⫤ Γ') -∗
-    Γ ⊨ par_start (compute_service) (compute_client e) :
-      (() * (lty_list A)) ⫤ Γ'.
+    (Γ ⊨ par_start (compute_service) (compute_client e) :
+       (() * (lty_list A)) ⫤ Γ').
   Proof.
     iIntros "He".
     iApply (ltyped_app with "[He]").
@@ -343,7 +342,7 @@ Section compute_example.
       iApply ltyped_compute_client. }
     iApply ltyped_app.
     { iApply ltyped_compute_service. }
-    iApply ltyped_subsumption; [ iApply env_le_refl | | iApply env_le_refl | ].
+    iApply ltyped_subsumption; [ iApply ctx_le_refl | | iApply ctx_le_refl | ].
     { iApply lty_le_arr; [ iApply lty_le_refl | ].
       iApply lty_le_arr; [ | iApply lty_le_refl ].
       iApply lty_le_arr; [ | iApply lty_le_refl ].

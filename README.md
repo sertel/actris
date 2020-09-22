@@ -140,9 +140,9 @@ The logical relation is defined across the following files:
   defined in [theories/logrel/model.v](theories/logrel/model.v).
 - [theories/logrel/operators.v](theories/logrel/operators.v):
   Type definitions of unary and binary operators.
-- [theories/logrel/environments.v](theories/logrel/environments.v):
-  Definition of the semantic type environment, which is used in the semantic
-  typing relation. This also contains the rules for updating the environment,
+- [theories/logrel/contexts.v](theories/logrel/contexts.v):
+  Definition of the semantic type contexts, which is used in the semantic
+  typing relation. This also contains the rules for updating the context,
   which is used for distributing affine resources across the
   various parts of the proofs inside the typing rules.
 - [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
@@ -166,8 +166,9 @@ An extension to the basic type system is given in
 [theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
 mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
 and allow one to gain exclusive ownership of resources shared between multiple
-threads.
-An encoding of a list type is found in [theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), along with auxillary lemmas, and a weakest precondition for `llength`,
+threads. An encoding of a list type is found in
+[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), along with axillary
+lemmas, and a weakest precondition for `llength`,
 that converts ownership of a list type into a list reference predicate, with
 the values of the list made explicit.
 

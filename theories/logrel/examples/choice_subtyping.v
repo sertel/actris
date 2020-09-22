@@ -4,9 +4,8 @@ example on page 23 of the paper:
 "On the Preciseness of Subtyping in Session Types"
 https://arxiv.org/pdf/1610.00328.pdf
 *)
-From actris.channel Require Import proofmode proto channel.
+From actris.channel Require Import proofmode.
 From actris.logrel Require Import subtyping_rules.
-From iris.proofmode Require Import tactics.
 
 Section choice_example.
   Context `{heapG Σ, chanG Σ}.

@@ -5,9 +5,8 @@ In pseudo syntax, the subtyping we show is:
      μ rec. ! (X,Y:★) (X ⊸ Y). !X. ?Y. rec
   <: μ rec. ! (X1,X2:★) (X1 ⊸ bool). !X1. !(X2 ⊸ int). !X2. ?bool. ?int. rec
 *)
-From actris.channel Require Import proofmode proto channel.
+From actris.channel Require Import proofmode.
 From actris.logrel Require Import subtyping_rules.
-From iris.proofmode Require Import tactics.
 
 Section basics.
   Context `{heapG Σ, chanG Σ}.
@@ -33,7 +32,7 @@ Section basics.
   Proof. solve_proto_contractive. Qed.
   Definition prot2 := lty_rec prot2_aux.
 
-  Lemma rec_swap_example : ⊢ prot1 <: prot2.
+  Lemma rec_swap_example : prot1 <: prot2.
   Proof.
     iApply (lty_le_trans _ prot1').
     { iLöb as "IH".

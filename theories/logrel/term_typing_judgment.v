@@ -8,14 +8,14 @@ programs which satisfy the semantic typing relation are safe. That is,
 semantically well-typed programs do not get stuck. *)
 From iris.heap_lang Require Import metatheory adequacy.
 From actris.logrel Require Export term_types.
-From actris.logrel Require Export environments.
+From actris.logrel Require Export contexts.
 From iris.proofmode Require Import tactics.
 
 (** The semantic typing judgment *)
 Definition ltyped `{!heapG Σ}
-    (Γ1 Γ2 : env Σ) (e : expr) (A : ltty Σ) : iProp Σ :=
-  tc_opaque (■ ∀ vs, env_ltyped vs Γ1 -∗
-    WP subst_map vs e {{ v, ltty_car A v ∗ env_ltyped vs Γ2 }})%I.
+    (Γ1 Γ2 : ctx Σ) (e : expr) (A : ltty Σ) : iProp Σ :=
+  tc_opaque (■ ∀ vs, ctx_ltyped vs Γ1 -∗
+    WP subst_map vs e {{ v, ltty_car A v ∗ ctx_ltyped vs Γ2 }})%I.
 Instance: Params (@ltyped) 2 := {}.
 
 Notation "Γ1 ⊨ e : A ⫤ Γ2" := (ltyped Γ1 Γ2 e A)
@@ -98,6 +98,6 @@ Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
 Proof.
   intros Hty. apply (heap_adequacy Σ NotStuck e σ (λ _, True))=> // ?.
   destruct (Hty _) as (A & He). iIntros "_".
-  iDestruct (He $!∅ with "[]") as "He"; first by rewrite /env_ltyped.
+  iDestruct (He $!∅ with "[]") as "He"; first by rewrite /ctx_ltyped.
   iEval (rewrite -(subst_map_empty e)). iApply (wp_wand with "He"); auto.
 Qed.

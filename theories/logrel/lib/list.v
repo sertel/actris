@@ -25,8 +25,7 @@ Section with_Σ.
     (λ v w : val, ⌜v = w⌝ ∗ ltty_car A v)%I.
 
   Lemma llist_lty_list lys ys A :
-    llist (llist_type_pred A) lys ys -∗
-          ltty_car (lty_list A) #lys.
+    llist (llist_type_pred A) lys ys -∗ ltty_car (lty_list A) #lys.
   Proof.
     iIntros "Hlys".
     iInduction ys as [|y ys] "IH" forall (lys).
@@ -44,11 +43,11 @@ Section with_Σ.
   Qed.
 
   Lemma llength_spec A (l : loc) :
-    ⊢ {{{ ltty_car (list A) #l }}} llength #l
-      {{{ xs (n:Z), RET #n; ⌜Z.of_nat (length xs) = n⌝ ∗
-                            llist (llist_type_pred A) l xs }}}.
+    {{{ ltty_car (list A) #l }}} llength #l
+    {{{ xs (n:Z), RET #n; ⌜Z.of_nat (length xs) = n⌝ ∗
+                          llist (llist_type_pred A) l xs }}}.
   Proof.
-    iIntros "!>" (Φ) "Hl HΦ".
+    iIntros (Φ) "Hl HΦ".
     iLöb as "IH" forall (l Φ).
     wp_lam.
     rewrite {2}/lty_list /lty_rec /lty_list_aux fixpoint_unfold.
