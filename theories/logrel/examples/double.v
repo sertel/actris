@@ -1,4 +1,4 @@
-(** This file contains a proof that the program
+(** This file contains two proofs that the program
 
   λ c, (recv c ||| recv c)
 
@@ -8,7 +8,11 @@ can be assigned the semantic type
 
 This cannot be shown directly using the semantic typing rules, and therefore
 manual proof is used to show that the program is semantically well-typed. This
-demonstrates the extensibility of the type system. *)
+demonstrates the extensibility of the type system.
+
+The first proof uses a bare minimum weakest precondition for the program,
+while the second proof uses a weakest precondition for full functional correctness.
+*)
 From iris.algebra Require Import frac auth excl updates.
 From iris.heap_lang.lib Require Export par spin_lock.
 From actris.channel Require Import proofmode.
@@ -32,7 +36,6 @@ Definition prog : val := λ: "c",
 Section double.
   Context `{heapG Σ, chanG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
-  Context `{!inG Σ (exclR unitO), inG Σ (prodR fracR (agreeR (optionO valO)))}.
 
   Definition prog_prot : iProto Σ :=
     (<? (x : Z)> MSG #x; <? (y : Z)> MSG #y; END)%proto.
@@ -97,12 +100,33 @@ Section double.
     - iIntros (?? [[x1 ->] [x2 ->]]) "!>". wp_pures. by iApply "HΦ".
   Qed.
 
-  Definition prog_prot_fp (P : val → val → iProp Σ) : iProto Σ :=
+  Lemma prog_typed :
+    ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
+  Proof.
+    iIntros (vs) "!> HΓ /=".
+    iApply wp_value.
+    iFrame "HΓ".
+    iIntros (c) "Hc".
+    iApply (wp_prog with "[Hc]").
+    { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
+      iIntros "!> !>" (v1). iDestruct 1 as %[x1 ->]. iExists x1.
+      iIntros "!>" (v2). iDestruct 1 as %[x2 ->]. iExists x2. auto. }
+    iIntros "!>" (k1 k2 _).
+    iExists _, _. iSplit; first done. eauto.
+  Qed.
+
+End double.
+
+Section double_fc.
+  Context `{heapG Σ, chanG Σ, spawnG Σ}.
+  Context `{!inG Σ (exclR unitO), inG Σ (prodR fracR (agreeR (optionO valO)))}.
+
+  Definition prog_prot_fc (P : val → val → iProp Σ) : iProto Σ :=
     (<? (v1 : val)> MSG v1; <? (v2 : val)> MSG v2 {{ P v1 v2 }}; END)%proto.
 
-  Definition chan_inv_fp (γ γ1 γ2 : gname) (P : val → val → iProp Σ) (c : val) :
+  Definition chan_inv_fc (γ γ1 γ2 : gname) (P : val → val → iProp Σ) (c : val) :
     iProp Σ :=
-    (own γ (Excl ()) ∗ c ↣ prog_prot_fp P ∨
+    (own γ (Excl ()) ∗ c ↣ prog_prot_fc P ∨
      (∃ b v1,
        own (if b : bool then γ1 else γ2) (3/4, to_agree (Some v1))%Qp ∗
        c ↣ <? (v2 : val)> MSG v2 {{ P v1 v2 }}; END) ∨
@@ -110,8 +134,8 @@ Section double.
        own γ1 (1/4, to_agree (Some v1))%Qp ∗
        own γ2 (1/4, to_agree (Some v2))%Qp))%I.
 
-  Lemma wp_prog_fp P c :
-    {{{ ▷ c ↣ prog_prot_fp P }}}
+  Lemma wp_prog_fc P c :
+    {{{ ▷ c ↣ prog_prot_fc P }}}
       prog c
     {{{ v1 v2, RET (v1, v2); P v1 v2 ∨ P v2 v1 }}}.
   Proof.
@@ -120,7 +144,7 @@ Section double.
     iMod (own_alloc (1, to_agree None)%Qp) as (γ1) "Hγ1"; [done|].
     iMod (own_alloc (1, to_agree None)%Qp) as (γ2) "Hγ2"; [done|].
     (* Create lock *)
-    wp_apply (newlock_spec (chan_inv_fp γ γ1 γ2 P c) with "[Hγ Hc]").
+    wp_apply (newlock_spec (chan_inv_fc γ γ1 γ2 P c) with "[Hγ Hc]").
     { iLeft. by iFrame. }
     iIntros (lk γlk) "#Hlock". wp_pures.
     (* Fork into two threads *)
@@ -187,13 +211,13 @@ Section double.
         by iDestruct (own_valid_2 with "H1 H2") as %[].
   Qed.
 
-  Lemma prog_typed :
+  Lemma prog_typed_fc :
     ⊢ [] ⊨ prog : chan (<??> TY lty_int; <??> TY lty_int; END) ⊸ lty_int * lty_int.
   Proof.
     iIntros (vs) "!> HΓ /=".
     iApply wp_value. iSplitL; last by iApply env_ltyped_nil.
     iIntros (c) "Hc".
-    iApply (wp_prog_fp (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
+    iApply (wp_prog_fc (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
     { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
       iIntros "!> !>" (v1). iDestruct 1 as %[x1 ->]. iExists #x1.
       iIntros "!>" (v2). iDestruct 1 as %[x2 ->]. iExists #x2. iSplitL; last done.
@@ -201,4 +225,5 @@ Section double.
     iIntros "!>" (v1 v2 [[[k1 ->] [k2 ->]]|[[k1 ->] [k2 ->]]]);
       iExists _, _; iSplit; by eauto.
   Qed.
-End double.
+
+End double_fc.
