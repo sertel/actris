@@ -59,14 +59,15 @@ Dependent Separation Protocols:
 
 Semantic Session Types:
 
-|        | CPP21 submission              | Coq mechanization                     |
-|--------|-------------------------------|---------------------------------------|
-| Send   | `!_{X_1 .. X_n} A . S`        | `<!! X_1 .. X_n> TY A ; S`            |
-| Recv   | `?_{X_1 .. X_n} A . S`        | `<?? X_1 .. X_n> TY A ; S`            |
-| End    | `end`                         | `END`                                 |
-| Select | `(+){ Ss }`                   | `lty_choice SEND Ss`                  |
-| Branch | `&{ Ss }`                     | `lty_choice RECV Ss`                  |
-| Dual   | An overlined type             | No notation                           |
+|          | CPP21 submission              | Coq mechanization                     |
+|----------|-------------------------------|---------------------------------------|
+| Send     | `!_{X_1 .. X_n} A . S`        | `<!! X_1 .. X_n> TY A ; S`            |
+| Recv     | `?_{X_1 .. X_n} A . S`        | `<?? X_1 .. X_n> TY A ; S`            |
+| End      | `end`                         | `END`                                 |
+| Select   | `(+){ Ss }`                   | `lty_choice SEND Ss`                  |
+| Branch   | `&{ Ss }`                     | `lty_choice RECV Ss`                  |
+| Dual     | An overlined type             | No notation                           |
+| N-append | `S^n`                         | lty_napp S n                          |
 
 ## Coq tactics
 
@@ -150,18 +151,25 @@ The logical relation is defined across the following files:
 - [theories/logrel/subtyping.v](theories/logrel/subtyping.v):
   Definition of the semantic subtyping relation for both term and session types.
   This file also defines the notion of copyability of types in terms of subtyping.
+- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v):
+  Subtyping rules for term types and session types.
 - [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
   Semantic typing lemmas (typing rules) for the semantic term types.
 - [theories/logrel/session_typing_rules.v](theories/logrel/session_typing_rules.v):
   Semantic typing lemmas (typing rules) for the semantic session types.
-- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v):
-  Subtyping rules for term types and session types.
+- [theories/logrel/napp.v](theories/logrel/napp.v):
+  Definition of session types iteratively being appended to themselves a finite
+  number of times, with support for swapping e.g. a send over an arbitrary number
+  of receives.
 
 An extension to the basic type system is given in
 [theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
 mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
 and allow one to gain exclusive ownership of resources shared between multiple
 threads.
+An encoding of a list type is found in [theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), along with auxillary lemmas, and a weakest precondition for `llength`,
+that converts ownership of a list type into a list reference predicate, with
+the values of the list made explicit.
 
 ## Paper-specific remarks
 
