@@ -34,7 +34,7 @@ The individual types contain the following:
   bidirectional channels in terms of Iris's HeapLang language, with specifications
   defined in terms of the dependent separation protocols.
   The relevant definitions and proof rules are as follows:
-  + `mapsto_proto`: endpoint ownership (notation `↣`).
+  + `iProto_mapsto`: endpoint ownership (notation `↣`).
   + `new_chan_spec`, `send_spec` and `recv_spec`: proof rule for `new_chan`,
     `send`, and `recv`.
   + `select_spec` and `branch_spec`: proof rule for the derived (binary)
@@ -47,7 +47,7 @@ and the Coq mechanization:
 
 Dependent Separation Protocols:
 
-|        | POPL paper                    | Coq mechanization                     |
+|        | POPL20 paper                  | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
 | Send   | `! x_1 .. x_n <v>{ P }. prot` | `<! x_1 .. x_n> MSG v {{ P }}; prot`  |
 | Recv   | `? x_1 .. x_n <v>{ P }. prot` | `<? x_1 .. x_n> MSG v {{ P }}; prot`  |
@@ -59,14 +59,14 @@ Dependent Separation Protocols:
 
 Semantic Session Types:
 
-|        | CONCUR submission             | Coq mechanization                     |
+|        | CPP21 submission              | Coq mechanization                     |
 |--------|-------------------------------|---------------------------------------|
 | Send   | `!_{X_1 .. X_n} A . S`        | `<!! X_1 .. X_n> TY A ; S`            |
 | Recv   | `?_{X_1 .. X_n} A . S`        | `<?? X_1 .. X_n> TY A ; S`            |
 | End    | `end`                         | `END`                                 |
-| Select | `(+){ S_1 .. S_n }`           | `lty_choice SEND Ss`                  |
-| Branch | `&{ S_1 .. S_n }`             | `lty_choice RECV Ss`                  |
-| Dual   | An overlined protocol         | No notation                           |
+| Select | `(+){ Ss }`                   | `lty_choice SEND Ss`                  |
+| Branch | `&{ Ss }`                     | `lty_choice RECV Ss`                  |
+| Dual   | An overlined type             | No notation                           |
 
 ## Coq tactics
 
@@ -129,28 +129,30 @@ The logical relation is defined across the following files:
   provides the required Coq definitions for creating recursive term/session
   types.
 - [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
-  of the following semantic term types: basic types (integers, Booleans, unit),
+  of the following semantic term types: basic types (integers, booleans, unit),
   sums, products, copyable/affine functions, universally and existentially
   quantified types, unique/shared references, and session-typed channels.
 - [theories/logrel/session_types.v](theories/logrel/session_types.v):
   Definitions of the following semantic session types: sending and receiving
   with session polymorphism, n-ary choice. Session type duality is also
-  defined here. As mentioned, recursive session types can be defined using
-  the mechanism defined in [theories/logrel/model.v](theories/logrel/model.v).
+  defined here. Recursive session types can be defined using the mechanism
+  defined in [theories/logrel/model.v](theories/logrel/model.v).
+- [theories/logrel/operators.v](theories/logrel/operators.v):
+  Type definitions of unary and binary operators.
 - [theories/logrel/environments.v](theories/logrel/environments.v):
-  Definition of semantic type environments, which are used in the semantic
-  typing relation. This also contains the rules for splitting and copying of
-  environments, which is used for distributing affine resources across the
-  various parts of the program inside the typing rules.
+  Definition of the semantic type environment, which is used in the semantic
+  typing relation. This also contains the rules for updating the environment,
+  which is used for distributing affine resources across the
+  various parts of the proofs inside the typing rules.
 - [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
   Definition of the semantic typing relation, as well as the proof of type
   soundness, showing that semantically well-typed programs do not get stuck.
-- [theories/logrel/subtyping.v](theories/logrel/subtyping.v): Definition of
-  the semantic subtyping relation for both term and session types. This file
-  also defines the notion of copyability of types in terms of subtyping.
+- [theories/logrel/subtyping.v](theories/logrel/subtyping.v):
+  Definition of the semantic subtyping relation for both term and session types.
+  This file also defines the notion of copyability of types in terms of subtyping.
 - [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
   Semantic typing lemmas (typing rules) for the semantic term types.
-- [theories/logrel/session_typing_rules.v](theories/logrel/session.v):
+- [theories/logrel/session_typing_rules.v](theories/logrel/session_typing_rules.v):
   Semantic typing lemmas (typing rules) for the semantic session types.
 - [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v):
   Subtyping rules for term types and session types.
@@ -158,10 +160,10 @@ The logical relation is defined across the following files:
 An extension to the basic type system is given in
 [theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
 mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
-and allow one to gain exclusive ownership of resource shared between multiple
+and allow one to gain exclusive ownership of resources shared between multiple
 threads.
 
 ## Paper-specific remarks
 
-For remarks about the CONCUR 2020 submission, see
-[papers/CONCUR20.md](papers/CONCUR20.md).
+For remarks about the CPP21 submission, see
+[papers/CPP21.md](papers/CPP21.md).
