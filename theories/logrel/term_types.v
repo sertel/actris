@@ -53,9 +53,9 @@ Definition lty_sum {Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
   (∃ w2, ⌜w = InjRV w2⌝ ∗ ▷ ltty_car A2 w2))%I.
 
 Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
-  Ltty (λ w, ∀ A, WP w #() {{ ltty_car (C A) }})%I.
+  Ltty (λ w, ∀ X, WP w #() {{ ltty_car (C X) }})%I.
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
-  Ltty (λ w, ∃ A, ▷ ltty_car (C A) w)%I.
+  Ltty (λ w, ∃ X, ▷ ltty_car (C X) w)%I.
 
 Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
 Definition lty_copy_minus {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
@@ -91,10 +91,10 @@ Notation "A → B" := (lty_copy (lty_arr A B)) : lty_scope.
 Infix "*" := lty_prod : lty_scope.
 Infix "+" := lty_sum : lty_scope.
 
-Notation "∀ A1 .. An , C" :=
-  (lty_forall (λ A1, .. (lty_forall (λ An, C%lty)) ..)) : lty_scope.
-Notation "∃ A1 .. An , C" :=
-  (lty_exist (λ A1, .. (lty_exist (λ An, C%lty)) ..)) : lty_scope.
+Notation "∀ X1 .. Xn , C" :=
+  (lty_forall (λ X1, .. (lty_forall (λ Xn, C%lty)) ..)) : lty_scope.
+Notation "∃ X1 .. Xn , C" :=
+  (lty_exist (λ X1, .. (lty_exist (λ Xn, C%lty)) ..)) : lty_scope.
 
 Notation "'ref_uniq' A" := (lty_ref_uniq A) (at level 10) : lty_scope.
 Notation "'ref_shr' A" := (lty_ref_shr A) (at level 10) : lty_scope.
