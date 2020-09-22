@@ -1,3 +1,9 @@
+# Code corresponding to the paper
+
+All code corresponding to the paper can be found in the directory
+[theories/logrel](../theories/logrel). The file [README.md](../README.md)
+contains an overview of the files in that directory.
+
 # Differences between the paper and the mechanisation
 
 - The semantic encoding of ground types use existential quantification in the
