@@ -44,7 +44,7 @@ End ltyped.
 
 (** Expressions and values are defined mutually recursive in HeapLang,
 which means that only after a step of reduction we get that e.g.
-Pair (Val v1, Val v2) = PairV (v1,v2).
+[Pair (Val v1, Val v2)] reduces to [PairV (v1,v2)].
 This makes typing of values tricky, for technical reasons.
 To circumvent this, we make use of the following typing judgement for values,
 that lets us type check values without requiring reduction steps.
