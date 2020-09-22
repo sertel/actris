@@ -42,6 +42,41 @@ Section ltyped.
   Qed.
 End ltyped.
 
+(* TODO: Elaborate on why this is needed *)
+Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
+  tc_opaque (■ ltty_car A v)%I.
+Instance: Params (@ltyped_val) 3 := {}.
+Notation "⊨ᵥ v : A" := (ltyped_val v A)
+                         (at level 100, v at next level, A at level 200).
+Arguments ltyped_val : simpl never.
+
+Section ltyped_val.
+  Context `{!heapG Σ}.
+
+  Global Instance ltyped_val_plain v A : Plain (ltyped_val v A).
+  Proof. rewrite /ltyped_val /=. apply _. Qed.
+  Global Instance ltyped_val_ne n v :
+    Proper (dist n ==> dist n) (@ltyped_val Σ _ v).
+  Proof. solve_proper. Qed.
+  Global Instance ltyped_val_proper v :
+    Proper ((≡) ==> (≡)) (@ltyped_val Σ _ v).
+  Proof. solve_proper. Qed.
+
+End ltyped_val.
+
+Section ltyped_rel.
+  Context `{!heapG Σ}.
+
+  Lemma ltyped_val_ltyped Γ v A : (⊨ᵥ v : A) -∗ Γ ⊨ v : A.
+  Proof.
+    iIntros "#HA" (vs) "!> HΓ".
+    iApply wp_value. iFrame "HΓ".
+    rewrite /ltyped_val /=.
+    iApply "HA".
+  Qed.
+
+End ltyped_rel.
+
 Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
   (∀ `{heapG Σ}, ∃ A, ⊢ [] ⊨ e : A ⫤ []) →
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →

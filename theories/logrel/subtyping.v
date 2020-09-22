@@ -45,4 +45,9 @@ Section subtyping.
   Proof. rewrite /lty_copyable /=. apply _. Qed.
   Global Instance lty_copyable_ne : NonExpansive (@lty_copyable Σ).
   Proof. rewrite /lty_copyable /=. solve_proper. Qed.
+
+  Lemma lsty_car_mono (S T : lsty Σ) :
+    (S <: T) -∗ lsty_car S ⊑ lsty_car T.
+  Proof. eauto. Qed.
+
 End subtyping.
