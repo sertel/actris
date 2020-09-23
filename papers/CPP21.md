@@ -15,7 +15,7 @@ contains an overview of the files in that directory.
   Coq and the paper.
 - The typing rule for branching (`ltyped_branch`) is written as a function
   instead of an n-ary rule with multiple premises.
-- The disjunction of the compute client list invariant is encoded using a boolean
+- The disjunction of the compute client invariant is encoded using a boolean
   flag, as it makes mechanisation easier.
 - The mechanisation employs a typing judgement for values (`ltyped_val`),
   for technical reasons. More details on this is found in
@@ -23,6 +23,10 @@ contains an overview of the files in that directory.
 
 # Examples
 
+- The compute service example in Section 3 can be found in
+  [theories/logrel/examples/compute_service.v](../theories/logrel/examples/compute_service.v)
+  The program recursively receive computation requests, which it computes and
+  then send back. It is entirely type checked with the rules of the type system
 - The parallel receive example in Section 4 can be found in
   [theories/logrel/examples/par_recv.v](../theories/logrel/examples/par_recv.v):
   This program performs two "racy" parallel receives on the same channel from
@@ -36,3 +40,4 @@ contains an overview of the files in that directory.
   [theories/logrel/examples/compute_service.v](../theories/logrel/examples/compute_service.v).
   The definition of the list type and the weakest precondition for `llength`
   can be found in [theories/logrel/lib/list.v](../theories/logrel/lib/list.v)
+  It is type checked using a manual typing proof.

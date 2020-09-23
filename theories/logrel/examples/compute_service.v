@@ -4,7 +4,8 @@
              stop : end }
 
 It recursively receives computations, computes them, and then
-sends back the results. *)
+sends back the results.
+The example is type checked using only the rules of the type system. *)
 From iris.heap_lang Require Import metatheory.
 From actris.channel Require Import proofmode.
 From actris.logrel Require Import session_typing_rules.
