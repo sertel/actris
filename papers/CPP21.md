@@ -13,6 +13,9 @@ contains an overview of the files in that directory.
   whereas that is written `∀ (X : lty k Σ). A` in Coq. This notation is used to
   for technical reasoning. The underlying definitions are the same between
   Coq and the paper.
+- The polymorphic session types are defined in an nested fashion, as a sequence
+  of quantifiers, followed by the actual type, for mechanisation purposes
+  using telescopes. The definitions are effectively identical to the paper.
 - The typing rule for branching (`ltyped_branch`) is written as a function
   instead of an n-ary rule with multiple premises.
 - The disjunction of the compute client invariant is encoded using a boolean
