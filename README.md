@@ -1,9 +1,12 @@
 # ACTRIS COQ DEVELOPMENT
 
-This directory contains the Coq mechanization of the Actris framework,
+This archive contains a fork of the Coq mechanization of the Actris framework,
 first presented in the paper
 [Actris: Session Type Based Reasoning in Separation Logic](https://iris-project.org/pdfs/2020-popl-actris-final.pdf)
-at POPL'20.
+at POPL'20, extended with the material for the CPP'21 submission "Machine-Checked
+Semantic Session Typing".
+
+For remarks about the CPP'21 submission, see [CPP21.md](CPP21.md).
 
 It has been built and tested with the following dependencies
 
@@ -118,61 +121,3 @@ Concretely, the normalization performs the following actions:
 [ProofMode]: https://gitlab.mpi-sws.org/iris/iris/blob/master/ProofMode.md
 [ActrisProofMode]: theories/channel/proofmode.v
 
-## Semantic Session Type System
-
-The logical relation for type safety of a semantic session type system is contained
-in the directory [theories/logrel](theories/logrel).
-The logical relation is defined across the following files:
-
-- [theories/logrel/model.v](theories/logrel/model.v): Definition of the
-  notions of a semantic term type and a semantic session type in terms of
-  unary Iris predicates (on values) and Actris protocols, respectively. Also
-  provides the required Coq definitions for creating recursive term/session
-  types.
-- [theories/logrel/term_types.v](theories/logrel/term_types.v): Definitions
-  of the following semantic term types: basic types (integers, booleans, unit),
-  sums, products, copyable/affine functions, universally and existentially
-  quantified types, unique/shared references, and session-typed channels.
-- [theories/logrel/session_types.v](theories/logrel/session_types.v):
-  Definitions of the following semantic session types: sending and receiving
-  with session polymorphism, n-ary choice. Session type duality is also
-  defined here. Recursive session types can be defined using the mechanism
-  defined in [theories/logrel/model.v](theories/logrel/model.v).
-- [theories/logrel/operators.v](theories/logrel/operators.v):
-  Type definitions of unary and binary operators.
-- [theories/logrel/contexts.v](theories/logrel/contexts.v):
-  Definition of the semantic type contexts, which is used in the semantic
-  typing relation. This also contains the rules for updating the context,
-  which is used for distributing affine resources across the
-  various parts of the proofs inside the typing rules.
-- [theories/logrel/term_typing_judgment.v](theories/logrel/term_typing_judgment.v):
-  Definition of the semantic typing relation, as well as the proof of type
-  soundness, showing that semantically well-typed programs do not get stuck.
-- [theories/logrel/subtyping.v](theories/logrel/subtyping.v):
-  Definition of the semantic subtyping relation for both term and session types.
-  This file also defines the notion of copyability of types in terms of subtyping.
-- [theories/logrel/subtyping_rules.v](theories/logrel/subtyping_rules.v):
-  Subtyping rules for term types and session types.
-- [theories/logrel/term_typing_rules.v](theories/logrel/term_typing_rules.v):
-  Semantic typing lemmas (typing rules) for the semantic term types.
-- [theories/logrel/session_typing_rules.v](theories/logrel/session_typing_rules.v):
-  Semantic typing lemmas (typing rules) for the semantic session types.
-- [theories/logrel/napp.v](theories/logrel/napp.v):
-  Definition of session types iteratively being appended to themselves a finite
-  number of times, with support for swapping e.g. a send over an arbitrary number
-  of receives.
-
-An extension to the basic type system is given in
-[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), which defines
-mutexes as a type-safe abstraction. Mutexes are implemented using spin locks
-and allow one to gain exclusive ownership of resources shared between multiple
-threads. An encoding of a list type is found in
-[theories/logrel/lib/mutex.v](theories/logrel/lib/mutex.v), along with axillary
-lemmas, and a weakest precondition for `llength`,
-that converts ownership of a list type into a list reference predicate, with
-the values of the list made explicit.
-
-## Paper-specific remarks
-
-For remarks about the CPP21 submission, see
-[papers/CPP21.md](papers/CPP21.md).
