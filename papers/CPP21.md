@@ -25,7 +25,7 @@ contains an overview of the files in that directory.
   [theories/logrel/term_typing_judgment.v](../theories/logrel/term_typing_judgment.v)
 - Minor simplifications have been made for the displayed Coq code of Section 5,
   such as assuming that implicit variables (e.g., `{!heapG Σ}`) are available from
-  a `Context`, rather than as an implicit variable of the definitions.
+  a `Context`, rather than as implicits variables of the definitions.
   The definitions between the paper and Coq code are identical,
   as this is just refactoring.
 
