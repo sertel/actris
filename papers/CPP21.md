@@ -23,6 +23,11 @@ contains an overview of the files in that directory.
 - The mechanisation employs a typing judgement for values (`ltyped_val`),
   for technical reasons. More details on this is found in
   [theories/logrel/term_typing_judgment.v](../theories/logrel/term_typing_judgment.v)
+- Minor simplifications have been made for the displayed Coq code of Section 5,
+  such as assuming that an implicit variable (e.g. `{!heapG Σ}) is available from
+  a context, rather than as an implicit variable of the definitions.
+  The definitions between the paper and Coq code are identical,
+  as this is just refactoring.
 
 # Examples
 
