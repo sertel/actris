@@ -1,4 +1,4 @@
-(** This file defines all of the semantic typing lemmas for term types. Most of
+(** This file defines all of the semantic typing lemmas for session types. Most of
 these lemmas are semantic versions of the syntactic typing judgments typically
 found in a syntactic type system. *)
 From stdpp Require Import pretty.
