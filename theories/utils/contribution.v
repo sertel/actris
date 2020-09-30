@@ -64,7 +64,7 @@ Section contribution.
   Proof.
     rewrite /server /client. case_decide=> //. iIntros "Hs Hc".
     iDestruct (own_valid_2 with "Hs Hc")
-      as %[[[_ ?]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid; first done.
+      as %[[[_ ?]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete; first done.
     move: Hincl. rewrite Cinl_included prod_included /= pos_included=> -[? _].
     by destruct (Pos.lt_irrefl 1).
   Qed.
@@ -89,7 +89,7 @@ Section contribution.
     - iDestruct "Hs" as "(_ & _ & Hc')".
       by iDestruct (own_valid_2 with "Hc Hc'") as %?.
     - iDestruct (own_valid_2 with "Hs Hc")
-        as %[[[??]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid.
+        as %[[[??]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete.
       { setoid_subst. by destruct n. }
       move: Hincl. rewrite Cinl_included prod_included /= pos_included=> -[??].
       by destruct n.

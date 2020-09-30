@@ -9,5 +9,5 @@ build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/actris" ]
 depends: [
-  "coq-iris" { (= "dev.2020-09-15.3.986a8883") | (= "dev") }
+  "coq-iris" { (= "dev.2020-09-30.0.fe735a96") | (= "dev") }
 ]
