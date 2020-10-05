@@ -57,7 +57,7 @@ Export action.
 (** * Setup of Iris's cameras *)
 Class protoG Σ V :=
   protoG_authG :>
-    inG Σ (excl_authR (laterO (proto (leibnizO V) (iPrePropO Σ) (iPrePropO Σ)))).
+    inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))).
 
 Definition protoΣ V := #[
   GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))
@@ -322,14 +322,12 @@ Qed.
 Definition side_elim {A} (s : side) (l r : A) : A :=
   match s with Left => l | Right => r end.
 
-Definition iProto_unfold {Σ V} (p : iProto Σ V) : proto V (iPrePropO Σ) (iPrePropO Σ) :=
-  proto_map iProp_fold iProp_unfold p.
 Definition iProto_own_frag `{!protoG Σ V} (γ : proto_name) (s : side)
     (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (◯E (Next (iProto_unfold p))).
+  own (side_elim s proto_l_name proto_r_name γ) (◯E (Next p)).
 Definition iProto_own_auth `{!protoG Σ V} (γ : proto_name) (s : side)
     (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (●E (Next (iProto_unfold p))).
+  own (side_elim s proto_l_name proto_r_name γ) (●E (Next p)).
 
 Definition iProto_ctx `{protoG Σ V}
     (γ : proto_name) (vsl vsr : list V) : iProp Σ :=
@@ -969,8 +967,6 @@ Section proto.
     Proper ((≡) ==> (≡) ==> (≡)) (iProto_interp (Σ:=Σ) (V:=V) vsl vsr).
   Proof. apply (ne_proper_2 _). Qed.
 
-  Global Instance iProto_unfold_ne : NonExpansive (iProto_unfold (Σ:=Σ) (V:=V)).
-  Proof. solve_proper. Qed.
   Global Instance iProto_own_frag_ne γ s : NonExpansive (iProto_own_frag γ s).
   Proof. solve_proper. Qed.
 
@@ -979,12 +975,7 @@ Section proto.
   Proof.
     iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓".
     iDestruct (excl_auth_agreeI with "H✓") as "H✓".
-    iDestruct (later_equivI_1 with "H✓") as "H✓"; iNext.
-    rewrite /iProto_unfold. assert (∀ p, proto_map iProp_unfold iProp_fold
-        (proto_map iProp_fold iProp_unfold p) ≡ p) as help.
-    { intros p''. rewrite -proto_map_compose -{2}(proto_map_id p'').
-      apply proto_map_ext=> // m /=; by rewrite iProp_fold_unfold. }
-    rewrite -{2}(help p). iRewrite "H✓". by rewrite help.
+    iApply (later_equivI_1 with "H✓").
   Qed.
 
   Lemma iProto_own_auth_update γ s p p' p'' :
@@ -992,7 +983,7 @@ Section proto.
     iProto_own_auth γ s p'' ∗ iProto_own_frag γ s p''.
   Proof.
     iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H".
-    { eapply (excl_auth_update _ _ (Next (iProto_unfold p''))). }
+    { eapply (excl_auth_update _ _ (Next p'')). }
     by rewrite own_op.
   Qed.
 
@@ -1159,11 +1150,10 @@ Section proto.
       iProto_ctx γ [] [] ∗
       iProto_own γ Left p ∗ iProto_own γ Right (iProto_dual p).
   Proof.
-    iMod (own_alloc (●E (Next (iProto_unfold p)) ⋅
-      ◯E (Next (iProto_unfold p)))) as (lγ) "[H●l H◯l]".
+    iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (lγ) "[H●l H◯l]".
     { by apply excl_auth_valid. }
-    iMod (own_alloc (●E (Next (iProto_unfold (iProto_dual p))) ⋅
-      ◯E (Next (iProto_unfold (iProto_dual p))))) as (rγ) "[H●r H◯r]".
+    iMod (own_alloc (●E (Next (iProto_dual p)) ⋅
+      ◯E (Next (iProto_dual p)))) as (rγ) "[H●r H◯r]".
     { by apply excl_auth_valid. }
     pose (ProtName lγ rγ) as γ. iModIntro. iExists γ. iSplitL "H●l H●r".
     { iExists p, (iProto_dual p). iFrame. iApply iProto_interp_nil. }
