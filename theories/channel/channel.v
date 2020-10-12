@@ -239,6 +239,22 @@ Section channel.
       iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
   Qed.
 
+  Lemma send_spec_tele {TT} c (tt : TT)
+        (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
+    {{{ c ↣ (<!.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
+      send c (v tt)
+    {{{ RET #(); c ↣ (p tt) }}}.
+  Proof.
+    iIntros (Φ) "[Hc HP] HΦ".
+    iDestruct (iProto_mapsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]")
+      as "Hc".
+    { iIntros "!>".
+      iApply iProto_le_trans.
+      iApply iProto_le_texist_intro_l.
+      by iFrame "HP". }
+    by iApply (send_spec with "Hc").
+  Qed.
+
   Lemma try_recv_spec {TT} c (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
     {{{ c ↣ <?.. x> MSG v x {{ P x }}; p x }}}
       try_recv c

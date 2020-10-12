@@ -312,12 +312,11 @@ Proof.
   destruct (envs_app _ _ _) as [Δ2'|] eqn:? => //.
   rewrite envs_split_sound //; rewrite (envs_app_sound Δ2) //; simpl.
   destruct HΦ as (-> & -> & ->). rewrite right_id assoc.
-  assert (c ↣ p ∗ tele_app tP x ⊢
-    c ↣ <!> MSG tele_app tv x; tele_app tp x) as ->.
-  { iIntros "[Hc Hm]". iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
-    iApply iProto_le_trans; [iApply Hp|]. rewrite Hm.
-    iApply iProto_le_trans; [iApply iProto_le_texist_intro_l|]. by iFrame. }
-  eapply bi.wand_apply; [rewrite -wp_bind; by eapply send_spec|].
+  assert (c ↣ p ⊢
+    c ↣ <!.. (x : TT)> MSG tele_app tv x {{ tele_app tP x }}; tele_app tp x) as ->.
+  { iIntros "Hc". iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
+    iApply iProto_le_trans; [iApply Hp|]. by rewrite Hm. }
+  eapply bi.wand_apply; [rewrite -wp_bind; by eapply send_spec_tele|].
   by rewrite -bi.later_intro.
 Qed.
 
