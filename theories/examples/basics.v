@@ -59,11 +59,8 @@ Definition prog_dep_del_3 : val := λ: <>,
 
 (** Loops *)
 Definition prog_loop : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
-    let: "go" :=
-      rec: "go" <> :=
-        let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" #() in
-    "go" #()) in
+  let: "c" := start_chan (rec: "go" "c'" :=
+    let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" "c'") in
   send "c" #18;;
   let: "x1" := recv "c" in
   send "c" #20;;
@@ -105,11 +102,8 @@ Definition prog_swap_twice : val := λ: <>,
   recv "c" + recv "c".
 
 Definition prog_swap_loop : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
-    let: "go" :=
-      rec: "go" <> :=
-        let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" #() in
-    "go" #()) in
+  let: "c" := start_chan (rec: "go" "c'" :=
+    let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" "c'") in
   send "c" #18;;
   send "c" #20;;
   let: "x1" := recv "c" in
@@ -117,12 +111,9 @@ Definition prog_swap_loop : val := λ: <>,
   "x1" + "x2".
 
 Definition prog_ref_swap_loop : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
-    let: "go" :=
-      rec: "go" <> :=
-        let: "l" := recv "c'" in
-        "l" <- !"l" + #2;; send "c'" #();; "go" #() in
-    "go" #()) in
+  let: "c" := start_chan (rec: "go" "c'" :=
+     let: "l" := recv "c'" in
+     "l" <- !"l" + #2;; send "c'" #();; "go" "c'") in
   let: "l1" := ref #18 in
   let: "l2" := ref #20 in
   send "c" "l1";;
@@ -291,9 +282,9 @@ Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
-  - wp_pures. iLöb as "IH".
+  - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
-    wp_pures. by iApply "IH".
+    do 2 wp_pure _. by iApply "IH".
   - wp_send with "[//]". wp_recv as "_". wp_send with "[//]". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
@@ -362,9 +353,9 @@ Lemma prog_swap_loop_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
-  - wp_pures. iLöb as "IH".
+  - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
-    wp_pures. by iApply "IH".
+    do 2 wp_pure _. by iApply "IH".
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
@@ -374,7 +365,7 @@ Lemma prog_ref_swap_loop_spec :
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
   wp_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
-  - do 4 wp_pure _. iLöb as "IH". wp_lam.
+  - iLöb as "IH". wp_lam.
     wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
     do 2 wp_pure _. by iApply "IH".
   - wp_alloc l1 as "Hl1". wp_alloc l2 as "Hl2".
