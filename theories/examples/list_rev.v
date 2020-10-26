@@ -62,8 +62,7 @@ Section list_rev_example.
     iIntros (l xs) "Hl".
     iDestruct (llist_split with "Hl") as (vs) "[Hl HIT]".
     iExists l, vs. iFrame "Hl".
-    iModIntro.
-    iIntros "Hl".
+    iModIntro. iIntros "Hl".
     iSplitL "Hl HIT".
     { iApply llist_split. rewrite big_sepL2_reverse_2.
       iExists (reverse vs). iFrame "Hl HIT". }
