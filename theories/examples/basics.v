@@ -360,10 +360,12 @@ Proof.
     wp_pures. by iApply "HΦ".
 Qed.
 
-Lemma prog_ref_swap_loop_spec :
-  {{{ True }}} prog_ref_swap_loop #() {{{ RET #42; True }}}.
+(** This lemma is stated as the underlying weakest precondition of the
+hoare triple notation to make it equivalent to what is presented in the
+Actris journal paper *)
+Lemma prog_ref_swap_loop_spec : ∀ Φ, Φ #42 -∗ WP prog_ref_swap_loop #() {{ Φ }}.
 Proof.
-  iIntros (Φ) "_ HΦ". wp_lam.
+  iIntros (Φ) "HΦ". wp_lam.
   wp_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
   - iLöb as "IH". wp_lam.
     wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
@@ -371,7 +373,8 @@ Proof.
   - wp_alloc l1 as "Hl1". wp_alloc l2 as "Hl2".
     wp_send with "[$Hl1]". wp_send with "[$Hl2]".
     wp_recv as "Hl1". wp_recv as "Hl2".
-    wp_load. wp_load. wp_pures. by iApply "HΦ".
+    wp_load. wp_load.
+    wp_pures. by iApply "HΦ".
 Qed.
 
 End proofs.
