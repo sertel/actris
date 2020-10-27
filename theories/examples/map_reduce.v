@@ -2,7 +2,7 @@
 specification thereof, and its proofs. *)
 From actris.channel Require Import proofmode.
 From actris.utils Require Import llist compare contribution group.
-From actris.examples Require Import map sort_fg.
+From actris.examples Require Import par_map sort_fg.
 From iris.algebra Require Import gmultiset.
 
 (** * Functional version of map reduce (aka the specification) *)

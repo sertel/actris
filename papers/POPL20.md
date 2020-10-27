@@ -16,7 +16,7 @@ Tour of Actris
   - Dependent: [theories/examples/sort_fg.v](../theories/examples/sort_fg.v)
 Manifest sharing via locks
   - Sample program: [theories/examples/basics.v](../theories/examples/basics.v)
-  - Distributed mapper: [theories/examples/map.v](../theories/examples/map.v)
+  - Distributed mapper: [theories/examples/par_map.v](../theories/examples/par_map.v)
 Case study: map reduce:
   - Utilities for shuffling/grouping: [theories/utils/group.v](../theories/utils/group.v)
   - Implementation and verification: [theories/examples/map_reduce.v](../theories/examples/map_reduce.v)
