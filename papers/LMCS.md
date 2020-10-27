@@ -13,7 +13,7 @@ Subprotocols
   - Mapper: [theories/examples/swap_mapper.v](../theories/examples/swap_mapper.v)
   - List reversal: [theories/examples/list_rev.v](../theories/examples/list_rev.v)
   - Löb recursion: [theories/examples/subprotocols.v](../theories/examples/subprotocols.v)
-Mechanisation
+Mechanization
   - Program: [theories/examples/basics.v](../theories/examples/basics.v)
   - Subprotocol: [theories/examples/list_rev.v](../theories/examples/list_rev.v)
 
