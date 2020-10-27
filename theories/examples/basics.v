@@ -88,8 +88,8 @@ Definition prog_swap : val := λ: <>,
   let: "c" := start_chan (λ: "c'",
     send "c'" #20;;
     let: "y" := recv "c'" in
-    send "c'" "y") in
-  send "c" #22;;
+    send "c'" ("y" + #2)) in
+  send "c" #20;;
   recv "c" + recv "c".
 
 Definition prog_swap_twice : val := λ: <>,
@@ -189,7 +189,7 @@ Fixpoint prot_lock (n : nat) : iProto Σ :=
 Definition prot_swap : iProto Σ :=
   (<! (x : Z)> MSG #x;
    <?> MSG #20;
-   <?> MSG #x; END)%proto.
+   <?> MSG #(x + 2); END)%proto.
 
 Definition prot_swap_twice : iProto Σ :=
   (<! (x : Z)> MSG #x;
