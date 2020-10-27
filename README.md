@@ -57,6 +57,8 @@ Dependent Separation Protocols:
 | Append | `prot_1 · prot_2`             | `prot_1 <++> prot_2`                  |
 | Dual   | An overlined protocol         | No notation                           |
 
+This notation is additionally used for the LMCS submission.
+
 Semantic Session Types:
 
 |          | CPP21 submission              | Coq mechanization                     |
@@ -175,4 +177,6 @@ the values of the list made explicit.
 ## Paper-specific remarks
 
 For remarks about the CPP21 submission, see
+[papers/POPL20.md](papers/POPL20.md).
 [papers/CPP21.md](papers/CPP21.md).
+[papers/LMCS.md](papers/LMCS.md).
