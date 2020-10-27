@@ -10,7 +10,7 @@ Introduction: [theories/examples/basics.v](../theories/examples/basics.v)
 Tour of Actris
   - Basics: [theories/examples/sort.v](../theories/examples/sort.v)
   - Higher-Order Functions: [theories/examples/sort.v](../theories/examples/sort.v)
-  - Branching: [theories/examples/sort_br_del.v](../theories/examples/sort_br_del.v)
+  - Choice: [theories/examples/sort_br_del.v](../theories/examples/sort_br_del.v)
   - Recursion: [theories/examples/sort_br_del.v](../theories/examples/sort_br_del.v)
   - Delegation: [theories/examples/sort_br_del.v](../theories/examples/sort_br_del.v)
   - Dependent: [theories/examples/sort_fg.v](../theories/examples/sort_fg.v)
