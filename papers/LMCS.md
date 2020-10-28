@@ -1,6 +1,6 @@
 ## Examples
 
-Differences from the original POPL20 paper alon with examples thereof are covered in
+Differences from the original POPL20 paper along with examples thereof are covered in
 [papers/POPL20.md](POPL20.md).
 
 The following list gives a mapping between the additional examples in the
