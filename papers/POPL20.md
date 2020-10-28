@@ -1,5 +1,5 @@
 The state of the repository at the time of publication can be found at
-[https://gitlab.mpi-sws.org/iris/actris/-/tree/POPL20](https://gitlab.mpi-sws.org/iris/actris/-/tree/POPL20)
+[https://gitlab.mpi-sws.org/iris/actris/-/tree/popl20](https://gitlab.mpi-sws.org/iris/actris/-/tree/popl20)
 
 ## Examples
 
