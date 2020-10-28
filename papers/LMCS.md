@@ -1,3 +1,6 @@
+The state of the repository at the time of submission can be found at
+[https://gitlab.mpi-sws.org/iris/actris/-/tree/lmcs](https://gitlab.mpi-sws.org/iris/actris/-/tree/lmcs)
+
 ## Examples
 
 Differences from the original POPL20 paper along with examples thereof are covered in
