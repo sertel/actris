@@ -193,7 +193,7 @@ Qed.
 Lemma lapp_spec l1 l2 xs1 xs2 :
   {{{ llist I l1 xs1 ∗ llist I l2 xs2 }}}
     lapp #l1 #l2
-  {{{ RET #(); llist I l1 (xs1 ++ xs2) ∗ l2 ↦ - }}}.
+  {{{ RET #(); llist I l1 (xs1 ++ xs2) ∗ (∃ v, l2 ↦ v) }}}.
 Proof.
   iIntros (Φ) "[Hll1 Hll2] HΦ".
   iInduction xs1 as [|x1 xs1] "IH" forall (l1 Φ); simpl; wp_rec; wp_pures.
@@ -209,7 +209,7 @@ Qed.
 Lemma lprep_spec l1 l2 xs1 xs2 :
   {{{ llist I l1 xs2 ∗ llist I l2 xs1 }}}
     lprep #l1 #l2
-  {{{ RET #(); llist I l1 (xs1 ++ xs2) ∗ l2 ↦ - }}}.
+  {{{ RET #(); llist I l1 (xs1 ++ xs2) ∗ (∃ v, l2 ↦ v) }}}.
 Proof.
   iIntros (Φ) "[Hll1 Hll2] HΦ". wp_lam.
   wp_apply (lapp_spec with "[$Hll2 $Hll1]"); iIntros "[Hll2 Hl1]".
