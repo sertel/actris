@@ -269,7 +269,7 @@ Section sort_fg.
     - wp_recv (y v) as (Htl) "HIx".
       wp_apply ("IH" with "[] Hl Hc"); first by auto using Sorted_snoc.
       iIntros (ys). rewrite -!assoc_L. iDestruct 1 as (??) "[Hl Hc]".
-      wp_apply (lcons_spec with "[$Hl $HIx]"); iIntros "Hl"; wp_pures.
+      wp_apply (lcons_spec with "[$Hl $HIx]"); iIntros "Hl".
       iApply ("HΦ" with "[$Hl $Hc]"); simpl; eauto.
     - iApply ("HΦ" $! []); rewrite /= right_id_L; by iFrame.
   Qed.

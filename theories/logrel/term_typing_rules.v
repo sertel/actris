@@ -222,7 +222,7 @@ Section term_typing_rules.
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
     wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[_ HΓ2]". wp_pures.
-    wp_apply (wp_wand with "(He2 HΓ2)"); iIntros (w) "[HB HΓ3]". wp_pures.
+    wp_apply (wp_wand with "(He2 HΓ2)"); iIntros (w) "[HB HΓ3]".
     iFrame "HB HΓ3".
   Qed.
 

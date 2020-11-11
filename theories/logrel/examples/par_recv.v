@@ -96,7 +96,7 @@ Section double.
         eauto.
       + iDestruct "Hc" as "[Hcredit1 Hc]".
         by iDestruct (own_valid_2 with "Hcredit1 Hcredit2") as %[].
-    - iIntros (?? [[x1 ->] [x2 ->]]) "!>". wp_pures. by iApply "HΦ".
+    - iIntros (?? [[x1 ->] [x2 ->]]) "!>". by iApply "HΦ".
   Qed.
 
   Lemma prog_typed :

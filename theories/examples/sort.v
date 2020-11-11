@@ -147,6 +147,6 @@ Section sort.
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
     wp_recv (ys) as "(Hsorted & Hperm & Hl)".
-    wp_pures. iApply "HΦ"; iFrame.
+    iApply "HΦ"; iFrame.
   Qed.
 End sort.

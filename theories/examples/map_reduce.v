@@ -302,7 +302,7 @@ Section mapper.
     wp_apply (par_map_reduce_reduce_spec _ _ [] (Some (i, y, w)) []
       with "[$Hl $Hcsort $Hcred $HIB]"); simpl; auto; [lia|set_solver|].
     iIntros (zs). rewrite /= gmultiset_elements_empty !right_id.
-    iDestruct 1 as (Hzs) "Hk". wp_pures.
+    iDestruct 1 as (Hzs) "Hk".
     iApply ("HΦ" with "[$Hk]"). by rewrite Hzs Hiys.
   Qed.
 End mapper.
