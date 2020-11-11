@@ -283,7 +283,10 @@ Section mapper.
     iIntros (??) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
     wp_apply (start_chan_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
-    { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
+    { wp_pures. wp_apply (par_map_service_spec with "[Hmap] [Hcmap]"); auto.
+iClear "Hred".
+Set Printing All.
+ }
     wp_apply (start_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
     { wp_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.

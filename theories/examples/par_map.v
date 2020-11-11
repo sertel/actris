@@ -208,6 +208,6 @@ Section map.
     wp_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.
     iIntros (ys) "(?&Hl&Hk)". rewrite /= gmultiset_elements_empty !right_id_L.
     wp_apply (lapp_spec IB _ _ [] with "[$Hl $Hk]"); iIntros "[Hk _] /=".
-    wp_pures. iApply "HΦ"; auto.
+    iApply "HΦ"; auto.
   Qed.
 End map.
