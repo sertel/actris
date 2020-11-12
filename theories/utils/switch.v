@@ -36,7 +36,7 @@ Proof.
 Qed.
 
 Lemma lookup_map_string_seq_None {A} y j z (vs : list A) :
-  (∀ i, y +:+ pretty i ≠ z) →
+  (∀ i : nat, y +:+ pretty i ≠ z) →
   map_string_seq y j vs !! z = None.
 Proof.
   intros. revert j. induction vs as [|v vs IH]=> j //=.
