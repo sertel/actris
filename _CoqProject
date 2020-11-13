@@ -26,6 +26,7 @@ theories/examples/swap_mapper.v
 theories/examples/subprotocols.v
 theories/examples/list_rev.v
 theories/examples/rpc.v
+theories/examples/ring_leader_election.v
 theories/logrel/model.v
 theories/logrel/telescopes.v
 theories/logrel/subtyping.v
