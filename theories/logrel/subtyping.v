@@ -34,7 +34,7 @@ Section subtyping.
   Global Instance lty_bi_le_plain {k} (M1 M2 : lty Σ k) : Plain (M1 <:> M2).
   Proof. rewrite /lty_bi_le /=. apply _. Qed.
 
-  Global Instance lty_le_ne : NonExpansive2 (@lty_le Σ k).
+  Global Instance lty_le_ne k : NonExpansive2 (@lty_le Σ k).
   Proof. destruct k; solve_proper. Qed.
   Global Instance lty_le_proper {k} : Proper ((≡) ==> (≡) ==> (≡)) (@lty_le Σ k).
   Proof. apply (ne_proper_2 _). Qed.

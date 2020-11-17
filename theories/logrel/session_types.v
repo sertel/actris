@@ -83,7 +83,7 @@ Hint Mode LtyMsgTele ! - ! - - : typeclass_instances.
 Section session_types.
   Context {Σ : gFunctors}.
 
-  Global Instance lty_msg_exist_ne k :
+  Global Instance lty_msg_exist_ne k n :
     Proper (pointwise_relation _ (dist n) ==> (dist n)) (@lty_msg_exist Σ k).
   Proof. solve_proper. Qed.
   Global Instance lty_msg_exist_proper k :
@@ -107,11 +107,11 @@ Section session_types.
   Proof. solve_proper. Qed.
   Global Instance lty_choice_proper a : Proper ((≡) ==> (≡)) (@lty_choice Σ a).
   Proof. apply ne_proper, _. Qed.
-  Global Instance lty_choice_contractive a :
+  Global Instance lty_choice_contractive a n :
     Proper (map_relation (dist_later n) (λ _, False) (λ _, False) ==> dist n)
            (@lty_choice Σ a).
   Proof.
-    intros n Ss Ts Heq. rewrite /lty_choice.
+    intros Ss Ts Heq. rewrite /lty_choice.
     do 2 f_equiv. f_equiv => i.
     rewrite !lookup_total_alt.
     specialize (Heq i).
