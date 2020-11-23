@@ -66,9 +66,7 @@ Section exponentials.
     apply (uPred.internal_eq_soundness (M:=iResUR Σ)).
     iLöb as "IH" forall (A).
     iEval (rewrite why_not_unfold of_course_unfold).
-    rewrite iProto_dual_choice.
-    rewrite iProto_dual_end.
-    rewrite /server_aux.
+    rewrite iProto_dual_choice iProto_dual_end.
     iApply iProto_choice_equiv; repeat iSplit; try done.
     rewrite iProto_dual_choice.
     iApply iProto_choice_equiv; repeat iSplit; try done.
@@ -104,9 +102,7 @@ Section exponentials.
     apply (uPred.internal_eq_soundness (M:=iResUR Σ)).
     iLöb as "IH" forall (A).
     iEval (rewrite client_unfold server_unfold).
-    rewrite iProto_dual_choice.
-    rewrite iProto_dual_end.
-    rewrite /server_aux.
+    rewrite iProto_dual_choice iProto_dual_end.
     iApply iProto_choice_equiv; repeat iSplit; try done.
     rewrite iProto_dual_choice.
     iApply iProto_choice_equiv; repeat iSplit; try done.
