@@ -16,6 +16,7 @@ theories/channel/proto_model.v
 theories/channel/proto.v
 theories/channel/channel.v
 theories/channel/proofmode.v
+theories/channel/exponentials.v
 theories/examples/basics.v
 theories/examples/equivalence.v
 theories/examples/sort.v
