@@ -356,6 +356,17 @@ Section proto.
   Proof. by rewrite internal_eq_sym iProto_message_end_equivI. Qed.
 
   (** ** Non-expansiveness of operators *)
+  Global Instance iMsg_car_proper :
+    Proper (iMsg_equiv ==> (=) ==> (≡) ==> (≡)) (iMsg_car (Σ:=Σ) (V:=V)).
+  Proof.
+    iIntros (m1 m2 meq v1 v2 veq p1 p2 peq). rewrite meq. by do 2 f_equiv=> //.
+  Qed.
+  Global Instance iMsg_car_ne :
+    Proper (iMsg_dist n ==> (=) ==> (dist n) ==> (dist n)) (iMsg_car (Σ:=Σ) (V:=V)).
+  Proof.
+    iIntros (n m1 m2 meq v1 v2 veq p1 p2 peq). rewrite meq. by do 2 f_equiv=> //.
+  Qed.
+
   Global Instance iMsg_contractive v n :
     Proper (dist n ==> dist_later n ==> dist n) (iMsg_base (Σ:=Σ) (V:=V) v).
   Proof. rewrite iMsg_base_eq=> P1 P2 HP p1 p2 Hp w q /=. solve_contractive. Qed.
