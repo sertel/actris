@@ -60,6 +60,7 @@ Proof.
   iInduction vs as [|v vs] "IH" forall (i ws); csimpl.
   { rewrite left_id_L.
     iApply (wp_wand with "H"); iIntros (v) "H". by iApply wp_value. }
+  pose proof @pure_exec_fill.
   wp_pures. iApply wp_bind.
   iEval (rewrite -subst_map_insert insert_union_singleton_l).
   iApply "IH". rewrite assoc_L insert_union_singleton_r //

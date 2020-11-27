@@ -9,5 +9,5 @@ build: [make "-j%{jobs}%"]
 install: [make "install"]
 remove: [ "sh" "-c" "rm -rf '%{lib}%/coq/user-contrib/actris" ]
 depends: [
-  "coq-iris-heap-lang" { (= "dev.2020-11-11.4.e34f8ac7") | (= "dev") }
+  "coq-iris-heap-lang" { (= "dev.2020-11-26.2.03b317f4") | (= "dev") }
 ]
