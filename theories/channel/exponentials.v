@@ -163,7 +163,7 @@ Definition client_duplicate : val :=
   λ: "c",
     send "c" #false;; send "c" #false;;
     let: "c2" := new_chan #() in
-    send "c" (Snd "c2").
+    send "c" (Snd "c2");; (Fst "c2").
 
 Section with_Σ.
   Context `{heapG Σ, chanG Σ, spawnG Σ}.
@@ -206,14 +206,14 @@ Section with_Σ.
   Lemma client_spec_duplicate c prot :
     ⊢ {{{ c ↣ <|¿|> prot }}}
         client_duplicate c
-      {{{ c', RET #(); c ↣ (<|¿|> prot) ∗ c' ↣ (<|¿|> prot) }}}.
+      {{{ c', RET c'; c ↣ (<|¿|> prot) ∗ c' ↣ (<|¿|> prot) }}}.
   Proof.
     iIntros "!>" (Φ) "Hc HΦ".
     rewrite {1}iProto_client_unfold.
     wp_lam. wp_select. wp_select.
     wp_apply (new_chan_spec (<|¿|> prot)%proto); [ done | ].
     iIntros (c21 c22) "[Hc21 Hc22]".
-    wp_send with "[Hc22//]".
+    wp_send with "[Hc22//]". wp_pures.
     iApply "HΦ".
     iFrame "Hc Hc21".
   Qed.
