@@ -157,6 +157,22 @@ Section channel.
     Proper ((≡) ==> (≡) ==> (≡) ==> (≡) ==> (≡)) (@iProto_choice Σ a).
   Proof. solve_proper. Qed.
 
+  Lemma iProto_choice_equiv a1 a2 (P11 P12 P21 P22 : iProp Σ)
+        (p11 p12 p21 p22 : iProto Σ) :
+    ⌜a1 = a2⌝ -∗ ((P11 ≡ P12):iProp Σ) -∗ (P21 ≡ P22) -∗
+    ▷ (p11 ≡ p12) -∗ ▷ (p21 ≡ p22) -∗
+    iProto_choice a1 P11 P21 p11 p21 ≡ iProto_choice a2 P12 P22 p12 p22.
+  Proof.
+    iIntros (->) "#HP1 #HP2 #Hp1 #Hp2".
+    rewrite /iProto_choice. iApply iProto_message_equiv; [ eauto | | ].
+    - iIntros "!>" (b) "H". iExists b. iSplit; [ done | ].
+      destruct b;
+        [ iRewrite -"HP1"; iFrame "H Hp1" | iRewrite -"HP2"; iFrame "H Hp2" ].
+    - iIntros "!>" (b) "H". iExists b. iSplit; [ done | ].
+      destruct b;
+        [ iRewrite "HP1"; iFrame "H Hp1" | iRewrite "HP2"; iFrame "H Hp2" ].
+  Qed.
+
   Lemma iProto_dual_choice a P1 P2 p1 p2 :
     iProto_dual (iProto_choice a P1 P2 p1 p2)
     ≡ iProto_choice (action_dual a) P1 P2 (iProto_dual p1) (iProto_dual p2).
@@ -261,10 +277,6 @@ Section channel.
     {{{ w, RET w; (⌜w = NONEV⌝ ∗ c ↣ <?.. x> MSG v x {{ P x }}; p x) ∨
                   (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
-    assert (∀ w lp (m : TT → iMsg Σ),
-      iMsg_car (∃.. x, m x)%msg w lp ⊣⊢ (∃.. x, iMsg_car (m x) w lp)) as iMsg_texist.
-    { intros w lp m. clear v P p. rewrite /iMsg_texist iMsg_exist_eq.
-      induction TT as [|T TT IH]; simpl; [done|]. f_equiv=> x. apply IH. }
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
@@ -276,7 +288,8 @@ Section channel.
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       iMod (iProto_recv_l with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
-      rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
+      rewrite iMsg_base_eq.
+      iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
@@ -288,7 +301,8 @@ Section channel.
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       iMod (iProto_recv_r with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
-      rewrite iMsg_base_eq. iDestruct (iMsg_texist with "Hm") as (x <-) "[Hp HP]".
+      rewrite iMsg_base_eq.
+      iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk".

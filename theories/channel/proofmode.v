@@ -23,11 +23,6 @@ Ltac solve_proto_contractive :=
     first [f_contractive; simpl in * | f_equiv | f_dist_le]).
 
 (** * Normalization of protocols *)
-Class MsgTele {Σ} {TT : tele} (m : iMsg Σ)
-    (tv : TT -t> val) (tP : TT -t> iProp Σ) (tp : TT -t> iProto Σ) :=
-  msg_tele : m ≡ (∃.. x, MSG tele_app tv x {{ tele_app tP x }}; tele_app tp x)%msg.
-Hint Mode MsgTele ! - ! - - - : typeclass_instances.
-
 Class ActionDualIf (d : bool) (a1 a2 : action) :=
   dual_action_if : a2 = if d then action_dual a1 else a1.
 Hint Mode ActionDualIf ! ! - : typeclass_instances.
@@ -60,14 +55,6 @@ Section classes.
   Implicit Types p : iProto Σ.
   Implicit Types m : iMsg Σ.
   Implicit Types P : iProp Σ.
-
-  Global Instance msg_tele_base v P p :
-    MsgTele (TT:=TeleO) (MSG v {{ P }}; p) v P p.
-  Proof. done. Qed.
-  Global Instance msg_tele_exist {A} {TT : A → tele} (m : A → iMsg Σ) tv tP tp :
-    (∀ x, MsgTele (TT:=TT x) (m x) (tv x) (tP x) (tp x)) →
-    MsgTele (TT:=TeleS TT) (∃ x, m x) tv tP tp.
-  Proof. intros Hm. rewrite /MsgTele /=. f_equiv=> x. apply Hm. Qed.
 
   Lemma proto_unfold_eq p1 p2 : p1 ≡ p2 → ProtoUnfold p1 p2.
   Proof. rewrite /ProtoNormalize=> Hp d pas q. by rewrite Hp. Qed.
