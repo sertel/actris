@@ -137,6 +137,13 @@ Notation "'∃..' x .. y , m" :=
   (at level 200, x binder, y binder, right associativity,
    format "∃..  x  ..  y ,  m") : msg_scope.
 
+Lemma iMsg_texist_exist {Σ V} {TT : tele} w lp (m : TT → iMsg Σ V) :
+  iMsg_car (∃.. x, m x)%msg w lp ⊣⊢ (∃.. x, iMsg_car (m x) w lp).
+Proof.
+  rewrite /iMsg_texist iMsg_exist_eq.
+  induction TT as [|T TT IH]; simpl; [done|]. f_equiv=> x. apply IH.
+Qed.
+
 (** * Operators *)
 Definition iProto_end_def {Σ V} : iProto Σ V := proto_end.
 Definition iProto_end_aux : seal (@iProto_end_def). by eexists. Qed.
@@ -180,6 +187,11 @@ Notation "<? x1 .. xn > m" := (<?> ∃ x1, .. (∃ xn, m) ..)
 Notation "<?.. x1 .. xn > m" := (<?> ∃.. x1, .. (∃.. xn, m) ..)
   (at level 200, x1 closed binder, xn closed binder, m at level 200,
    format "<?..  x1  ..  xn >  m") : proto_scope.
+
+Class MsgTele {Σ V} {TT : tele} (m : iMsg Σ V)
+    (tv : TT -t> V) (tP : TT -t> iProp Σ) (tp : TT -t> iProto Σ V) :=
+  msg_tele : m ≡ (∃.. x, MSG tele_app tv x {{ tele_app tP x }}; tele_app tp x)%msg.
+Hint Mode MsgTele ! ! - ! - - - : typeclass_instances.
 
 (** * Operations *)
 Program Definition iMsg_map {Σ V}
@@ -348,6 +360,7 @@ Section proto.
     (<a1> m1) ≡ (<a2> m2) ⊣⊢@{SPROP} ⌜ a1 = a2 ⌝ ∧
       (∀ v lp, iMsg_car m1 v lp ≡ iMsg_car m2 v lp).
   Proof. rewrite iProto_message_eq. apply proto_message_equivI. Qed.
+
   Lemma iProto_message_end_equivI `{!BiInternalEq SPROP} a m :
     (<a> m) ≡ END ⊢@{SPROP} False.
   Proof. rewrite iProto_message_eq iProto_end_eq. apply proto_message_end_equivI. Qed.
@@ -385,12 +398,60 @@ Section proto.
     Proper (pointwise_relation _ (≡) ==> (≡)) (@iMsg_exist Σ V A).
   Proof. rewrite iMsg_exist_eq=> m1 m2 Hm v p /=. f_equiv=> x. apply Hm. Qed.
 
+  Global Instance msg_tele_base (v:V) (P : iProp Σ) (p : iProto Σ V) :
+    MsgTele (TT:=TeleO) (MSG v {{ P }}; p) v P p.
+  Proof. done. Qed.
+  Global Instance msg_tele_exist {A} {TT : A → tele} (m : A → iMsg Σ V) tv tP tp :
+  (∀ x, MsgTele (TT:=TT x) (m x) (tv x) (tP x) (tp x)) →
+  MsgTele (TT:=TeleS TT) (∃ x, m x) tv tP tp.
+  Proof. intros Hm. rewrite /MsgTele /=. f_equiv=> x. apply Hm. Qed.
+
   Global Instance iProto_message_ne a :
     NonExpansive (iProto_message (Σ:=Σ) (V:=V) a).
   Proof. rewrite iProto_message_eq. solve_proper. Qed.
   Global Instance iProto_message_proper a :
     Proper ((≡) ==> (≡)) (iProto_message (Σ:=Σ) (V:=V) a).
   Proof. apply (ne_proper _). Qed.
+
+  Lemma iProto_message_equiv {TT1 TT2 : tele} a1 a2
+        (m1 m2 : iMsg Σ V)
+        (v1 : TT1 -t> V) (v2 : TT2 -t> V)
+        (P1 : TT1 -t> iProp Σ) (P2 : TT2 -t> iProp Σ)
+        (prot1 : TT1 -t> iProto Σ V) (prot2 : TT2 -t> iProto Σ V) :
+    MsgTele m1 v1 P1 prot1 →
+    MsgTele m2 v2 P2 prot2 →
+    ⌜ a1 = a2 ⌝ -∗
+    (■ ∀.. (xs1 : TT1), tele_app P1 xs1 -∗
+       ∃.. (xs2 : TT2), ⌜tele_app v1 xs1 = tele_app v2 xs2⌝ ∗
+                        ▷ (tele_app prot1 xs1 ≡ tele_app prot2 xs2) ∗
+                        tele_app P2 xs2) -∗
+    (■ ∀.. (xs2 : TT2), tele_app P2 xs2 -∗
+       ∃.. (xs1 : TT1), ⌜tele_app v1 xs1 = tele_app v2 xs2⌝ ∗
+                        ▷ (tele_app prot1 xs1 ≡ tele_app prot2 xs2) ∗
+                        tele_app P1 xs1) -∗
+      (<a1> m1) ≡ (<a2> m2).
+  Proof.
+    iIntros (Hm1 Hm2 Heq) "#Heq1 #Heq2".
+    unfold MsgTele in Hm1. rewrite Hm1. clear Hm1.
+    unfold MsgTele in Hm2. rewrite Hm2. clear Hm2.
+    rewrite iProto_message_eq proto_message_equivI.
+    iSplit; [ done | ].
+    iIntros (v p').
+    do 2 rewrite iMsg_texist_exist.
+    rewrite iMsg_base_eq /=.
+    iApply prop_ext.
+    iIntros "!>". iSplit.
+    - iDestruct 1 as (xs1 Hveq1) "[Hrec1 HP1]".
+      iDestruct ("Heq1" with "HP1") as (xs2 Hveq2) "[Hrec2 HP2]".
+      iExists xs2. rewrite -Hveq1 Hveq2.
+      iSplitR; [ done | ]. iSplitR "HP2"; [ | done ].
+      iRewrite -"Hrec1". iApply later_equivI. iIntros "!>". by iRewrite "Hrec2".
+    - iDestruct 1 as (xs2 Hveq2) "[Hrec2 HP2]".
+      iDestruct ("Heq2" with "HP2") as (xs1 Hveq1) "[Hrec1 HP1]".
+      iExists xs1. rewrite -Hveq2 Hveq1.
+      iSplitR; [ done | ]. iSplitR "HP1"; [ | done ].
+      iRewrite -"Hrec2". iApply later_equivI. iIntros "!>". by iRewrite "Hrec1".
+  Qed.
 
   (** Helpers *)
   Lemma iMsg_map_base f v P p :
