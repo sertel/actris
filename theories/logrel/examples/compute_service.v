@@ -25,7 +25,7 @@ Section compute_example.
   Context `{heapG Σ, chanG Σ, spawnG Σ}.
 
   Definition compute_type_service_aux (rec : lsty Σ) : lsty Σ :=
-    lty_branch $ <[cont := (<?? A> TY () ⊸ A; <!!> TY A ; rec)%lty]> $
+    lty_branch $ <[cont := (<?? X> TY () ⊸ X; <!!> TY X ; rec)%lty]> $
                  <[stop := END%lty]> $ ∅.
   Instance mapper_type_service_contractive :
     Contractive (compute_type_service_aux).
@@ -52,10 +52,8 @@ Section compute_example.
       iApply (ltyped_lam [CtxItem "go" _]).
       iApply ltyped_post_nil.
       iApply ltyped_recv_texist; [ done | apply _ | ].
-      iIntros (Ys).
-      pose proof (ltys_S_inv Ys) as [A [Ys' HYs]].
-      pose proof (ltys_O_inv Ys') as HYs'.
-      rewrite HYs HYs' /=.
+      simpl.
+      iIntros (X).
       iApply ltyped_seq.
       { iApply (ltyped_send _ [CtxItem "v" _; CtxItem "c" _; CtxItem "go" _]);
           [ done | ].

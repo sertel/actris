@@ -1,6 +1,7 @@
 (** This file defines kinded telescopes, which are used for representing binders
 in session types. *)
-From stdpp Require Import base tactics telescopes.
+From stdpp Require Import base tactics.
+From iris.proofmode Require Import tactics.
 From actris.logrel Require Import model.
 Set Default Proof Using "Type".
 
@@ -75,3 +76,51 @@ Proof.
   - by rewrite (ltys_O_inv K).
   - destruct (ltys_S_inv K) as [K' [Ks' ->]]; simpl. by rewrite IH.
 Qed.
+
+Definition ktforall {Σ} {kt : ktele Σ} (Ψ : ltys Σ kt -> iProp Σ) : iProp Σ :=
+  ktele_fold
+    (λ (k : kind) (b : lty Σ k → iProp Σ), ∀ x : lty Σ k, b x)%I
+    (λ x, x) (ktele_bind Ψ).
+Arguments ktforall {_ !_} _ /.
+Notation "'∀k..' x .. y , P" := (ktforall (λ x, .. (ktforall (λ y, P)) .. ))
+  (at level 200, x binder, y binder, right associativity,
+   format "∀k..  x  ..  y ,  P").
+
+Definition ktexist {Σ} {kt : ktele Σ} (Ψ : ltys Σ kt -> iProp Σ) : iProp Σ :=
+  ktele_fold (λ (k : kind) (b : lty Σ k → iProp Σ), ∃ x : lty Σ k, b x)%I (λ x, x) (ktele_bind Ψ).
+Arguments ktexist {_ !_} _ /.
+Notation "'∃k..' x .. y , P" := (ktexist (λ x, .. (ktexist (λ y, P)) .. ))
+  (at level 200, x binder, y binder, right associativity,
+   format "∃k..  x  ..  y ,  P").
+
+Lemma ktforall_forall {Σ} {kt : ktele Σ} (Ψ : ltys Σ kt → iProp Σ) :
+  ⊢ ktforall Ψ ∗-∗ (∀ x, Ψ x).
+Proof.
+  rewrite /ktforall. iInduction kt as [|X ft] "IH".
+  - simpl. iSplit.
+    + iIntros "H" (x). by rewrite (ltys_O_inv x).
+    + by iIntros "H".
+  - simpl. iSplit; iIntros "Hx" (x).
+    + destruct (ltys_S_inv x) as [y [pf ->]].
+      iRevert (pf). iApply "IH". eauto.
+    + iApply "IH". eauto.
+Qed.
+Lemma ktexist_exist {Σ} {kt : ktele Σ} (Ψ : ltys Σ kt → iProp Σ) :
+  ⊢ ktexist Ψ ∗-∗ (∃ x, Ψ x).
+Proof.
+  rewrite /ktexist. iInduction kt as [|X ft] "IH".
+  - simpl. iSplit.
+    + eauto.
+    + iDestruct 1 as (x) "H". by rewrite (ltys_O_inv x).
+  - simpl. iSplit; iDestruct 1 as (x) "Hx".
+    + iDestruct ("IH" with "Hx") as (y) "Hx". eauto.
+    + destruct (ltys_S_inv x) as [y [pf ->]].
+      iExists y. iApply "IH". eauto.
+Qed.
+
+(* Teach typeclass resolution how to make progress on these binders *)
+Typeclasses Opaque ktforall ktexist.
+Hint Extern 1 (ktforall _) =>
+  progress cbn [ktforall ktele_fold ktele_bind ktele_app] : typeclass_instances.
+Hint Extern 1 (ktexist _) =>
+  progress cbn [ktexist ktele_fold ktele_bind ktele_app] : typeclass_instances.

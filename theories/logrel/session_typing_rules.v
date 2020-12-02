@@ -47,17 +47,19 @@ Section session_typing_rules.
     iApply (iProto_le_trans with "IH"). iIntros (Xs). by iExists (LTysS _ _).
   Qed.
 
-  Lemma ltyped_recv_texist {kt} Γ1 Γ2 M x (xc : string) (e : expr)
+  Lemma ltyped_recv_texist {kt : ktele Σ} Γ1 Γ2 M x (xc : string) (e : expr)
       (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) (B : ltty Σ) :
     Γ1 !! xc = Some (chan (<??> M))%lty →
     LtyMsgTele M A S →
-    (∀ Ys,
+    (∀k.. Ys,
       ctx_cons x (ktele_app A Ys) (ctx_cons xc (chan (ktele_app S Ys)) Γ1) ⊨ e : B ⫤ Γ2) -∗
     Γ1 ⊨ (let: x := recv xc in e) : B ⫤
           ctx_filter_eq x (ctx_filter_ne xc Γ1) ++ ctx_filter_ne x Γ2.
   Proof.
     rewrite /LtyMsgTele.
-    iIntros (HΓxc%ctx_lookup_perm HM) "#He !>". iIntros (vs) "HΓ1 /=".
+    iIntros (HΓxc%ctx_lookup_perm HM) "Hetmp".
+    iDestruct (ktforall_forall with "Hetmp") as "#He".
+    iIntros "!>". iIntros (vs) "HΓ1 /=".
     rewrite {2}HΓxc /=.
     iDestruct (ctx_ltyped_cons with "HΓ1") as (c Hvs) "[Hc HΓ1]". rewrite Hvs.
     rewrite {2}(ctx_filter_eq_perm (ctx_filter_ne xc Γ1) x).

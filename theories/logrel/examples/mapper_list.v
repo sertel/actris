@@ -126,13 +126,10 @@ Section mapper_example.
     iApply ltyped_val_lam.
     iApply ltyped_post_nil.
     iApply ltyped_recv_texist; [ done | apply _ | ].
-    iIntros (Ys).
+    simpl.
+    iIntros (X Y).
     iApply ltyped_app; [ by iApply ltyped_var | ].
     iApply ltyped_app; [ by iApply ltyped_var | ].
-    pose proof (ltys_S_inv Ys) as [A [Ks HYs]].
-    pose proof (ltys_S_inv Ks) as [B [Ks' HKs]].
-    pose proof (ltys_O_inv Ks') as HKs'.
-    rewrite HYs HKs HKs' /=.
     iApply (ltyped_subsumption _ []);
       [ iApply ctx_le_nil | iApply lty_le_refl | iApply ctx_le_refl | ].
     iApply ltyped_mapper_aux_service.
