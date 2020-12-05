@@ -136,7 +136,7 @@ Section term_typing_rules.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
     iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 $]".
-    iIntros (v) "HA1". wp_pures.
+    iIntros "!>" (v) "HA1". wp_pures.
     iDestruct ("He" $! (binder_insert x v vs) with "[HA1 HΓ1]") as "He'".
     { by iApply (ctx_ltyped_insert' with "HA1"). }
     rewrite subst_map_binder_insert.
@@ -172,7 +172,7 @@ Section term_typing_rules.
       iApply (big_sepL_impl with "HΓ1"). iIntros "!>" (k [y B] _) "/=".
       iDestruct 1 as (v ?) "HB". iExists v. iSplit; [by auto|].
       by iDestruct (coreP_intro with "HB") as "{HB} #HB". }
-    iLöb as "IH".
+    iModIntro. iLöb as "IH".
     iIntros (v) "!> HA1". wp_pures. set (r := RecV f x _).
     iDestruct ("He" $! (binder_insert f r (binder_insert x v vs))
       with "[HΓ1 HA1]") as "He'".
@@ -245,7 +245,7 @@ Section term_typing_rules.
     iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A1) v1)%lty as "#HA1m"; [by iApply coreP_intro|].
-    iFrame "HA1". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA1". iApply ctx_ltyped_cons. iModIntro. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists v1, v2. eauto with iFrame.
   Qed.
 
@@ -257,7 +257,7 @@ Section term_typing_rules.
     iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (v1 v2 ->) "[HA1 HA2]". wp_pures.
     iAssert (ltty_car (copy- A2) v2)%lty as "#HA2m"; [by iApply coreP_intro|].
-    iFrame "HA2". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA2". iApply ctx_ltyped_cons. iModIntro. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists v1, v2. eauto with iFrame.
   Qed.
 
@@ -304,7 +304,7 @@ Section term_typing_rules.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=". wp_pures.
     iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 $]".
-    iIntros (M) "/=". wp_pures.
+    iIntros "!>" (M) "/=". wp_pures.
     iApply (wp_wand with "(He HΓ1)"). iIntros (v) "[$ _]".
   Qed.
 
@@ -369,7 +369,7 @@ Section term_typing_rules.
     iDestruct (ctx_ltyped_cons with "HΓ") as (v Hvs) "[HA HΓ]"; rewrite Hvs.
     iDestruct "HA" as (l w ->) "[? HA]". wp_load.
     iAssert (ltty_car (copy- A) w)%lty as "#HAm"; [by iApply coreP_intro|].
-    iFrame "HA". iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ".
+    iFrame "HA". iApply ctx_ltyped_cons. iModIntro. iExists _; iSplit; [done|]; iFrame "HΓ".
     iExists l, w. eauto with iFrame.
   Qed.
 
@@ -382,7 +382,7 @@ Section term_typing_rules.
     wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ'") as (vl Hvs) "[HA HΓ']"; rewrite Hvs.
-    iDestruct "HA" as (l w ->) "[? HA]". wp_store. iSplit; [done|].
+    iDestruct "HA" as (l w ->) "[? HA]". wp_store. iModIntro. iSplit; [done|].
     iApply ctx_ltyped_cons. iExists _; iSplit; [done|]; iFrame "HΓ'".
     iExists l, v. eauto with iFrame.
   Qed.

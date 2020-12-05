@@ -98,7 +98,7 @@ Section session_typing_rules.
     iIntros (HΓx%ctx_lookup_perm Hin); iIntros "!>" (vs) "HΓ /=".
     rewrite {1}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ") as (c Hvs) "[Hc HΓ]". rewrite Hvs.
-    rewrite /select. wp_send with "[]"; [by eauto|]. iSplit; [done|].
+    rewrite /select. wp_send with "[]"; [by eauto|]. iModIntro. iSplit; [done|].
     iDestruct (ctx_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ") as "HΓ' /=".
     by rewrite insert_id // lookup_total_alt Hin.
   Qed.
@@ -116,7 +116,7 @@ Section session_typing_rules.
     WP subst_map ws (switch_lams y i (S (length As)) e)
       {{ ltty_car (lty_arr_list (A :: As) B) }}.
   Proof.
-    iIntros "H". wp_pures. iIntros (v) "HA".
+    iIntros "H". wp_pures. iIntros "!>" (v) "HA".
     iDestruct ("H" with "HA") as "H".
     rewrite subst_map_insert.
     wp_apply "H".

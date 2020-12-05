@@ -125,7 +125,7 @@ Section rules.
     wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinner]".
     iDestruct "Hinner" as (v) "[Hl HA]".
     wp_load. iFrame "HA". iApply ctx_ltyped_cons.
-    iFrame "HΓ". iExists _; iSplit; [done|]. iExists γ, l, lk, v. auto with iFrame.
+    iFrame "HΓ". iModIntro. iExists _; iSplit; [done|]. iExists γ, l, lk, v. auto with iFrame.
   Qed.
 
   Lemma ltyped_mutex_release Γ Γ' (x : string) e A :

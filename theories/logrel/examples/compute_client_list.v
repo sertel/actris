@@ -187,7 +187,7 @@ Section compute_example.
         iExists n, false.
         rewrite lookup_total_insert -lsty_car_app lty_app_end_l lty_app_end_r.
         iFrame "Hf Hcounter Hc". }
-      iIntros "_". wp_pures. iApply "HΦ". iFrame "Hl Hlk Hsf". }
+      iIntros "_". wp_pures. iApply "HΦ". by iFrame "Hl Hlk". }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     wp_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".

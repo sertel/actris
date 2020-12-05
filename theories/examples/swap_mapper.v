@@ -221,7 +221,7 @@ Section with_Σ.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
     { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
-      iApply "HΦ". iFrame. }
+      iApply "HΦ". by iFrame. }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     wp_send with "[//]".
     wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".

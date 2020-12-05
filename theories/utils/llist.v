@@ -237,8 +237,8 @@ Proof.
   iIntros (Φ) "Hll HΦ".
   iInduction xs as [|x xs] "IH" forall (l n Φ); simpl; wp_rec; wp_pures.
   - destruct n as [|n]; simpl; wp_pures.
-    + wp_load. wp_alloc k. wp_store. iApply "HΦ"; iFrame.
-    + wp_load. wp_alloc k. iApply "HΦ"; iFrame.
+    + wp_load. wp_alloc k. wp_store. iApply "HΦ"; by iFrame.
+    + wp_load. wp_alloc k. iApply "HΦ"; by iFrame.
   - iDestruct "Hll" as (v l') "(HIx & Hl & Hll)". destruct n as [|n]; simpl; wp_pures.
     + wp_load. wp_alloc k. wp_store. iApply "HΦ"; eauto with iFrame.
     + wp_load; wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.

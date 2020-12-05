@@ -159,7 +159,7 @@ Section sort_fg.
         inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - wp_select with "[]".
       { by rewrite /= Hys Hxs Hys'. }
-      iApply "HΨ". iFrame.
+      iApply "HΨ". by iFrame.
   Qed.
 
   Lemma sort_service_fg_merge_spec cmp c p c1 c2 xs ys xs1 xs2 y1 w1 ys1 ys2 :
@@ -249,7 +249,7 @@ Section sort_fg.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
     { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
-      iApply "HΦ". rewrite right_id_L. iFrame. }
+      iApply "HΦ". rewrite right_id_L. by iFrame. }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl". wp_select.
     wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
     wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). by rewrite -assoc_L.

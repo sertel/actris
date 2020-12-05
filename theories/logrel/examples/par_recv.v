@@ -163,7 +163,7 @@ Section double_fc.
           as "[Hγ1a Hγ1b]"; [by apply cmra_update_exclusive|].
         wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hc]").
         { iRight. iLeft. iExists true, v. iFrame. }
-        iIntros "_". wp_pures. iLeft. iFrame.
+        iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ2 Hc]".
         { by iDestruct (own_valid_2 with "Hγ1 Hγ2") as %[]. }
         wp_recv (v') as "HP". wp_pures.
@@ -173,7 +173,7 @@ Section double_fc.
         iDestruct "Hγ2" as "[Hγ2a Hγ2b]".
         wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
         { do 2 iRight. iExists v', v. iFrame. }
-        iIntros "_". wp_pures. iRight. iExists v. iFrame.
+        iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "[Hγ1' _]".
         by iDestruct (own_valid_2 with "Hγ1 Hγ1'") as %[].
     - (* Acquire lock *)
@@ -185,7 +185,7 @@ Section double_fc.
           as "[Hγ2a Hγ2b]"; [by apply cmra_update_exclusive|].
         wp_apply (release_spec with "[$Hlock $Hlocked Hγ2a Hc]").
         { iRight. iLeft. iExists false, v. iFrame. }
-        iIntros "_". wp_pures. iLeft. iFrame.
+        iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ1 Hc]"; last first.
         { by iDestruct (own_valid_2 with "Hγ1 Hγ2") as %[]. }
         wp_recv (v') as "HP". wp_pures.
@@ -195,7 +195,7 @@ Section double_fc.
         iDestruct "Hγ1" as "[Hγ1a Hγ1b]".
         wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
         { do 2 iRight. iExists v, v'. iFrame. }
-        iIntros "_". wp_pures. iRight. iExists v. iFrame.
+        iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "(_ & Hγ2' & _)".
         by iDestruct (own_valid_2 with "Hγ2 Hγ2'") as %[].
     - iIntros (v1 v2) "[[[H1 Hγ]|H1] [[H2 Hγ']|H2]] !>".

@@ -70,7 +70,7 @@ Section sort.
       iApply "HΨ". iFrame. by rewrite list_merge_nil_l. }
     wp_apply (lisnil_spec with "Hl2"); iIntros "Hl2".
     destruct xs2 as [|x2 xs2]; wp_pures.
-    { iApply "HΨ". iFrame. }
+    { iApply "HΨ". by iFrame. }
     wp_apply (lhead_spec_aux with "Hl1"); iIntros (v1 l1') "[HIx1 Hl1]".
     wp_apply (lhead_spec_aux with "Hl2"); iIntros (v2 l2') "[HIx2 Hl2]".
     wp_apply ("Hcmp" with "[$HIx1 $HIx2]"); iIntros "[HIx1 HIx2] /=".
@@ -147,6 +147,6 @@ Section sort.
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
     wp_recv (ys) as "(Hsorted & Hperm & Hl)".
-    iApply "HΦ"; iFrame.
+    iApply "HΦ"; by iFrame.
   Qed.
 End sort.

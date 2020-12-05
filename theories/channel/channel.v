@@ -284,27 +284,27 @@ Section channel.
     - wp_apply (lisnil_spec with "Hr"); iIntros "Hr".
       destruct vsr as [|vr vsr]; wp_pures.
       { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
+        iIntros "_". wp_pures. iModIntro. iApply "HΦ". iLeft. iSplit; [done|].
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       iMod (iProto_recv_l with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq.
       iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
+      iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
       by iRewrite "Hp".
     - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct vsl as [|vl vsl]; wp_pures.
       { wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-        iIntros "_". wp_pures. iApply "HΦ". iLeft. iSplit; [done|].
+        iIntros "_". wp_pures. iModIntro. iApply "HΦ". iLeft. iSplit; [done|].
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       iMod (iProto_recv_r with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq.
       iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
       wp_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
-      iIntros "_". wp_pures. iApply "HΦ". iRight. iExists x. iSplit; [done|].
+      iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk".
       by iRewrite "Hp".
   Qed.
@@ -317,7 +317,7 @@ Section channel.
     iIntros (Φ) "Hc HΦ". iLöb as "IH". wp_lam.
     wp_apply (try_recv_spec with "Hc"); iIntros (w) "[[-> H]|H]".
     { wp_pures. by iApply ("IH" with "[$]"). }
-    iDestruct "H" as (x ->) "[Hc HP]". wp_pures. iApply "HΦ". iFrame.
+    iDestruct "H" as (x ->) "[Hc HP]". wp_pures. iApply "HΦ". by iFrame.
   Qed.
 
   (** ** Specifications for choice *)

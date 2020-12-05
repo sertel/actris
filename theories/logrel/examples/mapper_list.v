@@ -245,7 +245,7 @@ Section mapper_example.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH".
     { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
-      iApply "HΦ". iFrame. }
+      iApply "HΦ". by iFrame. }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     rewrite /select.
     wp_send with "[]"; first by eauto.
@@ -268,7 +268,7 @@ Section mapper_example.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (n).
     { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
-      iApply "HΦ". iFrame. }
+      iApply "HΦ". by iFrame. }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     simpl.
     iDestruct (iProto_mapsto_le c with "Hc []") as "Hc".
