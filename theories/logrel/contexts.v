@@ -94,6 +94,14 @@ Section ctx.
       by rewrite -Permutation_middle -IH.
   Qed.
 
+  Lemma ctx_filter_eq_cons (Γ : ctx Σ) (x:string) A :
+    ctx_filter_eq x (CtxItem x A :: Γ) = CtxItem x A :: ctx_filter_eq x Γ.
+  Proof. rewrite /ctx_filter_eq filter_cons_True; naive_solver. Qed.
+  Lemma ctx_filter_eq_cons_ne Γ x y A :
+    x ≠ BNamed y →
+    ctx_filter_eq x (CtxItem y A :: Γ) = ctx_filter_eq x Γ.
+  Proof. intros. rewrite /ctx_filter_eq filter_cons_False; naive_solver. Qed.
+
   Lemma ctx_filter_ne_anon Γ : ctx_filter_ne BAnon Γ = Γ.
   Proof. induction Γ as [|[y A] Γ IH]; by f_equal/=. Qed.
 
@@ -109,6 +117,29 @@ Section ctx.
     ctx_filter_ne x (CtxItem y A :: Γ) = CtxItem y A :: ctx_filter_ne x Γ.
   Proof. intros. rewrite /ctx_filter_ne filter_cons_True; naive_solver. Qed.
 
+  Lemma ctx_filter_ne_idemp Γ x :
+    ctx_filter_ne x (ctx_filter_ne x Γ) = ctx_filter_ne x Γ.
+  Proof.
+    induction Γ as [|[y A] Γ HI].
+    - eauto.
+    - destruct (decide (x = y)) as [->|].
+      + rewrite ctx_filter_ne_cons. apply HI.
+      + rewrite ctx_filter_ne_cons_ne; [ | done ].
+        rewrite ctx_filter_ne_cons_ne; [ | done ].
+        f_equiv. apply HI.
+  Qed.
+
+  Lemma ctx_filter_eq_ne_nil (Γ : ctx Σ) x :
+    ctx_filter_eq x (ctx_filter_ne x Γ) = [].
+  Proof.
+    induction Γ as [|[y A] Γ HI].
+    - done.
+    - destruct (decide (x = y)) as [-> | ].
+      + rewrite ctx_filter_ne_cons. apply HI.
+      + rewrite ctx_filter_ne_cons_ne; [ | done ];
+          rewrite ctx_filter_eq_cons_ne; [ apply HI | done ].
+  Qed.
+
   Lemma ctx_lookup_perm Γ x A:
     Γ !! x = Some A →
     Γ ≡ₚ CtxItem x A :: ctx_filter_ne x Γ.
@@ -121,9 +152,15 @@ Section ctx.
     by rewrite {1}(ctx_filter_eq_perm Γ x') Hx.
   Qed.
 
+  Lemma ctx_insert_lookup Γ x A :
+    (CtxItem x A :: (ctx_filter_ne x Γ)) !! x = Some A.
+  Proof.
+    by rewrite /lookup /ctx_lookup ctx_filter_eq_cons ctx_filter_eq_ne_nil.
+  Qed.
+
   (** ctx typing *)
   Global Instance ctx_ltyped_Permutation vs :
-    Proper ((≡ₚ) ==> (⊣⊢)) (@ctx_ltyped Σ vs).	
+    Proper ((≡ₚ) ==> (⊣⊢)) (@ctx_ltyped Σ vs).
   Proof. intros Γ Γ' HΓ. by rewrite /ctx_ltyped HΓ. Qed.
   Global Instance ctx_ltyped_ne vs : NonExpansive (@ctx_ltyped Σ vs).
   Proof.
@@ -142,7 +179,7 @@ Section ctx.
     ctx_ltyped vs (Γ1 ++ Γ2) ⊣⊢ ctx_ltyped vs Γ1 ∗ ctx_ltyped vs Γ2.
   Proof. apply big_opL_app. Qed.
 
-  Lemma ctx_ltyped_cons Γ vs x A : 
+  Lemma ctx_ltyped_cons Γ vs x A :
     ctx_ltyped vs (CtxItem x A :: Γ) ⊣⊢ ∃ v,
     ⌜vs !! x = Some v⌝ ∗ ltty_car A v ∗ ctx_ltyped vs Γ.
   Proof.

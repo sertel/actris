@@ -5,7 +5,8 @@ From stdpp Require Import pretty.
 From iris.bi.lib Require Import core.
 From iris.heap_lang Require Import metatheory.
 From iris.heap_lang.lib Require Export assert.
-From actris.logrel Require Export term_typing_judgment term_types session_types.
+From actris.logrel Require Export term_typing_judgment term_types session_types
+     term_typing_rules.
 From actris.utils Require Import switch.
 From actris.channel Require Import proofmode.
 
@@ -36,7 +37,32 @@ Section session_typing_rules.
     wp_send with "[HA //]". iSplitR; [done|].
     iDestruct (ctx_ltyped_insert _ _ x (chan _) with "[Hc //] HΓ'") as "HΓ' /=".
     by rewrite  (insert_id vs).
- Qed.
+  Qed.
+
+  Lemma ltyped_send_texist {kt : ktele Σ} Γ Γ' (x : string) e M
+        (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) Xs :
+    LtyMsgTele M A S →
+    Γ' !! x = Some (chan (<!!> M))%lty →
+    (Γ ⊨ e : ktele_app A Xs ⫤ Γ') -∗
+    (Γ ⊨ send x e : () ⫤ ctx_cons x (chan (ktele_app S Xs)) Γ').
+  Proof.
+    rewrite /LtyMsgTele.
+    iIntros (HM HΓx%ctx_lookup_perm) "#He".
+    iDestruct (ltyped_subsumption with "[] [] [] He") as "He'";
+       [ iApply ctx_le_refl | iApply lty_le_refl | | ].
+    {
+      rewrite {2}HΓx.
+      iApply ctx_le_cons; [ | iApply ctx_le_refl ].
+      iApply lty_le_chan.
+      iEval (rewrite HM).
+      iApply (lty_le_texist_intro_l (kt:=kt)).
+    }
+    iDestruct (ltyped_send _ _ x _ (ktele_app A Xs) (ktele_app S Xs) with "He'")
+      as "He''".
+    { apply ctx_insert_lookup. }
+    rewrite /ctx_cons ctx_filter_ne_cons ctx_filter_ne_idemp.
+    iApply "He''".
+  Qed.
 
   Lemma iProto_le_lmsg_texist {kt : ktele Σ} (m : ltys Σ kt → iMsg Σ) :
     ⊢ (<?> (∃.. Xs : ltys Σ kt, m Xs)%lmsg) ⊑ (<? (Xs : ltys Σ kt)> m Xs).
