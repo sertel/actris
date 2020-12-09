@@ -25,7 +25,7 @@ From actris.logrel.examples Require Import compute_service.
 Definition send_all_par : val :=
   rec: "go" "c" "xs" "lk" "counter" :=
     if: lisnil "xs" then
-      acquire "lk";; select "c" #stop;; release "lk";; #()
+      acquire "lk";; select "c" #stop;; release "lk"
     else
       acquire "lk";;
         select "c" #cont;; send "c" (lpop "xs");;
@@ -187,7 +187,7 @@ Section compute_example.
         iExists n, false.
         rewrite lookup_total_insert -lsty_car_app lty_app_end_l lty_app_end_r.
         iFrame "Hf Hcounter Hc". }
-      iIntros "_". wp_pures. iApply "HΦ". by iFrame "Hl Hlk". }
+      iIntros "_". iApply "HΦ". by iFrame "Hl Hlk". }
     wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
     wp_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
