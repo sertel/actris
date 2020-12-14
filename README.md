@@ -1,9 +1,12 @@
 # ACTRIS COQ DEVELOPMENT
 
-This repository contains the Coq mechanization of the Actris framework,
-first presented in the paper
+This repository contains:
+- The Coq mechanization of the Actris framework, first presented in the paper
 [Actris: Session Type Based Reasoning in Separation Logic](https://iris-project.org/pdfs/2020-popl-actris-final.pdf)
 at POPL'20.
+- The logical relations model for a semantic session type system, first present in
+the paper
+[Machine-Checked Semantic Session Typing](https://iris-project.org/pdfs/2021-cpp-sessions-final.pdf)
 
 It has been built and tested with the following dependencies
 
@@ -36,9 +39,9 @@ The individual types contain the following:
   The relevant definitions and proof rules are as follows:
   + `iProto_mapsto`: endpoint ownership (notation `↣`).
   + `new_chan_spec`, `send_spec` and `recv_spec`: proof rule for `new_chan`,
-    `send`, and `recv`.
+	`send`, and `recv`.
   + `select_spec` and `branch_spec`: proof rule for the derived (binary)
-    `select` and `branch` operations.
+	`select` and `branch` operations.
 
 ## Notation
 
@@ -176,7 +179,8 @@ the values of the list made explicit.
 
 ## Paper-specific remarks
 
-For remarks about the CPP21 submission, see
-[papers/POPL20.md](papers/POPL20.md).
-[papers/CPP21.md](papers/CPP21.md).
-[papers/LMCS.md](papers/LMCS.md).
+For remarks about the paper-specific submissions, see
+
+- [papers/POPL20.md](papers/POPL20.md).
+- [papers/CPP21.md](papers/CPP21.md).
+- [papers/LMCS.md](papers/LMCS.md).
