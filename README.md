@@ -1,6 +1,6 @@
 # ACTRIS COQ DEVELOPMENT
 
-This directory contains the Coq mechanization of the Actris framework,
+This repository contains the Coq mechanization of the Actris framework,
 first presented in the paper
 [Actris: Session Type Based Reasoning in Separation Logic](https://iris-project.org/pdfs/2020-popl-actris-final.pdf)
 at POPL'20.
