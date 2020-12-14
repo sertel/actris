@@ -4,7 +4,7 @@ This repository contains:
 - The Coq mechanization of the Actris framework, first presented in the paper
 [Actris: Session Type Based Reasoning in Separation Logic](https://iris-project.org/pdfs/2020-popl-actris-final.pdf)
 at POPL'20
-- The logical relations model for a semantic session type system, first present in
+- The logical relations model for a semantic session type system, first presented in
 the paper
 [Machine-Checked Semantic Session Typing](https://iris-project.org/pdfs/2021-cpp-sessions-final.pdf)
 
