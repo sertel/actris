@@ -7,10 +7,9 @@ standard pattern using type classes to perform the normalization.
 In addition to the tactics for symbolic execution, this file defines the tactic
 [solve_proto_contractive], which can be used to automatically prove that
 recursive protocols are contractive. *)
-From iris.heap_lang Require Export proofmode notation.
-From iris.proofmode Require Export tactics.
-From actris Require Export channel.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
+From iris.heap_lang Require Export proofmode notation.
+From actris Require Export channel.
 
 (** * Tactics for proving contractiveness of protocols *)
 Ltac f_dist_le :=
@@ -280,7 +279,7 @@ Lemma tac_wp_send `{!chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K c v p m tv t
   MsgTele m tv tP tp →
   let Δ' := envs_delete false i false Δ in
   (∃.. x : TT,
-    match envs_split (if neg is true then Right else Left) js Δ' with
+    match envs_split (if neg is true then base.Right else base.Left) js Δ' with
     | Some (Δ1,Δ2) =>
        match envs_app false (Esnoc Enil i (c ↣ tele_app tp x)) Δ2 with
        | Some Δ2' =>
@@ -428,7 +427,7 @@ Lemma tac_wp_select `{!chanG Σ, !heapG Σ} Δ neg i js K
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}+{P2}> p2) →
   let Δ' := envs_delete false i false Δ in
-  match envs_split (if neg is true then Right else Left) js Δ' with
+  match envs_split (if neg is true then base.Right else base.Left) js Δ' with
   | Some (Δ1,Δ2) =>
      match envs_app false (Esnoc Enil i (c ↣ if b then p1 else p2)) Δ2 with
      | Some Δ2' =>
