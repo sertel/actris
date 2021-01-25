@@ -48,13 +48,13 @@ Module Export action.
   Canonical Structure actionO := leibnizO action.
 End action.
 
-Definition proto_auxO (V : Type) (PROP : ofeT) (A : ofeT) : ofeT :=
+Definition proto_auxO (V : Type) (PROP : ofe) (A : ofe) : ofe :=
   optionO (prodO actionO (V -d> laterO A -n> PROP)).
-Definition proto_auxOF (V : Type) (PROP : ofeT) : oFunctor :=
+Definition proto_auxOF (V : Type) (PROP : ofe) : oFunctor :=
   optionOF (actionO * (V -d> ▶ ∙ -n> PROP)).
 
 Definition proto_result (V : Type) := result_2 (proto_auxOF V).
-Definition proto (V : Type) (PROPn PROP : ofeT) `{!Cofe PROPn, !Cofe PROP} : ofeT :=
+Definition proto (V : Type) (PROPn PROP : ofe) `{!Cofe PROPn, !Cofe PROP} : ofe :=
   solution_2_car (proto_result V) PROPn _ PROP _.
 Instance proto_cofe {V} `{!Cofe PROPn, !Cofe PROP} : Cofe (proto V PROPn PROP).
 Proof. apply _. Qed.
@@ -130,7 +130,7 @@ Definition proto_elim {V} `{!Cofe PROPn, !Cofe PROP} {A}
     (p : proto V PROPn PROP) : A :=
   match proto_unfold p with None => x | Some (a, m) => f a m end.
 
-Lemma proto_elim_ne {V} `{!Cofe PROPn, !Cofe PROP} {A : ofeT}
+Lemma proto_elim_ne {V} `{!Cofe PROPn, !Cofe PROP} {A : ofe}
     (x : A) (f1 f2 : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A) p1 p2 n :
   (∀ a m1 m2, (∀ v, m1 v ≡{n}≡ m2 v) → f1 a m1 ≡{n}≡ f2 a m2) →
   p1 ≡{n}≡ p2 →
@@ -142,7 +142,7 @@ Proof.
   apply Hf. destruct n; by simpl.
 Qed.
 
-Lemma proto_elim_end {V} `{!Cofe PROPn, !Cofe PROP} {A : ofeT}
+Lemma proto_elim_end {V} `{!Cofe PROPn, !Cofe PROP} {A : ofe}
     (x : A) (f : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A) :
   proto_elim x f proto_end ≡ x.
 Proof.
@@ -150,7 +150,7 @@ Proof.
   pose proof (proto_unfold_fold (V:=V) (PROPn:=PROPn) (PROP:=PROP) None) as Hfold.
   by destruct (proto_unfold (proto_fold None)) as [[??]|] eqn:E; inversion Hfold.
 Qed.
-Lemma proto_elim_message {V} `{!Cofe PROPn, !Cofe PROP} {A : ofeT}
+Lemma proto_elim_message {V} `{!Cofe PROPn, !Cofe PROP} {A : ofe}
     (x : A) (f : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A)
     `{Hf : ∀ a, Proper (pointwise_relation _ (≡) ==> (≡)) (f a)} a m :
   proto_elim x f (proto_message a m) ≡ f a m.

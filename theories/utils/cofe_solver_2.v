@@ -2,8 +2,8 @@ From iris.algebra Require Import cofe_solver.
 
 (** Version of the cofe_solver for a parametrized functor. Generalize and move
 to Iris. *)
-Record solution_2 (F : ofeT → oFunctor) := Solution2 {
-  solution_2_car : ∀ An `{!Cofe An} A `{!Cofe A}, ofeT;
+Record solution_2 (F : ofe → oFunctor) := Solution2 {
+  solution_2_car : ∀ An `{!Cofe An} A `{!Cofe A}, ofe;
   solution_2_cofe `{!Cofe An, !Cofe A} : Cofe (solution_2_car An A);
   solution_2_iso `{!Cofe An, !Cofe A} :>
     ofe_iso (oFunctor_apply (F A) (solution_2_car A An)) (solution_2_car An A);
@@ -12,17 +12,17 @@ Arguments solution_2_car {F}.
 Existing Instance solution_2_cofe.
 
 Section cofe_solver_2.
-  Context (F : ofeT → oFunctor).
+  Context (F : ofe → oFunctor).
   Context `{Fcontr : !∀ T, oFunctorContractive (F T)}.
   Context `{Fcofe : !∀ `{!Cofe T, Cofe Bn, !Cofe B}, Cofe (oFunctor_car (F T) Bn B)}.
   Context `{Finh : !∀ `{!Cofe T, Cofe Bn, !Cofe B}, Inhabited (oFunctor_car (F T) Bn B)}.
   Notation map := (oFunctor_map (F _)).
 
-  Definition F_2 (An : ofeT) `{!Cofe An} (A : ofeT) `{!Cofe A} : oFunctor :=
+  Definition F_2 (An : ofe) `{!Cofe An} (A : ofe) `{!Cofe A} : oFunctor :=
     oFunctor_oFunctor_compose (F A) (F An).
 
   Definition T_result `{!Cofe An, !Cofe A} : solution (F_2 An A) := solver.result _.
-  Definition T (An : ofeT) `{!Cofe An} (A : ofeT) `{!Cofe A} : ofeT :=
+  Definition T (An : ofe) `{!Cofe An} (A : ofe) `{!Cofe A} : ofe :=
     T_result (An:=An) (A:=A).
   Instance T_cofe `{!Cofe An, !Cofe A} : Cofe (T An A) := _.
   Instance T_inhabited `{!Cofe An, !Cofe A} : Inhabited (T An A) :=

@@ -67,7 +67,7 @@ Section lty_ofe.
     - by apply (iso_ofe_mixin (ltty_car : _ → val -d> _)).
     - by apply (iso_ofe_mixin (lsty_car : _ → iProto _)).
   Qed.
-  Canonical Structure ltyO k := OfeT (lty Σ k) (lty_ofe_mixin k).
+  Canonical Structure ltyO k := Ofe (lty Σ k) (lty_ofe_mixin k).
 
   Global Instance lty_cofe k : Cofe (ltyO k).
   Proof.

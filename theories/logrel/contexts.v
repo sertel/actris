@@ -38,7 +38,7 @@ Section ctx_item_ofe.
     by apply (iso_ofe_mixin (A:=prodO (leibnizO string) (lttyO Σ))
       (λ xA, (ctx_item_name xA, ctx_item_type xA))).
   Qed.
-  Canonical Structure ctx_itemO := OfeT (ctx_item Σ) ctx_item_ofe_mixin.
+  Canonical Structure ctx_itemO := Ofe (ctx_item Σ) ctx_item_ofe_mixin.
   Global Instance ctx_item_type_ne : NonExpansive (@ctx_item_type Σ).
   Proof. by intros n ?? [??]. Qed.
   Global Instance ctx_item_type_proper : Proper ((≡) ==> (≡)) (@ctx_item_type Σ).

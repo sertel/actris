@@ -95,7 +95,7 @@ Section imsg_ofe.
 
   Lemma iMsg_ofe_mixin : OfeMixin (iMsg Σ V).
   Proof. by apply (iso_ofe_mixin (iMsg_car : _ → V -d> _ -n> _)). Qed.
-  Canonical Structure iMsgO := OfeT (iMsg Σ V) iMsg_ofe_mixin.
+  Canonical Structure iMsgO := Ofe (iMsg Σ V) iMsg_ofe_mixin.
 
   Global Instance iMsg_cofe : Cofe iMsgO.
   Proof. by apply (iso_cofe (IMsg : (V -d> _ -n> _) → _) iMsg_car). Qed.
