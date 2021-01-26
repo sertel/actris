@@ -244,16 +244,16 @@ Section mapper_example.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH".
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+    { wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply "HΦ". by iFrame. }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
     rewrite /select.
     wp_send with "[]"; first by eauto.
     rewrite lookup_total_insert.
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
     wp_send with "[HIx]".
     { iDestruct "HIx" as (->) "$HIx". }
-    wp_apply ("IH" with "Hl Hc").
+    wp_smart_apply ("IH" with "Hl Hc").
     done.
   Qed.
 
@@ -267,19 +267,19 @@ Section mapper_example.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (n).
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+    { wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply "HΦ". by iFrame. }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
     simpl.
     iDestruct (iProto_mapsto_le c with "Hc []") as "Hc".
     { iApply recv_mapper_type_rec_client_unfold_app. }
     rewrite /select.
     wp_send with "[]"; first by eauto.
     rewrite lookup_total_insert.
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
     wp_send with "[HIx]".
     { iDestruct "HIx" as (->) "$HIx". }
-    wp_apply ("IH" $!(S n) with "Hl Hc").
+    wp_smart_apply ("IH" $!(S n) with "Hl Hc").
     by rewrite Nat.add_succ_r.
   Qed.
 
@@ -312,9 +312,9 @@ Section mapper_example.
     wp_lam. wp_recv (w) as "Hw". wp_pures.
     rewrite Nat2Z.inj_succ.
     replace (Z.succ (Z.of_nat (n)) - 1)%Z with (Z.of_nat (n)) by lia.
-    wp_apply ("IH" with "Hl Hc").
+    wp_smart_apply ("IH" with "Hl Hc").
     iIntros (ys) "(% & Hl & Hc)".
-    wp_apply (lcons_spec with "[$Hl $Hw//]").
+    wp_smart_apply (lcons_spec with "[$Hl $Hw//]").
     iIntros "Hl". iApply "HΦ". iFrame.
     iPureIntro. by rewrite H1.
   Qed.
@@ -338,12 +338,12 @@ Section mapper_example.
     iDestruct (ctx_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
     iDestruct (list_type_loc with "Hl") as %[l ->].
-    wp_apply (llength_spec A with "Hl").
+    wp_smart_apply (llength_spec A with "Hl").
     iIntros (xs n) "[<- Hl]".
     wp_pures.
-    wp_apply (send_all_spec_ad_hoc with "[$Hl $Hc]").
+    wp_smart_apply (send_all_spec_ad_hoc with "[$Hl $Hc]").
     iIntros "[Hl Hc]".
-    wp_apply (recv_all_spec with "[Hl $Hc //]").
+    wp_smart_apply (recv_all_spec with "[Hl $Hc //]").
     iIntros (ys). iDestruct 1 as (Hlen) "[Hl Hc]".
     rewrite /mapper_type_rec_client /lty_rec fixpoint_unfold.
     rewrite /select.
@@ -372,14 +372,14 @@ Section mapper_example.
     iDestruct (ctx_ltyped_cons _ _ "f" with "HΓ") as (vf ->) "[Hf HΓ]".
     wp_send with "[Hf//]".
     iDestruct (list_type_loc with "Hl") as %[l ->].
-    wp_apply (llength_spec with "Hl").
+    wp_smart_apply (llength_spec with "Hl").
     iIntros (xs n) "[<- Hl]".
     wp_pures.
     iDestruct (iProto_mapsto_le vc with "Hc []") as "Hc".
     { iApply (mapper_type_rec_client_unfold_app_n A B (length xs)). }
-    wp_apply (send_all_spec_upfront with "[$Hl $Hc]").
+    wp_smart_apply (send_all_spec_upfront with "[$Hl $Hc]").
     iIntros "[Hl Hc]".
-    wp_apply (recv_all_spec with "[Hl $Hc //]").
+    wp_smart_apply (recv_all_spec with "[Hl $Hc //]").
     iIntros (ys). iDestruct 1 as (Hlen) "[Hl Hc]".
     rewrite /mapper_type_rec_client /lty_rec fixpoint_unfold.
     rewrite /select.

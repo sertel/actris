@@ -150,7 +150,7 @@ Lemma lhead_spec l x xs :
     lhead #l
   {{{ v, RET v; I x v ∗ (I x v -∗ llist I l (x :: xs)) }}}.
 Proof.
-  iIntros (Φ) "Hll HΦ". wp_apply (lhead_spec_aux with "Hll").
+  iIntros (Φ) "Hll HΦ". wp_smart_apply (lhead_spec_aux with "Hll").
   iIntros (v l') "(HIx&?&?)". iApply "HΦ". iIntros "{$HIx} HIx".
   simpl; eauto with iFrame.
 Qed.
@@ -159,7 +159,7 @@ Lemma lpop_spec l x xs :
   {{{ llist I l (x :: xs) }}} lpop #l {{{ v, RET v; I x v ∗ llist I l xs }}}.
 Proof.
   iIntros (Φ) "/=". iDestruct 1 as (v l') "(HIx & Hl & Hll)". iIntros "HΦ".
-  wp_apply (lpop_spec_aux with "[$]"); iIntros "Hll". iApply "HΦ"; iFrame.
+  wp_smart_apply (lpop_spec_aux with "[$]"); iIntros "Hll". iApply "HΦ"; iFrame.
 Qed.
 
 Lemma llookup_spec l i xs x :
@@ -171,11 +171,11 @@ Proof.
   iIntros (Hi Φ) "Hll HΦ".
   iInduction xs as [|x' xs] "IH" forall (l i x Hi Φ); [done|simpl; wp_rec; wp_pures].
   destruct i as [|i]; simplify_eq/=; wp_pures.
-  - wp_apply (lhead_spec with "Hll"); iIntros (v) "[HI Hll]".
+  - wp_smart_apply (lhead_spec with "Hll"); iIntros (v) "[HI Hll]".
     iApply "HΦ"; eauto with iFrame.
   - iDestruct "Hll" as (v l') "(HIx' & Hl' & Hll)". wp_load; wp_pures.
     rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-    wp_apply ("IH" with "[//] Hll"); iIntros (v') "[HIx Hll]".
+    wp_smart_apply ("IH" with "[//] Hll"); iIntros (v') "[HIx Hll]".
     iApply "HΦ". iIntros "{$HIx} HIx". iExists v, l'. iFrame. by iApply "Hll".
 Qed.
 
@@ -186,7 +186,7 @@ Proof.
   iInduction xs as [|x xs] "IH" forall (l Φ); simpl; wp_rec; wp_pures.
   - wp_load; wp_pures. by iApply "HΦ".
   - iDestruct "Hll" as (v l') "(HIx & Hl' & Hll)". wp_load; wp_pures.
-    wp_apply ("IH" with "Hll"); iIntros "Hll". wp_pures.
+    wp_smart_apply ("IH" with "Hll"); iIntros "Hll". wp_pures.
     rewrite (Nat2Z.inj_add 1). iApply "HΦ"; eauto with iFrame.
 Qed.
 
@@ -202,7 +202,7 @@ Proof.
     + iDestruct "Hll2" as (v2 l2') "(HIx2 & Hl2 & Hll2)". wp_load. wp_store.
       iApply "HΦ". iSplitR "Hl2"; eauto 10 with iFrame.
   - iDestruct "Hll1" as (v1 l') "(HIx1 & Hl1 & Hll1)". wp_load; wp_pures.
-    wp_apply ("IH" with "Hll1 Hll2"); iIntros "[Hll Hl2]".
+    wp_smart_apply ("IH" with "Hll1 Hll2"); iIntros "[Hll Hl2]".
     iApply "HΦ"; eauto with iFrame.
 Qed.
 
@@ -212,7 +212,7 @@ Lemma lprep_spec l1 l2 xs1 xs2 :
   {{{ RET #(); llist I l1 (xs1 ++ xs2) ∗ (∃ v, l2 ↦ v) }}}.
 Proof.
   iIntros (Φ) "[Hll1 Hll2] HΦ". wp_lam.
-  wp_apply (lapp_spec with "[$Hll2 $Hll1]"); iIntros "[Hll2 Hl1]".
+  wp_smart_apply (lapp_spec with "[$Hll2 $Hll1]"); iIntros "[Hll2 Hl1]".
   iDestruct "Hl1" as (w) "Hl1". destruct (xs1 ++ xs2) as [|x xs]; simpl; wp_pures.
   - wp_load. wp_store. iApply "HΦ"; eauto with iFrame.
   - iDestruct "Hll2" as (v l') "(HIx & Hl2 & Hll2)". wp_load. wp_store.
@@ -226,7 +226,7 @@ Proof.
   iInduction xs as [|x' xs] "IH" forall (l Φ); simpl; wp_rec; wp_pures.
   - wp_load. wp_alloc k. wp_store. iApply "HΦ"; eauto with iFrame.
   - iDestruct "Hll" as (v' l') "(HIx' & Hl & Hll)". wp_load; wp_pures.
-    wp_apply ("IH" with "Hll HIx"); iIntros "Hll". iApply "HΦ"; eauto with iFrame.
+    wp_smart_apply ("IH" with "Hll HIx"); iIntros "Hll". iApply "HΦ"; eauto with iFrame.
 Qed.
 
 Lemma lsplit_at_spec l xs (n : nat) :
@@ -242,7 +242,7 @@ Proof.
   - iDestruct "Hll" as (v l') "(HIx & Hl & Hll)". destruct n as [|n]; simpl; wp_pures.
     + wp_load. wp_alloc k. wp_store. iApply "HΦ"; eauto with iFrame.
     + wp_load; wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-      wp_apply ("IH" with "[$]"); iIntros (k) "[Hll Hlk]".
+      wp_smart_apply ("IH" with "[$]"); iIntros (k) "[Hll Hlk]".
       iApply "HΦ"; eauto with iFrame.
 Qed.
 
@@ -252,9 +252,9 @@ Lemma lsplit_spec l xs :
   {{{ k xs1 xs2, RET #k; ⌜ xs = xs1 ++ xs2 ⌝ ∗ llist I l xs1 ∗ llist I k xs2 }}}.
 Proof.
   iIntros (Φ) "Hl HΦ". wp_lam.
-  wp_apply (llength_spec with "Hl"); iIntros "Hl". wp_pures.
+  wp_smart_apply (llength_spec with "Hl"); iIntros "Hl". wp_pures.
   rewrite Z.quot_div_nonneg; [|lia..]. rewrite -(Nat2Z_inj_div _ 2).
-  wp_apply (lsplit_at_spec with "Hl"); iIntros (k) "[Hl Hk]".
+  wp_smart_apply (lsplit_at_spec with "Hl"); iIntros (k) "[Hl Hk]".
   iApply "HΦ". iFrame. by rewrite take_drop.
 Qed.
 
@@ -267,8 +267,8 @@ Proof.
   iInduction xs as [|x xs] "IH" forall (l acc Φ ys).
   - wp_lam. wp_load. wp_pures. iApply "HΦ". rewrite app_nil_l. iApply "Hacc".
   - wp_lam. iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
-    wp_load. wp_apply (lcons_spec with "[$Hacc $HI]").
-    iIntros "Hacc". wp_apply ("IH" with "Hl' Hacc").
+    wp_load. wp_smart_apply (lcons_spec with "[$Hacc $HI]").
+    iIntros "Hacc". wp_smart_apply ("IH" with "Hl' Hacc").
     iIntros (l'') "Hl''". iApply "HΦ".
     rewrite reverse_cons -app_assoc. iApply "Hl''".
 Qed.
@@ -281,17 +281,17 @@ Proof.
   iIntros (Φ) "Hl HΦ". wp_lam.
   destruct xs.
   - wp_load. wp_alloc l' as "Hl'".
-    wp_apply (lnil_spec)=> //.
+    wp_smart_apply (lnil_spec)=> //.
     iIntros (lnil) "Hlnil".
     iAssert (llist I l' []) with "Hl'" as "Hl'".
-    wp_apply (lreverse_at_spec with "[$Hl' $Hlnil]").
+    wp_smart_apply (lreverse_at_spec with "[$Hl' $Hlnil]").
     iIntros (l'') "Hl''".
     wp_load. wp_store. iApply "HΦ". rewrite app_nil_r. iApply "Hl".
   - iDestruct "Hl" as (v lcons) "[HI [Hlcons Hrec]]".
     wp_load. wp_alloc l' as "Hl'".
-    wp_apply (lnil_spec)=> //.
+    wp_smart_apply (lnil_spec)=> //.
     iIntros (lnil) "Hlnil".
-    wp_apply (lreverse_at_spec _ (a::xs) with "[Hl' HI Hrec Hlnil]").
+    wp_smart_apply (lreverse_at_spec _ (a::xs) with "[Hl' HI Hrec Hlnil]").
     { iFrame "Hlnil". iExists v, lcons. iFrame. }
     iIntros (l'') "Hl''".
     assert (∃ ys, ys = reverse (a :: xs)) as [ys Hys].

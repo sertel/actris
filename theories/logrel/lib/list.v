@@ -61,7 +61,7 @@ Section with_Σ.
       wp_pures.
       rewrite fixpoint_unfold.
       iDestruct "Hl'" as (l' xs ->) "[Hl' Hl'']".
-      wp_apply ("IH" with "[Hl' Hl'']").
+      wp_smart_apply ("IH" with "[Hl' Hl'']").
       { rewrite /lty_list /lty_rec.
         iEval (rewrite fixpoint_unfold).
         iExists _, _. iFrame "Hl' Hl''". done. }

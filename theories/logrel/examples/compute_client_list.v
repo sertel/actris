@@ -167,9 +167,9 @@ Section compute_example.
   Proof.
     iIntros (Φ) "(Hl & Hf & #Hlk) HΦ".
     iInduction xs as [|x xs] "IH".
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    { wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       rewrite /select.
-      wp_apply (acquire_spec with "Hlk").
+      wp_smart_apply (acquire_spec with "Hlk").
       iIntros "[Hlocked HI]".
       iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
       { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
@@ -182,14 +182,14 @@ Section compute_example.
         iApply lty_napp_swap.
         iApply recv_type_stop_type_swap. }
       wp_send with "[]"; [ eauto | ].
-      wp_apply (release_spec with "[-HΦ Hl]").
+      wp_smart_apply (release_spec with "[-HΦ Hl]").
       { iFrame "Hlk Hlocked".
         iExists n, false.
         rewrite lookup_total_insert -lsty_car_app lty_app_end_l lty_app_end_r.
         iFrame "Hf Hcounter Hc". }
       iIntros "_". iApply "HΦ". by iFrame "Hl Hlk". }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
-    wp_apply (acquire_spec with "Hlk").
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_smart_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
     iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
     { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
@@ -207,11 +207,11 @@ Section compute_example.
     rewrite /select.
     wp_send with "[]"; [ eauto | ].
     rewrite lookup_total_insert.
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
     wp_send with "[HIx]".
     { iDestruct "HIx" as (->) "$HIx". }
     wp_load. wp_store.
-    wp_apply (release_spec with "[-HΦ Hf Hl]").
+    wp_smart_apply (release_spec with "[-HΦ Hf Hl]").
     { iFrame "Hlk Hlocked".
       iExists (n+1), true.
       rewrite assoc.
@@ -241,12 +241,12 @@ Section compute_example.
     destruct n as [ | n ].
     { wp_lam. wp_pures. iApply "HΦ". by iFrame "Hl Hlk". }
     wp_lam.
-    wp_apply (acquire_spec with "Hlk").
+    wp_smart_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
     iDestruct "HI" as (m b) "(Hb & Hcounter & Hc)".
     wp_load.
     destruct m as [ | m ].
-    { wp_apply (release_spec with "[$Hlocked $Hlk Hb Hcounter Hc]").
+    { wp_smart_apply (release_spec with "[$Hlocked $Hlk Hb Hcounter Hc]").
       { iExists 0, b. iFrame "Hb Hcounter Hc". }
       iIntros "_". wp_pures. iApply ("IH" with "Hl").
       iApply "HΦ". }
@@ -254,15 +254,15 @@ Section compute_example.
     rewrite Nat2Z.inj_succ.
     wp_load. wp_store.
     replace (Z.succ (Z.of_nat m) - 1)%Z with (Z.of_nat m) by lia.
-    wp_apply (release_spec with "[$Hlocked $Hlk Hb Hcounter Hc]").
+    wp_smart_apply (release_spec with "[$Hlocked $Hlk Hb Hcounter Hc]").
     { replace (Z.succ (Z.of_nat m) - 1)%Z with (Z.of_nat m) by lia.
       iExists m, b. iFrame "Hb Hcounter Hc". }
     iIntros "_".
     wp_pures.
     replace (Z.of_nat (S n) - 1)%Z with (Z.of_nat (n)) by lia.
-    wp_apply ("IH" with "Hl").
+    wp_smart_apply ("IH" with "Hl").
     iIntros (ys). iDestruct 1 as (Heq) "(Hl & Hc)".
-    wp_apply (lcons_spec with "[$Hl $Hw//]").
+    wp_smart_apply (lcons_spec with "[$Hl $Hw//]").
     iIntros "Hl". iApply "HΦ". iFrame.
     iPureIntro. by rewrite Heq.
   Qed.
@@ -281,25 +281,25 @@ Section compute_example.
     iDestruct (ctx_ltyped_cons _ _ "xs" with "HΓ") as (vlxs ->) "[Hlxs HΓ]".
     rewrite /lty_list /lty_rec fixpoint_unfold.
     iDestruct "Hlxs" as (l' v ->) "[Hlxs Hv]".
-    wp_apply (llength_spec with "[Hlxs Hv]").
+    wp_smart_apply (llength_spec with "[Hlxs Hv]").
     { iEval (rewrite /lty_list /lty_rec fixpoint_unfold).
       iExists l', v. eauto with iFrame. }
     iIntros (xs n) "[<- Hlxs]".
     wp_alloc counter as "Hcounter".
-    wp_apply (lnil_spec); [ done | ].
+    wp_smart_apply (lnil_spec); [ done | ].
     iIntros (lys) "Hlys".
     iMod (own_alloc 1%Qp) as (γf) "Hf"; [ done | ].
-    wp_apply (newlock_spec (compute_type_invariant γf A vc counter)
+    wp_smart_apply (newlock_spec (compute_type_invariant γf A vc counter)
                 with "[Hcounter Hc]").
     { iExists 0, true. repeat rewrite left_id. iFrame "Hcounter Hc". }
     iIntros (lk γ) "#Hlk".
-    wp_apply (par_spec
+    wp_smart_apply (par_spec
                 (λ v, ⌜v = #()⌝)%I
                 (λ v, ∃ ys, ⌜v = #()⌝ ∗ llist (llist_type_pred A) lys ys)%I
                 with "[Hlxs Hf] [Hlys]").
-    { wp_apply (send_all_par_spec with "[$Hlxs $Hf $Hlk]").
+    { wp_smart_apply (send_all_par_spec with "[$Hlxs $Hf $Hlk]").
       iIntros "(Hlxs & _)". eauto. }
-    { wp_apply (recv_all_par_spec with "[$Hlys $Hlk]").
+    { wp_smart_apply (recv_all_par_spec with "[$Hlys $Hlk]").
       iIntros (ys) "(Heq & Hlys & _)".
       iExists ys. iFrame. eauto. }
     iIntros (w1 w2) "[-> Hw2]".

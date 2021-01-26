@@ -54,8 +54,8 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
     wp_rec. wp_branch; wp_pures.
-    { wp_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
-      by wp_apply ("IH" with "Hc"). }
+    { wp_smart_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
+      by wp_smart_apply ("IH" with "Hc"). }
     by iApply "HΨ".
   Qed.
 
@@ -76,9 +76,9 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (Ψ).
     wp_rec. wp_branch; wp_pures.
-    { wp_apply (start_chan_spec (sort_protocol I R <++> END)%proto); iIntros (c') "Hc'".
-      { wp_pures. wp_apply (sort_service_spec with "Hcmp Hc'"); auto. }
-      wp_send with "[$Hc']". by wp_apply ("IH" with "Hc"). }
+    { wp_smart_apply (start_chan_spec (sort_protocol I R <++> END)%proto); iIntros (c') "Hc'".
+      { wp_pures. wp_smart_apply (sort_service_spec with "Hcmp Hc'"); auto. }
+      wp_send with "[$Hc']". by wp_smart_apply ("IH" with "Hc"). }
     by iApply "HΨ".
   Qed.
 
@@ -99,13 +99,13 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (c Ψ).
     wp_rec. wp_branch; wp_pures.
-    { wp_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
-      by wp_apply ("IH" with "Hc"). }
+    { wp_smart_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
+      by wp_smart_apply ("IH" with "Hc"). }
     wp_branch; wp_pures.
-    { wp_apply (start_chan_spec sort_protocol_br_del); iIntros (c') "Hc'".
-      { wp_apply ("IH" with "Hc'"); auto. }
+    { wp_smart_apply (start_chan_spec sort_protocol_br_del); iIntros (c') "Hc'".
+      { wp_smart_apply ("IH" with "Hc'"); auto. }
       wp_send with "[$Hc']".
-      by wp_apply ("IH" with "Hc"). }
+      by wp_smart_apply ("IH" with "Hc"). }
     by iApply "HΨ".
   Qed.
 End sort_service_br_del.

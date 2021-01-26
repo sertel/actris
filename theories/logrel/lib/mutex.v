@@ -110,7 +110,7 @@ Section rules.
     set (N := nroot .@ "makelock").
     iAssert (∃ inner, l ↦ inner ∗ ltty_car A inner)%I with "[Hl Hv]" as "Hlock".
     { iExists v. iFrame "Hl Hv". }
-    wp_apply (newlock_spec with "Hlock").
+    wp_smart_apply (newlock_spec with "Hlock").
     iIntros (lk γ) "Hlock".
     wp_pures. iExists γ, l, lk. eauto.
   Qed.
@@ -122,7 +122,7 @@ Section rules.
     iIntros (HΓx%ctx_lookup_perm vs) "!> HΓ /=". rewrite {1}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ") as (vl Hvs) "[Hlock HΓ]"; rewrite Hvs.
     iDestruct "Hlock" as (γ l lk ->) "#Hlock". rewrite /mutex_acquire.
-    wp_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinner]".
+    wp_smart_apply (acquire_spec with "Hlock"); iIntros "[Hlocked Hinner]".
     iDestruct "Hinner" as (v) "[Hl HA]".
     wp_load. iFrame "HA". iApply ctx_ltyped_cons.
     iFrame "HΓ". iModIntro. iExists _; iSplit; [done|]. iExists γ, l, lk, v. auto with iFrame.
@@ -134,7 +134,7 @@ Section rules.
     (Γ ⊨ mutex_release x e : () ⫤ ctx_cons x (mutex A) Γ').
   Proof.
     iIntros (HΓx%ctx_lookup_perm) "#He". iIntros (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HA HΓ']".
+    wp_smart_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ'") as (vl Hvs) "[Hguard HΓ']"; rewrite Hvs.
     iDestruct "Hguard" as (γ l lk inner ->) "(#Hlock & Hlocked & Hinner)".
@@ -142,7 +142,7 @@ Section rules.
     iAssert (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
       with "[Hinner HA]" as "Hinner".
     { iExists v. iFrame "Hinner HA". }
-    wp_apply (release_spec γ _ (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
+    wp_smart_apply (release_spec γ _ (∃ inner, l ↦ inner ∗ ltty_car A inner)%I
       with "[$Hlock $Hlocked $Hinner]").
     iIntros "_". iSplit; [done|].
     iApply ctx_ltyped_cons. iFrame "HΓ'". iExists _; iSplit; [done|].

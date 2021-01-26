@@ -126,7 +126,7 @@ Section sort_fg.
     iIntros (Ψ) "(Hc & Hc1 & Hc2) HΨ". iLöb as "IH" forall (c c1 c2 xs xs1 xs2 Ψ).
     wp_rec. wp_branch.
     - wp_recv (x v) as "HI". wp_select. wp_send with "[$HI]".
-      wp_apply ("IH" with "Hc Hc2 Hc1").
+      wp_smart_apply ("IH" with "Hc Hc2 Hc1").
       iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hc2 & Hc1)".
       rewrite -!(assoc_L (++)).
       iApply "HΨ". iFrame "Hc Hc1 Hc2". by rewrite Hxs' (comm (++) xs1') assoc_L.
@@ -151,7 +151,7 @@ Section sort_fg.
     wp_rec. wp_branch as %_ | %Hys'.
     - wp_recv (x v) as (Htl) "HI".
       wp_select. wp_send with "[$HI]"; first by auto.
-      wp_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
+      wp_smart_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
       * done.
       * by rewrite Hys -!assoc_L (comm _ zs).
       * auto using Sorted_snoc.
@@ -183,10 +183,10 @@ Section sort_fg.
     iLöb as "IH" forall (c1 c2 xs1 xs2 ys y1 w1 ys1 ys2 Hxs Hys Hsort Htl Htl_le).
     wp_rec. wp_branch as %_ | %Hys2.
     - wp_recv (x v) as (Htl2) "HIx".
-      wp_pures. wp_apply ("Hcmp" with "[$HIy1 $HIx]"); iIntros "[HIy1 HIx]".
+      wp_pures. wp_smart_apply ("Hcmp" with "[$HIy1 $HIx]"); iIntros "[HIy1 HIx]".
       case_bool_decide.
       + wp_select. wp_send with "[$HIy1 //]".
-        wp_apply ("IH" with "[%] [%] [%] [%] [%] Hc Hc2 Hc1 HIx HΨ").
+        wp_smart_apply ("IH" with "[%] [%] [%] [%] [%] Hc Hc2 Hc1 HIx HΨ").
         * by rewrite comm.
         * by rewrite assoc (comm _ ys2) Hys.
         * by apply Sorted_snoc.
@@ -195,14 +195,14 @@ Section sort_fg.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
       + wp_select. wp_send with "[$HIx]".
         { iPureIntro. by apply Htl_le, total_not. }
-        wp_apply ("IH" with "[% //] [%] [%] [%] [%] Hc Hc1 Hc2 HIy1 HΨ").
+        wp_smart_apply ("IH" with "[% //] [%] [%] [%] [%] Hc Hc1 Hc2 HIy1 HΨ").
         * by rewrite Hys assoc.
         * by apply Sorted_snoc, Htl_le, total_not.
         * constructor. by apply total_not.
         * intros x'.
           inversion 1; discriminate_list || simplify_list_eq. by constructor.
     - wp_select. wp_send with "[$HIy1 //]".
-      wp_apply (sort_service_fg_forward_spec with "[$Hc $Hc1]").
+      wp_smart_apply (sort_service_fg_forward_spec with "[$Hc $Hc1]").
       * done.
       * by rewrite Hys Hys2 -!assoc_L (comm _ xs2).
       * by apply Sorted_snoc.
@@ -221,19 +221,19 @@ Section sort_fg.
     wp_rec; wp_pures. wp_branch; wp_pures.
     - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
       + wp_recv (x2 v2) as "HIx2".
-        wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
-        { iIntros (cy) "Hcy". wp_apply ("IH" with "Hcy"). auto. }
+        wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
+        { iIntros (cy) "Hcy". wp_smart_apply ("IH" with "Hcy"). auto. }
         iIntros (cy) "Hcy".
-        wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
-        { iIntros (cz) "Hcz". wp_apply ("IH" with "Hcz"); auto. }
+        wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
+        { iIntros (cz) "Hcz". wp_smart_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz". rewrite !right_id.
         wp_select. wp_send with "[$HIx1]".
         wp_select. wp_send with "[$HIx2]".
-        wp_apply (sort_service_fg_split_spec with "[$Hc $Hcy $Hcz]").
+        wp_smart_apply (sort_service_fg_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
         wp_branch as %_ | %[]%Permutation_nil_cons.
         wp_recv (x v) as "[_ HIx]".
-        wp_apply (sort_service_fg_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
+        wp_smart_apply (sort_service_fg_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
         by rewrite Hxs' Permutation_middle.
       + wp_select. wp_send with "[$HIx1]"; first by auto using TlRel_nil.
@@ -248,11 +248,11 @@ Section sort_fg.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+    { wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply "HΦ". rewrite right_id_L. by iFrame. }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl". wp_select.
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
-    wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). by rewrite -assoc_L.
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl". wp_select.
+    wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_send with "[$HIx]". wp_smart_apply ("IH" with "Hl Hc"). by rewrite -assoc_L.
   Qed.
 
   Lemma recv_all_spec c p l xs ys' :
@@ -267,9 +267,9 @@ Section sort_fg.
     iLöb as "IH" forall (xs ys' Φ Hsort).
     wp_lam. wp_branch as %_ | %Hperm; wp_pures.
     - wp_recv (y v) as (Htl) "HIx".
-      wp_apply ("IH" with "[] Hl Hc"); first by auto using Sorted_snoc.
+      wp_smart_apply ("IH" with "[] Hl Hc"); first by auto using Sorted_snoc.
       iIntros (ys). rewrite -!assoc_L. iDestruct 1 as (??) "[Hl Hc]".
-      wp_apply (lcons_spec with "[$Hl $HIx]"); iIntros "Hl".
+      wp_smart_apply (lcons_spec with "[$Hl $HIx]"); iIntros "Hl".
       iApply ("HΦ" with "[$Hl $Hc]"); simpl; eauto.
     - iApply ("HΦ" $! []); rewrite /= right_id_L; by iFrame.
   Qed.
@@ -281,11 +281,11 @@ Section sort_fg.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_spec (sort_fg_protocol <++> END)%proto); iIntros (c) "Hc".
-    { wp_apply (sort_service_fg_spec with "Hcmp Hc"); auto. }
-    wp_apply (send_all_spec with "[$Hl $Hc]"); iIntros "[Hl Hc]".
+    wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto); iIntros (c) "Hc".
+    { wp_smart_apply (sort_service_fg_spec with "Hcmp Hc"); auto. }
+    wp_smart_apply (send_all_spec with "[$Hl $Hc]"); iIntros "[Hl Hc]".
     wp_select.
-    wp_apply (recv_all_spec with "[$Hl $Hc]"); auto.
+    wp_smart_apply (recv_all_spec with "[$Hl $Hc]"); auto.
     iIntros (ys) "/=". iDestruct 1 as (??) "[Hk _]".
     iApply "HΦ"; auto with iFrame.
   Qed.
@@ -305,6 +305,6 @@ Section sort_fg.
   Proof.
     iIntros (Ψ) "Hc HΨ". wp_lam.
     wp_recv (A I R ? ? cmp) as "#Hcmp".
-    by wp_apply (sort_service_fg_spec with "Hcmp Hc").
+    by wp_smart_apply (sort_service_fg_spec with "Hcmp Hc").
   Qed.
 End sort_fg.

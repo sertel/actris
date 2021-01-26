@@ -64,29 +64,29 @@ Section sort.
   Proof.
     iIntros "#Hcmp" (Ψ) "!> [Hl1 Hl2] HΨ".
     iLöb as "IH" forall (l2 xs1 xs2 Ψ).
-    wp_lam. wp_apply (lisnil_spec with "Hl1"); iIntros "Hl1".
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl1"); iIntros "Hl1".
     destruct xs1 as [|x1 xs1]; wp_pures.
-    { wp_apply (lapp_spec with "[$Hl1 $Hl2]"); iIntros "[Hl1 _] /=".
+    { wp_smart_apply (lapp_spec with "[$Hl1 $Hl2]"); iIntros "[Hl1 _] /=".
       iApply "HΨ". iFrame. by rewrite list_merge_nil_l. }
-    wp_apply (lisnil_spec with "Hl2"); iIntros "Hl2".
+    wp_smart_apply (lisnil_spec with "Hl2"); iIntros "Hl2".
     destruct xs2 as [|x2 xs2]; wp_pures.
     { iApply "HΨ". by iFrame. }
-    wp_apply (lhead_spec_aux with "Hl1"); iIntros (v1 l1') "[HIx1 Hl1]".
-    wp_apply (lhead_spec_aux with "Hl2"); iIntros (v2 l2') "[HIx2 Hl2]".
-    wp_apply ("Hcmp" with "[$HIx1 $HIx2]"); iIntros "[HIx1 HIx2] /=".
+    wp_smart_apply (lhead_spec_aux with "Hl1"); iIntros (v1 l1') "[HIx1 Hl1]".
+    wp_smart_apply (lhead_spec_aux with "Hl2"); iIntros (v2 l2') "[HIx2 Hl2]".
+    wp_smart_apply ("Hcmp" with "[$HIx1 $HIx2]"); iIntros "[HIx1 HIx2] /=".
     case_bool_decide; wp_pures.
     - rewrite decide_True //.
-      wp_apply (lpop_spec_aux with "Hl1"); iIntros "Hl1".
-      wp_apply ("IH" $! _ _ (_ :: _) with "Hl1 [HIx2 Hl2]").
+      wp_smart_apply (lpop_spec_aux with "Hl1"); iIntros "Hl1".
+      wp_smart_apply ("IH" $! _ _ (_ :: _) with "Hl1 [HIx2 Hl2]").
       { iExists _, _. iFrame. }
       iIntros "Hl1".
-      wp_apply (lcons_spec with "[$Hl1 $HIx1]"). iIntros "Hl1". iApply "HΨ". iFrame.
+      wp_smart_apply (lcons_spec with "[$Hl1 $HIx1]"). iIntros "Hl1". iApply "HΨ". iFrame.
     - rewrite decide_False //.
-      wp_apply (lpop_spec_aux with "Hl2"); iIntros "Hl2".
-      wp_apply ("IH" $! _ (_ :: _) with "[HIx1 Hl1] Hl2").
+      wp_smart_apply (lpop_spec_aux with "Hl2"); iIntros "Hl2".
+      wp_smart_apply ("IH" $! _ (_ :: _) with "[HIx1 Hl1] Hl2").
       { iExists _, _. iFrame. }
       iIntros "Hl1".
-      wp_apply (lcons_spec with "[$Hl1 $HIx2]"); iIntros "Hl1". iApply "HΨ". iFrame.
+      wp_smart_apply (lcons_spec with "[$Hl1 $HIx2]"); iIntros "Hl1". iApply "HΨ". iFrame.
   Qed.
 
   Lemma sort_service_spec {A} (I : A → val → iProp Σ) (R : A → A → Prop)
@@ -98,24 +98,24 @@ Section sort.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (p c Ψ). wp_lam.
     wp_recv (xs l) as "Hl".
-    wp_apply (llength_spec with "Hl"); iIntros "Hl".
+    wp_smart_apply (llength_spec with "Hl"); iIntros "Hl".
     wp_op; case_bool_decide as Hlen; wp_if.
     { assert (Sorted R xs).
       { destruct xs as [|x1 [|x2 xs]]; simpl in *; eauto with lia. }
       wp_send with "[$Hl]"; first by auto. by iApply "HΨ". }
-    wp_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
+    wp_smart_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
       iDestruct 1 as (->) "[Hl1 Hl2]".
-    wp_apply (start_chan_spec (sort_protocol I R)); iIntros (cy) "Hcy".
+    wp_smart_apply (start_chan_spec (sort_protocol I R)); iIntros (cy) "Hcy".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
-      wp_apply ("IH" with "Hcy"); auto. }
-    wp_apply (start_chan_spec (sort_protocol I R)); iIntros (cz) "Hcz".
+      wp_smart_apply ("IH" with "Hcy"); auto. }
+    wp_smart_apply (start_chan_spec (sort_protocol I R)); iIntros (cz) "Hcz".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
-      wp_apply ("IH" with "Hcz"); auto. }
+      wp_smart_apply ("IH" with "Hcz"); auto. }
     wp_send with "[$Hl1]".
     wp_send with "[$Hl2]".
     wp_recv (ys1) as (??) "Hl1".
     wp_recv (ys2) as (??) "Hl2".
-    wp_apply (lmerge_spec with "Hcmp [$Hl1 $Hl2]"); iIntros "Hl".
+    wp_smart_apply (lmerge_spec with "Hcmp [$Hl1 $Hl2]"); iIntros "Hl".
     wp_send ((list_merge R ys1 ys2)) with "[$Hl]".
     - iSplit; iPureIntro.
       + by apply (Sorted_list_merge _).
@@ -130,7 +130,7 @@ Section sort.
   Proof.
     iIntros (Ψ) "Hc HΨ". wp_lam.
     wp_recv (A I R ?? cmp) as "#Hcmp".
-    by wp_apply (sort_service_spec with "Hcmp Hc").
+    by wp_smart_apply (sort_service_spec with "Hcmp Hc").
   Qed.
 
   Lemma sort_client_func_spec {A} (I : A → val → iProp Σ) R
@@ -141,9 +141,9 @@ Section sort.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_spec sort_protocol_func); iIntros (c) "Hc".
+    wp_smart_apply (start_chan_spec sort_protocol_func); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
-      wp_apply (sort_service_func_spec with "Hc"); auto. }
+      wp_smart_apply (sort_service_func_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".
     wp_send with "[$Hl]".
     wp_recv (ys) as "(Hsorted & Hperm & Hl)".

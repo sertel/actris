@@ -53,44 +53,44 @@ Section double.
     rewrite /prog.
     iMod (own_alloc 1%Qp) as (γ) "[Hcredit1 Hcredit2]"; [done|].
     (* Create lock *)
-    wp_apply (newlock_spec (chan_inv c γ) with "[Hc]").
+    wp_smart_apply (newlock_spec (chan_inv c γ) with "[Hc]").
     { iLeft. iFrame "Hc". }
     iIntros (lk γlk) "#Hlock".
     wp_pures.
     (* Fork into two threads *)
-    wp_apply (wp_par (λ v, ∃ k : Z, ⌜v = #k⌝)%I (λ v, ∃ k : Z, ⌜v = #k⌝)%I
+    wp_smart_apply (wp_par (λ v, ∃ k : Z, ⌜v = #k⌝)%I (λ v, ∃ k : Z, ⌜v = #k⌝)%I
                 with "[Hcredit1] [Hcredit2]").
     - (* Acquire lock *)
-      wp_apply (acquire_spec with "Hlock").
+      wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[Hc|[Hc|Hc]]".
       + wp_recv (x1) as "_". wp_pures.
-        wp_apply (release_spec with "[Hlocked Hcredit1 Hc]").
+        wp_smart_apply (release_spec with "[Hlocked Hcredit1 Hc]").
         { iFrame "Hlock Hlocked". iRight. iLeft. iFrame "Hcredit1 Hc". }
         iIntros "_". wp_pures.
         eauto.
       + iDestruct "Hc" as "[Hcredit2 Hc]".
         wp_recv (x1) as "_". wp_pures.
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
-        wp_apply (release_spec with "[Hlocked Hcredit Hc]").
+        wp_smart_apply (release_spec with "[Hlocked Hcredit Hc]").
         { iFrame "Hlock Hlocked". iRight. iRight. iFrame "Hcredit Hc". }
         iIntros "_". wp_pures.
         eauto.
       + iDestruct "Hc" as "[Hcredit2 Hc]".
         by iDestruct (own_valid_2 with "Hcredit1 Hcredit2") as %[].
     - (* Acquire lock *)
-      wp_apply (acquire_spec with "Hlock").
+      wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[Hc|[Hc|Hc]]".
       + wp_recv (x1) as "_". wp_pures.
-        wp_apply (release_spec with "[Hlocked Hcredit2 Hc]").
+        wp_smart_apply (release_spec with "[Hlocked Hcredit2 Hc]").
         { iFrame "Hlock Hlocked". iRight. iLeft. iFrame "Hcredit2 Hc". }
         iIntros "_". wp_pures.
         eauto.
       + iDestruct "Hc" as "[Hcredit1 Hc]".
         wp_recv (x1) as "Hx1". wp_pures.
         iCombine "Hcredit1 Hcredit2" as "Hcredit".
-        wp_apply (release_spec with "[Hlocked Hcredit Hc]").
+        wp_smart_apply (release_spec with "[Hlocked Hcredit Hc]").
         { iFrame "Hlock Hlocked". iRight. iRight. iFrame "Hcredit Hc". }
         iIntros "_". wp_pures.
         eauto.
@@ -143,11 +143,11 @@ Section double_fc.
     iMod (own_alloc (1, to_agree None)%Qp) as (γ1) "Hγ1"; [done|].
     iMod (own_alloc (1, to_agree None)%Qp) as (γ2) "Hγ2"; [done|].
     (* Create lock *)
-    wp_apply (newlock_spec (chan_inv_fc γ γ1 γ2 P c) with "[Hγ Hc]").
+    wp_smart_apply (newlock_spec (chan_inv_fc γ γ1 γ2 P c) with "[Hγ Hc]").
     { iLeft. by iFrame. }
     iIntros (lk γlk) "#Hlock". wp_pures.
     (* Fork into two threads *)
-    wp_apply (wp_par
+    wp_smart_apply (wp_par
       (λ v1, own γ1 (1/4, to_agree (Some v1))%Qp ∗ own γ (Excl ()) ∨
         (∃ v2, own γ1 (3/4, to_agree (Some v1))%Qp ∗
                own γ2 (1/2, to_agree (Some v2))%Qp ∗ P v2 v1))%I
@@ -155,13 +155,13 @@ Section double_fc.
         (∃ v1, own γ2 (3/4, to_agree (Some v2))%Qp ∗
                own γ1 (1/2, to_agree (Some v1))%Qp ∗ P v1 v2))%I with "[Hγ1] [Hγ2]").
     - (* Acquire lock *)
-      wp_apply (acquire_spec with "Hlock").
+      wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[[Hγ Hc]|[Hc|Hc]]".
       + wp_recv (v) as "_". wp_pures.
         iMod (own_update _ _ ((3/4 ⋅ 1/4), to_agree (Some v))%Qp with "Hγ1")
           as "[Hγ1a Hγ1b]"; [by apply cmra_update_exclusive|].
-        wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hc]").
+        wp_smart_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hc]").
         { iRight. iLeft. iExists true, v. iFrame. }
         iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ2 Hc]".
@@ -171,19 +171,19 @@ Section double_fc.
           as "[Hγ1a Hγ1b]"; [by apply cmra_update_exclusive|].
         rewrite {1}(_ : 3/4 = 1/4 + 1/2)%Qp; last (by apply: bool_decide_unpack).
         iDestruct "Hγ2" as "[Hγ2a Hγ2b]".
-        wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
+        wp_smart_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
         { do 2 iRight. iExists v', v. iFrame. }
         iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "[Hγ1' _]".
         by iDestruct (own_valid_2 with "Hγ1 Hγ1'") as %[].
     - (* Acquire lock *)
-      wp_apply (acquire_spec with "Hlock").
+      wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
       iDestruct "Hc" as "[[Hγ Hc]|[Hc|Hc]]".
       + wp_recv (v) as "_". wp_pures.
         iMod (own_update _ _ ((3/4 ⋅ 1/4), to_agree (Some v))%Qp with "Hγ2")
           as "[Hγ2a Hγ2b]"; [by apply cmra_update_exclusive|].
-        wp_apply (release_spec with "[$Hlock $Hlocked Hγ2a Hc]").
+        wp_smart_apply (release_spec with "[$Hlock $Hlocked Hγ2a Hc]").
         { iRight. iLeft. iExists false, v. iFrame. }
         iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ1 Hc]"; last first.
@@ -193,7 +193,7 @@ Section double_fc.
           as "[Hγ2a Hγ2b]"; [by apply cmra_update_exclusive|].
         rewrite {1}(_ : 3/4 = 1/4 + 1/2)%Qp; last (by apply: bool_decide_unpack).
         iDestruct "Hγ1" as "[Hγ1a Hγ1b]".
-        wp_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
+        wp_smart_apply (release_spec with "[$Hlock $Hlocked Hγ1a Hγ2a Hc]").
         { do 2 iRight. iExists v, v'. iFrame. }
         iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "(_ & Hγ2' & _)".

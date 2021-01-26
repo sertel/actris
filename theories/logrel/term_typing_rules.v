@@ -79,7 +79,7 @@ Section term_typing_rules.
     (Γ1 ⊨ UnOp op e : B ⫤ Γ2).
   Proof.
     iIntros (Hop) "#He !>". iIntros (vs) "HΓ1 /=".
-    wp_apply (wp_wand with "(He [HΓ1 //])"). iIntros (v1) "[HA $]".
+    wp_smart_apply (wp_wand with "(He [HΓ1 //])"). iIntros (v1) "[HA $]".
     iDestruct (Hop with "HA") as (w ?) "HB". by wp_unop.
   Qed.
 
@@ -90,8 +90,8 @@ Section term_typing_rules.
     (Γ1 ⊨ BinOp op e1 e2 : B ⫤ Γ3).
   Proof.
     iIntros (Hop) "#He2 #He1 !>". iIntros (vs) "HΓ1 /=".
-    wp_apply (wp_wand with "(He2 [HΓ1 //])"). iIntros (v2) "[HA2 HΓ2]".
-    wp_apply (wp_wand with "(He1 [HΓ2 //])"). iIntros (v1) "[HA1 $]".
+    wp_smart_apply (wp_wand with "(He2 [HΓ1 //])"). iIntros (v2) "[HA2 HΓ2]".
+    wp_smart_apply (wp_wand with "(He1 [HΓ2 //])"). iIntros (v1) "[HA1 $]".
     iDestruct (Hop with "HA1 HA2") as (w ?) "HB". by wp_binop.
   Qed.
 
@@ -103,10 +103,10 @@ Section term_typing_rules.
     (Γ1 ⊨ (if: e1 then e2 else e3) : A ⫤ Γ3).
   Proof.
     iIntros "#He1 #He2 #He3 !>" (v) "HΓ1 /=".
-    wp_apply (wp_wand with "(He1 [HΓ1 //])"). iIntros (b) "[Hbool HΓ2]".
+    wp_smart_apply (wp_wand with "(He1 [HΓ1 //])"). iIntros (b) "[Hbool HΓ2]".
     rewrite /lty_bool. iDestruct "Hbool" as ([]) "->".
-    - wp_apply (wp_wand with "(He2 [HΓ2 //])"). iIntros (w) "[$$]".
-    - wp_apply (wp_wand with "(He3 [HΓ2 //])"). iIntros (w) "[$$]".
+    - wp_smart_apply (wp_wand with "(He2 [HΓ2 //])"). iIntros (w) "[$$]".
+    - wp_smart_apply (wp_wand with "(He3 [HΓ2 //])"). iIntros (w) "[$$]".
   Qed.
 
   (** Arrow properties *)
@@ -115,8 +115,8 @@ Section term_typing_rules.
     (Γ1 ⊨ e1 e2 : A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
-    wp_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf $]".
+    wp_smart_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
+    wp_smart_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf $]".
     iApply ("Hf" $! v with "HA1").
   Qed.
 
@@ -125,8 +125,8 @@ Section term_typing_rules.
     (Γ1 ⊨ e1 e2 : A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
-    wp_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf HΓ]".
+    wp_smart_apply (wp_wand with "(H2 [HΓ //])"). iIntros (v) "[HA1 HΓ]".
+    wp_smart_apply (wp_wand with "(H1 [HΓ //])"). iIntros (f) "[Hf HΓ]".
     iApply wp_frame_r. iFrame "HΓ". iApply ("Hf" $! v with "HA1").
   Qed.
 
@@ -205,7 +205,7 @@ Section term_typing_rules.
     (Γ1 ⊨ (let: x:=e1 in e2) : A2 ⫤ ctx_filter_eq x Γ2 ++ ctx_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
-    wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HA1 HΓ2]". wp_pures.
+    wp_smart_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HA1 HΓ2]". wp_pures.
     rewrite {3}(ctx_filter_eq_perm Γ2 x).
     iDestruct (ctx_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
     iDestruct ("He2" $! (binder_insert x v vs) with "[HA1 HΓ2neq]") as "He'".
@@ -221,8 +221,8 @@ Section term_typing_rules.
     (Γ1 ⊨ (e1 ;; e2) : B ⫤ Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
-    wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[_ HΓ2]". wp_pures.
-    wp_apply (wp_wand with "(He2 HΓ2)"); iIntros (w) "[HB HΓ3]".
+    wp_smart_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[_ HΓ2]". wp_pures.
+    wp_smart_apply (wp_wand with "(He2 HΓ2)"); iIntros (w) "[HB HΓ3]".
     iFrame "HB HΓ3".
   Qed.
 
@@ -232,8 +232,8 @@ Section term_typing_rules.
     (Γ1 ⊨ (e1,e2) : A1 * A2 ⫤ Γ3).
   Proof.
     iIntros "#H2 #H1". iIntros (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(H2 [HΓ //])"); iIntros (w2) "[HA2 HΓ]".
-    wp_apply (wp_wand with "(H1 [HΓ //])"); iIntros (w1) "[HA1 HΓ]".
+    wp_smart_apply (wp_wand with "(H2 [HΓ //])"); iIntros (w2) "[HA2 HΓ]".
+    wp_smart_apply (wp_wand with "(H1 [HΓ //])"); iIntros (w1) "[HA1 HΓ]".
     wp_pures. iFrame "HΓ". iExists w1, w2. by iFrame.
   Qed.
 
@@ -267,7 +267,7 @@ Section term_typing_rules.
     (Γ1 ⊨ InjL e : A1 + A2 ⫤ Γ2).
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(HA [HΓ //])").
+    wp_smart_apply (wp_wand with "(HA [HΓ //])").
     iIntros (v) "[HA' $]". wp_pures.
     iLeft. iExists v. auto.
   Qed.
@@ -277,7 +277,7 @@ Section term_typing_rules.
     (Γ1 ⊨ InjR e : A1 + A2 ⫤ Γ2).
   Proof.
     iIntros "#HA" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(HA [HΓ //])").
+    wp_smart_apply (wp_wand with "(HA [HΓ //])").
     iIntros (v) "[HA' $]". wp_pures.
     iRight. iExists v. auto.
   Qed.
@@ -289,11 +289,11 @@ Section term_typing_rules.
     (Γ1 ⊨ Case e1 e2 e3 : B ⫤ Γ3).
   Proof.
     iIntros "#H1 #H2 #H3" (vs) "!> HΓ1 /=".
-    wp_apply (wp_wand with "(H1 HΓ1)"). iIntros (s) "[[Hs|Hs] HΓ2]";
+    wp_smart_apply (wp_wand with "(H1 HΓ1)"). iIntros (s) "[[Hs|Hs] HΓ2]";
       iDestruct "Hs" as (w ->) "HA"; wp_case.
-    - wp_apply (wp_wand with "(H2 HΓ2)"). iIntros (v) "[Hv $]".
+    - wp_smart_apply (wp_wand with "(H2 HΓ2)"). iIntros (v) "[Hv $]".
       iApply (wp_wand with "(Hv HA)"). auto.
-    - wp_apply (wp_wand with "(H3 HΓ2)"). iIntros (v) "[Hv $]".
+    - wp_smart_apply (wp_wand with "(H3 HΓ2)"). iIntros (v) "[Hv $]".
       iApply (wp_wand with "(Hv HA)"). auto.
   Qed.
 
@@ -313,7 +313,7 @@ Section term_typing_rules.
     (Γ ⊨ e #() : C K ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ] /=".
+    wp_smart_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB HΓ] /=".
     iApply (wp_wand with "HB [HΓ]"). by iIntros (v) "$".
   Qed.
 
@@ -322,7 +322,7 @@ Section term_typing_rules.
     (Γ1 ⊨ e : C K ⫤ Γ2) -∗ Γ1 ⊨ e : (∃ X, C X) ⫤ Γ2.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists K.
+    wp_smart_apply (wp_wand with "(He [HΓ //])"); iIntros (w) "[HB $]". by iExists K.
   Qed.
 
   Lemma ltyped_unpack {k} Γ1 Γ2 Γ3 x e1 e2 (C : lty Σ k → ltty Σ) B :
@@ -331,7 +331,7 @@ Section term_typing_rules.
     (Γ1 ⊨ (let: x := e1 in e2) : B ⫤ ctx_filter_eq x Γ2 ++ ctx_filter_ne x Γ3).
   Proof.
     iIntros "#He1 #He2 !>". iIntros (vs) "HΓ1 /=".
-    wp_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HC HΓ2]".
+    wp_smart_apply (wp_wand with "(He1 HΓ1)"); iIntros (v) "[HC HΓ2]".
     iDestruct "HC" as (X) "HX". wp_pures.
     rewrite {3}(ctx_filter_eq_perm Γ2 x).
     iDestruct (ctx_ltyped_app with "HΓ2") as "[HΓ2eq HΓ2neq]".
@@ -348,7 +348,7 @@ Section term_typing_rules.
     (Γ1 ⊨ ref e : ref_uniq A ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ1 /=".
-    wp_apply (wp_wand with "(He HΓ1)"). iIntros (v) "[Hv $]".
+    wp_smart_apply (wp_wand with "(He HΓ1)"). iIntros (v) "[Hv $]".
     wp_alloc l as "Hl". iExists l, v; eauto with iFrame.
   Qed.
 
@@ -357,7 +357,7 @@ Section term_typing_rules.
     (Γ1 ⊨ Free e : () ⫤ Γ2).
   Proof.
     iIntros "#He" (vs) "!> HΓ1 /=".
-    wp_apply (wp_wand with "(He HΓ1)"). iIntros (v) "[Hv $]".
+    wp_smart_apply (wp_wand with "(He HΓ1)"). iIntros (v) "[Hv $]".
     iDestruct "Hv" as (l w ->) "[Hl Hw]". by wp_free.
   Qed.
 
@@ -379,7 +379,7 @@ Section term_typing_rules.
     (Γ ⊨ x <- e : () ⫤ ctx_cons x (ref_uniq B) Γ').
   Proof.
     iIntros (HΓx%ctx_lookup_perm) "#He"; iIntros (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
+    wp_smart_apply (wp_wand with "(He HΓ)"). iIntros (v) "[HB HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ'") as (vl Hvs) "[HA HΓ']"; rewrite Hvs.
     iDestruct "HA" as (l w ->) "[? HA]". wp_store. iModIntro. iSplit; [done|].
@@ -405,7 +405,7 @@ Section term_typing_rules.
     Γ ⊨ ! e : A ⫤ Γ'.
   Proof.
     iIntros "#He" (vs) "!> HΓ /=".
-    wp_apply (wp_wand with "(He HΓ)"). iIntros (v) "[Hv $]".
+    wp_smart_apply (wp_wand with "(He HΓ)"). iIntros (v) "[Hv $]".
     iDestruct "Hv" as (l ->) "#Hv".
     iInv (ref_shrN .@ l) as (v) "[>Hl #HA]" "Hclose".
     wp_load.
@@ -419,7 +419,7 @@ Section term_typing_rules.
     (Γ1 ⊨ e1 <- e2 : () ⫤ Γ3).
   Proof.
     iIntros "#H1 #H2" (vs) "!> HΓ1 /=".
-    wp_apply (wp_wand with "(H1 HΓ1)"). iIntros (v) "[Hv HΓ2]".
+    wp_smart_apply (wp_wand with "(H1 HΓ1)"). iIntros (v) "[Hv HΓ2]".
     wp_bind (subst_map vs e1).
     iApply (wp_wand with "(H2 HΓ2)"). iIntros (w) "[Hw $]".
     iDestruct "Hw" as (l ->) "#Hw".
@@ -434,8 +434,8 @@ Section term_typing_rules.
     (Γ1 ⊨ FAA e1 e2 : lty_int ⫤ Γ3).
   Proof.
     iIntros "#H1 #H2" (vs) "!> HΓ1 /=".
-    wp_apply (wp_wand with "(H1 HΓ1)"). iIntros (v) "[Hv HΓ2]".
-    wp_apply (wp_wand with "(H2 HΓ2)"). iIntros (w) "[Hw $]".
+    wp_smart_apply (wp_wand with "(H1 HΓ1)"). iIntros (v) "[Hv HΓ2]".
+    wp_smart_apply (wp_wand with "(H2 HΓ2)"). iIntros (w) "[Hw $]".
     iDestruct "Hw" as (l ->) "#Hw".
     iInv (ref_shrN .@ l) as (w) "[Hl >Hn]" "Hclose".
     iDestruct "Hn" as %[k ->].
@@ -454,7 +454,7 @@ Section term_typing_rules.
   Proof.
     iIntros "#He1 #He2 !>" (vs) "HΓ /=".
     iDestruct (ctx_ltyped_app with "HΓ") as "[HΓ1 HΓ2]".
-    wp_apply (wp_par with "(He1 HΓ1) (He2 HΓ2)").
+    wp_smart_apply (wp_par with "(He1 HΓ1) (He2 HΓ2)").
     iIntros (v1 v2) "[[HA HΓ1'] [HB HΓ2']] !>". iSplitL "HA HB".
     + iExists v1, v2. by iFrame.
     + iApply ctx_ltyped_app. by iFrame.

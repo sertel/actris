@@ -207,7 +207,7 @@ Definition prot_swap_loop : iProto Σ :=
 Lemma prog_spec : {{{ True }}} prog #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot); iIntros (c) "Hc".
   - by wp_send with "[]".
   - wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -215,7 +215,7 @@ Qed.
 Lemma prog_ref_spec : {{{ True }}} prog_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_ref); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_ref); iIntros (c) "Hc".
   - wp_alloc l as "Hl". by wp_send with "[$Hl]".
   - wp_recv (l) as "Hl". wp_load. by iApply "HΦ".
 Qed.
@@ -223,8 +223,8 @@ Qed.
 Lemma prog_del_spec : {{{ True }}} prog_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_del); iIntros (c) "Hc".
-  - wp_apply (new_chan_spec prot with "[//]").
+  wp_smart_apply (start_chan_spec prot_del); iIntros (c) "Hc".
+  - wp_smart_apply (new_chan_spec prot with "[//]").
     iIntros (c2 c2') "[Hc2 Hc2']". wp_send with "[$Hc2]". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -232,7 +232,7 @@ Qed.
 Lemma prog_dep_spec : {{{ True }}} prog_dep #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_dep); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_dep); iIntros (c) "Hc".
   - wp_recv (x) as "_". by wp_send with "[]".
   - wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -240,7 +240,7 @@ Qed.
 Lemma prog2_ref_spec : {{{ True }}} prog_dep_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_dep_ref); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_dep_ref); iIntros (c) "Hc".
   - wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[Hl]".
   - wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
     by iApply "HΦ".
@@ -249,8 +249,8 @@ Qed.
 Lemma prog_dep_del_spec : {{{ True }}} prog_dep_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_dep_del); iIntros (c) "Hc".
-  - wp_apply (new_chan_spec prot_dep with "[//]"); iIntros (c2 c2') "[Hc2 Hc2']".
+  wp_smart_apply (start_chan_spec prot_dep_del); iIntros (c) "Hc".
+  - wp_smart_apply (new_chan_spec prot_dep with "[//]"); iIntros (c2 c2') "[Hc2 Hc2']".
     wp_send with "[$Hc2]". wp_recv (x) as "_". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_send with "[//]". wp_recv as "_".
     by iApply "HΦ".
@@ -259,9 +259,9 @@ Qed.
 Lemma prog_dep_del_2_spec : {{{ True }}} prog_dep_del_2 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_dep_del_2); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_dep_del_2); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
+  wp_smart_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -269,10 +269,10 @@ Qed.
 Lemma prog_dep_del_3_spec : {{{ True }}} prog_dep_del_3 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_dep_del_3); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_dep_del_3); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_recv (y) as "_".
     wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
+  wp_smart_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_send with "[//]".
   wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
@@ -281,7 +281,7 @@ Qed.
 Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
     do 2 wp_pure _. by iApply "IH".
@@ -292,14 +292,14 @@ Qed.
 Lemma prog_fun_spec : {{{ True }}} prog_fun #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_fun); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_fun); iIntros (c) "Hc".
   - wp_recv (P Ψ vf) as "#Hf". wp_send with "[]"; last done.
-    iIntros "!>" (Ψ') "HP HΨ'". wp_apply ("Hf" with "HP"); iIntros (x) "HΨ".
+    iIntros "!>" (Ψ') "HP HΨ'". wp_smart_apply ("Hf" with "HP"); iIntros (x) "HΨ".
     wp_pures. by iApply "HΨ'".
   - wp_alloc l as "Hl".
     wp_send ((l ↦ #40)%I (λ w, ⌜ w = 40%Z ⌝ ∗ l ↦ #40)%I) with "[]".
     { iIntros "!>" (Ψ') "Hl HΨ'". wp_load. iApply "HΨ'"; auto. }
-    wp_recv (vg) as "#Hg". wp_apply ("Hg" with "Hl"); iIntros (x) "[-> Hl]".
+    wp_recv (vg) as "#Hg". wp_smart_apply ("Hg" with "Hl"); iIntros (x) "[-> Hl]".
     by iApply "HΦ".
 Qed.
 
@@ -307,33 +307,33 @@ Lemma prog_lock_spec `{!lockG Σ, contributionG Σ unitUR} :
   {{{ True }}} prog_lock #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec (prot_lock 2)); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec (prot_lock 2)); iIntros (c) "Hc".
   - iMod contribution_init as (γ) "Hs".
     iMod (alloc_client with "Hs") as "[Hs Hcl1]".
     iMod (alloc_client with "Hs") as "[Hs Hcl2]".
-    wp_apply (newlock_spec (∃ n, server γ n ε ∗
+    wp_smart_apply (newlock_spec (∃ n, server γ n ε ∗
       c ↣ iProto_dual (prot_lock n))%I
       with "[Hc Hs]"); first by eauto with iFrame.
     iIntros (lk γlk) "#Hlk".
     iAssert (client γ ε -∗
       WP acquire lk;; send c #21;; release lk {{ _, True }})%I with "[]" as "#Hhelp".
     { iIntros "Hcl".
-      wp_apply (acquire_spec with "[$]"); iIntros "[Hl H]".
+      wp_smart_apply (acquire_spec with "[$]"); iIntros "[Hl H]".
       iDestruct "H" as (n) "[Hs Hc]".
       iDestruct (server_agree with "Hs Hcl") as %[? _].
       destruct n as [|n]=> //=. wp_send with "[//]".
       iMod (dealloc_client with "Hs Hcl") as "Hs /=".
-      wp_apply (release_spec with "[$Hlk $Hl Hc Hs]"); eauto with iFrame. }
-    wp_apply (wp_fork with "[Hcl1]").
+      wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]"); eauto with iFrame. }
+    wp_smart_apply (wp_fork with "[Hcl1]").
     { iNext. by iApply "Hhelp". }
-    by wp_apply "Hhelp".
+    by wp_smart_apply "Hhelp".
   - wp_recv as "_". wp_recv as "_". wp_pures. by iApply "HΦ".
 Qed.
 
 Lemma prog_swap_spec : {{{ True }}} prog_swap #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_swap); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_swap); iIntros (c) "Hc".
   - wp_send with "[//]". wp_recv (x) as "_". by wp_send with "[//]".
   - wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
@@ -342,7 +342,7 @@ Qed.
 Lemma prog_swap_twice_spec : {{{ True }}} prog_swap_twice #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_swap_twice); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_swap_twice); iIntros (c) "Hc".
   - wp_send with "[//]". wp_recv (x1) as "_". wp_recv (x2) as "_".
     by wp_send with "[//]".
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
@@ -352,7 +352,7 @@ Qed.
 Lemma prog_swap_loop_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
     do 2 wp_pure _. by iApply "IH".
@@ -366,7 +366,7 @@ Actris journal paper *)
 Lemma prog_ref_swap_loop_spec : ∀ Φ, Φ #42 -∗ WP prog_ref_swap_loop #() {{ Φ }}.
 Proof.
   iIntros (Φ) "HΦ". wp_lam.
-  wp_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
+  wp_smart_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
   - iLöb as "IH". wp_lam.
     wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
     do 2 wp_pure _. by iApply "IH".

@@ -31,7 +31,7 @@ Section session_typing_rules.
     (Γ ⊨ send x e : () ⫤ ctx_cons x (chan S) Γ').
   Proof.
     iIntros (HΓx%ctx_lookup_perm) "#He !>". iIntros (vs) "HΓ /=".
-    wp_apply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
+    wp_smart_apply (wp_wand with "(He HΓ)"); iIntros (v) "[HA HΓ']".
     rewrite {2}HΓx /=.
     iDestruct (ctx_ltyped_cons with "HΓ'") as (c Hvs) "[Hc HΓ']". rewrite Hvs.
     wp_send with "[HA //]". iSplitR; [done|].
@@ -94,7 +94,7 @@ Section session_typing_rules.
     { iApply (iProto_mapsto_le with "Hc"); iIntros "!>". rewrite HM.
       iApply iProto_le_lmsg_texist. }
     wp_recv (Xs v) as "HA". wp_pures. rewrite -subst_map_binder_insert.
-    wp_apply (wp_wand with "(He [- HΓ1eq])").
+    wp_smart_apply (wp_wand with "(He [- HΓ1eq])").
     { iApply (ctx_ltyped_insert _ _ x with "HA").
       destruct (decide (x = xc)) as [->|].
       - by rewrite ctx_filter_ne_cons.
@@ -145,7 +145,7 @@ Section session_typing_rules.
     iIntros "H". wp_pures. iIntros "!>" (v) "HA".
     iDestruct ("H" with "HA") as "H".
     rewrite subst_map_insert.
-    wp_apply "H".
+    wp_smart_apply "H".
   Qed.
 
   Lemma lty_arr_list_spec As (e : expr) B ws y i n :

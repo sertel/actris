@@ -75,9 +75,9 @@ Section rpc_example.
     wp_branch; last first.
     { wp_pures. by iApply "HΦ". }
     wp_recv (T U IT IU f id) as "Hlookup".
-    wp_apply ("Hdict" with "Hlookup"); iIntros (fv) "Hfv".
+    wp_smart_apply ("Hdict" with "Hlookup"); iIntros (fv) "Hfv".
     wp_recv (x v) as "HIT".
-    wp_apply ("Hfv" with "HIT"); iIntros (w) "HIU".
+    wp_smart_apply ("Hfv" with "HIT"); iIntros (w) "HIU".
     wp_send (w) with "[$HIU]".
     wp_pures. by iApply ("IH" with "Hc").
   Qed.
@@ -128,12 +128,12 @@ Section rpc_example.
   Proof.
     iIntros (Φ) "#Hdict HΦ".
     wp_lam.
-    wp_apply (new_chan_spec (rpc_prot client_f_specs))=> //.
+    wp_smart_apply (new_chan_spec (rpc_prot client_f_specs))=> //.
     iIntros (c1 c2) "[Hc1 Hc2]".
-    wp_apply (wp_fork with "[Hc2]").
-    - iIntros "!>". wp_apply (server_spec _ _ _ END%proto with "[Hc2]").
+    wp_smart_apply (wp_fork with "[Hc2]").
+    - iIntros "!>". wp_smart_apply (server_spec _ _ _ END%proto with "[Hc2]").
       rewrite right_id. iFrame "Hdict Hc2". by iIntros "_".
-    - by wp_apply (client_spec with "Hc1").
+    - by wp_smart_apply (client_spec with "Hc1").
   Qed.
 
 End rpc_example.

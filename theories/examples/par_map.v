@@ -96,7 +96,7 @@ Section map.
   Proof.
     iIntros "#Hmap !>" (Φ) "[#Hlk Hγ] HΦ". iLöb as "IH".
     wp_rec; wp_pures.
-    wp_apply (acquire_spec with "Hlk"); iIntros "[Hl H]".
+    wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hl H]".
     iDestruct "H" as (i X) "[Hs Hc]".
     iDestruct (@server_agree with "Hs Hγ") as %[??]; destruct i as [|i]=>//=.
     iAssert ⌜ S i ≠ 1 ∨ X = ∅ ⌝%I as %?.
@@ -104,17 +104,17 @@ Section map.
       iDestruct (@server_1_agree with "Hs Hγ") as %?%leibniz_equiv; auto. }
     wp_select. wp_branch; wp_pures; last first.
     { iMod (@dealloc_client with "Hs Hγ") as "Hs /=".
-      wp_apply (release_spec with "[$Hlk $Hl Hc Hs]").
+      wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]").
       { iExists i, _. iFrame. }
       iIntros "_". by iApply "HΦ". }
     wp_recv (x v) as "HI".
     iMod (@update_client with "Hs Hγ") as "[Hs Hγ]".
     { apply (gmultiset_local_update_alloc _ _ {[ x ]}). }
     rewrite left_id_L.
-    wp_apply (release_spec with "[$Hlk $Hl Hc Hs]").
+    wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
-    clear dependent i X. iIntros "Hu". wp_apply ("Hmap" with "HI"); iIntros (l) "HI".
-    wp_apply (acquire_spec with "[$Hlk $Hu]"); iIntros "[Hl H]".
+    clear dependent i X. iIntros "Hu". wp_smart_apply ("Hmap" with "HI"); iIntros (l) "HI".
+    wp_smart_apply (acquire_spec with "[$Hlk $Hu]"); iIntros "[Hl H]".
     iDestruct "H" as (i X) "[Hs Hc]".
     iDestruct (@server_agree with "Hs Hγ")
       as %[??%gmultiset_included]; destruct i as [|i]=>//=.
@@ -123,9 +123,9 @@ Section map.
     iMod (@update_client with "Hs Hγ") as "[Hs Hγ]".
     { by apply (gmultiset_local_update_dealloc _ _ {[ x ]}). }
     rewrite gmultiset_difference_diag.
-    wp_apply (release_spec with "[$Hlk $Hl Hc Hs]").
+    wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
-    iIntros "Hu". by wp_apply ("IH" with "[$] [$]").
+    iIntros "Hu". by wp_smart_apply ("IH" with "[$] [$]").
   Qed.
 
   Lemma par_map_workers_spec γl γ n vmap lk c :
@@ -139,10 +139,10 @@ Section map.
     iInduction n as [|n] "IH"; wp_rec; wp_pures; simpl.
     { by iApply "HΦ". }
     iDestruct "Hγs" as "[Hγ Hγs]".
-    wp_apply (wp_fork with "[Hγ]").
-    { iNext. wp_apply (par_map_worker_spec with "Hmap [$]"); auto. }
+    wp_smart_apply (wp_fork with "[Hγ]").
+    { iNext. wp_smart_apply (par_map_worker_spec with "Hmap [$]"); auto. }
     wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
-    wp_apply ("IH" with "[$] [$]").
+    wp_smart_apply ("IH" with "[$] [$]").
   Qed.
 
   Lemma par_map_service_spec n vmap c :
@@ -153,10 +153,10 @@ Section map.
   Proof.
     iIntros "#Hf !>"; iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iMod (contribution_init_pow (A:=gmultisetUR A) n) as (γ) "[Hs Hγs]".
-    wp_apply (newlock_spec (map_worker_lock_inv γ c) with "[Hc Hs]").
+    wp_smart_apply (newlock_spec (map_worker_lock_inv γ c) with "[Hc Hs]").
     { iExists n, ∅. iFrame. }
     iIntros (lk γl) "#Hlk".
-    wp_apply (par_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
+    wp_smart_apply (par_map_workers_spec with "Hf [$Hlk $Hγs]"); auto.
   Qed.
 
   Lemma par_map_client_loop_spec n c l k xs X ys :
@@ -173,18 +173,18 @@ Section map.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []); simpl; auto with iFrame. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
-    - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct xs as [|x xs]; csimpl; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" with "[%] Hl Hk Hc [$]"); naive_solver.
-      + wp_select. wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+      + wp_select. wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
         wp_send with "[$HIx]".
-        wp_apply ("IH" with "[] Hl Hk Hc"); first done. iIntros (ys').
+        wp_smart_apply ("IH" with "[] Hl Hk Hc"); first done. iIntros (ys').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
         rewrite assoc_L -(comm _ [x]). iApply "HΦ".
     - wp_recv (x l') as (Hx) "Hl'".
-      wp_apply (lprep_spec with "[$Hk $Hl']"); iIntros "[Hk _]".
-      wp_apply ("IH" with "[] Hl Hk Hc"); first done.
+      wp_smart_apply (lprep_spec with "[$Hk $Hl']"); iIntros "[Hk _]".
+      wp_smart_apply ("IH" with "[] Hl Hk Hc"); first done.
       iIntros (ys'); iDestruct 1 as (Hys) "Hk"; simplify_eq/=.
       iApply ("HΦ" $! (ys' ++ map x)). iSplit.
       + iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X)
@@ -202,12 +202,12 @@ Section map.
     {{{ ys, RET #(); ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB l ys }}}.
   Proof.
     iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
-    { wp_apply (par_map_service_spec with "Hmap Hc"); auto. }
-    wp_pures. wp_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
-    wp_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.
+    wp_smart_apply (start_chan_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
+    { wp_smart_apply (par_map_service_spec with "Hmap Hc"); auto. }
+    wp_pures. wp_smart_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
+    wp_smart_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.
     iIntros (ys) "(?&Hl&Hk)". rewrite /= gmultiset_elements_empty !right_id_L.
-    wp_apply (lapp_spec IB _ _ [] with "[$Hl $Hk]"); iIntros "[Hk _] /=".
+    wp_smart_apply (lapp_spec IB _ _ [] with "[$Hl $Hk]"); iIntros "[Hk _] /=".
     iApply "HΦ"; auto.
   Qed.
 End map.

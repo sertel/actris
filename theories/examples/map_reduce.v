@@ -143,20 +143,20 @@ Section mapper.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []). rewrite right_id_L. auto with iFrame. }
     destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
-    - wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct xs as [|x xs]; csimpl; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" $! _ [] with "[%] Hl Hcmap Hcsort HΦ"); naive_solver.
-      + wp_select. wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+      + wp_select. wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
         wp_send with "[$HIx]".
-        wp_apply ("IH" with "[%] Hl Hcmap Hcsort"); first done. iIntros (ys').
+        wp_smart_apply ("IH" with "[%] Hl Hcmap Hcsort"); first done. iIntros (ys').
         rewrite gmultiset_elements_disj_union gmultiset_elements_singleton.
         rewrite assoc_L -(comm _ [x]). iApply "HΦ".
     - wp_recv (x k) as (Hx) "Hk".
       rewrite -(right_id END%proto _ (sort_fg_head_protocol _ _ _)).
-      wp_apply (send_all_spec with "[$Hk $Hcsort]"); iIntros "[_ Hcsort]".
+      wp_smart_apply (send_all_spec with "[$Hk $Hcsort]"); iIntros "[_ Hcsort]".
       rewrite right_id.
-      wp_apply ("IH" with "[] Hl Hcmap Hcsort"); first done.
+      wp_smart_apply ("IH" with "[] Hl Hcmap Hcsort"); first done.
       iIntros (ys'). iDestruct 1 as (Hys) "Hcsort"; simplify_eq/=.
       rewrite -assoc_L. iApply ("HΦ" $! (map x ++ ys') with "[$Hcsort]").
       iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X)
@@ -193,8 +193,8 @@ Section mapper.
      iEval (rewrite !right_id_L); auto with iFrame. }
     wp_recv ([j y] ?) as (Htl w ->) "HIy /=". wp_pures. rewrite -assoc_L.
     case_bool_decide as Hij; simplify_eq/=; wp_pures.
-    - wp_apply (lcons_spec with "[$Hl $HIy]"); iIntros "Hl".
-      rewrite -reverse_snoc. wp_apply ("IH" $! (ys ++ [y])
+    - wp_smart_apply (lcons_spec with "[$Hl $HIy]"); iIntros "Hl".
+      rewrite -reverse_snoc. wp_smart_apply ("IH" $! (ys ++ [y])
         with "[%] [%] [//] Hl [Hcsort] [HΦ]"); try iClear "IH".
       + intros ?; discriminate_list.
       + rewrite fmap_app /= assoc_L. by apply Sorted_snoc.
@@ -244,9 +244,9 @@ Section mapper.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" $! _ _ None
           with "[%] [%] [%] Hl Hcsort Hcred [] HΦ"); naive_solver.
-      + wp_apply (lnil_spec (IB i) with "[//]"); iIntros (k) "Hk".
-        wp_apply (lcons_spec with "[$Hk $HImiy]"); iIntros "Hk".
-        wp_apply (par_map_reduce_collect_spec _ _ _ _ _ [_] 
+      + wp_smart_apply (lnil_spec (IB i) with "[//]"); iIntros (k) "Hk".
+        wp_smart_apply (lcons_spec with "[$Hk $HImiy]"); iIntros "Hk".
+        wp_smart_apply (par_map_reduce_collect_spec _ _ _ _ _ [_] 
           with "[$Hk $Hcsort]"); try done.
         iIntros (ys' miy). iDestruct 1 as (? Hmiy') "(Hk & Hcsort & HImiy)"; csimpl.
         wp_select; wp_pures. wp_send ((i, reverse (y :: ys'))) with "[Hk]".
@@ -261,8 +261,8 @@ Section mapper.
         rewrite !bind_app /= right_id_L -!assoc_L -(comm _ zs') !assoc_L.
         apply (inj (.++ _)).
     - wp_recv ([i ys] k) as (Hy) "Hk".
-      wp_apply (lprep_spec with "[$Hl $Hk]"); iIntros "[Hl _]".
-      wp_apply ("IH" with "[ ] [//] [//] Hl Hcsort Hcred HImiy"); first done.
+      wp_smart_apply (lprep_spec with "[$Hl $Hk]"); iIntros "[Hl _]".
+      wp_smart_apply ("IH" with "[ ] [//] [//] Hl Hcsort Hcred HImiy"); first done.
       iIntros (zs'); iDestruct 1 as (Hzs) "HIC"; simplify_eq/=.
       iApply ("HΦ" $! (zs' ++ red i ys)). iSplit; last by rewrite -assoc_L.
       iPureIntro. rewrite (gmultiset_disj_union_difference {[ i,ys ]} Y)
@@ -281,25 +281,25 @@ Section mapper.
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
     iIntros (??) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_apply (start_chan_spec (par_map_protocol IA IZB map n ∅));
+    wp_smart_apply (start_chan_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
-    { wp_pures. wp_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
-    wp_apply (start_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
+    { wp_pures. wp_smart_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
+    wp_smart_apply (start_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
-    { wp_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.
+    { wp_smart_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.
       iApply RZB_cmp_spec. }
     rewrite right_id.
-    wp_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
+    wp_smart_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_apply (start_chan_spec (par_map_protocol IZBs IC (curry red) m ∅));
+    wp_smart_apply (start_chan_spec (par_map_protocol IZBs IC (curry red) m ∅));
       iIntros (cred) "// Hcred".
-    { wp_pures. wp_apply (par_map_service_spec with "Hred Hcred"); auto. }
+    { wp_pures. wp_smart_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.
     { wp_pures. iApply ("HΦ" $! [] with "[$Hl]"); simpl.
       by rewrite /map_reduce /= -Hiys -Hnil. }
     wp_recv ([i y] ?) as (_ w ->) "HIB /="; wp_pures.
-    wp_apply (par_map_reduce_reduce_spec _ _ [] (Some (i, y, w)) []
+    wp_smart_apply (par_map_reduce_reduce_spec _ _ [] (Some (i, y, w)) []
       with "[$Hl $Hcsort $Hcred $HIB]"); simpl; auto; [lia|set_solver|].
     iIntros (zs). rewrite /= gmultiset_elements_empty !right_id.
     iDestruct 1 as (Hzs) "Hk".

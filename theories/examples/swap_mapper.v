@@ -220,12 +220,12 @@ Section with_Σ.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iInduction xs as [|x xs] "IH" forall (xs').
-    { wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
+    { wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl"; wp_pures.
       iApply "HΦ". by iFrame. }
-    wp_lam. wp_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
     wp_send with "[//]".
-    wp_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
-    wp_send with "[$HIx]". wp_apply ("IH" with "Hl Hc"). simpl.
+    wp_smart_apply (lpop_spec with "Hl"); iIntros (v) "[HIx Hl]".
+    wp_send with "[$HIx]". wp_smart_apply ("IH" with "Hl Hc"). simpl.
     by rewrite -assoc_L.
   Qed.
 
@@ -248,9 +248,9 @@ Section with_Σ.
     wp_lam. wp_recv (w) as "Hw". wp_pures.
     rewrite Nat2Z.inj_succ.
     replace (Z.succ (Z.of_nat (length xs)) - 1)%Z with (Z.of_nat (length xs)) by lia.
-    wp_apply ("IH" with "Hl Hc").
+    wp_smart_apply ("IH" with "Hl Hc").
     iIntros (ys) "(% & Hl & Hc)".
-    wp_apply (lcons_spec with "[$Hl $Hw]").
+    wp_smart_apply (lcons_spec with "[$Hl $Hw]").
     iIntros "Hl". iApply "HΦ". iFrame. iPureIntro. by f_equiv.
   Qed.
 
@@ -359,7 +359,7 @@ Section with_Σ.
     iIntros "#Hfspec !>" (Φ) "Hc HΦ".
     iLöb as "IH".
     wp_rec. wp_branch.
-    - wp_recv (x v) as "HT". wp_apply ("Hfspec" with "HT").
+    - wp_recv (x v) as "HT". wp_smart_apply ("Hfspec" with "HT").
       iIntros (w) "HU".
       wp_send with "[$HU]". wp_pures. iApply ("IH" with "Hc HΦ").
     - wp_pures. by iApply "HΦ".
@@ -373,17 +373,17 @@ Section with_Σ.
   Proof.
     iIntros "#Hfspec !>" (Φ) "HIT HΦ".
     wp_lam.
-    wp_apply (start_chan_spec mapper_prot); iIntros (c) "// Hc".
+    wp_smart_apply (start_chan_spec mapper_prot); iIntros (c) "// Hc".
     { wp_lam. rewrite -(iProto_app_end_r (iProto_dual mapper_prot)).
       iApply (swap_mapper_service_spec _ _ END%proto with "Hfspec Hc").
       auto. }
-    wp_apply (llength_spec with "HIT"); iIntros "HIT".
-    wp_apply (send_all_spec with "[$HIT Hc]").
+    wp_smart_apply (llength_spec with "HIT"); iIntros "HIT".
+    wp_smart_apply (send_all_spec with "[$HIT Hc]").
     { iApply (iProto_mapsto_le with "Hc").
       iApply subprot_n_swap. }
     iIntros "[HIT Hc]".
     rewrite right_id rev_involutive.
-    wp_apply (recv_all_spec with "[$HIT $Hc]").
+    wp_smart_apply (recv_all_spec with "[$HIT $Hc]").
     iIntros (ys) "(% & HIT & Hc)".
     wp_select.
     iApply "HΦ".

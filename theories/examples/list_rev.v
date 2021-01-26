@@ -25,7 +25,7 @@ Section list_rev_example.
     {{{ RET #(); c ↣ prot }}}.
   Proof.
     iIntros (Φ) "Hc HΦ".
-    wp_lam. wp_recv (l vs) as "Hl". wp_apply (lreverse_spec with "Hl").
+    wp_lam. wp_recv (l vs) as "Hl". wp_smart_apply (lreverse_spec with "Hl").
     iIntros "Hl". wp_send with "[$Hl]". iApply ("HΦ" with "Hc").
   Qed.
 
@@ -75,7 +75,7 @@ Section list_rev_example.
     {{{ RET #(); llist IT l (reverse xs) }}}.
   Proof.
     iIntros (Φ) "Hl HΦ". wp_lam.
-    wp_apply (start_chan_spec (list_rev_prot)%proto); iIntros (c) "Hc".
+    wp_smart_apply (start_chan_spec (list_rev_prot)%proto); iIntros (c) "Hc".
     - rewrite -(iProto_app_end_r list_rev_prot).
       iApply (list_rev_service_spec with "Hc"). eauto.
     - iDestruct (iProto_mapsto_le _ _ (list_rev_protI IT) with "Hc []") as "Hc".
