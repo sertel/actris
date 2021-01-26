@@ -284,7 +284,7 @@ Proof.
   wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
-    do 2 wp_pure _. by iApply "IH".
+    by wp_smart_apply "IH".
   - wp_send with "[//]". wp_recv as "_". wp_send with "[//]". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
@@ -355,7 +355,7 @@ Proof.
   wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
-    do 2 wp_pure _. by iApply "IH".
+    by wp_smart_apply "IH".
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
 Qed.
@@ -369,7 +369,7 @@ Proof.
   wp_smart_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
   - iLöb as "IH". wp_lam.
     wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
-    do 2 wp_pure _. by iApply "IH".
+    by wp_smart_apply "IH".
   - wp_alloc l1 as "Hl1". wp_alloc l2 as "Hl2".
     wp_send with "[$Hl1]". wp_send with "[$Hl2]".
     wp_recv as "Hl1". wp_recv as "Hl2".
