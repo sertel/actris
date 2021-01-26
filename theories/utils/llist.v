@@ -264,13 +264,13 @@ Lemma lreverse_at_spec l xs acc ys :
   {{{ l', RET #l'; llist I l' (reverse xs ++ ys) }}}.
 Proof.
   iIntros (Φ) "[Hl Hacc] HΦ".
-  iInduction xs as [|x xs] "IH" forall (l acc Φ ys).
-  - wp_lam. wp_load. wp_pures. iApply "HΦ". rewrite app_nil_l. iApply "Hacc".
-  - wp_lam. iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
+  iInduction xs as [|x xs] "IH" forall (l acc Φ ys); simpl; wp_lam.
+  - wp_load. wp_pures. iApply "HΦ". iApply "Hacc".
+  - iDestruct "Hl" as (v l') "[HI [Hl Hl']]".
     wp_load. wp_smart_apply (lcons_spec with "[$Hacc $HI]").
     iIntros "Hacc". wp_smart_apply ("IH" with "Hl' Hacc").
     iIntros (l'') "Hl''". iApply "HΦ".
-    rewrite reverse_cons -app_assoc. iApply "Hl''".
+    rewrite reverse_cons -assoc_L. iApply "Hl''".
 Qed.
 
 Lemma lreverse_spec l xs :
@@ -279,29 +279,25 @@ Lemma lreverse_spec l xs :
   {{{ RET #(); llist I l (reverse xs) }}}.
 Proof.
   iIntros (Φ) "Hl HΦ". wp_lam.
-  destruct xs.
+  destruct xs as [|x xs]; simpl.
   - wp_load. wp_alloc l' as "Hl'".
-    wp_smart_apply (lnil_spec)=> //.
+    wp_smart_apply (lnil_spec with "[//]").
     iIntros (lnil) "Hlnil".
     iAssert (llist I l' []) with "Hl'" as "Hl'".
     wp_smart_apply (lreverse_at_spec with "[$Hl' $Hlnil]").
     iIntros (l'') "Hl''".
-    wp_load. wp_store. iApply "HΦ". rewrite app_nil_r. iApply "Hl".
+    wp_load. wp_store. iApply "HΦ". rewrite right_id_L. iApply "Hl".
   - iDestruct "Hl" as (v lcons) "[HI [Hlcons Hrec]]".
     wp_load. wp_alloc l' as "Hl'".
-    wp_smart_apply (lnil_spec)=> //.
+    wp_smart_apply (lnil_spec with "[//]").
     iIntros (lnil) "Hlnil".
-    wp_smart_apply (lreverse_at_spec _ (a::xs) with "[Hl' HI Hrec Hlnil]").
-    { iFrame "Hlnil". iExists v, lcons. iFrame. }
-    iIntros (l'') "Hl''".
-    assert (∃ ys, ys = reverse (a :: xs)) as [ys Hys].
-    { by exists (reverse (a :: xs)). }
-    rewrite -Hys. destruct ys.
+    wp_smart_apply (lreverse_at_spec _ (x :: xs) with "[Hl' HI Hrec $Hlnil]").
+    { simpl; eauto with iFrame. }
+    iIntros (l'') "Hl''". rewrite right_id_L. destruct (reverse _) as [|y ys].
     + wp_load. wp_store. by iApply "HΦ".
     + simpl. iDestruct "Hl''" as (v' lcons') "[HI [Hcons Hrec]]".
       wp_load. wp_store.
-      iApply "HΦ". rewrite app_nil_r.
-      eauto with iFrame.
+      iApply "HΦ". eauto with iFrame.
 Qed.
 
 End lists.
