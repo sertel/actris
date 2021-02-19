@@ -66,10 +66,10 @@ Section subprotocol_basics.
   Proof.
     iIntros "H".
     iInduction (xs) as [|x xs] "IH" forall (v).
-    - eauto.
-    - iDestruct "H" as (v' Heq) "H".
-      iDestruct ("IH" with "H") as (ws) "[Hlist Heq]".
-      iExists (#x::ws)=> /=; eauto.
+    { iExists []; eauto. }
+    iDestruct "H" as (v' ->) "H".
+    iDestruct ("IH" with "H") as (ws) "[Hlist Heq]".
+    iExists (#x :: ws); simpl; eauto.
   Qed.
 
   Lemma list_length_example :
