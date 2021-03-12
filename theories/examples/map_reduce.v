@@ -265,7 +265,7 @@ Section mapper.
       wp_smart_apply ("IH" with "[ ] [//] [//] Hl Hcsort Hcred HImiy"); first done.
       iIntros (zs'); iDestruct 1 as (Hzs) "HIC"; simplify_eq/=.
       iApply ("HΦ" $! (zs' ++ red i ys)). iSplit; last by rewrite -assoc_L.
-      iPureIntro. rewrite (gmultiset_disj_union_difference {[ i,ys ]} Y)
+      iPureIntro. rewrite (gmultiset_disj_union_difference {[ (i,ys) ]} Y)
         -?gmultiset_elem_of_singleton_subseteq //.
       rewrite (comm_L disj_union) gmultiset_elements_disj_union.
       rewrite gmultiset_elements_singleton assoc_L Hzs !bind_app /=.
