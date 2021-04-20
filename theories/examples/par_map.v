@@ -72,12 +72,12 @@ Section map.
       nat -d> gmultiset A -d> iProto Σ := λ i X,
     let rec : nat → gmultiset A → iProto Σ := rec in
     (if i is 0 then END else
-     ((<! x v> MSG v {{ IA x v }}; rec i (X ⊎ {[ x ]}))
+     ((<! x v> MSG v {{ IA x v }}; rec i (X ⊎ {[+ x +]}))
         <+>
       rec (pred i) X
      ) <{⌜ i ≠ 1 ∨ X = ∅ ⌝}&>
          <? x (l : loc)> MSG #l {{ ⌜ x ∈ X ⌝ ∗ llist IB l (map x) }};
-         rec i (X ∖ {[ x ]}))%proto.
+         rec i (X ∖ {[+ x +]}))%proto.
   Instance par_map_protocol_aux_contractive : Contractive par_map_protocol_aux.
   Proof. solve_proper_prepare. f_equiv. solve_proto_contractive. Qed.
   Definition par_map_protocol := fixpoint par_map_protocol_aux.
@@ -109,7 +109,7 @@ Section map.
       iIntros "_". by iApply "HΦ". }
     wp_recv (x v) as "HI".
     iMod (@update_client with "Hs Hγ") as "[Hs Hγ]".
-    { apply (gmultiset_local_update_alloc _ _ {[ x ]}). }
+    { apply (gmultiset_local_update_alloc _ _ {[+ x +]}). }
     rewrite left_id_L.
     wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
@@ -118,10 +118,9 @@ Section map.
     iDestruct "H" as (i X) "[Hs Hc]".
     iDestruct (@server_agree with "Hs Hγ")
       as %[??%gmultiset_included]; destruct i as [|i]=>//=.
-    wp_select. wp_send with "[$HI]".
-    { by rewrite gmultiset_elem_of_singleton_subseteq. }
+    wp_select. wp_send with "[$HI]"; first (iPureIntro; multiset_solver).
     iMod (@update_client with "Hs Hγ") as "[Hs Hγ]".
-    { by apply (gmultiset_local_update_dealloc _ _ {[ x ]}). }
+    { by apply (gmultiset_local_update_dealloc _ _ {[+ x +]}). }
     rewrite gmultiset_difference_diag.
     wp_smart_apply (release_spec with "[$Hlk $Hl Hc Hs]").
     { iExists (S i), _. iFrame. }
@@ -187,7 +186,7 @@ Section map.
       wp_smart_apply ("IH" with "[] Hl Hk Hc"); first done.
       iIntros (ys'); iDestruct 1 as (Hys) "Hk"; simplify_eq/=.
       iApply ("HΦ" $! (ys' ++ map x)). iSplit.
-      + iPureIntro. rewrite (gmultiset_disj_union_difference {[ x ]} X)
+      + iPureIntro. rewrite (gmultiset_disj_union_difference {[+ x +]} X)
           -?gmultiset_elem_of_singleton_subseteq //.
         rewrite (comm_L disj_union) gmultiset_elements_disj_union.
         by rewrite gmultiset_elements_singleton assoc_L bind_app -Hys /= right_id_L.
