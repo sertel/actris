@@ -2,16 +2,21 @@ From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From actris.channel Require Import proofmode.
 From actris.utils Require Import syntax_facts.
 
-
 Lemma subst_map_agree_weaken e X m1 m2 :
   is_closed_expr_set X e →
   dom stringset m1 = X →
   m1 ⊆ m2 →
   subst_map m1 e = subst_map m2 e.
-Proof. Admitted.
-(*     assert (is_closed_expr_set ({[x]} ∪ dom stringset Δ1) e1 *)
-(* subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e1 *)
-(*             = subst_map (<[x:=c]> cs1) e1) as ->. *)
+Proof.
+  intros HXe Hdom Hsub.
+  eapply subst_map_agree_on_dom; eauto.
+  eapply map_filter_strong_ext.
+  rewrite -Hdom. intros i x.
+  revert Hsub. rewrite map_subseteq_spec.
+  rewrite elem_of_dom. set_unfold.
+  intros Hh. split; first naive_solver.
+  intros [[y Hy] Hx]. rewrite Hy. naive_solver.
+Qed.
 
 Lemma subst_map_fact_0 m1 m2 x y xv yv e :
   is_closed_expr_set ({[x]} ∪ dom stringset m1) e →
@@ -123,8 +128,31 @@ Proof.
   iDestruct "H" as (Hk) "H".
 Admitted.
 
+(* Attempt to prove that [cs2 !! y = None] *)
+Ltac assert_not_in_map cs2 y :=
+  assert (cs2 !! y = None);
+  first (eapply not_elem_of_dom;
+         repeat match goal with
+         | [ H : _ = dom _ cs2 |- _ ] => rewrite -H
+         | [ H : dom _ cs2 = _ |- _ ] => rewrite H
+         | [ H : ?Δ !! y = None |- context[dom stringset ?Δ] ] =>
+           eapply not_elem_of_dom in H
+         end;
+         try set_solver); eauto.
 
+Ltac assert_in_map_ cs y yv Hyv :=
+  assert (is_Some (cs !! y)) as [yv Hyv];
+  first (eapply elem_of_dom;
+         repeat match goal with
+         | [ H : _ = dom _ cs |- _ ] => rewrite -H
+         | [ H : dom _ cs = _ |- _ ] => rewrite H
+         | [ H : ?Δ !! y = None |- context[dom stringset ?Δ] ] =>
+           eapply not_elem_of_dom in H
+         end; try set_solver).
 
+Ltac assert_in_map cs y :=
+  let yv := fresh "y" in let Hyv := fresh "Hy" in
+  assert_in_map_ cs y yv Hyv.
 
 Lemma cut_ Δ1 Δ2 (x y : string) τ1 τ2 e1 e2 :
   x ≠ y →
@@ -145,9 +173,9 @@ Proof.
   { by rewrite big_sepM2_dom. }
   iAssert (⌜dom stringset Δ2 = dom stringset cs2⌝)%I as %Hdom2.
   { by rewrite (big_sepM2_dom _ Δ2). }
-  destruct (cs1 !! y) as [cy|] eqn:Hcs1.
-  { exfalso. eapply not_elem_of_dom in Hy1. eapply Hy1.
-    rewrite Hdom1. eapply elem_of_dom. eauto. }
+
+  assert_not_in_map cs1 y.
+  assert_not_in_map cs2 y.
 
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ]").
   { iNext. iIntros (c) "Hc".
@@ -172,9 +200,7 @@ Proof.
        = subst_map (<[x:=xc]> (<[y:=oy]> (cs1 ∪ cs2))) e2); first by intros ->.
   rewrite insert_commute//.
   eapply subst_map_fact_2; eauto.
-  { by rewrite -Hdom2. }
-  eapply not_elem_of_dom. rewrite -Hdom2.
-  by eapply not_elem_of_dom.
+  by rewrite -Hdom2.
 Qed.
 
 Lemma tone_right (x : string) :
@@ -198,22 +224,21 @@ Proof.
   rewrite lookup_insert_ne//.
   iAssert (⌜dom stringset (<[y:=1%ty]>Δ) = dom stringset cs⌝)%I as %Hdom1.
   { by rewrite big_sepM2_dom. }
-  destruct (cs !! y) as [cy|] eqn:Hcs; last first.
-  { rewrite big_sepM2_dom. iDestruct "Hcs" as %Hcsdom.
-    exfalso. eapply (not_elem_of_dom cs y); eauto.
-    rewrite -Hcsdom. set_solver. }
+
+  assert_in_map_ cs y cy Hcy.
+
   assert (cs = <[y:=cy]>(delete y cs)) as ->.
   { by rewrite insert_delete insert_id//. }
   rewrite big_sepM2_insert; eauto; last first.
   { eapply lookup_delete. }
   iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
+  rewrite lookup_insert.
   wp_recv as "_". wp_pures.
   iSpecialize ("IH" $! o (delete y cs) with "Hcs Ho").
   cut (subst_map (<[x:=o]> (delete y cs)) e
        = subst_map (<[x:=o]> (<[y:=cy]> (delete y cs))) e); first by intros ->.
   eapply subst_map_agree_weaken; eauto.
-  { rewrite dom_insert_L dom_delete_L -Hdom1 dom_insert_L.
-    f_equiv. assert (y ∉ dom stringset Δ).
+  { assert (y ∉ dom stringset Δ).
     { by eapply not_elem_of_dom. }
     set_unfold. naive_solver. }
   eapply insert_mono. eapply insert_subseteq.
@@ -270,17 +295,11 @@ Proof.
   iAssert (⌜dom stringset Δ' = dom stringset cs2⌝)%I as %Hdom2.
   { by rewrite (big_sepM2_dom _ _ cs2). }
 
-  destruct (cs1 !! x) as [xc|] eqn:Hcs; last first.
-  { rewrite big_sepM2_dom. iDestruct "HΔ" as %Hcsdom.
-    exfalso. eapply (not_elem_of_dom cs1 x); eauto.
-    rewrite -Hcsdom. set_solver. }
-  destruct (cs1 !! y) as [cy|] eqn:Hcs1.
-  { exfalso. eapply not_elem_of_dom in Hy. eapply Hy.
-    eapply elem_of_dom_2 in Hcs1. rewrite -Hdom1 in Hcs1.
-    set_solver. }
-  destruct (cs2 !! y) as [cy|] eqn:Hcs2.
-  { exfalso. eapply not_elem_of_dom in Hy'. eapply Hy'.
-    eapply elem_of_dom_2 in Hcs2. by rewrite Hdom2. }
+
+  assert_in_map cs1 x.
+
+  assert_not_in_map cs1 y.
+  assert_not_in_map cs2 y.
 
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ']").
   { iNext. iIntros (c) "Hc".
@@ -300,7 +319,7 @@ Proof.
 
   iIntros (yc) "Hy". wp_pures.
   case_decide; last naive_solver.
-  rewrite (lookup_union_Some_l _ _ x xc) //.
+  rewrite (lookup_union_Some_l _ _ x y0) //.
   rewrite big_sepM2_insert_acc //; last first.
   { eapply lookup_insert. }
   iDestruct "HΔ" as "[Hx Hcs]".
@@ -321,31 +340,51 @@ Qed.
 Lemma ttimes_right (Δ Δ' : tyctx) τ1 τ2 e e' (x y : string) :
   x ≠ y →
   Δ ##ₘ Δ' →
+  Δ !! y = None →
+  Δ' !! y = None →
+  Δ !! x = None →
+  Δ' !! x = None →
+  is_closed_expr_set ({[x]} ∪ dom stringset Δ) e →
+  is_closed_expr_set ({[y]} ∪ dom stringset Δ') e' →
   (Δ ⊢ₗ e : (x : τ1)) -∗
   (Δ' ⊢ₗ e' : (y : τ2)) -∗
   (Δ ∪ Δ' ⊢ₗ (let: x := start_chan (λ: x, e) in
               send y x;;
               e') : (y : τ1 ⊗ τ2)).
 Proof.
-  intros Hxy HΔ. iIntros "H1 H2". iIntros (oy cs) "HΔ Hoy". wp_pures.
+  intros Hxy HΔ Hy1 Hy2 Hx1 Hx2 Hcle Hcle'. iIntros "H1 H2". iIntros (oy cs) "HΔ Hoy". wp_pures.
   rewrite lookup_delete_ne// !lookup_delete lookup_insert.
   simpl.
   rewrite big_sepM2_union_l //.
-  iDestruct "HΔ" as (cs1 cs2 Hcs) "[HΔ HΔ']".
+  iDestruct "HΔ" as (cs1 cs2 Hcs ->) "[HΔ HΔ']".
+
+  iAssert (⌜dom stringset Δ = dom stringset cs1⌝)%I as %Hdom1.
+  { by rewrite big_sepM2_dom. }
+  iAssert (⌜dom stringset Δ' = dom stringset cs2⌝)%I as %Hdom2.
+  { by rewrite (big_sepM2_dom _ Δ'). }
+  assert_not_in_map cs1 y.
+  assert_not_in_map cs2 y.
+  assert_not_in_map cs1 x.
+  assert_not_in_map cs2 x.
 
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ]").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
     iSpecialize ("H1" $! c cs1 with "HΔ Hc").
     rewrite -subst_map_insert.
-    (* need additional information about the closedness of [e], and cs1 ⊑ cs *)
-    admit. }
+    assert (subst_map (<[x:=c]> cs1) e
+         = subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e) as ->.
+    { eapply subst_map_fact_0; eauto.
+      by rewrite -Hdom1. }
+    iApply (wp_wand with "H1"); eauto. }
   iIntros (xc) "Hxc". wp_pures.
   case_decide; last naive_solver.
   wp_send with "[$Hxc]". wp_pures.
   iSpecialize ("H2" with "HΔ' Hoy").
-  rewrite -subst_map_insert. admit.
-Admitted.
+  rewrite -subst_map_insert. rewrite insert_commute //.
+  rewrite -(subst_map_fact_1 cs1 cs2 y x)//.
+  by rewrite -Hdom2.
+Qed.
 
 Lemma ttimes_left (Δ : tyctx) τ1 τ2 (x y : string) (c : string) σ e :
   x ≠ y →
@@ -359,12 +398,12 @@ Proof.
   intros Hxy Hxc Hyc Hx Hy. iIntros "IH".
   iIntros (o cs) "Hcs Ho". simpl.
   rewrite lookup_insert_ne//.
-  destruct (cs !! x) as [cx|] eqn:Hcs; last first.
-  { rewrite big_sepM2_dom. iDestruct "Hcs" as %Hcsdom.
-    exfalso. admit. }
-  destruct (cs !! y) as [cy|] eqn:Hcs2.
-  { rewrite big_sepM2_dom. iDestruct "Hcs" as %Hcsdom.
-    exfalso. admit. }
+
+  iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs⌝)%I as %Hdom.
+  { by rewrite (big_sepM2_dom _ _ cs) dom_insert_L. }
+
+  assert_in_map_ cs x cx Hcx. rewrite Hcx.
+  assert_not_in_map cs y.
   rewrite big_sepM2_insert_acc; eauto; last first.
   { eapply lookup_insert. }
   iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
@@ -383,4 +422,4 @@ Proof.
   replace (map_insert x cx cs) with (<[x:=cx]>cs) by reflexivity.
   rewrite (insert_id cs)//.
   rewrite insert_commute//.
-Admitted.
+Qed.
