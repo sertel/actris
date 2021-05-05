@@ -14,6 +14,7 @@ theories/utils/contribution.v
 theories/utils/group.v
 theories/utils/cofe_solver_2.v
 theories/utils/switch.v
+theories/utils/syntax_facts.v
 theories/channel/proto_model.v
 theories/channel/proto.v
 theories/channel/channel.v
