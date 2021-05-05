@@ -1,90 +1,59 @@
 From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From actris.channel Require Import proofmode.
-From iris.heap_lang Require Import metatheory.
+From actris.utils Require Import syntax_facts.
 
-Definition maybe_insert_binder (x : binder) (X : stringset) : stringset :=
-  match x with
-  | BAnon => X
-  | BNamed f => {[f]} ∪ X
-  end.
 
-Fixpoint is_closed_expr_set (X : stringset) (e : expr) : bool :=
-  match e with
-  | Val v => is_closed_val_set v
-  | Var x => bool_decide (x ∈ X)
-  | Rec f x e => is_closed_expr_set (maybe_insert_binder f (maybe_insert_binder x X)) e
-  | UnOp _ e | Fst e | Snd e | InjL e | InjR e | Fork e | Free e | Load e =>
-     is_closed_expr_set X e
-  | App e1 e2 | BinOp _ e1 e2 | Pair e1 e2 | AllocN e1 e2 | Store e1 e2 | FAA e1 e2 =>
-     is_closed_expr_set X e1 && is_closed_expr_set X e2
-  | If e0 e1 e2 | Case e0 e1 e2 | CmpXchg e0 e1 e2 | Resolve e0 e1 e2 =>
-     is_closed_expr_set X e0 && is_closed_expr_set X e1 && is_closed_expr_set X e2
-  | NewProph => true
-  end
-with is_closed_val_set (v : val) : bool :=
-  match v with
-  | LitV _ => true
-  | RecV f x e => is_closed_expr_set (maybe_insert_binder f (maybe_insert_binder x ∅)) e
-  | PairV v1 v2 => is_closed_val_set v1 && is_closed_val_set v2
-  | InjLV v | InjRV v => is_closed_val_set v
-  end.
-
-Lemma is_closed_expr_permute (e : expr) (xs ys : list string) :
-  xs ≡ₚ ys →
-  is_closed_expr xs e = is_closed_expr ys e.
-Proof.
-  revert xs ys. induction e=>xs ys Hxsys /=;
-    repeat match goal with
-    | [ |- _ && _ = _ && _ ] => f_equal
-    | [ H : ∀ xs ys, xs ≡ₚ ys → is_closed_expr xs _ = is_closed_expr ys _
-      |- is_closed_expr _ _ = is_closed_expr _ _ ] => eapply H; eauto
-    end; try done.
-  - apply bool_decide_iff. by rewrite Hxsys.
-  - by rewrite Hxsys.
-Qed.
-
-Global Instance is_closed_expr_proper : Proper (Permutation ==> eq ==> eq) is_closed_expr.
-Proof.
-  intros X1 X2 HX x y ->. by eapply is_closed_expr_permute.
-Qed.
-
-Lemma is_closed_expr_set_sound (X : stringset) (e : expr) :
-  is_closed_expr_set X e → is_closed_expr (elements X) e
-with is_closed_val_set_sound (v : val) :
-  is_closed_val_set v → is_closed_val v.
-Proof.
-  - induction e; simplify_eq/=; try by (intros; destruct_and?; split_and?; eauto).
-    + intros. case_bool_decide; last done.
-      by apply bool_decide_pack, elem_of_elements.
-    + destruct f as [|f], x as [|x]; simplify_eq/=.
-      * eapply IHe.
-      * intros H%is_closed_expr_set_sound.
-        eapply is_closed_weaken; eauto. by set_solver.
-      * intros H%is_closed_expr_set_sound.
-        eapply is_closed_weaken; eauto. by set_solver.
-      * intros H%is_closed_expr_set_sound.
-        eapply is_closed_weaken; eauto. by set_solver.
-  - induction v; simplify_eq/=; try naive_solver.
-    destruct f as [|f], x as [|x]; simplify_eq/=;
-      intros H%is_closed_expr_set_sound; revert H.
-    + set_solver.
-    + by rewrite ?right_id_L elements_singleton.
-    + by rewrite ?right_id_L elements_singleton.
-    + rewrite ?right_id_L.
-      intros. eapply is_closed_weaken; eauto.
-      destruct (decide (f = x)) as [->|?].
-      * rewrite union_idemp_L elements_singleton.
-        set_solver.
-      * rewrite elements_disj_union; last set_solver.
-        rewrite !elements_singleton. set_solver.
-Qed.
-
-Lemma subst_map_subseteq md m1 m2 e :
-  is_closed_expr_set (dom _ md) e →
-  md ⊆ m1 →
+Lemma subst_map_agree_weaken e X m1 m2 :
+  is_closed_expr_set X e →
+  dom stringset m1 = X →
   m1 ⊆ m2 →
   subst_map m1 e = subst_map m2 e.
 Proof. Admitted.
+(*     assert (is_closed_expr_set ({[x]} ∪ dom stringset Δ1) e1 *)
+(* subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e1 *)
+(*             = subst_map (<[x:=c]> cs1) e1) as ->. *)
+
+Lemma subst_map_fact_0 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x]} ∪ dom stringset m1) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  subst_map (<[x:=xv]> m1) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2.
+  eapply subst_map_agree_weaken; eauto.
+  - by rewrite dom_insert_L.
+  - eapply insert_mono. etrans; first by eapply map_union_subseteq_l.
+    eapply insert_subseteq.
+    eapply lookup_union_None. naive_solver.
+Qed.
+
+Lemma subst_map_fact_1 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x]} ∪ dom stringset m2) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  m1 ##ₘ m2 →
+  subst_map (<[x:=xv]> m2) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2 ?.
+  eapply subst_map_agree_weaken; eauto.
+  - by rewrite dom_insert_L.
+  - eapply insert_mono. etrans; first by eapply map_union_subseteq_r.
+    eapply insert_subseteq.
+    eapply lookup_union_None. naive_solver.
+Qed.
+
+Lemma subst_map_fact_2 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x;y]} ∪ dom stringset m2) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  m1 ##ₘ m2 →
+  subst_map (<[x:=xv]> (<[y:=yv]>m2)) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2 ?.
+  eapply subst_map_agree_weaken; eauto.
+  - rewrite !dom_insert_L. set_solver.
+  - do 2 eapply insert_mono. by eapply map_union_subseteq_r.
+Qed.
 
 
 Inductive ty :=
@@ -176,29 +145,36 @@ Proof.
   { by rewrite big_sepM2_dom. }
   iAssert (⌜dom stringset Δ2 = dom stringset cs2⌝)%I as %Hdom2.
   { by rewrite (big_sepM2_dom _ Δ2). }
+  destruct (cs1 !! y) as [cy|] eqn:Hcs1.
+  { exfalso. eapply not_elem_of_dom in Hy1. eapply Hy1.
+    rewrite Hdom1. eapply elem_of_dom. eauto. }
+
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ]").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
     iSpecialize ("H1" $! c cs1 with "HΔ Hc").
     rewrite -subst_map_insert.
-    rewrite (subst_map_subseteq (<[x:=c]>cs1) (<[x:=c]>cs1) (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))))//.
-    - iApply (wp_wand with "H1"). eauto.
-    - revert Hclosed1. by rewrite dom_insert_L Hdom1.
-    - eapply insert_mono. etrans; first by eapply map_union_subseteq_l.
-      eapply insert_subseteq.
-      eapply not_elem_of_dom.
-      rewrite dom_union_L -Hdom1 -Hdom2.
-      rewrite not_elem_of_union. rewrite !not_elem_of_dom. naive_solver. }
+    - assert (subst_map (<[x:=c]> cs1) e1
+              = subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e1) as ->.
+      { eapply subst_map_agree_weaken; eauto.
+        - by rewrite Hdom1 dom_insert_L.
+        - eapply insert_mono.
+          rewrite insert_union_l. etrans; last eapply map_union_subseteq_l.
+          eapply insert_subseteq.
+          eapply not_elem_of_dom. rewrite -Hdom1.
+          by eapply not_elem_of_dom. }
+      iApply (wp_wand with "H1"). eauto. }
   iIntros (xc) "Hx". wp_pures.
   iSpecialize ("H2" $! _ (<[x:=xc]>cs2) with "[HΔ' Hx] Hoy").
   { iApply (big_sepM2_insert_2 with "[Hx]"); eauto. }
   rewrite -subst_map_insert.
-  rewrite (subst_map_subseteq (<[y:=oy]> (<[x:=xc]> cs2)) (<[y:=oy]> (<[x:=xc]> cs2)) (<[x:=xc]> (<[y:=oy]> (cs1 ∪ cs2))))//.
-  { revert Hclosed2.
-    rewrite !dom_insert_L. rewrite assoc_L. rewrite (comm_L _ {[y]} {[x]}).
-    by rewrite Hdom2. }
-  rewrite insert_commute //.
-  do 2 eapply insert_mono. eapply map_union_subseteq_r. done.
+  cut (subst_map (<[y:=oy]> (<[x:=xc]> cs2)) e2
+       = subst_map (<[x:=xc]> (<[y:=oy]> (cs1 ∪ cs2))) e2); first by intros ->.
+  rewrite insert_commute//.
+  eapply subst_map_fact_2; eauto.
+  { by rewrite -Hdom2. }
+  eapply not_elem_of_dom. rewrite -Hdom2.
+  by eapply not_elem_of_dom.
 Qed.
 
 Lemma tone_right (x : string) :
@@ -213,15 +189,19 @@ Qed.
 Lemma tone_left (x y : string) e Δ τ  :
   x ≠ y →
   Δ !! y = None →
+  is_closed_expr_set ({[x]} ∪ dom _ Δ) e →
   (Δ ⊢ₗ e : (x : τ)) -∗
   (<[y:=1]>Δ) ⊢ₗ (recv y;; e) : (x : τ).
 Proof.
-  iIntros (Hxy HΔ) "IH".
+  iIntros (Hxy HΔ Hdome) "IH".
   iIntros (o cs) "Hcs Ho". simpl.
   rewrite lookup_insert_ne//.
+  iAssert (⌜dom stringset (<[y:=1%ty]>Δ) = dom stringset cs⌝)%I as %Hdom1.
+  { by rewrite big_sepM2_dom. }
   destruct (cs !! y) as [cy|] eqn:Hcs; last first.
   { rewrite big_sepM2_dom. iDestruct "Hcs" as %Hcsdom.
-    exfalso. admit. }
+    exfalso. eapply (not_elem_of_dom cs y); eauto.
+    rewrite -Hcsdom. set_solver. }
   assert (cs = <[y:=cy]>(delete y cs)) as ->.
   { by rewrite insert_delete insert_id//. }
   rewrite big_sepM2_insert; eauto; last first.
@@ -229,8 +209,16 @@ Proof.
   iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
   wp_recv as "_". wp_pures.
   iSpecialize ("IH" $! o (delete y cs) with "Hcs Ho").
-  admit.
-Admitted.
+  cut (subst_map (<[x:=o]> (delete y cs)) e
+       = subst_map (<[x:=o]> (<[y:=cy]> (delete y cs))) e); first by intros ->.
+  eapply subst_map_agree_weaken; eauto.
+  { rewrite dom_insert_L dom_delete_L -Hdom1 dom_insert_L.
+    f_equiv. assert (y ∉ dom stringset Δ).
+    { by eapply not_elem_of_dom. }
+    set_unfold. naive_solver. }
+  eapply insert_mono. eapply insert_subseteq.
+  eapply lookup_delete.
+Qed.
 
 Lemma tlolli_right (Δ : tyctx) τ1 τ2 e (x y : string) :
   x ≠ y →
@@ -256,34 +244,63 @@ Lemma tlolli_left (Δ Δ' : tyctx) τ1 τ2 e1 e2 σ (x y z : string) :
   y ≠ z →
   Δ !! x = None →
   Δ' !! x = None →
+  Δ !! y = None →
+  Δ' !! y = None →
+  Δ !! z = None →
+  Δ' !! z = None →
   Δ ##ₘ Δ' →
+  is_closed_expr_set ({[y]} ∪ dom stringset Δ') e1 →
+  is_closed_expr_set ({[x;z]} ∪ dom stringset Δ) e2 →
   (Δ' ⊢ₗ e1 : (y : τ1)) -∗
   (<[x:=τ2]>Δ ⊢ₗ e2 : (z : σ)) -∗
   ((<[x:=τ1 ⊸ τ2]>Δ) ∪ Δ' ⊢ₗ (let: y := start_chan (λ: y, e1) in send x y;; e2) : (z : σ)).
 Proof.
-  intros Hxy Hxz Hyz Hx Hx' HΔ. iIntros "H1 H2".
+  intros Hxy Hxz Hyz Hx Hx' Hy Hy' Hz Hz' HΔ He1 He2. iIntros "H1 H2".
   iIntros (o cs) "Hcs Ho". simpl.
   rewrite lookup_delete.
   rewrite !lookup_delete_ne//.
   rewrite lookup_insert_ne//.
 
   rewrite big_sepM2_union_l //; last first.
-  { admit. }
+  { by eapply map_disjoint_insert_l_2. }
   iDestruct "Hcs" as (cs1 cs2 Hcs' ->) "[HΔ HΔ']".
+  iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs1⌝)%I as %Hdom1.
+  { rewrite (big_sepM2_dom _ _ cs1). iDestruct "HΔ" as %Hfoo.
+    iPureIntro. revert Hfoo. rewrite dom_insert_L. done. }
+  iAssert (⌜dom stringset Δ' = dom stringset cs2⌝)%I as %Hdom2.
+  { by rewrite (big_sepM2_dom _ _ cs2). }
+
+  destruct (cs1 !! x) as [xc|] eqn:Hcs; last first.
+  { rewrite big_sepM2_dom. iDestruct "HΔ" as %Hcsdom.
+    exfalso. eapply (not_elem_of_dom cs1 x); eauto.
+    rewrite -Hcsdom. set_solver. }
+  destruct (cs1 !! y) as [cy|] eqn:Hcs1.
+  { exfalso. eapply not_elem_of_dom in Hy. eapply Hy.
+    eapply elem_of_dom_2 in Hcs1. rewrite -Hdom1 in Hcs1.
+    set_solver. }
+  destruct (cs2 !! y) as [cy|] eqn:Hcs2.
+  { exfalso. eapply not_elem_of_dom in Hy'. eapply Hy'.
+    eapply elem_of_dom_2 in Hcs2. by rewrite Hdom2. }
+
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ']").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
     iSpecialize ("H1" $! c cs2 with "HΔ' Hc").
     rewrite -subst_map_insert.
-    admit. }
+    cut (subst_map (<[y:=c]> cs2) e1
+         = subst_map (<[y:=c]> (<[z:=o]> (cs1 ∪ cs2))) e1); first intros ->.
+    { iApply (wp_wand with "H1"); eauto. }
+    eapply subst_map_fact_1; eauto.
+    - by rewrite -Hdom2.
+    - eapply not_elem_of_dom. rewrite -Hdom1.
+      eapply not_elem_of_dom in Hz.
+      set_solver.
+    - eapply not_elem_of_dom. rewrite -Hdom2.
+      by eapply not_elem_of_dom. }
 
   iIntros (yc) "Hy". wp_pures.
   case_decide; last naive_solver.
-
-  destruct (cs1 !! x) as [xc|] eqn:Hcs; last first.
-  { rewrite big_sepM2_dom. iDestruct "HΔ" as %Hcsdom.
-    exfalso. admit. }
-  rewrite (lookup_union_Some_l cs1 cs2 x xc) //.
+  rewrite (lookup_union_Some_l _ _ x xc) //.
   rewrite big_sepM2_insert_acc //; last first.
   { eapply lookup_insert. }
   iDestruct "HΔ" as "[Hx Hcs]".
@@ -293,8 +310,12 @@ Proof.
   iSpecialize ("Hcs" with "Hx").
   rewrite insert_insert (insert_id cs1)//.
   iSpecialize ("H2" $! o cs1 with "Hcs Ho").
-  rewrite -subst_map_insert. admit.
-Admitted.
+  rewrite -subst_map_insert. rewrite insert_commute//.
+  cut (subst_map (<[z:=o]> cs1) e2
+       = subst_map (<[z:=o]> (<[y:=yc]> (cs1 ∪ cs2))) e2); first by intros ->.
+  eapply subst_map_fact_0; eauto.
+  rewrite -Hdom1. rewrite union_assoc_L. by rewrite (union_comm_L {[z]}).
+Qed.
 
 
 Lemma ttimes_right (Δ Δ' : tyctx) τ1 τ2 e e' (x y : string) :
