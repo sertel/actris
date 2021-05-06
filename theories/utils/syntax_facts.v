@@ -1,6 +1,8 @@
 From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From iris.heap_lang Require Export lang notation metatheory.
-
+From iris.proofmode Require tactics.
+From iris.bi Require Import big_op.
+From iris.bi Require Import derived_laws_later.
 
 (* Useful lemma for map_filter *)
 Section map_filter_ext.
