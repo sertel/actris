@@ -162,3 +162,62 @@ Proof.
           move: Hm1. rewrite !lookup_delete_ne //.
           naive_solver. }
 Qed.
+
+
+Lemma subst_map_agree_weaken e X m1 m2 :
+  is_closed_expr_set X e →
+  dom stringset m1 = X →
+  m1 ⊆ m2 →
+  subst_map m1 e = subst_map m2 e.
+Proof.
+  intros HXe Hdom Hsub.
+  eapply subst_map_agree_on_dom; eauto.
+  eapply map_filter_strong_ext.
+  rewrite -Hdom. intros i x.
+  revert Hsub. rewrite map_subseteq_spec.
+  rewrite elem_of_dom. set_unfold.
+  intros Hh. split; first naive_solver.
+  intros [[y Hy] Hx]. rewrite Hy. naive_solver.
+Qed.
+
+Lemma subst_map_fact_0 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x]} ∪ dom stringset m1) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  subst_map (<[x:=xv]> m1) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2.
+  eapply subst_map_agree_weaken; eauto.
+  - by rewrite dom_insert_L.
+  - eapply insert_mono. etrans; first by eapply map_union_subseteq_l.
+    eapply insert_subseteq.
+    eapply lookup_union_None. naive_solver.
+Qed.
+
+Lemma subst_map_fact_1 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x]} ∪ dom stringset m2) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  m1 ##ₘ m2 →
+  subst_map (<[x:=xv]> m2) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2 ?.
+  eapply subst_map_agree_weaken; eauto.
+  - by rewrite dom_insert_L.
+  - eapply insert_mono. etrans; first by eapply map_union_subseteq_r.
+    eapply insert_subseteq.
+    eapply lookup_union_None. naive_solver.
+Qed.
+
+Lemma subst_map_fact_2 m1 m2 x y xv yv e :
+  is_closed_expr_set ({[x;y]} ∪ dom stringset m2) e →
+  m1 !! y = None →
+  m2 !! y = None →
+  m1 ##ₘ m2 →
+  subst_map (<[x:=xv]> (<[y:=yv]>m2)) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
+Proof.
+  intros Hcl Hy1 Hy2 ?.
+  eapply subst_map_agree_weaken; eauto.
+  - rewrite !dom_insert_L. set_solver.
+  - do 2 eapply insert_mono. by eapply map_union_subseteq_r.
+Qed.

@@ -2,68 +2,11 @@ From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From actris.channel Require Import proofmode.
 From actris.utils Require Import syntax_facts.
 
-Lemma subst_map_agree_weaken e X m1 m2 :
-  is_closed_expr_set X e →
-  dom stringset m1 = X →
-  m1 ⊆ m2 →
-  subst_map m1 e = subst_map m2 e.
-Proof.
-  intros HXe Hdom Hsub.
-  eapply subst_map_agree_on_dom; eauto.
-  eapply map_filter_strong_ext.
-  rewrite -Hdom. intros i x.
-  revert Hsub. rewrite map_subseteq_spec.
-  rewrite elem_of_dom. set_unfold.
-  intros Hh. split; first naive_solver.
-  intros [[y Hy] Hx]. rewrite Hy. naive_solver.
-Qed.
-
-Lemma subst_map_fact_0 m1 m2 x y xv yv e :
-  is_closed_expr_set ({[x]} ∪ dom stringset m1) e →
-  m1 !! y = None →
-  m2 !! y = None →
-  subst_map (<[x:=xv]> m1) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
-Proof.
-  intros Hcl Hy1 Hy2.
-  eapply subst_map_agree_weaken; eauto.
-  - by rewrite dom_insert_L.
-  - eapply insert_mono. etrans; first by eapply map_union_subseteq_l.
-    eapply insert_subseteq.
-    eapply lookup_union_None. naive_solver.
-Qed.
-
-Lemma subst_map_fact_1 m1 m2 x y xv yv e :
-  is_closed_expr_set ({[x]} ∪ dom stringset m2) e →
-  m1 !! y = None →
-  m2 !! y = None →
-  m1 ##ₘ m2 →
-  subst_map (<[x:=xv]> m2) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
-Proof.
-  intros Hcl Hy1 Hy2 ?.
-  eapply subst_map_agree_weaken; eauto.
-  - by rewrite dom_insert_L.
-  - eapply insert_mono. etrans; first by eapply map_union_subseteq_r.
-    eapply insert_subseteq.
-    eapply lookup_union_None. naive_solver.
-Qed.
-
-Lemma subst_map_fact_2 m1 m2 x y xv yv e :
-  is_closed_expr_set ({[x;y]} ∪ dom stringset m2) e →
-  m1 !! y = None →
-  m2 !! y = None →
-  m1 ##ₘ m2 →
-  subst_map (<[x:=xv]> (<[y:=yv]>m2)) e = subst_map (<[x:=xv]>(<[y:=yv]> (m1 ∪ m2))) e.
-Proof.
-  intros Hcl Hy1 Hy2 ?.
-  eapply subst_map_agree_weaken; eauto.
-  - rewrite !dom_insert_L. set_solver.
-  - do 2 eapply insert_mono. by eapply map_union_subseteq_r.
-Qed.
-
-
 Inductive ty :=
 | tone : ty
 | totimes : ty -> ty -> ty
+| toplus : ty → ty → ty
+| twith : ty → ty → ty
 | tlolli : ty -> ty -> ty
 .
 
@@ -71,9 +14,9 @@ Declare Scope FType_scope.
 Delimit Scope FType_scope with ty.
 Bind Scope FType_scope with ty.
 Notation "1" := tone : FType_scope.
-(* Infix "⊕" := toplus (at level 11, right associativity) : FType_scope. *)
+Infix "⊕" := toplus (at level 11, right associativity) : FType_scope.
 Infix "⊗" := totimes (at level 11, right associativity) : FType_scope.
-(* Infix "&" := twith (at level 11, right associativity) : FType_scope. *)
+Infix "&" := twith (at level 11, right associativity) : FType_scope.
 Infix "⊸" := tlolli (at level 11, right associativity) : FType_scope.
 
 Section interp.
@@ -83,6 +26,8 @@ Fixpoint interp_ty (τ : ty) : iProto Σ :=
   match τ with
   | 1%ty => (<!> MSG #(); END)%proto
   | (τ1 ⊗ τ2)%ty => (<! c> MSG c {{ ▷ c ↣ iProto_dual (interp_ty τ1) }}; interp_ty τ2)%proto
+  | (τ1 ⊕ τ2)%ty => iProto_choice Send True True (interp_ty τ1) (interp_ty τ2)
+  | (τ1 & τ2)%ty => iProto_choice Recv True True (interp_ty τ1) (interp_ty τ2)
   | (τ1 ⊸ τ2)%ty => (<? c> MSG c {{ ▷ c ↣ iProto_dual (interp_ty τ1) }}; interp_ty τ2)%proto
   end.
 
@@ -90,8 +35,8 @@ Arguments interp_ty τ%ty.
 
 Definition tyctx := gmap string ty.
 Definition interp_seq (Δ : tyctx) (e : expr) (x : string) (τ : ty) : iProp Σ :=
-  ∀ (o : val)    (* "output" channel *)
-    (cs : gmap string val), (* substitution map *)
+  ∀ (cs : gmap string val) (* substitution map *)
+    (o : val),    (* "output" channel *)
     ([∗ map] x ↦ σ;c ∈ Δ;cs, c ↣ iProto_dual (interp_ty σ)) -∗
   o ↣ interp_ty τ -∗
   WP (subst_map (<[x:=o]>cs) e) {{ _, o ↣ END (* ∗ ([∗ map] x ↦ σ;c ∈ Δ;cs, c ↣ END) *) }}%I.
@@ -166,7 +111,7 @@ Lemma cut_ Δ1 Δ2 (x y : string) τ1 τ2 e1 e2 :
   (Δ1 ∪ Δ2 ⊢ₗ (let: x := start_chan (λ: x, e1) in e2) : (y : τ2)).
 Proof.
   intros Hxy Hy1 Hy2 HΔ Hclosed1 Hclosed2. iIntros "H1 H2".
-  iIntros (oy cs) "HΔ Hoy". simpl.
+  iIntros (cs oy) "HΔ Hoy". simpl.
   rewrite big_sepM2_union_l //.
   iDestruct "HΔ" as (cs1 cs2 Hcs ->) "[HΔ HΔ']".
   iAssert (⌜dom stringset Δ1 = dom stringset cs1⌝)%I as %Hdom1.
@@ -180,7 +125,7 @@ Proof.
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ]").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
-    iSpecialize ("H1" $! c cs1 with "HΔ Hc").
+    iSpecialize ("H1" with "HΔ Hc").
     rewrite -subst_map_insert.
     - assert (subst_map (<[x:=c]> cs1) e1
               = subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e1) as ->.
@@ -193,7 +138,7 @@ Proof.
           by eapply not_elem_of_dom. }
       iApply (wp_wand with "H1"). eauto. }
   iIntros (xc) "Hx". wp_pures.
-  iSpecialize ("H2" $! _ (<[x:=xc]>cs2) with "[HΔ' Hx] Hoy").
+  iSpecialize ("H2" $! (<[x:=xc]>cs2) with "[HΔ' Hx] Hoy").
   { iApply (big_sepM2_insert_2 with "[Hx]"); eauto. }
   rewrite -subst_map_insert.
   cut (subst_map (<[y:=oy]> (<[x:=xc]> cs2)) e2
@@ -206,7 +151,7 @@ Qed.
 Lemma tone_right (x : string) :
   (⊢ ∅ ⊢ₗ send (Var x) #() : (x : 1)).
 Proof.
-  iIntros (o vs) "Hemp Ho". wp_pures.
+  iIntros (vs o) "Hemp Ho". wp_pures.
   rewrite big_sepM2_empty_r. iDestruct "Hemp" as "->".
   rewrite lookup_insert /=.
   wp_send with "[]"; eauto with iFrame.
@@ -220,7 +165,7 @@ Lemma tone_left (x y : string) e Δ τ  :
   (<[y:=1]>Δ) ⊢ₗ (recv y;; e) : (x : τ).
 Proof.
   iIntros (Hxy HΔ Hdome) "IH".
-  iIntros (o cs) "Hcs Ho". simpl.
+  iIntros (cs o) "Hcs Ho". simpl.
   rewrite lookup_insert_ne//.
   iAssert (⌜dom stringset (<[y:=1%ty]>Δ) = dom stringset cs⌝)%I as %Hdom1.
   { by rewrite big_sepM2_dom. }
@@ -234,7 +179,7 @@ Proof.
   iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
   rewrite lookup_insert.
   wp_recv as "_". wp_pures.
-  iSpecialize ("IH" $! o (delete y cs) with "Hcs Ho").
+  iSpecialize ("IH" $! (delete y cs) with "Hcs Ho").
   cut (subst_map (<[x:=o]> (delete y cs)) e
        = subst_map (<[x:=o]> (<[y:=cy]> (delete y cs))) e); first by intros ->.
   eapply subst_map_agree_weaken; eauto.
@@ -253,12 +198,12 @@ Lemma tlolli_right (Δ : tyctx) τ1 τ2 e (x y : string) :
   Δ ⊢ₗ (let: x := recv y in e) : (y : τ1 ⊸ τ2).
 Proof.
   intros Hxy Hx Hy. iIntros "H".
-  iIntros (oy cs) "HΔ Hoy". wp_pures.
+  iIntros (cs oy) "HΔ Hoy". wp_pures.
   rewrite lookup_insert.
   iSimpl in "Hoy".
   wp_recv (cx) as "Hx". wp_pures.
   rewrite -subst_map_insert.
-  iSpecialize ("H" $! _ (<[x:=cx]>cs) with "[Hx HΔ] Hoy").
+  iSpecialize ("H" $! (<[x:=cx]>cs) with "[Hx HΔ] Hoy").
   { iApply (big_sepM2_insert_2 with "[Hx] HΔ"); simpl; eauto. }
   rewrite insert_commute//.
 Qed.
@@ -281,7 +226,7 @@ Lemma tlolli_left (Δ Δ' : tyctx) τ1 τ2 e1 e2 σ (x y z : string) :
   ((<[x:=τ1 ⊸ τ2]>Δ) ∪ Δ' ⊢ₗ (let: y := start_chan (λ: y, e1) in send x y;; e2) : (z : σ)).
 Proof.
   intros Hxy Hxz Hyz Hx Hx' Hy Hy' Hz Hz' HΔ He1 He2. iIntros "H1 H2".
-  iIntros (o cs) "Hcs Ho". simpl.
+  iIntros (cs o) "Hcs Ho". simpl.
   rewrite lookup_delete.
   rewrite !lookup_delete_ne//.
   rewrite lookup_insert_ne//.
@@ -304,7 +249,7 @@ Proof.
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ']").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
-    iSpecialize ("H1" $! c cs2 with "HΔ' Hc").
+    iSpecialize ("H1" with "HΔ' Hc").
     rewrite -subst_map_insert.
     cut (subst_map (<[y:=c]> cs2) e1
          = subst_map (<[y:=c]> (<[z:=o]> (cs1 ∪ cs2))) e1); first intros ->.
@@ -328,7 +273,7 @@ Proof.
   wp_send with "[$Hy]". wp_pures.
   iSpecialize ("Hcs" with "Hx").
   rewrite insert_insert (insert_id cs1)//.
-  iSpecialize ("H2" $! o cs1 with "Hcs Ho").
+  iSpecialize ("H2" with "Hcs Ho").
   rewrite -subst_map_insert. rewrite insert_commute//.
   cut (subst_map (<[z:=o]> cs1) e2
        = subst_map (<[z:=o]> (<[y:=yc]> (cs1 ∪ cs2))) e2); first by intros ->.
@@ -336,6 +281,108 @@ Proof.
   rewrite -Hdom1. rewrite union_assoc_L. by rewrite (union_comm_L {[z]}).
 Qed.
 
+
+Lemma twith_right Δ τ1 τ2 e1 e2 (x : string) :
+  Δ !! x = None →
+  (Δ ⊢ₗ e1 : (x : τ1)) -∗
+  (Δ ⊢ₗ e2 : (x : τ2)) -∗
+  Δ ⊢ₗ (if: recv x then e1 else e2) : (x : τ1 & τ2).
+Proof.
+  intros Hx. iIntros "H1 H2". iIntros (cs ox) "Hcs Hx /=".
+  rewrite lookup_insert.
+  wp_branch; wp_pures.
+  - iApply ("H1" with "Hcs Hx").
+  - iApply ("H2" with "Hcs Hx").
+Qed.
+
+Lemma twith_left_1 Δ τ1 τ2 e (x y : string) σ :
+  x ≠ y →
+  Δ !! x = None →
+  (<[x:=τ1]>Δ ⊢ₗ e : (y : σ)) -∗
+  <[x:=τ1 & τ2]>Δ ⊢ₗ (send x #true;; e) : (y : σ).
+Proof.
+  intros Hxy HΔ. iIntros "H".
+  iIntros (cs oy) "Hcs Hy /=".
+  iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs⌝)%I as %Hdom.
+  { by rewrite big_sepM2_dom dom_insert_L. }
+  assert_in_map_ cs x xv Hxv.
+  rewrite lookup_insert_ne// Hxv.
+  rewrite big_sepM2_insert_acc; eauto; last first.
+  { eapply lookup_insert. }
+  iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
+  wp_select. wp_pures.
+  iSpecialize ("Hcs" with "Hx").
+  rewrite insert_insert // (insert_id cs)//.
+  iApply ("H"  with "Hcs Hy").
+Qed.
+
+Lemma twith_left_2 Δ τ1 τ2 e (x y : string) σ :
+  x ≠ y →
+  Δ !! x = None →
+  (<[x:=τ2]>Δ ⊢ₗ e : (y : σ)) -∗
+  <[x:=τ1 & τ2]>Δ ⊢ₗ (send x #false;; e) : (y : σ).
+Proof.
+  intros Hxy HΔ. iIntros "H".
+  iIntros (cs oy) "Hcs Hy /=".
+  iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs⌝)%I as %Hdom.
+  { by rewrite big_sepM2_dom dom_insert_L. }
+  assert_in_map_ cs x xv Hxv.
+  rewrite lookup_insert_ne// Hxv.
+  rewrite big_sepM2_insert_acc; eauto; last first.
+  { eapply lookup_insert. }
+  iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
+  wp_select. wp_pures.
+  iSpecialize ("Hcs" with "Hx").
+  rewrite insert_insert // (insert_id cs)//.
+  iApply ("H"  with "Hcs Hy").
+Qed.
+
+Lemma tplus_right_1 Δ τ1 τ2 e (x : string) :
+  Δ !! x = None →
+  (Δ ⊢ₗ e : (x : τ1)) -∗
+  Δ ⊢ₗ (send x #true;; e) : (x : τ1 ⊕ τ2).
+Proof.
+  intros Hx. iIntros "H1". iIntros (cs ox) "Hcs Hx /=".
+  rewrite lookup_insert.
+  wp_select. wp_pures.
+  iApply ("H1" with "Hcs Hx").
+Qed.
+
+Lemma tplus_right_2 Δ τ1 τ2 e (x : string) :
+  Δ !! x = None →
+  (Δ ⊢ₗ e : (x : τ2)) -∗
+  Δ ⊢ₗ (send x #false;; e) : (x : τ1 ⊕ τ2).
+Proof.
+  intros Hx. iIntros "H1". iIntros (cs ox) "Hcs Hx /=".
+  rewrite lookup_insert.
+  wp_select. wp_pures.
+  iApply ("H1" with "Hcs Hx").
+Qed.
+
+Lemma tplus_left Δ τ1 τ2 e1 e2 (x y : string) σ :
+  x ≠ y →
+  Δ !! x = None →
+  (<[x:=τ1]>Δ ⊢ₗ e1 : (y : σ)) -∗
+  (<[x:=τ2]>Δ ⊢ₗ e2 : (y : σ)) -∗
+  <[x:=τ1⊕τ2]>Δ ⊢ₗ (if: recv x then e1 else e2) : (y : σ).
+Proof.
+  intros Hxy HΔ. iIntros "He1 He2".
+  iIntros (cs oy) "Hcs Hy /=".
+  iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs⌝)%I as %Hdom.
+  { by rewrite big_sepM2_dom dom_insert_L. }
+  assert_in_map_ cs x xv Hxv.
+  rewrite lookup_insert_ne// Hxv.
+  rewrite big_sepM2_insert_acc; eauto; last first.
+  { eapply lookup_insert. }
+  iDestruct "Hcs" as "[Hx Hcs]". iSimpl in "Hx".
+  wp_branch; wp_pures.
+  - iSpecialize ("Hcs" with "Hx").
+    rewrite insert_insert (insert_id cs) //.
+    iApply ("He1" with "Hcs Hy").
+  - iSpecialize ("Hcs" with "Hx").
+    rewrite insert_insert (insert_id cs) //.
+    iApply ("He2" with "Hcs Hy").
+Qed.
 
 Lemma ttimes_right (Δ Δ' : tyctx) τ1 τ2 e e' (x y : string) :
   x ≠ y →
@@ -352,7 +399,8 @@ Lemma ttimes_right (Δ Δ' : tyctx) τ1 τ2 e e' (x y : string) :
               send y x;;
               e') : (y : τ1 ⊗ τ2)).
 Proof.
-  intros Hxy HΔ Hy1 Hy2 Hx1 Hx2 Hcle Hcle'. iIntros "H1 H2". iIntros (oy cs) "HΔ Hoy". wp_pures.
+  intros Hxy HΔ Hy1 Hy2 Hx1 Hx2 Hcle Hcle'. iIntros "H1 H2".
+  iIntros (cs oy) "HΔ Hoy". wp_pures.
   rewrite lookup_delete_ne// !lookup_delete lookup_insert.
   simpl.
   rewrite big_sepM2_union_l //.
@@ -370,7 +418,7 @@ Proof.
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[H1 HΔ]").
   { iNext. iIntros (c) "Hc".
     rewrite iProto_dual_involutive. wp_pures.
-    iSpecialize ("H1" $! c cs1 with "HΔ Hc").
+    iSpecialize ("H1" with "HΔ Hc").
     rewrite -subst_map_insert.
     assert (subst_map (<[x:=c]> cs1) e
          = subst_map (<[x:=c]> (<[y:=oy]> (cs1 ∪ cs2))) e) as ->.
@@ -396,7 +444,7 @@ Lemma ttimes_left (Δ : tyctx) τ1 τ2 (x y : string) (c : string) σ e :
   ((<[x:=τ1 ⊗ τ2]>Δ) ⊢ₗ (let: y := recv x in e) : (c : σ)).
 Proof.
   intros Hxy Hxc Hyc Hx Hy. iIntros "IH".
-  iIntros (o cs) "Hcs Ho". simpl.
+  iIntros (cs o) "Hcs Ho". simpl.
   rewrite lookup_insert_ne//.
 
   iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs⌝)%I as %Hdom.
@@ -411,7 +459,7 @@ Proof.
   rewrite -subst_map_insert.
   iSpecialize ("Hcs" with "Hx").
   rewrite insert_insert (insert_id cs) //.
-  iSpecialize ("IH" $! o (<[y:=cy]>(map_insert x cx cs)) with "[Hcs Hy] Ho").
+  iSpecialize ("IH" $! (<[y:=cy]>(map_insert x cx cs)) with "[Hcs Hy] Ho").
   { iApply big_sepM2_insert.
     - rewrite lookup_insert_ne//.
     - replace (map_insert x cx cs) with (<[x:=cx]>cs) by reflexivity.
