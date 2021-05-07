@@ -84,10 +84,11 @@ End big_op_lemma.
 
 Inductive ty :=
 | tone : ty
-| totimes : ty -> ty -> ty
+| totimes : ty → ty → ty
 | toplus : ty → ty → ty
 | twith : ty → ty → ty
-| tlolli : ty -> ty -> ty
+| tlolli : ty → ty → ty
+| tofc : ty → ty
 .
 
 Declare Scope FType_scope.
@@ -98,9 +99,27 @@ Infix "⊕" := toplus (at level 11, right associativity) : FType_scope.
 Infix "⊗" := totimes (at level 11, right associativity) : FType_scope.
 Infix "&" := twith (at level 11, right associativity) : FType_scope.
 Infix "⊸" := tlolli (at level 11, right associativity) : FType_scope.
+Notation "! τ" := (tofc τ%ty) (at level 9, τ at level 9) : FType_scope.
 
 Section interp.
 Context `{!heapG Σ, !chanG Σ}.
+
+Program Definition iProto_server_aux
+    (P : iProto Σ) : iProto Σ -n> iProto Σ := λne self,
+   (<? c> MSG c {{ ▷ c ↣ iProto_dual P }}; self)%proto.
+Next Obligation. solve_proper. Qed.
+
+Instance iProto_server_contractive P :
+  Contractive (iProto_server_aux P).
+Proof. solve_contractive. Qed.
+
+Definition iProto_server (P : iProto Σ) := fixpoint (iProto_server_aux P).
+Lemma iProto_server_unfold P :
+  (iProto_server P ≡ <? c> MSG c {{ ▷ c ↣ iProto_dual P }}; iProto_server P)%proto.
+Proof.
+  rewrite /iProto_server. eapply (fixpoint_unfold (iProto_server_aux P)).
+Qed.
+
 
 Fixpoint interp_ty (τ : ty) : iProto Σ :=
   match τ with
@@ -109,6 +128,7 @@ Fixpoint interp_ty (τ : ty) : iProto Σ :=
   | (τ1 ⊕ τ2)%ty => iProto_choice Send True True (interp_ty τ1) (interp_ty τ2)
   | (τ1 & τ2)%ty => iProto_choice Recv True True (interp_ty τ1) (interp_ty τ2)
   | (τ1 ⊸ τ2)%ty => (<? c> MSG c {{ ▷ c ↣ iProto_dual (interp_ty τ1) }}; interp_ty τ2)%proto
+  | (! τ)%ty => iProto_server (interp_ty τ)
   end.
 
 Arguments interp_ty τ%ty.
@@ -521,3 +541,6 @@ Proof.
   rewrite (insert_id cs)//.
   rewrite insert_commute//.
 Qed.
+
+Lemma tofc_right Δ τ1 τ2 (x y : string) σ e :
+  
