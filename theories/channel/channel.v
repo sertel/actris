@@ -92,10 +92,14 @@ Qed.
 Notation iProto Σ := (iProto Σ val).
 Notation iMsg Σ := (iMsg Σ val).
 
+Definition metaN := nroot .@ "iProto_meta".
+
 Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
+    meta (side_elim s l r) metaN (γ,s) ∗
+    meta (side_elim s r l) metaN (γ,side_elim s Right Left) ∗
     is_lock (chan_lock_name γ) lk (∃ vsl vsr,
       llist internal_eq l vsl ∗
       llist internal_eq r vsr ∗
@@ -141,8 +145,8 @@ Section channel.
 
   Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
   Proof.
-    rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
-    iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+    rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "(Hm1 & Hm2 & Hlk & H)".
+    iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hm1 Hm2 Hlk".
     by iApply (iProto_own_le with "H").
   Qed.
 
@@ -205,17 +209,22 @@ Section channel.
     {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
     iIntros (Φ _) "HΦ". wp_lam.
-    wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (l) "Hl".
-    wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
+    wp_smart_apply (lnil_spec' internal_eq with "[//]"); iIntros (l) "[Hl Hmetal]".
+    wp_smart_apply (lnil_spec' internal_eq with "[//]"); iIntros (r) "[Hr Hmetar]".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_smart_apply (newlock_spec (∃ vsl vsr,
       llist internal_eq l vsl ∗ llist internal_eq r vsr ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame. }
     iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
-    set (γ := ChanName γlk γp). iSplitL "Hcl".
+    set (γ := ChanName γlk γp).
+    iMod (meta_set _ l (γ,Left) metaN with "Hmetal") as "#Hmetal".
+    { solve_ndisj. }
+    iMod (meta_set _ r (γ,Right) metaN with "Hmetar") as "#Hmetar".
+    { solve_ndisj. }
+    iSplitL "Hcl".
     - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
-    - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
+    - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. simpl. by iFrame "Hcr #".
   Qed.
 
   Lemma start_chan_spec p Φ (f : val) :
@@ -230,13 +239,168 @@ Section channel.
     wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
+  Lemma send_spec_atomic c v E Φ :
+    □ (|={⊤,E}=> ∃ (p : iProto Σ), (▷ c ↣ <!> MSG v; p) ∗
+       (((▷ c ↣ <!> MSG v; p) ={E,⊤}=∗ True)
+       ∧  (▷ c ↣ p ={E,⊤}=∗ Φ #()))) -∗
+    WP (send c v) {{ Φ }}.
+  Proof.
+    iIntros "#Hview".
+    rewrite iProto_mapsto_eq.
+    wp_lam; wp_pures. wp_bind (Snd _).
+    iPoseProof "Hview" as "Hview1".
+    iMod "Hview1" as (P) "[Hc Hview1]".
+    iDestruct "Hview1" as "[Hview1 _]".
+    iDestruct "Hc" as (γ s l r lk) "(>% & #Hmeta1 & #Hmeta2 & #Hlk & H)".
+    simplify_eq/=. wp_pures.
+    iMod ("Hview1" with "[-]") as "_".
+    { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
+    clear P. iModIntro. wp_pures.
+    wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
+    wp_bind (Lam _ _).
+    iMod "Hview" as (P) "[Hc Hview]".
+    iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
+    iAssert (⌜(γ,s) = (γ',s')⌝)%I as %Hfoo.
+    { destruct s, s'; simplify_eq/=; iApply meta_agree; eauto with iFrame. }
+    iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
+    iDestruct "Hview" as "[_ Hview]".
+    wp_pures. destruct s; simpl.
+    - iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=; auto. }
+      iMod ("Hview" with "[H]") as "HΦ".
+      { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
+      iModIntro.
+      wp_smart_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
+      wp_smart_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
+      wp_smart_apply skipN_spec.
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      by iIntros "_".
+    - iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=; auto. }
+      iMod ("Hview" with "[H]") as "HΦ".
+      { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
+      iModIntro.
+      wp_smart_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
+      wp_smart_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
+      wp_smart_apply skipN_spec.
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      by iIntros "_".
+  Qed.
+
+  Lemma try_recv_spec_atomic {X} c (v : X → val) (P : X → iProp Σ) (p : X → iProto Σ) E Φ
+        `{!Inhabited X} :
+    □ (|={⊤,E}=> (▷ c ↣ <? (x : X)> MSG v x {{ P x }}; p x) ∗
+            ((▷ c ↣ <? x> MSG v x {{ P x }}; p x) ={E,⊤}=∗ Φ NONEV)
+          ∧ (∀ x, ▷ (▷ (c ↣ p x) ∗ P x) ={E,⊤}=∗ Φ (SOMEV (v x)))) -∗
+    WP try_recv c {{ v, Φ v }}.
+  Proof.
+    iIntros "#Hview".
+    rewrite iProto_mapsto_eq.
+    wp_lam; wp_pures. wp_bind (Snd _).
+    iPoseProof "Hview" as "Hview1".
+    iMod "Hview1" as "[Hc Hview1]".
+    iDestruct "Hview1" as "[Hview1 _]".
+    iDestruct "Hc" as (γ s l r lk) "(>% & #Hmeta1 & #Hmeta2 & #Hlk & H)".
+    simplify_eq/=. wp_pures.
+    iMod ("Hview1" with "[-]") as "_".
+    { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
+    iModIntro. wp_pures.
+    wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
+    wp_pures. destruct s; simpl.
+    - wp_smart_apply (lisnil_spec with "Hr"); iIntros "Hr".
+      destruct vsr as [|vr vsr]; wp_pures.
+      { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+        iIntros "_". iApply wp_fupd. wp_pures.
+        iMod "Hview" as "[Hc Hview]".
+        iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
+        iAssert (⌜(γ,Left) = (γ',s')⌝)%I as %Hfoo.
+        { simplify_eq/=; iApply meta_agree; eauto with iFrame. }
+        iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
+        iDestruct "Hview" as "[Hview _]".
+        iApply "Hview". iNext.
+        iExists γ, Left, l', r', lk'. eauto 10 with iFrame. }
+      wp_smart_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
+      wp_bind (InjR _).
+      iMod "Hview" as "[Hc Hview]".
+      iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
+      iAssert (⌜(γ,Left) = (γ',s')⌝)%I as %Hfoo.
+      { simplify_eq/=; iApply meta_agree; eauto with iFrame. }
+      iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
+      iDestruct "Hview" as "[_ Hview]".
+      rewrite iProto_recv_l.
+      iSpecialize ("Hctx" with "H").
+      rewrite iMsg_base_eq.
+      wp_pures. iMod "Hctx" as (q) "(Hctx & H & Hm) /=".
+      rewrite iMsg_exist_eq /=.
+      iDestruct "Hm" as (x) "(>%foo & Hp & HP)".
+      iMod ("Hview" with "[H Hp HP]") as "HΦ".
+      { iNext. iFrame "HP". iNext. iExists γ, Left, l', r', lk'.
+        iRewrite "Hp". eauto 10 with iFrame. }
+      iModIntro. wp_pures.
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". wp_pures. iModIntro. by rewrite foo.
+    - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
+      destruct vsl as [|vl vsl]; wp_pures.
+      { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+        iIntros "_". iApply wp_fupd. wp_pures.
+        iMod "Hview" as "[Hc Hview]".
+        iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
+        iAssert (⌜(γ,Right) = (γ',s')⌝)%I as %Hfoo.
+        { simplify_eq/=; iApply meta_agree; eauto with iFrame. }
+        iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
+        iDestruct "Hview" as "[Hview _]".
+        iApply "Hview". iNext.
+        iExists γ, Right, l', r', lk'. eauto 10 with iFrame. }
+      wp_smart_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
+      wp_bind (InjR _).
+      iMod "Hview" as "[Hc Hview]".
+      iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
+      iAssert (⌜(γ,Right) = (γ',s')⌝)%I as %Hfoo.
+      { simplify_eq/=; iApply meta_agree; eauto with iFrame. }
+      iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
+      iDestruct "Hview" as "[_ Hview]".
+      rewrite iProto_recv_r.
+      iSpecialize ("Hctx" with "H").
+      rewrite iMsg_base_eq.
+      wp_pures. iMod "Hctx" as (q) "(Hctx & H & Hm) /=".
+      rewrite iMsg_exist_eq /=.
+      iDestruct "Hm" as (x) "(>%foo & Hp & HP)".
+      iMod ("Hview" with "[H Hp HP]") as "HΦ".
+      { iNext. iFrame "HP". iNext. iExists γ, Right, l', r', lk'.
+        iRewrite "Hp". eauto 10 with iFrame. }
+      iModIntro. wp_pures.
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "_". wp_pures. iModIntro. by rewrite foo.
+  Qed.
+
+  Lemma recv_spec_atomic {X} c (v : X → val) (P : X → iProp Σ) (p : X → iProto Σ) E Φ
+        `{!Inhabited X} :
+    □ (|={⊤,E}=> (▷ c ↣ <? (x : X)> MSG v x {{ P x }}; p x) ∗
+            ((▷ c ↣ <? x> MSG v x {{ P x }}; p x) ={E,⊤}=∗ True)
+          ∧ (∀ x, ▷ (▷ (c ↣ p x) ∗ P x) ={E,⊤}=∗ Φ (v x))) -∗
+    WP recv c {{ Φ }}.
+  Proof.
+    iIntros "#H". iLöb as "IH". wp_lam. wp_bind (try_recv c).
+    iApply (@try_recv_spec_atomic X). iModIntro.
+    iMod "H" as "[Hc Hview]". iModIntro.
+    iFrame "Hc". iSplit.
+    - iIntros "Hc". iDestruct "Hview" as "[Hview _]".
+      iMod ("Hview" with "Hc") as "_". iModIntro.
+      by wp_pures.
+    - iIntros (x) "Hc". iDestruct "Hview" as "[_ Hview]".
+      iMod ("Hview" with "Hc") as "HΦ". iModIntro.
+      by wp_pures.
+  Qed.
+
   Lemma send_spec c v p :
     {{{ c ↣ <!> MSG v; p }}}
       send c v
     {{{ RET #(); c ↣ p }}}.
   Proof.
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    iDestruct "Hc" as (γ s l r lk ->) "(#Hmeta1 & #Hmeta2 & #Hlk & H)"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
     - iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
@@ -278,7 +442,7 @@ Section channel.
                   (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
-    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    iDestruct "Hc" as (γ s l r lk ->) "(Hmeta1 & Hmeta2 & #Hlk & H)"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
     - wp_smart_apply (lisnil_spec with "Hr"); iIntros "Hr".
@@ -293,7 +457,7 @@ Section channel.
       wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
-      by iRewrite "Hp".
+      iFrame "Hmeta1 Hmeta2". by iRewrite "Hp".
     - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct vsl as [|vl vsl]; wp_pures.
       { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
@@ -305,7 +469,7 @@ Section channel.
       iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
       wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
-      iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk".
+      iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk Hmeta1 Hmeta2".
       by iRewrite "Hp".
   Qed.
 
