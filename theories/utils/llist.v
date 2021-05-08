@@ -102,9 +102,16 @@ Proof.
   iSplitL "Hx". by iApply "Hf". by iApply "IH".
 Qed.
 
+Lemma lnil_spec' :
+  {{{ True }}} lnil #() {{{ l, RET #l; llist I l [] ∗ meta_token l ⊤ }}}.
+Proof.
+  iIntros (Φ _) "HΦ". wp_lam. wp_pures.
+  iApply (wp_alloc with "[//] [-]"). done.
+Qed.
+
 Lemma lnil_spec :
   {{{ True }}} lnil #() {{{ l, RET #l; llist I l [] }}}.
-Proof. iIntros (Φ _) "HΦ". wp_lam. wp_alloc l. by iApply "HΦ". Qed.
+Proof. iIntros (Φ _) "HΦ". wp_lam. wp_alloc l. by iApply ("HΦ" with "[-]"). Qed.
 
 Lemma lcons_spec l x xs v :
   {{{ llist I l xs ∗ I x v }}} lcons v #l {{{ RET #(); llist I l (x :: xs) }}}.
