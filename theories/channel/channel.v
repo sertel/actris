@@ -239,36 +239,39 @@ Section channel.
     wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
-  Lemma send_spec_atomic c v E Φ :
-    □ (|={⊤,E}=> ∃ (p : iProto Σ), (▷ c ↣ <!> MSG v; p) ∗
-       (((▷ c ↣ <!> MSG v; p) ={E,⊤}=∗ True)
-       ∧  (▷ c ↣ p ={E,⊤}=∗ Φ #()))) -∗
-    WP (send c v) {{ Φ }}.
+  Lemma send_spec_atomic (X : Type) P R x v c E Φ :
+    P x -∗
+    R -∗
+    □ (|={⊤,E}=> ∃ (p : X → iProto Σ), (▷ c ↣ <! x> MSG v x {{ P x }}; p x) ∗
+       (((▷ c ↣ <! x> MSG v x {{ P x }}; (p x)) ={E,⊤}=∗ True)
+       ∧  (▷ c ↣ p x ∗ R ={E,⊤}=∗ Φ #()))) -∗
+    WP (send c (v x)) {{ Φ }}.
   Proof.
-    iIntros "#Hview".
+    iIntros "HPx HR #Hview".
     rewrite iProto_mapsto_eq.
     wp_lam; wp_pures. wp_bind (Snd _).
     iPoseProof "Hview" as "Hview1".
-    iMod "Hview1" as (P) "[Hc Hview1]".
+    iMod "Hview1" as (p) "[Hc Hview1]".
     iDestruct "Hview1" as "[Hview1 _]".
     iDestruct "Hc" as (γ s l r lk) "(>% & #Hmeta1 & #Hmeta2 & #Hlk & H)".
     simplify_eq/=. wp_pures.
-    iMod ("Hview1" with "[-]") as "_".
+    iMod ("Hview1" with "[-HPx HR]") as "_".
     { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
-    clear P. iModIntro. wp_pures.
+    clear p. iModIntro. wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
     wp_bind (Lam _ _).
-    iMod "Hview" as (P) "[Hc Hview]".
+    iMod "Hview" as (p) "[Hc Hview]".
     iDestruct "Hc" as (γ' s' l' r' lk') "(>%Hc & #>Hmeta1' & #>Hmeta2' & #Hlk' & H)".
     iAssert (⌜(γ,s) = (γ',s')⌝)%I as %Hfoo.
     { destruct s, s'; simplify_eq/=; iApply meta_agree; eauto with iFrame. }
     iClear "Hmeta1' Hmeta2' Hlk'". symmetry in Hfoo. simplify_eq/=.
     iDestruct "Hview" as "[_ Hview]".
     wp_pures. destruct s; simpl.
-    - iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
-      { rewrite iMsg_base_eq /=; auto. }
-      iMod ("Hview" with "[H]") as "HΦ".
+    - iMod (iProto_send_l _ _ _ _ (v x) (p x) with "Hctx H [HPx]") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=.
+        rewrite iMsg_exist_eq /=. iExists x. eauto. }
+      iMod ("Hview" with "[H $HR]") as "HΦ".
       { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
       iModIntro.
       wp_smart_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
@@ -276,9 +279,10 @@ Section channel.
       wp_smart_apply skipN_spec.
       wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       by iIntros "_".
-    - iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
-      { rewrite iMsg_base_eq /=; auto. }
-      iMod ("Hview" with "[H]") as "HΦ".
+    - iMod (iProto_send_r _ _ _ _ (v x) (p x) with "Hctx H [HPx]") as "[Hctx H]".
+      { rewrite iMsg_base_eq /=.
+        rewrite iMsg_exist_eq /=. iExists x. eauto. }
+      iMod ("Hview" with "[H $HR]") as "HΦ".
       { iExists _,_,_,_,_. iFrame "Hlk H". eauto with iFrame. }
       iModIntro.
       wp_smart_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
