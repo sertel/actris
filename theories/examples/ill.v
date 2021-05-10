@@ -25,6 +25,27 @@ Infix "&" := twith (at level 11, right associativity) : FType_scope.
 Infix "⊸" := tlolli (at level 11, right associativity) : FType_scope.
 Notation "! τ" := (tofc τ%ty) (at level 9, τ at level 9) : FType_scope.
 
+(* [loop_ z t] implements [! τ] on [z], provided [t x] implements [τ] on [x] *)
+Definition loop_ : val :=
+  (rec: "f" "z" "t" := let: "x" := recv "z" in Fork ("t" "x") ;; "f" "z" "t")%V.
+
+(* Forward the channel x to the channel y, based on the session *)
+Fixpoint forwarder (τ : ty) : val := λ: "x" "y",
+  match τ with
+  | 1%ty => recv "x";; send "y" #()
+  | (τ1 ⊗ τ2)%ty => let: "z" := recv "x" in
+                    send "y" "z";; forwarder τ2 "x" "y"
+  | (τ1 ⊕ τ2)%ty => if: recv "x"
+                    then send "y" #true;; forwarder τ1 "x" "y"
+                    else send "y" #false;; forwarder τ2 "x" "y"
+  | (τ1 & τ2)%ty => if: recv "y"
+                    then send "x" #true;; forwarder τ1 "x" "y"
+                    else send "x" #false;; forwarder τ2 "x" "y"
+  | (τ1 ⊸ τ2)%ty => let: "z" := recv "y" in
+                    send "x" "z";; forwarder τ2 "x" "y"
+  | (! τ)%ty => (rec: "f" <> := let: "k" := recv "y" in send "x" "k";; "f" #()) #()
+  end.
+
 Section interp.
 Context `{!heapG Σ, !chanG Σ}.
 
@@ -100,6 +121,91 @@ Ltac assert_in_map cs y :=
   assert_in_map_ cs y yv Hyv.
 
 
+
+Lemma forwarder_spec τ x y :
+  x ↣ iProto_dual (interp_ty τ) -∗
+  y ↣ interp_ty τ -∗
+  WP (forwarder τ x y) {{ _, x ↣ END ∗ y ↣ END }}.
+Proof.
+  iIntros "Hx Hy".
+  iInduction τ as [ | | τ1 τ2 | τ1 τ2 | τ1 τ2 | τ]  "IH" forall (x y); simpl;
+    rewrite ?iProto_dual_message /=.
+  - rewrite iMsg_dual_base /= iProto_dual_end.
+    wp_rec. wp_pures.
+    wp_recv as "_". wp_pures.
+    wp_send with "[]"; eauto with iFrame.
+  - rewrite iMsg_dual_exist /=.
+    wp_rec. wp_pures.
+    assert ((<? (x0 : val)> iMsg_dual
+                              (MSG x0 {{ ▷ x0 ↣ iProto_dual (interp_ty τ1) }}; 
+                               interp_ty τ2))
+              ≡ <? x> MSG x {{ ▷ x ↣ iProto_dual (interp_ty τ1) }}; iProto_dual (interp_ty τ2))%proto as ->.
+    { f_equiv. f_equiv. intros xx.
+      by rewrite iMsg_dual_base. }
+    wp_recv (z) as "Hz". wp_pures.
+    wp_send with "[$Hz]". wp_pures.
+    iApply ("IH1" with "Hx Hy").
+  - rewrite iMsg_dual_exist /=.
+    wp_rec. wp_pures.
+    assert (x ↣ (<? (x0 : bool)> iMsg_dual
+                                (MSG #x0 {{ if x0 then True%I else True%I }}; 
+                                 if x0
+                                 then interp_ty τ1
+                                 else interp_ty τ3))
+              ≡ x ↣ (<? (x0 : bool)> MSG #x0 {{ True }}; 
+                                 if x0
+                                 then iProto_dual (interp_ty τ1)
+                                 else iProto_dual (interp_ty τ3)))%proto as ->.
+    { f_equiv. f_equiv. f_equiv. intros xx.
+      rewrite iMsg_dual_base/=. f_equiv; by destruct xx. }
+    wp_recv (b) as "Hb". destruct b; wp_pures; wp_select; wp_pures.
+    + iApply ("IH" with "Hx Hy").
+    + iApply ("IH1" with "Hx Hy").
+  - rewrite iMsg_dual_exist /=.
+    wp_rec. wp_pures.
+    assert (x ↣ (<! (x0 : bool)> iMsg_dual
+                                (MSG #x0 {{ if x0 then True%I else True%I }}; 
+                                 if x0
+                                 then interp_ty τ1
+                                 else interp_ty τ3))
+              ≡ x ↣ (<! (x0 : bool)> MSG #x0 {{ True }}; 
+                                 if x0
+                                 then iProto_dual (interp_ty τ1)
+                                 else iProto_dual (interp_ty τ3)))%proto as ->.
+    { f_equiv. f_equiv. f_equiv. intros xx.
+      rewrite iMsg_dual_base/=. f_equiv; by destruct xx. }
+    wp_branch; wp_pures; wp_send with "[//]"; wp_pures.
+    + iApply ("IH" with "Hx Hy").
+    + iApply ("IH1" with "Hx Hy").
+  - rewrite iMsg_dual_exist /=.
+    wp_rec. wp_pures.
+    wp_recv (z) as "Hz". wp_pures.
+    assert (x ↣ (<! (x0 : val)> iMsg_dual
+                               (MSG x0 {{ ▷ x0 ↣ iProto_dual (interp_ty τ1) }}; 
+                                interp_ty τ3))
+              ≡ x ↣ (<! (x0 : val)> 
+                               (MSG x0 {{ ▷ x0 ↣ iProto_dual (interp_ty τ1) }}; 
+                                iProto_dual (interp_ty τ3))))%proto as ->.
+    { f_equiv. f_equiv. f_equiv. intros xx.
+      by rewrite iMsg_dual_base//. }
+    wp_send with "[$Hz]". wp_pures.
+    iApply ("IH1" with "Hx Hy").
+  - wp_rec. wp_pure _. wp_rec. wp_pure _.
+    iLöb as "IHl".
+    wp_rec.
+    rewrite {3 4}iProto_server_unfold.
+    wp_recv (k) as "Hk". wp_pures.
+    rewrite iProto_dual_message iMsg_dual_exist /=.
+    assert ((<! (x0 : val)> iMsg_dual
+                               (MSG x0 {{ x0 ↣ interp_ty τ }}; 
+                                iProto_server (interp_ty τ)))
+                               ≡
+           (<! (x0 : val)> MSG x0 {{ x0 ↣ interp_ty τ }}; 
+                                iProto_dual (iProto_server (interp_ty τ))))%proto as ->.
+    { f_equiv. f_equiv. intros xx. rewrite iMsg_dual_base//. }
+    wp_send with "[$Hk]". wp_pure _. wp_pure _.
+    iApply ("IHl" with "Hx Hy").
+Qed.
 
 
 Lemma cut_ Γ Δ1 Δ2 (x y : string) τ1 τ2 e1 e2 :
@@ -231,10 +337,6 @@ Proof.
     rewrite insert_commute //.
     rewrite -(insert_union_r _ _ x)//.
 Qed.
-
-
-Definition loop_ : val :=
-  (rec: "f" "z" "t" := let: "x" := recv "z" in Fork ("t" "x") ;; "f" "z" "t")%V.
 
 Lemma cut_bang Γ Δ (x y u : string) τ1 τ2 e1 e2 :
   x ≠ y →
