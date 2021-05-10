@@ -1,87 +1,10 @@
+(** Interpretation of the πDILL type system from
+    Luís Caires, Frank Pfenning, and Bernardo Toninho. “Linear Logic Propositions as Session Types.” Mathematical Structures in Computer Science 26, no. 3 (March 2016): 367–423. <https://doi.org/10.1017/S0960129514000218>.
+ *)
 From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From iris.base_logic.lib Require Import invariants.
 From actris.channel Require Import proofmode.
-From actris.utils Require Import syntax_facts.
-
-Section big_op_lemma.
-Context `{Countable K, !heapG Σ}.
-
-Local Lemma owohelper {A B} (Φ : K → A → B → iProp Σ)
-      (m1 m2 : gmap K A) :
-  ∀ (n : gmap K B) ,
-   m1 ##ₘ m2 →
-    ([∗ map] k↦x;y ∈ (m1 ∪ m2);n, Φ k x y)
-      ⊢ ∃ n1 n2, ⌜n = n1 ∪ n2⌝ ∗ ([∗ map] k↦x;y ∈ m1;n1, Φ k x y) ∗ ([∗ map] k↦x;y ∈ m2;n2, Φ k x y).
-Proof.
-  pose (P := λ m1,
-    ∀ (m2 : gmap K A) (n : gmap K B),
-      m1 ##ₘ m2 →
-    ([∗ map] k↦x;y ∈ (m1 ∪ m2);n, Φ k x y)
-      -∗ ∃ n1 n2 : gmap K B,
-           ⌜n = n1 ∪ n2⌝
-           ∗ ([∗ map] k↦x;y ∈ m1;n1, Φ k x y) ∗ ([∗ map] k↦x;y ∈ m2;n2, Φ k x y)).
-  revert m1 m2. eapply (map_ind P); unfold P; clear P.
-  { intros m2 n ?.
-    rewrite left_id. iIntros "H".
-    iExists ∅,n. rewrite left_id big_sepM2_empty.
-    repeat iSplit; eauto. }
-  intros i x m1 Hm1 IH m2 n [Hm2i Hmm]%map_disjoint_insert_l.
-  iIntros "H".
-  iAssert (⌜dom (gset K) n = {[i]} ∪ dom (gset K) m1 ∪ dom (gset K) m2⌝)%I as %Hdomn.
-  { rewrite big_sepM2_dom. rewrite dom_union_L dom_insert_L.
-    iDestruct "H" as %Hfoo. iPureIntro. symmetry. done. }
-
-  destruct (n !! i) as [y|] eqn:Hni; last first.
-  { exfalso. eapply (not_elem_of_dom n i); eauto.
-    set_solver. }
-
-  assert (n = <[i:=y]>(delete i n)) as ->.
-  { by rewrite insert_delete insert_id//. }
-
-  assert ((m1 ∪ m2) !! i = None) as Hm1m2i.
-  { eapply lookup_union_None; naive_solver. }
-
-  assert (delete i n !! i = None) by eapply lookup_delete.
-
-  rewrite -insert_union_l.
-  rewrite big_sepM2_insert; eauto.
-  iDestruct "H" as "[H1 H2]".
-  rewrite (IH m2 (delete i n)); eauto.
-  iDestruct "H2" as (n1 n2 Hn12) "[H2 H3]".
-  iExists (<[i:=y]>n1), n2. iFrame "H3".
-  iAssert (⌜n1 !! i = None⌝)%I as %Hn1i.
-  { rewrite big_sepM2_dom.
-    iDestruct "H2" as %Hfoo. iPureIntro.
-    eapply not_elem_of_dom. rewrite -Hfoo.
-    by eapply not_elem_of_dom. }
-  rewrite big_sepM2_insert//. iFrame "H1 H2".
-  iPureIntro. rewrite -insert_union_l.
-  by f_equiv.
-Qed.
-
-
-Lemma big_sepM2_union_l {A B} (Φ : K → A → B → iProp Σ)
-      (m1 m2 : gmap K A) (n : gmap K B) :
-  m1 ##ₘ m2 →
-  ([∗ map] k↦x;y ∈ (m1 ∪ m2);n, Φ k x y) ⊢
-  (∃ n1 n2, ⌜n1 ##ₘ n2⌝ ∗ ⌜n = n1 ∪ n2⌝
-                        ∗ ([∗ map] k↦x;y ∈ m1;n1, Φ k x y)
-                        ∗ ([∗ map] k↦x;y ∈ m2;n2, Φ k x y)).
-Proof.
-  intros Hmm. rewrite owohelper; eauto.
-  iDestruct 1 as (n1 n2 ->) "[H1 H2]".
-  iExists n1, n2.
-  iAssert (⌜dom (gset K) m1 = dom (gset K) n1⌝)%I as %Hdom1.
-  { by rewrite (big_sepM2_dom _ m1). }
-  iAssert (⌜dom (gset K) m2 = dom (gset K) n2⌝)%I as %Hdom2.
-  { by rewrite (big_sepM2_dom _ m2). }
-  iFrame "H1 H2". iSplit; eauto. iPureIntro.
-  eapply map_disjoint_dom_2.
-  rewrite -Hdom1 -Hdom2.
-  by eapply map_disjoint_dom_1.
-Qed.
-
-End big_op_lemma.
+From actris.utils Require Import syntax_facts big_sepM2_facts.
 
 Inductive ty :=
 | tone : ty
@@ -161,6 +84,7 @@ Ltac assert_not_in_map cs2 y :=
          end;
          try set_solver); eauto.
 
+(* attempt to prove [Hyv : cs !! y = Some yv] *)
 Ltac assert_in_map_ cs y yv Hyv :=
   assert (is_Some (cs !! y)) as [yv Hyv];
   first (eapply elem_of_dom;
@@ -420,7 +344,7 @@ Proof.
     { eapply map_disjoint_empty_r. }
     { by iApply big_sepM2_empty. }
     rewrite right_id.
-    rewrite (subst_map_agree_weaken e ({[y]} ∪ dom stringset Γ) (<[y:=yv]> ss) (<[y:=yv]> (<[x:=o]> ss)))//. 
+    rewrite (subst_map_agree_weaken e ({[y]} ∪ dom stringset Γ) (<[y:=yv]> ss) (<[y:=yv]> (<[x:=o]> ss)))//.
     2:{ by rewrite dom_insert_L Hdom0. }
     2:{ eapply insert_mono. eapply insert_subseteq_r; eauto. }
     iApply (wp_wand with "H"). eauto. }
@@ -874,3 +798,4 @@ Proof.
   rewrite -insert_union_r//.
 Qed.
 
+End interp.
