@@ -15,6 +15,7 @@ theories/utils/group.v
 theories/utils/cofe_solver_2.v
 theories/utils/switch.v
 theories/utils/syntax_facts.v
+theories/utils/big_sepM2_facts.v
 theories/channel/proto_model.v
 theories/channel/proto.v
 theories/channel/channel.v
@@ -31,6 +32,7 @@ theories/examples/subprotocols.v
 theories/examples/list_rev.v
 theories/examples/rpc.v
 theories/examples/pizza.v
+theories/examples/ill.v
 theories/logrel/model.v
 theories/logrel/telescopes.v
 theories/logrel/subtyping.v
