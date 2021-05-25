@@ -89,42 +89,42 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
     wp_smart_apply (start_chan_spec sort_protocol_br); iIntros (c) "Hc".
-    - wp_lam. iApply (sort_service_br_spec with "[$] Hc"). by iIntros "!> Hc".
-    - wp_smart_apply (liter_spec _ l xxs
-        (λ xs l, ∃ (l' : loc), ⌜#l' = l⌝ ∗ llist I l' xs)%I
-        (λ xs l, ∃ (ys : list A) (l' : loc), ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
-                      ⌜#l' = l⌝ ∗ llist I l' ys)%I
-        (λ _, c ↣ sort_protocol_br)
-                        with "[] [$Hl $Hc]").
-      { iIntros (_ x v) "!>".
-        iIntros (Ψ) "[Hl' Hc] HΨ".
-        iDestruct "Hl'" as (l' <-) "Hl'". wp_lam. wp_select.
-        wp_send with "[Hl'//]".
-        wp_recv (ys) as "[Hsorted [Hperm Hys]]".
-        iIntros "!>".
-        rewrite iProto_app_end_l.
-        iApply "HΨ".
-        iFrame "Hc".
-        iExists ys, l'. by iFrame. }
-      iIntros "[Hl Hc]". wp_pures. wp_select.
-      iDestruct (llist_out with "Hl") as (vs) "[Hvs Hxxs]".
-      iAssert (∃ yys : list (list A),
-                  ([∗ list] x;ys ∈ xxs;yys,
-                            ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ x⌝) ∗
-                   [∗ list] ys;v ∈ yys;vs, ∃ (l' : loc),
-                                           ⌜#l' = v⌝ ∗ llist I l' ys)%I
-              with "[Hxxs]" as (yys) "[Hyys Hvs']".
-      { iInduction xxs as [|xs xxs] "IH" forall (vs).
-        - iDestruct (big_sepL2_nil_inv_l with "Hxxs") as %->. eauto.
-        - iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (v vs' ->) "[Hv Hxxs]".
-          iDestruct "Hv" as (ys l' Hsorted Hperm <-) "Hv".
-          iDestruct ("IH" with "Hxxs") as (yys) "[Hyys Hvs]".
-          iExists (ys::yys).
-          iFrame "Hyys Hvs".
-          eauto with iFrame. }
-      iApply "HΦ".
-      iIntros "!>". iFrame "Hyys".
-      iApply (llist_in with "[$Hvs $Hvs']").
+    { wp_lam. iApply (sort_service_br_spec with "[$] Hc"). by iIntros "!> Hc". }
+    wp_smart_apply (liter_spec _ l xxs
+      (λ xs l, ∃ (l' : loc), ⌜#l' = l⌝ ∗ llist I l' xs)%I
+      (λ xs l, ∃ (ys : list A) (l' : loc), ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗
+                    ⌜#l' = l⌝ ∗ llist I l' ys)%I
+      (λ _, c ↣ sort_protocol_br)
+                      with "[] [$Hl $Hc]").
+    { iIntros (_ x v) "!>".
+      iIntros (Ψ) "[Hl' Hc] HΨ".
+      iDestruct "Hl'" as (l' <-) "Hl'". wp_lam. wp_select.
+      wp_send with "[Hl'//]".
+      wp_recv (ys) as "[Hsorted [Hperm Hys]]".
+      iIntros "!>".
+      rewrite iProto_app_end_l.
+      iApply "HΨ".
+      iFrame "Hc".
+      iExists ys, l'. by iFrame. }
+    iIntros "[Hl Hc]". wp_pures. wp_select.
+    iDestruct (llist_out with "Hl") as (vs) "[Hvs Hxxs]".
+    iAssert (∃ yys : list (list A),
+                ([∗ list] x;ys ∈ xxs;yys,
+                          ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ x⌝) ∗
+                 [∗ list] ys;v ∈ yys;vs, ∃ (l' : loc),
+                                         ⌜#l' = v⌝ ∗ llist I l' ys)%I
+            with "[Hxxs]" as (yys) "[Hyys Hvs']".
+    { iInduction xxs as [|xs xxs] "IH" forall (vs).
+      - iDestruct (big_sepL2_nil_inv_l with "Hxxs") as %->. eauto.
+      - iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (v vs' ->) "[Hv Hxxs]".
+        iDestruct "Hv" as (ys l' Hsorted Hperm <-) "Hv".
+        iDestruct ("IH" with "Hxxs") as (yys) "[Hyys Hvs]".
+        iExists (ys::yys).
+        iFrame "Hyys Hvs".
+        eauto with iFrame. }
+    iApply "HΦ".
+    iIntros "!>". iFrame "Hyys".
+    iApply (llist_in with "Hvs Hvs'").
   Qed.
 
   Definition sort_protocol_del_aux (rec : iProto Σ) : iProto Σ :=
@@ -159,101 +159,101 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
     wp_smart_apply (start_chan_spec sort_protocol_del); iIntros (c) "Hc".
-    - wp_lam. iApply (sort_service_del_spec with "[$] Hc"). eauto.
-    - wp_smart_apply (lnil_spec with "[//]").
-      iIntros (k) "Hk".
-      iDestruct (llist_unfold_vals with "Hl") as (vs Hlen) "Hl".
-      wp_smart_apply (liter_spec _ l (zip vs xxs)
-        (λ xs l, ⌜xs.1 = l⌝ ∗ ∃ (l' : loc), ⌜#l' = l⌝ ∗ llist I l' xs.2)%I
-        (λ xs l, ⌜xs.1 = l⌝)%I
-        (λ xxs, c ↣ sort_protocol_del ∗
-                  llist (λ xs c,
-                         ∃ (l' : loc), ⌜#l' = xs.1⌝ ∗
-                                       c ↣ <? (xs' : list A)> MSG #()
-                                            {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs.2 ⌝ ∗
-                                               llist I l' xs' }};
-                                       END) k (reverse xxs))%I
-        with "[] [$Hl $Hk $Hc]").
-      { iIntros (xs x v) "!>".
-        iIntros (Ψ) "[H [Hc Hxs]] HΨ".
-        iDestruct "H" as (Heq l' <-) "Hl'". wp_lam. wp_select.
-        wp_recv (c') as "Hc'".
-        wp_send with "[Hl'//]".
-        wp_smart_apply (lcons_spec with "[$Hxs Hc']").
-        { iExists l'. eauto with iFrame. }
-        iIntros "Hxs".
-        iApply "HΨ".
-        rewrite reverse_app.
-        by iFrame. }
-      iIntros "[Hl [Hc Hk]]".
-      iDestruct (llist_fmap (λ (xs : val * list A) (v : val), ⌜xs.1 = v⌝)%I
-                            (λ (xs : val) (v : val), ⌜xs = v⌝)%I fst
-                   with "[] Hl") as "Hl"; [ eauto | ].
-      rewrite fst_zip; [ | lia ].
-      wp_select. iClear "Hc".
-      wp_smart_apply (liter_spec _ k (reverse (zip vs xxs))
-          (λ (xs : val * list A) (c : val),
-              ∃ l' : loc,
-                ⌜#l' = xs.1⌝
-                ∗ c ↣ (<? (xs' : list A)> MSG #() {{ ⌜Sorted R xs'⌝
-                                                     ∗ ⌜xs' ≡ₚ xs.2⌝ ∗
-                                                       llist I l' xs' }}; END))%I
-          (λ (xs : val * list A) (v : val),
-           ∃ (l' : loc) xs',
-             ⌜#l' = xs.1⌝ ∗ ⌜Sorted R xs'⌝ ∗ ⌜xs' ≡ₚ xs.2⌝ ∗ llist I l' xs')%I
-          (λ _, True)%I with "[] [$Hk]").
-      { iIntros (_ x v) "!>".
-        iIntros (Ψ) "[Hc _] HΨ".
-        iDestruct "Hc" as (l' Heq) "Hc".
-        wp_pures. wp_recv (xs') as "[Hsorted [Hperm Hl']]". iClear "Hc".
-        iIntros "!>".
-        iApply "HΨ".
-        eauto with iFrame. }
-      iIntros "[Hk _]".
-      iDestruct (llist_out with "Hk") as (vs') "[_ Hxxs]".
-      iDestruct (big_sepL2_reverse_2 with "Hxxs") as "Hxxs".
-      rewrite reverse_involutive.
-      iAssert ([∗ list] xs;v ∈ xxs;vs,
-                                   ∃ (l' : loc) (xs' : list A),
-                                     ⌜#l' = v⌝ ∗ ⌜Sorted R xs'⌝ ∗
-                                     ⌜xs' ≡ₚ xs⌝ ∗ llist I l' xs')%I
-        with "[Hxxs]" as "Hxxs".
-      {
-        iRevert (Hlen).
-        generalize (reverse vs'); clear vs'; intros vs'.
-        iInduction xxs as [|xs xxs] "IH" forall (vs vs'); iIntros (Hlen).
-        - by rewrite (nil_length_inv vs); [ | eauto ].
-        - assert (∃ v' vs', vs = v' :: vs') as [v' [vs'' ->]].
-          { destruct vs; eauto.
-            inversion Hlen. }
-          iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (tmp1 tmp2 ->) "Hxxs".
-          iDestruct "Hxxs" as "[Hxs Hxxs]".
-          iDestruct "Hxs" as (l' xs' Heq) "[Hsorted [Hperm Hl']]".
-          iSplitR "Hxxs".
-          { eauto with iFrame. }
-          iApply ("IH" with "Hxxs").
-          eauto.
-      }
-      iAssert (∃ yys : list (list A),
-                    ([∗ list] x;ys ∈ xxs;yys,
-                   ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ x⌝) ∗
-                    [∗ list] ys;v ∈ yys;vs, ∃ (l' : loc),
-                    ⌜#l' = v⌝ ∗ llist I l' ys)%I
-                with "[Hxxs]" as (yys) "[Hyys Hvs']".
-      {
-        clear Hlen vs'.
-        iInduction xxs as [|xs xxs] "IH" forall (vs).
-        - iDestruct (big_sepL2_nil_inv_l with "Hxxs") as %->. eauto.
-        - iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (v vs' ->) "[Hv Hxxs]".
-          iDestruct "Hv" as (l' ys <- Hsorted Hperm) "Hl".
-          iDestruct ("IH" with "Hxxs") as (yys) "[Hyys Hvs]".
-          iExists (ys::yys).
-          simpl. iFrame "Hyys Hvs".
-          eauto with iFrame.
-      }
-      iApply "HΦ".
-      iFrame.
-      iApply llist_in. iFrame.
+    { wp_lam. iApply (sort_service_del_spec with "[$] Hc"). eauto. }
+    wp_smart_apply (lnil_spec with "[//]").
+    iIntros (k) "Hk".
+    iDestruct (llist_unfold_vals with "Hl") as (vs Hlen) "Hl".
+    wp_smart_apply (liter_spec _ l (zip vs xxs)
+      (λ xs l, ⌜xs.1 = l⌝ ∗ ∃ (l' : loc), ⌜#l' = l⌝ ∗ llist I l' xs.2)%I
+      (λ xs l, ⌜xs.1 = l⌝)%I
+      (λ xxs, c ↣ sort_protocol_del ∗
+                llist (λ xs c,
+                       ∃ (l' : loc), ⌜#l' = xs.1⌝ ∗
+                                     c ↣ <? (xs' : list A)> MSG #()
+                                          {{ ⌜ Sorted R xs' ⌝ ∗ ⌜ xs' ≡ₚ xs.2 ⌝ ∗
+                                             llist I l' xs' }};
+                                     END) k (reverse xxs))%I
+      with "[] [$Hl $Hk $Hc]").
+    { iIntros (xs x v) "!>".
+      iIntros (Ψ) "[H [Hc Hxs]] HΨ".
+      iDestruct "H" as (Heq l' <-) "Hl'". wp_lam. wp_select.
+      wp_recv (c') as "Hc'".
+      wp_send with "[Hl'//]".
+      wp_smart_apply (lcons_spec with "[$Hxs Hc']").
+      { iExists l'. eauto with iFrame. }
+      iIntros "Hxs".
+      iApply "HΨ".
+      rewrite reverse_app.
+      by iFrame. }
+    iIntros "[Hl [Hc Hk]]".
+    iDestruct (llist_fmap (λ (xs : val * list A) (v : val), ⌜xs.1 = v⌝)%I
+                          (λ (xs : val) (v : val), ⌜xs = v⌝)%I fst
+                 with "[] Hl") as "Hl"; [ eauto | ].
+    rewrite fst_zip; [ | lia ].
+    wp_select. iClear "Hc".
+    wp_smart_apply (liter_spec _ k (reverse (zip vs xxs))
+                             (λ (xs : val * list A) (c : val),
+            ∃ l' : loc,
+              ⌜#l' = xs.1⌝
+              ∗ c ↣ (<? (xs' : list A)> MSG #() {{ ⌜Sorted R xs'⌝
+                                                   ∗ ⌜xs' ≡ₚ xs.2⌝ ∗
+                                                     llist I l' xs' }}; END))%I
+        (λ (xs : val * list A) (v : val),
+         ∃ (l' : loc) xs',
+           ⌜#l' = xs.1⌝ ∗ ⌜Sorted R xs'⌝ ∗ ⌜xs' ≡ₚ xs.2⌝ ∗ llist I l' xs')%I
+        (λ _, True)%I with "[] [$Hk]").
+    { iIntros (_ x v) "!>".
+      iIntros (Ψ) "[Hc _] HΨ".
+      iDestruct "Hc" as (l' Heq) "Hc".
+      wp_pures. wp_recv (xs') as "[Hsorted [Hperm Hl']]". iClear "Hc".
+      iIntros "!>".
+      iApply "HΨ".
+      eauto with iFrame. }
+    iIntros "[Hk _]".
+    iDestruct (llist_out with "Hk") as (vs') "[_ Hxxs]".
+    iDestruct (big_sepL2_reverse_2 with "Hxxs") as "Hxxs".
+    rewrite reverse_involutive.
+    iAssert ([∗ list] xs;v ∈ xxs;vs,
+                                 ∃ (l' : loc) (xs' : list A),
+                                   ⌜#l' = v⌝ ∗ ⌜Sorted R xs'⌝ ∗
+                                   ⌜xs' ≡ₚ xs⌝ ∗ llist I l' xs')%I
+      with "[Hxxs]" as "Hxxs".
+    {
+      iRevert (Hlen).
+      generalize (reverse vs'); clear vs'; intros vs'.
+      iInduction xxs as [|xs xxs] "IH" forall (vs vs'); iIntros (Hlen).
+      - by rewrite (nil_length_inv vs); [ | eauto ].
+      - assert (∃ v' vs', vs = v' :: vs') as [v' [vs'' ->]].
+        { destruct vs; eauto.
+          inversion Hlen. }
+        iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (tmp1 tmp2 ->) "Hxxs".
+        iDestruct "Hxxs" as "[Hxs Hxxs]".
+        iDestruct "Hxs" as (l' xs' Heq) "[Hsorted [Hperm Hl']]".
+        iSplitR "Hxxs".
+        { eauto with iFrame. }
+        iApply ("IH" with "Hxxs").
+        eauto.
+    }
+    iAssert (∃ yys : list (list A),
+                  ([∗ list] x;ys ∈ xxs;yys,
+                 ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ x⌝) ∗
+                  [∗ list] ys;v ∈ yys;vs, ∃ (l' : loc),
+                  ⌜#l' = v⌝ ∗ llist I l' ys)%I
+              with "[Hxxs]" as (yys) "[Hyys Hvs']".
+    {
+      clear Hlen vs'.
+      iInduction xxs as [|xs xxs] "IH" forall (vs).
+      - iDestruct (big_sepL2_nil_inv_l with "Hxxs") as %->. eauto.
+      - iDestruct (big_sepL2_cons_inv_l with "Hxxs") as (v vs' ->) "[Hv Hxxs]".
+        iDestruct "Hv" as (l' ys <- Hsorted Hperm) "Hl".
+        iDestruct ("IH" with "Hxxs") as (yys) "[Hyys Hvs]".
+        iExists (ys::yys).
+        simpl. iFrame "Hyys Hvs".
+        eauto with iFrame.
+    }
+    iApply "HΦ".
+    iFrame.
+    iApply (llist_in with "Hl Hvs'").
   Qed.
 
   Definition sort_protocol_br_del_aux (rec : iProto Σ) : iProto Σ :=

@@ -113,10 +113,6 @@ Lemma cons_length_inv {A : Type} (xs : list A) n :
   length xs = S n → ∃ x xs', xs = x :: xs'.
 Proof. intros Hlen. destruct xs; [ inversion Hlen | eauto ]. Qed.
 
-Lemma list_app_comm {A} (xs ys zs : list A) :
-  (xs ++ ys) ++ zs = xs ++ (ys ++ zs).
-Proof. induction xs; [ eauto | by simpl; f_equiv ]. Qed.
-
 Lemma llist_fmap {A B} (I : A → val → iProp Σ)
       (J : B → val → iProp Σ) (f : A → B) l xs :
   □ (∀ x v, I x v -∗ J (f x) v) -∗
@@ -128,9 +124,9 @@ Proof.
 Qed.
 
 Lemma llist_out {A : Type} l (xs : list A) (I : A → val → iProp Σ) :
-  (llist I l xs)%I -∗
-  ∃ vs, (llist (λ x v, ⌜x = v⌝) l vs ∗
-    [∗list] k↦x;v ∈ xs;vs, I x v)%I.
+  llist I l xs -∗
+  ∃ vs, llist (λ x v, ⌜x = v⌝) l vs ∗
+    [∗list] k↦x;v ∈ xs;vs, I x v.
 Proof.
   iIntros "Hl".
   iInduction xs as [|x xs] "IH" forall (l).
@@ -145,11 +141,10 @@ Proof.
 Qed.
 
 Lemma llist_in {A : Type} l (xs : list A) (vs : list val) (I : A → val → iProp Σ) :
-  (llist (λ x v, ⌜x = v⌝) l vs ∗
-    [∗list] k↦x;v ∈ xs;vs, I x v)%I -∗
-  (llist I l xs)%I.
+  llist (λ x v, ⌜x = v⌝) l vs -∗ ([∗list] k↦x;v ∈ xs;vs, I x v) -∗
+  llist I l xs.
 Proof.
-  iIntros "[Hl HIs]".
+  iIntros "Hl HIs".
   iInduction xs as [|x xs] "IH" forall (l vs).
   - by iDestruct (big_sepL2_nil_inv_l with "HIs") as %->.
   - iDestruct (big_sepL2_cons_inv_l with "HIs") as (v vs' ->) "HIs".
@@ -162,7 +157,7 @@ Proof.
 Qed.
 
 Lemma llist_unfold_vals {A : Type} l (xs : list A) (I : A → val → iProp Σ) :
-  (llist I l xs)%I -∗
+  llist I l xs -∗
   ∃ vs, ⌜length vs = length xs⌝ ∗ (llist (λ x v, ⌜x.1 = v⌝ ∗ I x.2 v) l (zip vs xs)).
 Proof.
   iIntros "Hl".
@@ -180,7 +175,7 @@ Qed.
 Lemma llist_fold_vals {A : Type} l (xs : list A) (I : A → val → iProp Σ) vs :
   length vs = length xs →
   (llist (λ x v, ⌜x.1 = v⌝ ∗ I x.2 v) l (zip vs xs)) -∗
-  (llist I l xs)%I.
+  llist I l xs.
 Proof.
   iIntros (Hlen) "Hl".
   iRevert (Hlen).
@@ -195,9 +190,9 @@ Proof.
 Qed.
 
 Lemma llist_exists {A B : Type} l (xs : list A) (P : A → val → B → iProp Σ) :
-  (llist (λ x v, ∃ y : B, P x v y) l xs)%I -∗
-  (∃ ys : list B, llist (λ _ _, True) l xs ∗
-    [∗list] k↦x;y ∈ xs;ys, ∃ v, P x v y)%I.
+  llist (λ x v, ∃ y : B, P x v y) l xs -∗
+  ∃ ys : list B, llist (λ _ _, True) l xs ∗
+    [∗list] k↦x;y ∈ xs;ys, ∃ v, P x v y.
 Proof.
   iIntros "Hl".
   iInduction xs as [|x xs] "IH" forall (l).
@@ -474,7 +469,7 @@ Proof.
     wp_smart_apply ("IH" with "Hrec HR").
     iIntros "[Hl HR]".
     iApply "HΦ".
-    rewrite list_app_comm.
+    rewrite -assoc_L.
     iFrame.
     iExists _, _. iFrame.
 Qed.
