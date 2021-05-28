@@ -71,9 +71,9 @@ Section with_Σ.
   Qed.
 
   Global Instance send_once_from_modal p1 p2 :
-    FromModal (modality_instances.modality_laterN 1) (∀ x, p1 x ⊑ p2 x)
+    FromModal True (modality_instances.modality_laterN 1) (∀ x, p1 x ⊑ p2 x)
               ((send_once p1) ⊑ (send_once p2)) (∀ x, p1 x ⊑ p2 x).
-  Proof. apply send_once_mono. Qed.
+  Proof. intros _. apply send_once_mono. Qed.
 
   Lemma recv_once_mono prot1 prot2 x :
     ▷ (prot1 ⊑ prot2) -∗ recv_once prot1 x ⊑ recv_once prot2 x.
@@ -84,18 +84,18 @@ Section with_Σ.
   Qed.
 
   Global Instance recv_once_from_modal p1 p2 x :
-    FromModal (modality_instances.modality_laterN 1) (p1 ⊑ p2)
+    FromModal True (modality_instances.modality_laterN 1) (p1 ⊑ p2)
               ((recv_once p1 x) ⊑ (recv_once p2 x)) (p1 ⊑ p2).
-  Proof. apply recv_once_mono. Qed.
+  Proof. intros _. apply recv_once_mono. Qed.
 
   Lemma map_once_mono prot1 prot2 :
     ▷ (prot1 ⊑ prot2) -∗ map_once prot1 ⊑ map_once prot2.
   Proof. iIntros "Hsub". iModIntro. iIntros (x). iModIntro. eauto. Qed.
 
   Global Instance map_once_from_modal p1 p2 :
-    FromModal (modality_instances.modality_laterN 1) (p1 ⊑ p2)
+    FromModal True (modality_instances.modality_laterN 1) (p1 ⊑ p2)
               ((map_once p1) ⊑ (map_once p2)) (p1 ⊑ p2).
-  Proof. apply map_once_mono. Qed.
+  Proof. intros _. apply map_once_mono. Qed.
 
   Definition mapper_prot_once :=
     (map_once mapper_prot)%proto.

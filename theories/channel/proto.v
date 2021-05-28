@@ -1287,9 +1287,9 @@ Section proto.
   Qed.
 
   Global Instance iProto_le_from_modal a v p1 p2 :
-    FromModal (modality_instances.modality_laterN 1) (p1 ⊑ p2)
+    FromModal True (modality_instances.modality_laterN 1) (p1 ⊑ p2)
               ((<a> MSG v; p1) ⊑ (<a> MSG v; p2)) (p1 ⊑ p2).
-  Proof. apply iProto_le_base. Qed.
+  Proof. intros _. apply iProto_le_base. Qed.
 
 End proto.
 

@@ -450,17 +450,17 @@ Section subtyping_rules.
   Qed.
 
   Global Instance lty_le_from_modal_send A (S1 S2 : lsty Σ) :
-    FromModal (modality_instances.modality_laterN 1) (S1 <: S2)
+    FromModal True (modality_instances.modality_laterN 1) (S1 <: S2)
               ((<!!> TY A; S1) <: (<!!> TY A; S2)) (S1 <: S2) | 0.
   Proof.
-    rewrite /FromModal. iIntros "H". iApply lty_le_send. iApply lty_le_refl. done.
+    rewrite /FromModal. iIntros (_) "H". iApply lty_le_send. iApply lty_le_refl. done.
   Qed.
 
   Global Instance lty_le_from_modal_recv A (S1 S2 : lsty Σ) :
-    FromModal (modality_instances.modality_laterN 1) (S1 <: S2)
+    FromModal True (modality_instances.modality_laterN 1) (S1 <: S2)
               ((<??> TY A; S1) <: (<??> TY A; S2)) (S1 <: S2) | 0.
   Proof.
-    rewrite /FromModal. iIntros "H". iApply lty_le_recv. iApply lty_le_refl. done.
+    rewrite /FromModal. iIntros (_) "H". iApply lty_le_recv. iApply lty_le_refl. done.
   Qed.
 
   (** Algebraic laws *)
