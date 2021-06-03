@@ -8,7 +8,7 @@ Inductive pizza :=
   | Calzone.
 
 Section example.
-  Context `{heapG Σ, chanG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, spawnG Σ}.
 
   Definition pizza_to_val (p : pizza) :=
     match p with

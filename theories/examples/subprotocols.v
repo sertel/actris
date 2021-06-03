@@ -2,7 +2,7 @@ From actris.channel Require Import proofmode proto channel.
 From iris.proofmode Require Import tactics.
 
 Section subprotocol_basics.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Lemma reference_example (l1' : loc) :
     l1' ↦ #20 -∗

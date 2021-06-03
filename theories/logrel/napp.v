@@ -6,7 +6,7 @@ From actris.logrel Require Import term_typing_rules session_types subtyping_rule
 From actris.channel Require Import proofmode.
 
 Section with_Σ.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Fixpoint lty_napp (R : lsty Σ) (n : nat) :=
     match n with

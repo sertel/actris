@@ -49,7 +49,7 @@ Hint Mode MsgNormalize ! ! ! ! - : typeclass_instances.
 Arguments MsgNormalize {_} _ _%msg _%msg _%msg.
 
 Section classes.
-  Context `{!chanG Σ, !heapG Σ}.
+  Context `{!chanG Σ, !heapGS Σ}.
   Implicit Types TT : tele.
   Implicit Types p : iProto Σ.
   Implicit Types m : iMsg Σ.
@@ -184,7 +184,7 @@ End classes.
 
 (** * Symbolic execution tactics *)
 (* TODO: Maybe strip laters from other hypotheses in the future? *)
-Lemma tac_wp_recv `{!chanG Σ, !heapG Σ} {TT : tele} Δ i j K c p m tv tP tP' tp Φ :
+Lemma tac_wp_recv `{!chanG Σ, !heapGS Σ} {TT : tele} Δ i j K c p m tv tP tP' tp Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (<?> m) →
   MsgTele m tv tP tp →
@@ -273,7 +273,7 @@ Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_i
     simple_intropattern(x8) ")" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat).
 
-Lemma tac_wp_send `{!chanG Σ, !heapG Σ} {TT : tele} Δ neg i js K c v p m tv tP tp Φ :
+Lemma tac_wp_send `{!chanG Σ, !heapGS Σ} {TT : tele} Δ neg i js K c v p m tv tP tp Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (<!> m) →
   MsgTele m tv tP tp →
@@ -373,7 +373,7 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-Lemma tac_wp_branch `{!chanG Σ, !heapG Σ} Δ i j K
+Lemma tac_wp_branch `{!chanG Σ, !heapGS Σ} Δ i j K
     c p P1 P2 (p1 p2 : iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}&{P2}> p2) →
@@ -422,7 +422,7 @@ Tactic Notation "wp_branch" "as" "%" simple_intropattern(pat1) "|" "%" simple_in
   wp_branch_core as (fun H => iPure H as pat1) (fun H => iPure H as pat2). 
 Tactic Notation "wp_branch" := wp_branch as %_ | %_.
 
-Lemma tac_wp_select `{!chanG Σ, !heapG Σ} Δ neg i js K
+Lemma tac_wp_select `{!chanG Σ, !heapGS Σ} Δ neg i js K
     c (b : bool) p P1 P2 (p1 p2 : iProto Σ) Φ :
   envs_lookup i Δ = Some (false, c ↣ p)%I →
   ProtoNormalize false p [] (p1 <{P1}+{P2}> p2) →

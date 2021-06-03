@@ -8,7 +8,7 @@ From actris.channel Require Import proofmode.
 From actris.logrel Require Import subtyping_rules.
 
 Section choice_example.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Variables Sr Sm Sp Sq Ss Su : ltty Σ.
   Variables Srm Ssm Srp Ssp Sr' : ltty Σ.

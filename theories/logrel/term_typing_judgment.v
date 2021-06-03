@@ -12,7 +12,7 @@ From actris.logrel Require Export contexts.
 From iris.proofmode Require Import tactics.
 
 (** The semantic typing judgment *)
-Definition ltyped `{!heapG Σ}
+Definition ltyped `{!heapGS Σ}
     (Γ1 Γ2 : ctx Σ) (e : expr) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ∀ vs, ctx_ltyped vs Γ1 -∗
     WP subst_map vs e {{ v, ltty_car A v ∗ ctx_ltyped vs Γ2 }})%I.
@@ -29,7 +29,7 @@ Notation "Γ ⊨ e : A" := (⊢ Γ ⊨ e : A ⫤ Γ)
   (at level 100, e at next level, A at level 200) : type_scope.
 
 Section ltyped.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Global Instance ltyped_plain Γ1 Γ2 e A : Plain (ltyped Γ1 Γ2 e A).
   Proof. rewrite /ltyped /=. apply _. Qed.
@@ -55,7 +55,7 @@ To circumvent this, we make use of the following typing judgement for values,
 that lets us type check values without requiring reduction steps.
 The value typing judgement subsumes the typing judgement on expressions,
 as made precise by the [ltyped_val_ltyped] lemma. *)
-Definition ltyped_val `{!heapG Σ} (v : val) (A : ltty Σ) : iProp Σ :=
+Definition ltyped_val `{!heapGS Σ} (v : val) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ltty_car A v)%I.
 Instance: Params (@ltyped_val) 3 := {}.
 Notation "⊨ᵥ v : A" := (ltyped_val v A)
@@ -65,7 +65,7 @@ Notation "⊨ᵥ v : A" := (⊢ ⊨ᵥ v : A)
 Arguments ltyped_val : simpl never.
 
 Section ltyped_val.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Global Instance ltyped_val_plain v A : Plain (ltyped_val v A).
   Proof. rewrite /ltyped_val /=. apply _. Qed.
@@ -79,7 +79,7 @@ Section ltyped_val.
 End ltyped_val.
 
 Section ltyped_rel.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Lemma ltyped_val_ltyped Γ v A : (⊨ᵥ v : A) -∗ Γ ⊨ v : A.
   Proof.
@@ -91,8 +91,8 @@ Section ltyped_rel.
 
 End ltyped_rel.
 
-Lemma ltyped_safety `{heapPreG Σ} e σ es σ' e' :
-  (∀ `{heapG Σ}, ∃ A, [] ⊨ e : A ⫤ []) →
+Lemma ltyped_safety `{heapGpreS Σ} e σ es σ' e' :
+  (∀ `{heapGS Σ}, ∃ A, [] ⊨ e : A ⫤ []) →
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.

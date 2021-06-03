@@ -62,7 +62,7 @@ Definition mapper_prog : val :=
    par_start (mapper_service) (mapper_client "f" "xs").
 
 Section mapper_example.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Definition mapper_type_rec_service_aux (A B : ltty Σ) (rec : lsty Σ) : lsty Σ :=
     lty_branch $ <[cont := (<??> TY A; <!!> TY B ; rec)%lty]>

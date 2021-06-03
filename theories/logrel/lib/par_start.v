@@ -9,7 +9,7 @@ Definition par_start : expr := λ: "e1" "e2",
   let: "c2" := Snd "c" in
   ("e1" "c1") ||| ("e2" "c2").
 
-Lemma ltyped_par_start `{!heapG Σ, !chanG Σ, !spawnG Σ} Γ S A B :
+Lemma ltyped_par_start `{!heapGS Σ, !chanG Σ, !spawnG Σ} Γ S A B :
   Γ ⊨ par_start : (chan S ⊸ A) ⊸ (chan (lty_dual S) ⊸ B) ⊸ A * B.
 Proof.
   iApply (ltyped_lam []); iApply (ltyped_lam [CtxItem "e1" _] [] "e2"); simpl.

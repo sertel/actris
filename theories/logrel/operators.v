@@ -29,9 +29,9 @@ Section operators.
   Proof. iIntros (v). by iDestruct 1 as (b) "->". Qed.
   Global Instance lty_int_unboxed : LTyUnboxed (Σ:=Σ) lty_int.
   Proof. iIntros (v). by iDestruct 1 as (i) "->". Qed.
-  Global Instance lty_ref_uniq_unboxed `{heapG Σ} A : LTyUnboxed (ref_uniq A).
+  Global Instance lty_ref_uniq_unboxed `{heapGS Σ} A : LTyUnboxed (ref_uniq A).
   Proof. iIntros (v). by iDestruct 1 as (i w ->) "?". Qed.
-  Global Instance lty_ref_shr_unboxed `{heapG Σ} A : LTyUnboxed (ref_shr A).
+  Global Instance lty_ref_shr_unboxed `{heapGS Σ} A : LTyUnboxed (ref_shr A).
   Proof. iIntros (v). by iDestruct 1 as (l ->) "?". Qed.
 
   (** Rules for operator typing *)

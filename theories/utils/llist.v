@@ -5,7 +5,7 @@ From iris.heap_lang Require Export proofmode notation.
 From iris.heap_lang Require Import assert.
 
 (**  *)
-Fixpoint llist `{heapG Σ} {A} (I : A → val → iProp Σ)
+Fixpoint llist `{heapGS Σ} {A} (I : A → val → iProp Σ)
     (l : loc) (xs : list A) : iProp Σ :=
   match xs with
   | [] => l ↦ NONEV
@@ -87,7 +87,7 @@ Definition lreverse : val :=
           "l" <- !(lreverse_at "l'" (lnil #())).
 
 Section lists.
-Context `{heapG Σ} {A} (I : A → val → iProp Σ).
+Context `{heapGS Σ} {A} (I : A → val → iProp Σ).
 Implicit Types i : nat.
 Implicit Types xs : list A.
 Implicit Types l : loc.

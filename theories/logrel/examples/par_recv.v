@@ -33,7 +33,7 @@ Definition prog : val := λ: "c",
   ).
 
 Section double.
-  Context `{heapG Σ, chanG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
 
   Definition prog_prot : iProto Σ :=
@@ -117,7 +117,7 @@ Section double.
 End double.
 
 Section double_fc.
-  Context `{heapG Σ, chanG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, spawnG Σ}.
   Context `{!inG Σ (exclR unitO), inG Σ (prodR fracR (agreeR (optionO valO)))}.
 
   Definition prog_prot_fc (P : val → val → iProp Σ) : iProto Σ :=

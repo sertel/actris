@@ -43,7 +43,7 @@ Definition lty_bool {Σ} : ltty Σ := Ltty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%
 Definition lty_int {Σ} : ltty Σ := Ltty (λ w, ∃ n : Z, ⌜ w = #n ⌝)%I.
 Definition lty_any {Σ} : ltty Σ := Ltty (λ w, True%I).
 
-Definition lty_arr `{heapG Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_arr `{heapGS Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
   ∀ v, ▷ ltty_car A1 v -∗ WP w v {{ ltty_car A2 }})%I.
 (* TODO: Make a non-linear version of prod, using ∧ *)
 Definition lty_prod {Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
@@ -52,7 +52,7 @@ Definition lty_sum {Σ} (A1 A2 : ltty Σ) : ltty Σ := Ltty (λ w,
   (∃ w1, ⌜w = InjLV w1⌝ ∗ ▷ ltty_car A1 w1) ∨
   (∃ w2, ⌜w = InjRV w2⌝ ∗ ▷ ltty_car A2 w2))%I.
 
-Definition lty_forall `{heapG Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
+Definition lty_forall `{heapGS Σ} {k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∀ X, WP w #() {{ ltty_car (C X) }})%I.
 Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
   Ltty (λ w, ∃ X, ▷ ltty_car (C X) w)%I.
@@ -60,13 +60,13 @@ Definition lty_exist {Σ k} (C : lty Σ k → ltty Σ) : ltty Σ :=
 Definition lty_copy {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, □ ltty_car A w)%I.
 Definition lty_copy_minus {Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w, coreP (ltty_car A w)).
 
-Definition lty_ref_uniq `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_ref_uniq `{heapGS Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (l : loc) (v : val), ⌜w = #l⌝ ∗ l ↦ v ∗ ▷ ltty_car A v)%I.
 Definition ref_shrN := nroot .@ "shr_ref".
-Definition lty_ref_shr `{heapG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_ref_shr `{heapGS Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ l : loc, ⌜w = #l⌝ ∗ inv (ref_shrN .@ l) (∃ v, l ↦ v ∗ □ ltty_car A v))%I.
 
-Definition lty_chan `{heapG Σ, chanG Σ} (P : lsty Σ) : ltty Σ :=
+Definition lty_chan `{heapGS Σ, chanG Σ} (P : lsty Σ) : ltty Σ :=
   Ltty (λ w, w ↣ lsty_car P)%I.
 
 Instance: Params (@lty_copy) 1 := {}.
@@ -110,14 +110,14 @@ Section term_types.
   Global Instance lty_copy_minus_ne : NonExpansive (@lty_copy_minus Σ).
   Proof. solve_proper. Qed.
 
-  Global Instance lty_arr_contractive `{heapG Σ} n :
+  Global Instance lty_arr_contractive `{heapGS Σ} n :
     Proper (dist_later n ==> dist_later n ==> dist n) lty_arr.
   Proof.
     intros A A' ? B B' ?. apply Ltty_ne=> v. f_equiv=> w.
     f_equiv; [by f_contractive|].
     apply (wp_contractive _ _ _ _ _)=> v'. destruct n=> //=; by f_equiv.
   Qed.
-  Global Instance lty_arr_ne `{heapG Σ} : NonExpansive2 lty_arr.
+  Global Instance lty_arr_ne `{heapGS Σ} : NonExpansive2 lty_arr.
   Proof. solve_proper. Qed.
   Global Instance lty_prod_contractive n:
     Proper (dist_later n ==> dist_later n ==> dist n) (@lty_prod Σ).
@@ -130,14 +130,14 @@ Section term_types.
   Global Instance lty_sum_ne : NonExpansive2 (@lty_sum Σ).
   Proof. solve_proper. Qed.
 
-  Global Instance lty_forall_contractive `{heapG Σ} k n :
+  Global Instance lty_forall_contractive `{heapGS Σ} k n :
     Proper (pointwise_relation _ (dist_later n) ==> dist n) (@lty_forall Σ _ k).
   Proof.
     intros F F' A. apply Ltty_ne=> w. f_equiv=> B.
     apply (wp_contractive _ _ _ _ _)=> u. specialize (A B).
     by destruct n as [|n]; simpl.
   Qed.
-  Global Instance lty_forall_ne `{heapG Σ} k n :
+  Global Instance lty_forall_ne `{heapGS Σ} k n :
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_forall Σ _ k).
   Proof. solve_proper. Qed.
   Global Instance lty_exist_contractive k n :
@@ -147,18 +147,18 @@ Section term_types.
     Proper (pointwise_relation _ (dist n) ==> dist n) (@lty_exist Σ k).
   Proof. solve_proper. Qed.
 
-  Global Instance lty_ref_uniq_contractive `{heapG Σ} : Contractive lty_ref_uniq.
+  Global Instance lty_ref_uniq_contractive `{heapGS Σ} : Contractive lty_ref_uniq.
   Proof. solve_contractive. Qed.
-  Global Instance lty_ref_uniq_ne `{heapG Σ} : NonExpansive lty_ref_uniq.
+  Global Instance lty_ref_uniq_ne `{heapGS Σ} : NonExpansive lty_ref_uniq.
   Proof. solve_proper. Qed.
 
-  Global Instance lty_ref_shr_contractive `{heapG Σ} : Contractive lty_ref_shr.
+  Global Instance lty_ref_shr_contractive `{heapGS Σ} : Contractive lty_ref_shr.
   Proof. solve_contractive. Qed.
-  Global Instance lty_ref_shr_ne `{heapG Σ} : NonExpansive lty_ref_shr.
+  Global Instance lty_ref_shr_ne `{heapGS Σ} : NonExpansive lty_ref_shr.
   Proof. solve_proper. Qed.
 
-  Global Instance lty_chan_contractive `{heapG Σ, chanG Σ} : Contractive lty_chan.
+  Global Instance lty_chan_contractive `{heapGS Σ, chanG Σ} : Contractive lty_chan.
   Proof. solve_contractive. Qed.
-  Global Instance lty_chan_ne `{heapG Σ, chanG Σ} : NonExpansive lty_chan.
+  Global Instance lty_chan_ne `{heapGS Σ, chanG Σ} : NonExpansive lty_chan.
   Proof. solve_proper. Qed.
 End term_types.

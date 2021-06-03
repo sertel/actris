@@ -34,7 +34,7 @@ Definition sort_service_br_del : val :=
     else #().
 
 Section sort_service_br_del.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
   Context {A} (I : A → val → iProp Σ) (R : A → A → Prop) `{!RelDecision R, !Total R}.
 
   Definition sort_protocol_br_aux (rec : iProto Σ) : iProto Σ :=

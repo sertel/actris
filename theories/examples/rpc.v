@@ -33,7 +33,7 @@ Definition program : val :=
     client (Fst "c").
 
 Section rpc_example.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
 
   Definition f_spec {T U} (IT : T → val → iProp Σ) (IU : U → val → iProp Σ)
              (f : T → U) (fv : val) : iProp Σ :=

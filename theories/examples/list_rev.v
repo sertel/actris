@@ -13,7 +13,7 @@ Definition list_rev_client : val :=
     send "c" "l";; recv "c".
 
 Section list_rev_example.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Definition list_rev_prot : iProto Σ :=
     (<! (l : loc) (vs : list val)> MSG #l {{ llist internal_eq l vs }} ;

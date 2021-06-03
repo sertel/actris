@@ -72,7 +72,7 @@ Definition sort_client_fg : val := λ: "cmp" "xs",
   recv_all "c" "xs".
 
 Section sort_fg.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
 
   Section sort_fg_inner.
   Context {A} (I : A → val → iProp Σ) (R : relation A) `{!RelDecision R, !Total R}.

@@ -11,7 +11,7 @@ From actris.utils Require Import switch.
 From actris.channel Require Import proofmode.
 
 Section session_typing_rules.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
   Implicit Types A B : ltty Σ.
   Implicit Types S T : lsty Σ.
   Implicit Types Γ : ctx Σ.

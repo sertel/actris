@@ -96,7 +96,7 @@ Class map_reduceG Σ A B `{Countable A, Countable B} := {
 
 Section mapper.
   Context `{Countable A, Countable B} {C : Type}.
-  Context `{!heapG Σ, !chanG Σ, !map_reduceG Σ A B}.
+  Context `{!heapGS Σ, !chanG Σ, !map_reduceG Σ A B}.
   Context (IA : A → val → iProp Σ) (IB : Z → B → val → iProp Σ) (IC : C → val → iProp Σ).
   Context (map : A → list (Z * B)) (red : Z → list B → list C).
   Context `{!∀ j, Proper ((≡ₚ) ==> (≡ₚ)) (red j)}.

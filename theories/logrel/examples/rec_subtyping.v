@@ -9,7 +9,7 @@ From actris.channel Require Import proofmode.
 From actris.logrel Require Import subtyping_rules.
 
 Section basics.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Definition prot1_aux (rec : lsty Σ) : lsty Σ :=
     <!! X Y> TY (X ⊸ Y); <!!> TY X; <??> TY Y; rec.

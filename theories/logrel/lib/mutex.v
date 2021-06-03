@@ -36,12 +36,12 @@ Definition mutex_release : val :=
   λ: "guard" "inner", Snd "guard" <- "inner";; release (Fst "guard").
 
 (** Semantic types *)
-Definition lty_mutex `{heapG Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_mutex `{heapGS Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (γ : gname) (l : loc) (lk : val),
     ⌜ w = (lk,#l)%V ⌝ ∗
     is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ ltty_car A v_inner))%I.
 
-Definition lty_mutex_guard `{heapG Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
+Definition lty_mutex_guard `{heapGS Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
   ∃ (γ : gname) (l : loc) (lk : val) (v : val),
     ⌜ w = (lk,#l)%V ⌝ ∗
     is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ ltty_car A v_inner) ∗
@@ -54,7 +54,7 @@ Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
 Notation "'mutex_guard' A" := (lty_mutex_guard A) (at level 10) : lty_scope.
 
 Section properties.
-  Context `{heapG Σ, lockG Σ}.
+  Context `{heapGS Σ, lockG Σ}.
   Implicit Types A : ltty Σ.
 
   Global Instance lty_mutex_contractive : Contractive lty_mutex.
@@ -98,7 +98,7 @@ Section properties.
 End properties.
 
 Section rules.
-  Context `{heapG Σ, lockG Σ}.
+  Context `{heapGS Σ, lockG Σ}.
 
   (** Mutex properties *)
   Lemma ltyped_mutex_alloc Γ A :

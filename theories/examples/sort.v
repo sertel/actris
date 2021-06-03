@@ -42,7 +42,7 @@ Definition sort_client_func : val := λ: "cmp" "xs",
   recv "c".
 
 Section sort.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
 
   Definition sort_protocol {A} (I : A → val → iProp Σ) (R : A → A → Prop) : iProto Σ :=
     (<! (xs : list A) (l : loc)> MSG #l {{ llist I l xs }};

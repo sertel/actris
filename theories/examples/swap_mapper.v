@@ -30,7 +30,7 @@ Definition swap_mapper_client : val :=
     send_all "c" "xs";; recv_all "c" "xs" "n";; send "c" #false.
 
 Section with_Σ.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
   Context {T U : Type}.
   Context (IT : T → val → iProp Σ).
   Context (IU : U → val → iProp Σ).

@@ -60,7 +60,7 @@ Class mapG Σ A `{Countable A} := {
 
 Section map.
   Context `{Countable A} {B : Type}.
-  Context `{!heapG Σ, !chanG Σ, !mapG Σ A}.
+  Context `{!heapGS Σ, !chanG Σ, !mapG Σ A}.
   Context (IA : A → val → iProp Σ) (IB : B → val → iProp Σ) (map : A → list B).
   Local Open Scope nat_scope.
   Implicit Types n : nat.

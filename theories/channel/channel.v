@@ -92,7 +92,7 @@ Qed.
 Notation iProto Σ := (iProto Σ val).
 Notation iMsg Σ := (iMsg Σ val).
 
-Definition iProto_mapsto_def `{!heapG Σ, !chanG Σ}
+Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
@@ -110,7 +110,7 @@ Instance: Params (@iProto_mapsto) 4 := {}.
 Notation "c ↣ p" := (iProto_mapsto c p)
   (at level 20, format "c  ↣  p").
 
-Instance iProto_mapsto_contractive `{!heapG Σ, !chanG Σ} c :
+Instance iProto_mapsto_contractive `{!heapGS Σ, !chanG Σ} c :
   Contractive (iProto_mapsto c).
 Proof. rewrite iProto_mapsto_eq. solve_contractive. Qed.
 
@@ -130,7 +130,7 @@ Infix "<+>" := (iProto_choice Send True True) (at level 85) : proto_scope.
 Infix "<&>" := (iProto_choice Recv True True) (at level 85) : proto_scope.
 
 Section channel.
-  Context `{!heapG Σ, !chanG Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 

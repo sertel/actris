@@ -6,7 +6,7 @@ From iris.proofmode Require Import tactics.
 From actris.logrel Require Export subtyping term_types session_types.
 
 Section subtyping_rules.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
   Implicit Types A : ltty Σ.
   Implicit Types S : lsty Σ.
 

@@ -51,7 +51,7 @@ Proof.
   apply IH. lia.
 Qed.
 
-Lemma switch_lams_spec `{heapG Σ} y i n ws vs e Φ :
+Lemma switch_lams_spec `{heapGS Σ} y i n ws vs e Φ :
   length vs = n →
   WP subst_map (map_string_seq y i vs ∪ ws) e {{ Φ }} -∗
   WP subst_map ws (switch_lams y i n e) {{ w, WP fill (AppLCtx <$> vs) w {{ Φ }} }}.
@@ -67,7 +67,7 @@ Proof.
     lookup_map_string_seq_None_lt; auto with lia.
 Qed.
 
-Lemma switch_body_spec `{heapG Σ} y xs i j ws (x : Z) edef ecase Φ :
+Lemma switch_body_spec `{heapGS Σ} y xs i j ws (x : Z) edef ecase Φ :
   fst <$> list_find (x =.) xs = Some i →
   ws !! y = Some #x →
   WP subst_map ws (ecase (i + j)%nat) {{ Φ }} -∗
@@ -82,7 +82,7 @@ Proof.
   iApply ("IH" $! i'). by simplify_option_eq. by rewrite Nat.add_succ_r.
 Qed.
 
-Lemma switch_fail_spec `{heapG Σ} vfs xs i (x : Z) (vf : val) Φ :
+Lemma switch_fail_spec `{heapGS Σ} vfs xs i (x : Z) (vf : val) Φ :
   length vfs = length xs →
   fst <$> list_find (x =.) xs = Some i →
   vfs !! i = Some vf →

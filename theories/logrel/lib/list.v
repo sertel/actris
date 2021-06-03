@@ -2,17 +2,17 @@ From actris.utils Require Import llist.
 From actris.channel Require Import proofmode.
 From actris.logrel Require Import term_types.
 
-Definition lty_list_aux `{!heapG Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
+Definition lty_list_aux `{!heapGS Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
   ref_uniq (() + (A * X)).
-Instance lty_list_aux_contractive `{!heapG Σ} A :
+Instance lty_list_aux_contractive `{!heapGS Σ} A :
   Contractive (@lty_list_aux Σ _ A).
 Proof. solve_proto_contractive. Qed.
-Definition lty_list `{!heapG Σ} (A : ltty Σ) : ltty Σ := lty_rec (lty_list_aux A).
+Definition lty_list `{!heapGS Σ} (A : ltty Σ) : ltty Σ := lty_rec (lty_list_aux A).
 
 Notation "'list' A" := (lty_list A) (at level 10) : lty_scope.
 
 Section with_Σ.
-  Context `{!heapG Σ}.
+  Context `{!heapGS Σ}.
 
   Lemma list_type_loc A v :
     ltty_car (list A) v -∗ ∃ (l : loc) , ⌜v = #l⌝.

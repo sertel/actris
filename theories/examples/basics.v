@@ -122,7 +122,7 @@ Definition prog_ref_swap_loop : val := λ: <>,
   !"l1" + !"l2".
 
 Section proofs.
-Context `{heapG Σ, chanG Σ}.
+Context `{heapGS Σ, chanG Σ}.
 
 (** Protocols for the respective programs *)
 Definition prot : iProto Σ :=

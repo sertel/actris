@@ -22,7 +22,7 @@ Definition compute_service : val :=
     (λ: "c", #()).
 
 Section compute_example.
-  Context `{heapG Σ, chanG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, spawnG Σ}.
 
   Definition compute_type_service_aux (rec : lsty Σ) : lsty Σ :=
     lty_branch $ <[cont := (<?? A> TY () ⊸ A; <!!> TY A ; rec)%lty]> $

@@ -11,7 +11,7 @@ From actris.logrel Require Import term_typing_rules session_typing_rules.
 From actris.channel Require Import proofmode.
 
 Section mapper_example.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   (** Client type as dual of service type *)
   Definition mapper_client_type_aux (rec : lsty Σ) : lsty Σ :=

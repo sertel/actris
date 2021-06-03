@@ -8,7 +8,7 @@ From actris.logrel Require Export subtyping_rules term_typing_judgment operators
 From actris.channel Require Import proofmode.
 
 Section term_typing_rules.
-  Context `{heapG Σ}.
+  Context `{heapGS Σ}.
   Implicit Types A B : ltty Σ.
   Implicit Types Γ : ctx Σ.
 

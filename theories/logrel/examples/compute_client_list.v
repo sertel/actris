@@ -56,7 +56,7 @@ Definition compute_client : val :=
     recv_all_par "c" "ys" "n" "lk" "counter");; "ys".
 
 Section compute_example.
-  Context `{heapG Σ, chanG Σ, lockG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, lockG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
 
   Definition compute_type_client_aux (rec : lsty Σ) : lsty Σ :=

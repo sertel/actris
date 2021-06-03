@@ -1,7 +1,7 @@
 From actris.channel Require Import channel proofmode.
 
 Section equivalence_examples.
-  Context `{heapG Σ, chanG Σ}.
+  Context `{heapGS Σ, chanG Σ}.
 
   Lemma binder_swap_equivalence_example :
     ((<! (x y : Z)> MSG (#x,#y) ; END):iProto Σ)%proto ≡
