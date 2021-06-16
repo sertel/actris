@@ -191,7 +191,7 @@ Notation "<?.. x1 .. xn > m" := (<?> ∃.. x1, .. (∃.. xn, m) ..)
 Class MsgTele {Σ V} {TT : tele} (m : iMsg Σ V)
     (tv : TT -t> V) (tP : TT -t> iProp Σ) (tp : TT -t> iProto Σ V) :=
   msg_tele : m ≡ (∃.. x, MSG tele_app tv x {{ tele_app tP x }}; tele_app tp x)%msg.
-Hint Mode MsgTele ! ! - ! - - - : typeclass_instances.
+Global Hint Mode MsgTele ! ! - ! - - - : typeclass_instances.
 
 (** * Operations *)
 Program Definition iMsg_map {Σ V}
@@ -1295,5 +1295,5 @@ End proto.
 
 Typeclasses Opaque iProto_ctx iProto_own.
 
-Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
+Global Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
   first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.

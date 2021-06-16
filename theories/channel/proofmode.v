@@ -24,7 +24,7 @@ Ltac solve_proto_contractive :=
 (** * Normalization of protocols *)
 Class ActionDualIf (d : bool) (a1 a2 : action) :=
   dual_action_if : a2 = if d then action_dual a1 else a1.
-Hint Mode ActionDualIf ! ! - : typeclass_instances.
+Global Hint Mode ActionDualIf ! ! - : typeclass_instances.
 
 Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
 Instance action_dual_if_true_send : ActionDualIf true Send Recv := eq_refl.
@@ -35,7 +35,7 @@ Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
   proto_normalize :
     ⊢ iProto_dual_if d p <++>
         foldr (iProto_app ∘ curry iProto_dual_if) END%proto pas ⊑ q.
-Hint Mode ProtoNormalize ! ! ! ! - : typeclass_instances.
+Global Hint Mode ProtoNormalize ! ! ! ! - : typeclass_instances.
 Arguments ProtoNormalize {_} _ _%proto _%proto _%proto.
 
 Notation ProtoUnfold p1 p2 := (∀ d pas q,
@@ -45,7 +45,7 @@ Class MsgNormalize {Σ} (d : bool) (m1 : iMsg Σ)
     (pas : list (bool * iProto Σ)) (m2 : iMsg Σ) :=
   msg_normalize a :
     ProtoNormalize d (<a> m1) pas (<(if d then action_dual a else a)> m2).
-Hint Mode MsgNormalize ! ! ! ! - : typeclass_instances.
+Global Hint Mode MsgNormalize ! ! ! ! - : typeclass_instances.
 Arguments MsgNormalize {_} _ _%msg _%msg _%msg.
 
 Section classes.

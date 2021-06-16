@@ -78,7 +78,7 @@ Notation "(.<++> T )" := (λ S, lty_app S T) (only parsing) : lty_scope.
 Class LtyMsgTele {Σ} {kt : ktele Σ} (M : lmsg Σ)
     (A : kt -k> ltty Σ) (S : kt -k> lsty Σ) :=
   lty_msg_tele : M ≡ (∃.. x, TY ktele_app A x; ktele_app S x)%lmsg.
-Hint Mode LtyMsgTele ! - ! - - : typeclass_instances.
+Global Hint Mode LtyMsgTele ! - ! - - : typeclass_instances.
 
 Section session_types.
   Context {Σ : gFunctors}.
