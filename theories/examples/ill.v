@@ -47,7 +47,8 @@ Fixpoint forwarder (τ : ty) : val := λ: "x" "y",
   end.
 
 Section interp.
-Context `{!heapG Σ, !chanG Σ}.
+Context `{!heapGS Σ, !chanG Σ}.
+
 
 Program Definition iProto_server_aux
     (P : iProto Σ) : iProto Σ -n> iProto Σ := λne self,
@@ -384,7 +385,7 @@ Proof.
       iApply (wp_wand with "H2"). eauto. }
   iIntros (c) "Hc". wp_pure _.
   wp_pure _.
-  rewrite decide_left//.
+  rewrite decide_True//.
   case_decide; last naive_solver.
   rewrite delete_commute//. rewrite -subst_map_insert.
   rewrite delete_notin; last first.

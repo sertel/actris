@@ -386,6 +386,7 @@ Section channel.
       iIntros "_". wp_pures. iModIntro. by rewrite foo.
   Qed.
 
+  (* Get rid of `p` here. Replace the second `q` with `q2` or something like that ... *)
   Lemma recv_spec_atomic {X} c (v : X → val) (P : X → iProp Σ) (p : iProto Σ) E Φ
         `{!Inhabited X} :
     □ (|={⊤,E}=> ∃ q, (▷ c ↣ <? (x : X)> MSG v x {{ P x }}; q) ∗ (▷ ▷ (p ≡ q)) ∗
