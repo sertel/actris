@@ -4,27 +4,9 @@ From iris.proofmode Require tactics.
 From iris.bi Require Import big_op.
 From iris.bi Require Import derived_laws_later.
 
-(* Useful lemma for map_filter *)
-Section map_filter_ext.
-Context `{FinMap K M}.
-Context {A} (P Q : K * A → Prop) `{!∀ x, Decision (P x), !∀ x, Decision (Q x)}.
-
-Lemma map_filter_strong_ext_inv i x (m1 m2 : M A) :
-  filter P m1 = filter Q m2 →
-  (P (i, x) ∧ m1 !! i = Some x) ↔ (Q (i, x) ∧ m2 !! i = Some x).
-Proof.
-  intros Hfilt.
-  rewrite (comm _ (P (i, x))).
-  rewrite (comm _ (Q (i, x))).
-  rewrite -!map_filter_lookup_Some.
-  by rewrite Hfilt.
-Qed.
-End map_filter_ext.
-
 
 (** ** [is_closed_expr] in terms of sets *)
-
-Definition maybe_insert_binder (x : binder) (X : stringset) : stringset :=
+Local Definition maybe_insert_binder (x : binder) (X : stringset) : stringset :=
   match x with
   | BAnon => X
   | BNamed f => {[f]} ∪ X
@@ -37,7 +19,7 @@ Fixpoint is_closed_expr_set (X : stringset) (e : expr) : bool :=
   | Rec f x e => is_closed_expr_set (maybe_insert_binder f (maybe_insert_binder x X)) e
   | UnOp _ e | Fst e | Snd e | InjL e | InjR e | Fork e | Free e | Load e =>
      is_closed_expr_set X e
-  | App e1 e2 | BinOp _ e1 e2 | Pair e1 e2 | AllocN e1 e2 | Store e1 e2 | FAA e1 e2 =>
+  | App e1 e2 | BinOp _ e1 e2 | Pair e1 e2 | AllocN e1 e2 | Store e1 e2 | FAA e1 e2 | Xchg e1 e2 =>
      is_closed_expr_set X e1 && is_closed_expr_set X e2
   | If e0 e1 e2 | Case e0 e1 e2 | CmpXchg e0 e1 e2 | Resolve e0 e1 e2 =>
      is_closed_expr_set X e0 && is_closed_expr_set X e1 && is_closed_expr_set X e2
@@ -127,7 +109,7 @@ Proof.
     eapply IHe; eauto.
     destruct x as [|x], f as [|f]; simpl in *; eauto.
     + eapply map_filter_strong_ext=>i v.
-      set_unfold. eapply (map_filter_strong_ext_inv _ _ i v) in Heq.
+      set_unfold. eapply map_filter_strong_ext_2 in Heq.
       split.
       { move=> [[->|Hi] Hm1]; simplify_map_eq/=.
         destruct (decide (i = f)) as [->|?]; first by simplify_map_eq/=.
@@ -138,7 +120,7 @@ Proof.
         move: Hm1. rewrite !lookup_delete_ne //.
         naive_solver. }
     + eapply map_filter_strong_ext=>i v.
-      set_unfold. eapply (map_filter_strong_ext_inv _ _ i v) in Heq.
+      set_unfold. eapply map_filter_strong_ext_2 in Heq.
       split.
       { move=> [[->|Hi] Hm1]; simplify_map_eq/=.
         destruct (decide (i = x)) as [->|?]; first by simplify_map_eq/=.
@@ -149,7 +131,7 @@ Proof.
         move: Hm1. rewrite !lookup_delete_ne //.
         naive_solver. }
     + eapply map_filter_strong_ext=>i v.
-      set_unfold. eapply (map_filter_strong_ext_inv _ _ i v) in Heq.
+      set_unfold. eapply map_filter_strong_ext_2 in Heq.
       split.
       { move=> [[->|[->|Hi]] Hm1]; simplify_map_eq/=.
         + destruct (decide (f = x)) as [->|?]; simplify_map_eq/=.
