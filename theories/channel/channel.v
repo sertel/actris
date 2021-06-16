@@ -239,6 +239,9 @@ Section channel.
     wp_pures. iApply ("HΦ" with "Hc1").
   Qed.
 
+  (* TODO: The predicate P can be existentially quantified inside the
+     □ ... also the resources [P x] can be provided _after_ opening the invariant
+   *)
   Lemma send_spec_atomic (X : Type) P R x v c E Φ :
     P x -∗
     R -∗
