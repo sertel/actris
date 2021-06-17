@@ -54,7 +54,7 @@ Qed.
 Lemma switch_lams_spec `{heapGS Σ} y i n ws vs e Φ :
   length vs = n →
   WP subst_map (map_string_seq y i vs ∪ ws) e {{ Φ }} -∗
-  WP subst_map ws (switch_lams y i n e) {{ w, WP fill (AppLCtx <$> vs) (w : val) {{ Φ }} }}.
+  WP subst_map ws (switch_lams y i n e) {{ w, WP fill (AppLCtx <$> vs) (of_val w) {{ Φ }} }}.
   (* FIXME: Once we depend on Coq 8.13, make WP notation use [v closed binder]
        so that we can add a type annotation at the [w] binder here. *)
 Proof.
