@@ -4,7 +4,7 @@
 From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From iris.base_logic.lib Require Import invariants.
 From actris.channel Require Import proofmode.
-From actris.utils Require Import syntax_facts big_sepM2_facts.
+From actris.utils Require Import syntax_facts.
 
 Inductive ty :=
 | tone : ty
@@ -224,8 +224,8 @@ Lemma cut_ Γ Δ1 Δ2 (x y : string) τ1 τ2 e1 e2 :
 Proof.
   intros Hxy Hy1 Hy2 Hx0 Hy0 HΔ Hclosed1 Hclosed2. iIntros "#H1 #H2".
   iModIntro. iIntros (ss cs oy Hsscs) "#HΓ HΔ Hoy". simpl.
-  rewrite big_sepM2_union_l //.
-  iDestruct "HΔ" as (cs1 cs2 Hcs ->) "[HΔ HΔ']".
+  rewrite big_sepM2_union_inv_l //.
+  iDestruct "HΔ" as (cs1 cs2 -> Hcs) "[HΔ HΔ']".
   iAssert (⌜dom stringset Δ1 = dom stringset cs1⌝)%I as %Hdom1.
   { by rewrite (big_sepM2_dom _ Δ1). }
   iAssert (⌜dom stringset Δ2 = dom stringset cs2⌝)%I as %Hdom2.
@@ -596,9 +596,9 @@ Proof.
   rewrite lookup_delete.
   rewrite !lookup_delete_ne//.
   rewrite lookup_insert_ne//.
-  rewrite big_sepM2_union_l //; last first.
+  rewrite big_sepM2_union_inv_l //; last first.
   { by eapply map_disjoint_insert_l_2. }
-  iDestruct "Hcs" as (cs1 cs2 Hcs' ->) "[HΔ HΔ']".
+  iDestruct "Hcs" as (cs1 cs2 -> Hcs') "[HΔ HΔ']".
   iAssert (⌜{[x]} ∪ dom stringset Δ = dom stringset cs1⌝)%I as %Hdom1.
   { rewrite (big_sepM2_dom _ _ cs1). iDestruct "HΔ" as %Hfoo.
     iPureIntro. revert Hfoo. rewrite dom_insert_L. done. }
@@ -805,8 +805,8 @@ Proof.
   iIntros (ss cs oy Hsscs) "#Hss HΔ Hoy". wp_pures.
   rewrite lookup_delete_ne// !lookup_delete lookup_insert.
   simpl.
-  rewrite big_sepM2_union_l //.
-  iDestruct "HΔ" as (cs1 cs2 Hcs ->) "[HΔ HΔ']".
+  rewrite big_sepM2_union_inv_l //.
+  iDestruct "HΔ" as (cs1 cs2 -> Hcs) "[HΔ HΔ']".
 
   iAssert (⌜dom stringset Δ = dom stringset cs1⌝)%I as %Hdom1.
   { by rewrite (big_sepM2_dom _ Δ). }
