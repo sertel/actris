@@ -3,6 +3,7 @@
  *)
 From stdpp Require Import gmap fin_maps fin_sets stringmap.
 From iris.base_logic.lib Require Import invariants.
+From iris.program_logic Require Import atomic.
 From actris.channel Require Import proofmode.
 From actris.utils Require Import syntax_facts.
 
@@ -52,7 +53,7 @@ Context `{!heapGS Σ, !chanG Σ}.
 
 Program Definition iProto_server_aux
     (P : iProto Σ) : iProto Σ -n> iProto Σ := λne self,
-   (<? c> MSG c {{ c ↣ P }}; self)%proto.
+   (<? c> MSG c {{ ▷ c ↣ P }}; self)%proto.
 Next Obligation. solve_proper. Qed.
 
 Instance iProto_server_contractive P :
@@ -61,7 +62,7 @@ Proof. solve_contractive. Qed.
 
 Definition iProto_server (P : iProto Σ) := fixpoint (iProto_server_aux P).
 Lemma iProto_server_unfold P :
-  (iProto_server P ≡ <? c> MSG c {{ c ↣ P }}; iProto_server P)%proto.
+  (iProto_server P ≡ <? c> MSG c {{ ▷ c ↣ P }}; iProto_server P)%proto.
 Proof.
   rewrite /iProto_server. eapply (fixpoint_unfold (iProto_server_aux P)).
 Qed.
@@ -198,10 +199,10 @@ Proof.
     wp_recv (k) as "Hk". wp_pures.
     rewrite iProto_dual_message iMsg_dual_exist /=.
     assert ((<! (x0 : val)> iMsg_dual
-                               (MSG x0 {{ x0 ↣ interp_ty τ }}; 
+                               (MSG x0 {{ ▷ x0 ↣ interp_ty τ }}; 
                                 iProto_server (interp_ty τ)))
                                ≡
-           (<! (x0 : val)> MSG x0 {{ x0 ↣ interp_ty τ }}; 
+           (<! (x0 : val)> MSG x0 {{ ▷ x0 ↣ interp_ty τ }}; 
                                 iProto_dual (iProto_server (interp_ty τ))))%proto as ->.
     { f_equiv. f_equiv. intros xx. rewrite iMsg_dual_base//. }
     wp_send with "[$Hk]". wp_pure _. wp_pure _.
@@ -313,23 +314,29 @@ Proof.
   wp_smart_apply (start_chan_spec (iProto_dual (interp_ty τ1)) with "[]").
   { iNext. iIntros (c) "Hc". wp_pures.
     rewrite iProto_dual_involutive.
-    iApply (send_spec_atomic val (λ v, v ↣ interp_ty τ1) True%I c id with "Hc [//]").
-    iModIntro. iAssert (inv (nctx uv) (uv ↣ iProto_dual (iProto_server (interp_ty τ1))))%I as "#Hinv".
+    iAssert (inv (nctx uv) (uv ↣ iProto_dual (iProto_server (interp_ty τ1))))%I as "#Hinv".
     {  rewrite (big_sepM2_insert_acc _ Γ ss u) //. by iDestruct "HΓ" as "[$ _]". }
-    iInv (nctx uv) as "Huv" "Hcl". iModIntro.
-    rewrite {2}iProto_server_unfold.
-    rewrite iProto_dual_message /=.
-    rewrite iMsg_dual_exist.
-    iExists (λ _, iProto_dual (iProto_server (interp_ty τ1))).
-    assert ((<! (x0 : val)> MSG x0 {{ x0 ↣ interp_ty τ1 }}; iProto_dual (iProto_server (interp_ty τ1)))%proto
-               ≡ (<! (x0 : val)> iMsg_dual (MSG x0 {{ x0 ↣ interp_ty τ1 }}; iProto_server (interp_ty τ1)))%proto) as ->.
+    Locate "<<<".
+    iApply (send_spec_atomic val c id  with "[-]").
+    { iAuIntro. rewrite /atomic_acc /=.
+      iInv (nctx uv) as "Huv" "Hcl". rewrite difference_diag_L.
+      iModIntro.
+      iExists (λ _, iProto_dual (iProto_server (interp_ty τ1))),
+              (λ c, ▷ c ↣ interp_ty τ1)%I.
+      iFrame "Hc".
+      rewrite {2}iProto_server_unfold.
+      rewrite iProto_dual_message /=.
+      rewrite iMsg_dual_exist.
+      assert ((<! (x0 : val)> MSG x0 {{ ▷ x0 ↣ interp_ty τ1 }}; iProto_dual (iProto_server (interp_ty τ1)))%proto
+                                                                                                         ≡ (<! (x0 : val)> iMsg_dual (MSG x0 {{ ▷ x0 ↣ interp_ty τ1 }}; iProto_server (interp_ty τ1)))%proto) as ->.
     { f_equiv. f_equiv. intros xx.
       by rewrite iMsg_dual_base. }
     iFrame "Huv". iSplit.
-    { iIntros "HH". iApply "Hcl".
+    { iIntros "[Hc Huv]". iFrame "Hc". iApply "Hcl".
       rewrite {3}iProto_server_unfold.
-      rewrite iProto_dual_message /= iMsg_dual_exist. iFrame "HH". }
-    iIntros "[Huv _]". by iApply "Hcl". }
+      rewrite iProto_dual_message /= iMsg_dual_exist. iFrame "Huv". }
+    iIntros "?". by iApply "Hcl". }
+  }
   iIntros (xc) "Hx". wp_pures.
   iSpecialize ("H1" $! ss (<[x:=xc]>cs) with "[%] HΓ [HΔ Hx] Hoy").
   - eapply map_disjoint_insert_r. eauto.
