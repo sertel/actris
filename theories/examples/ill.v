@@ -316,7 +316,6 @@ Proof.
     rewrite iProto_dual_involutive.
     iAssert (inv (nctx uv) (uv ↣ iProto_dual (iProto_server (interp_ty τ1))))%I as "#Hinv".
     {  rewrite (big_sepM2_insert_acc _ Γ ss u) //. by iDestruct "HΓ" as "[$ _]". }
-    Locate "<<<".
     iApply (send_spec_atomic val c id  with "[-]").
     { iAuIntro. rewrite /atomic_acc /=.
       iInv (nctx uv) as "Huv" "Hcl". rewrite difference_diag_L.
