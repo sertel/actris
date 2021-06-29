@@ -24,8 +24,8 @@ Add Printing Constructor ctx_item.
 Arguments CtxItem {_} _ _.
 Arguments ctx_item_name {_} _.
 Arguments ctx_item_type {_} _.
-Instance: Params (@CtxItem) 2 := {}.
-Instance: Params (@ctx_item_type) 1 := {}.
+Global Instance: Params (@CtxItem) 2 := {}.
+Global Instance: Params (@ctx_item_type) 1 := {}.
 
 Section ctx_item_ofe.
   Context {Σ : gFunctors}.
@@ -58,7 +58,7 @@ Arguments ctx_filter_ne _ !_ !_ / : simpl nomatch.
 factored out. *)
 Arguments filter _ _ _ _ _ !_ / : simpl nomatch.
 
-Instance ctx_lookup {Σ} : Lookup string (ltty Σ) (ctx Σ) := λ x Γ,
+Global Instance ctx_lookup {Σ} : Lookup string (ltty Σ) (ctx Σ) := λ x Γ,
   match ctx_filter_eq x Γ with
   | [CtxItem _ A] => Some A
   | _ => None
@@ -70,11 +70,11 @@ Definition ctx_cons {Σ} (b : binder) (A : ltty Σ) (Γ : ctx Σ) : ctx Σ :=
 Definition ctx_ltyped {Σ} (vs : gmap string val) (Γ : ctx Σ) : iProp Σ :=
   ([∗ list] iA ∈ Γ, ∃ v,
     ⌜vs !! ctx_item_name iA = Some v⌝ ∗ ltty_car (ctx_item_type iA) v)%I.
-Instance: Params (@ctx_ltyped) 2 := {}.
+Global Instance: Params (@ctx_ltyped) 2 := {}.
 
 Definition ctx_le {Σ} (Γ1 Γ2 : ctx Σ) : iProp Σ :=
   tc_opaque (■ ∀ vs, ctx_ltyped vs Γ1 -∗ ctx_ltyped vs Γ2)%I.
-Instance: Params (@ctx_le) 1 := {}.
+Global Instance: Params (@ctx_le) 1 := {}.
 Infix "<ctx:" := ctx_le (at level 70) : bi_scope.
 Notation "Γ1 <ctx: Γ2" := (⊢ Γ1 <ctx: Γ2) (at level 70) : type_scope.
 

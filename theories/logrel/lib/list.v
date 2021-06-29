@@ -4,7 +4,7 @@ From actris.logrel Require Import term_types.
 
 Definition lty_list_aux `{!heapGS Σ} (A : ltty Σ) (X : ltty Σ) : ltty Σ :=
   ref_uniq (() + (A * X)).
-Instance lty_list_aux_contractive `{!heapGS Σ} A :
+Global Instance lty_list_aux_contractive `{!heapGS Σ} A :
   Contractive (@lty_list_aux Σ _ A).
 Proof. solve_proto_contractive. Qed.
 Definition lty_list `{!heapGS Σ} (A : ltty Σ) : ltty Σ := lty_rec (lty_list_aux A).

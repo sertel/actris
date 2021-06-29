@@ -69,16 +69,16 @@ Definition lty_ref_shr `{heapGS Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
 Definition lty_chan `{heapGS Σ, chanG Σ} (P : lsty Σ) : ltty Σ :=
   Ltty (λ w, w ↣ lsty_car P)%I.
 
-Instance: Params (@lty_copy) 1 := {}.
-Instance: Params (@lty_copy_minus) 1 := {}.
-Instance: Params (@lty_arr) 2 := {}.
-Instance: Params (@lty_prod) 1 := {}.
-Instance: Params (@lty_sum) 1 := {}.
-Instance: Params (@lty_forall) 2 := {}.
-Instance: Params (@lty_sum) 1 := {}.
-Instance: Params (@lty_ref_uniq) 2 := {}.
-Instance: Params (@lty_ref_shr) 2 := {}.
-Instance: Params (@lty_chan) 3 := {}.
+Global Instance: Params (@lty_copy) 1 := {}.
+Global Instance: Params (@lty_copy_minus) 1 := {}.
+Global Instance: Params (@lty_arr) 2 := {}.
+Global Instance: Params (@lty_prod) 1 := {}.
+Global Instance: Params (@lty_sum) 1 := {}.
+Global Instance: Params (@lty_forall) 2 := {}.
+Global Instance: Params (@lty_sum) 1 := {}.
+Global Instance: Params (@lty_ref_uniq) 2 := {}.
+Global Instance: Params (@lty_ref_shr) 2 := {}.
+Global Instance: Params (@lty_chan) 3 := {}.
 
 Notation any := lty_any.
 Notation "()" := lty_unit : lty_scope.

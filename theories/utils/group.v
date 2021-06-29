@@ -17,8 +17,8 @@ Fixpoint group {A} `{EqDecision K} (ixs : list (K * A)) : list (K * list A) :=
   | (i,x) :: ixs => group_insert i x (group ixs)
   end.
 
-Instance: Params (@group_insert) 5 := {}.
-Instance: Params (@group) 3 := {}.
+Global Instance: Params (@group_insert) 5 := {}.
+Global Instance: Params (@group) 3 := {}.
 
 Local Infix "≡ₚₚ" :=
   (PermutationA (prod_relation (=) (≡ₚ))) (at level 70, no associativity) : stdpp_scope.

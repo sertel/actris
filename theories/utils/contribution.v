@@ -30,12 +30,12 @@ Definition server `{contributionG Σ A} (γ : gname) (n : nat) (x : A) : iProp �
    then x ≡ ε ∗ own γ (● (Some (Cinr (Excl ())))) ∗ own γ (◯ (Some (Cinr (Excl ()))))
    else own γ (● (Some (Cinl (Pos.of_nat n, x)))))%I.
 Typeclasses Opaque server.
-Instance: Params (@server) 6 := {}.
+Global Instance: Params (@server) 6 := {}.
 
 Definition client `{contributionG Σ A} (γ : gname) (x : A) : iProp Σ :=
   own γ (◯ (Some (Cinl (1%positive, x)))).
 Typeclasses Opaque client.
-Instance: Params (@client) 5 := {}.
+Global Instance: Params (@client) 5 := {}.
 
 Section contribution.
   Context `{contributionG Σ A}.

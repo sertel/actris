@@ -9,7 +9,7 @@ From iris.algebra Require Import gmultiset.
 Definition map_reduce {A B C} `{EqDecision K}
     (map : A → list (K * B)) (red : K → list B → list C) : list A → list C :=
   mbind (curry red) ∘ group ∘ mbind map.
-Instance: Params (@map_reduce) 7 := {}.
+Global Instance: Params (@map_reduce) 7 := {}.
 
 (** * Distributed version (aka the implementation) *)
 Definition par_map_reduce_map : val :=

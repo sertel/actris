@@ -16,9 +16,9 @@ From iris.algebra Require Export ofe.
 From actris.channel Require Export channel.
 
 Inductive kind := tty_kind | sty_kind.
-Instance kind_eq_dec : EqDecision kind.
+Global Instance kind_eq_dec : EqDecision kind.
 Proof. solve_decision. Defined.
-Instance kind_inhabited : Inhabited kind := populate tty_kind.
+Global Instance kind_inhabited : Inhabited kind := populate tty_kind.
 
 (** Use [Variant] to suppress generation of induction schemes *)
 Variant lty Σ : kind → Type :=
@@ -41,7 +41,7 @@ Definition lsty_car {Σ} (p : lsty Σ) : iProto Σ :=
 Arguments ltty_car {_} _ _ : simpl never.
 Arguments lsty_car {_} _ : simpl never.
 
-Instance lty_inhabited Σ k : Inhabited (lty Σ k) := populate $
+Global Instance lty_inhabited Σ k : Inhabited (lty Σ k) := populate $
   match k with
   | tty_kind => Ltty inhabitant
   | lty_kind => Lsty inhabitant

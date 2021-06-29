@@ -13,18 +13,18 @@ Definition lty_le {Σ k} : lty Σ k → lty Σ k → iProp Σ :=
 Arguments lty_le : simpl never.
 Infix "<:" := lty_le (at level 70) : bi_scope.
 Notation "K1 <: K2" := (⊢ K1 <: K2) (at level 70) : type_scope.
-Instance: Params (@lty_le) 2 := {}.
+Global Instance: Params (@lty_le) 2 := {}.
 
 Definition lty_bi_le {Σ k} (M1 M2 : lty Σ k) : iProp Σ :=
   tc_opaque (M1 <: M2 ∧ M2 <: M1)%I.
 Arguments lty_bi_le : simpl never.
 Infix "<:>" := lty_bi_le (at level 70) : bi_scope.
 Notation "K1 <:> K2" := (⊢ K1 <:> K2) (at level 70) : type_scope.
-Instance: Params (@lty_bi_le) 2 := {}.
+Global Instance: Params (@lty_bi_le) 2 := {}.
 
 Definition lty_copyable {Σ} (A : ltty Σ) : iProp Σ :=
   tc_opaque (A <: lty_copy A)%I.
-Instance: Params (@lty_copyable) 1 := {}.
+Global Instance: Params (@lty_copyable) 1 := {}.
 
 Section subtyping.
   Context {Σ : gFunctors}.

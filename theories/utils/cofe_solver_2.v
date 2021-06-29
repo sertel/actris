@@ -9,7 +9,7 @@ Record solution_2 (F : ofe → oFunctor) := Solution2 {
     ofe_iso (oFunctor_apply (F A) (solution_2_car A An)) (solution_2_car An A);
 }.
 Arguments solution_2_car {F}.
-Existing Instance solution_2_cofe.
+Global Existing Instance solution_2_cofe.
 
 Section cofe_solver_2.
   Context (F : ofe → oFunctor).

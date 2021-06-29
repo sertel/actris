@@ -71,18 +71,18 @@ Class chanG Σ := {
   chanG_protoG :> protoG Σ val;
 }.
 Definition chanΣ : gFunctors := #[ lockΣ; protoΣ val ].
-Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
+Global Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
 Proof. solve_inG. Qed.
 
 Record chan_name := ChanName {
   chan_lock_name : gname;
   chan_proto_name : proto_name;
 }.
-Instance chan_name_inhabited : Inhabited chan_name :=
+Global Instance chan_name_inhabited : Inhabited chan_name :=
   populate (ChanName inhabitant inhabitant).
-Instance chan_name_eq_dec : EqDecision chan_name.
+Global Instance chan_name_eq_dec : EqDecision chan_name.
 Proof. solve_decision. Qed.
-Instance chan_name_countable : Countable chan_name.
+Global Instance chan_name_countable : Countable chan_name.
 Proof.
  refine (inj_countable (λ '(ChanName γl γr), (γl,γr))
    (λ '(γl, γr), Some (ChanName γl γr)) _); by intros [].
@@ -106,11 +106,11 @@ Definition iProto_mapsto := iProto_mapsto_aux.(unseal).
 Definition iProto_mapsto_eq :
   @iProto_mapsto = @iProto_mapsto_def := iProto_mapsto_aux.(seal_eq).
 Arguments iProto_mapsto {_ _ _} _ _%proto.
-Instance: Params (@iProto_mapsto) 4 := {}.
+Global Instance: Params (@iProto_mapsto) 4 := {}.
 Notation "c ↣ p" := (iProto_mapsto c p)
   (at level 20, format "c  ↣  p").
 
-Instance iProto_mapsto_contractive `{!heapGS Σ, !chanG Σ} c :
+Global Instance iProto_mapsto_contractive `{!heapGS Σ, !chanG Σ} c :
   Contractive (iProto_mapsto c).
 Proof. rewrite iProto_mapsto_eq. solve_contractive. Qed.
 
@@ -119,7 +119,7 @@ Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
   (<a @ (b : bool)> MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
 Typeclasses Opaque iProto_choice.
 Arguments iProto_choice {_} _ _%I _%I _%proto _%proto.
-Instance: Params (@iProto_choice) 2 := {}.
+Global Instance: Params (@iProto_choice) 2 := {}.
 Infix "<{ P1 }+{ P2 }>" := (iProto_choice Send P1 P2) (at level 85) : proto_scope.
 Infix "<{ P1 }&{ P2 }>" := (iProto_choice Recv P1 P2) (at level 85) : proto_scope.
 Infix "<+{ P2 }>" := (iProto_choice Send True P2) (at level 85) : proto_scope.

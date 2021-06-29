@@ -47,8 +47,8 @@ Definition lty_mutex_guard `{heapGS Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltt
     is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ ltty_car A v_inner) ∗
     spin_lock.locked γ ∗ l ↦ v)%I.
 
-Instance: Params (@lty_mutex) 3 := {}.
-Instance: Params (@lty_mutex_guard) 3 := {}.
+Global Instance: Params (@lty_mutex) 3 := {}.
+Global Instance: Params (@lty_mutex_guard) 3 := {}.
 
 Notation "'mutex' A" := (lty_mutex A) (at level 10) : lty_scope.
 Notation "'mutex_guard' A" := (lty_mutex_guard A) (at level 10) : lty_scope.

@@ -62,7 +62,7 @@ Class protoG Σ V :=
 Definition protoΣ V := #[
   GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))
 ].
-Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
+Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
 Proof. solve_inG. Qed.
 
 (** * Types *)
@@ -83,7 +83,7 @@ Arguments iMsg_car {_ _} _.
 Declare Scope msg_scope.
 Delimit Scope msg_scope with msg.
 Bind Scope msg_scope with iMsg.
-Instance iMsg_inhabited {Σ V} : Inhabited (iMsg Σ V) := populate (IMsg inhabitant).
+Global Instance iMsg_inhabited {Σ V} : Inhabited (iMsg Σ V) := populate (IMsg inhabitant).
 
 Section imsg_ofe.
   Context {Σ : gFunctors} {V : Type}.
@@ -109,7 +109,7 @@ Definition iMsg_base_aux : seal (@iMsg_base_def). by eexists. Qed.
 Definition iMsg_base := iMsg_base_aux.(unseal).
 Definition iMsg_base_eq : @iMsg_base = @iMsg_base_def := iMsg_base_aux.(seal_eq).
 Arguments iMsg_base {_ _} _%V _%I _%proto.
-Instance: Params (@iMsg_base) 3 := {}.
+Global Instance: Params (@iMsg_base) 3 := {}.
 
 Program Definition iMsg_exist_def {Σ V A} (m : A → iMsg Σ V) : iMsg Σ V :=
   IMsg (λ v', λne p', ∃ x, iMsg_car (m x) v' p')%I.
@@ -118,7 +118,7 @@ Definition iMsg_exist_aux : seal (@iMsg_exist_def). by eexists. Qed.
 Definition iMsg_exist := iMsg_exist_aux.(unseal).
 Definition iMsg_exist_eq : @iMsg_exist = @iMsg_exist_def := iMsg_exist_aux.(seal_eq).
 Arguments iMsg_exist {_ _ _} _%msg.
-Instance: Params (@iMsg_exist) 3 := {}.
+Global Instance: Params (@iMsg_exist) 3 := {}.
 
 Definition iMsg_texist {Σ V} {TT : tele} (m : TT → iMsg Σ V) : iMsg Σ V :=
   tele_fold (@iMsg_exist Σ V) (λ x, x) (tele_bind m).
@@ -158,7 +158,7 @@ Definition iProto_message := iProto_message_aux.(unseal).
 Definition iProto_message_eq :
   @iProto_message = @iProto_message_def := iProto_message_aux.(seal_eq).
 Arguments iProto_message {_ _} _ _%msg.
-Instance: Params (@iProto_message) 3 := {}.
+Global Instance: Params (@iProto_message) 3 := {}.
 
 Notation "'END'" := iProto_end : proto_scope.
 
@@ -209,7 +209,7 @@ Next Obligation.
   apply proto_message_ne=> v p' /=. by repeat f_equiv.
 Qed.
 
-Instance iProto_map_app_aux_contractive {Σ V} f (p2 : iProto Σ V) :
+Global Instance iProto_map_app_aux_contractive {Σ V} f (p2 : iProto Σ V) :
   Contractive (iProto_map_app_aux f p2).
 Proof.
   intros n rec1 rec2 Hrec p1; simpl. apply proto_elim_ne=> // a m1 m2 Hm.
@@ -226,7 +226,7 @@ Definition iProto_app_aux : seal (@iProto_app_def). Proof. by eexists. Qed.
 Definition iProto_app := iProto_app_aux.(unseal).
 Definition iProto_app_eq : @iProto_app = @iProto_app_def := iProto_app_aux.(seal_eq).
 Arguments iProto_app {_ _} _%proto _%proto.
-Instance: Params (@iProto_app) 2 := {}.
+Global Instance: Params (@iProto_app) 2 := {}.
 Infix "<++>" := iProto_app (at level 60) : proto_scope.
 Notation "m <++> p" := (iMsg_map (flip iProto_app p) m) : msg_scope.
 
@@ -237,13 +237,13 @@ Definition iProto_dual := iProto_dual_aux.(unseal).
 Definition iProto_dual_eq :
   @iProto_dual = @iProto_dual_def := iProto_dual_aux.(seal_eq).
 Arguments iProto_dual {_ _} _%proto.
-Instance: Params (@iProto_dual) 2 := {}.
+Global Instance: Params (@iProto_dual) 2 := {}.
 Notation iMsg_dual := (iMsg_map iProto_dual).
 
 Definition iProto_dual_if {Σ V} (d : bool) (p : iProto Σ V) : iProto Σ V :=
   if d then iProto_dual p else p.
 Arguments iProto_dual_if {_ _} _ _%proto.
-Instance: Params (@iProto_dual_if) 3 := {}.
+Global Instance: Params (@iProto_dual_if) 3 := {}.
 
 (** * Protocol entailment *)
 Definition iProto_le_pre {Σ V}
@@ -261,7 +261,7 @@ Definition iProto_le_pre {Σ V}
          ▷ rec p1' (<!> MSG v2; pt) ∗ ▷ rec (<?> MSG v1; pt) p2'
     | Send, Recv => False
     end.
-Instance iProto_le_pre_ne {Σ V} (rec : iProto Σ V → iProto Σ V → iProp Σ) :
+Global Instance iProto_le_pre_ne {Σ V} (rec : iProto Σ V → iProto Σ V → iProp Σ) :
   NonExpansive2 (iProto_le_pre rec).
 Proof. solve_proper. Qed.
 
@@ -278,12 +278,12 @@ Qed.
 Definition iProto_le {Σ V} (p1 p2 : iProto Σ V) : iProp Σ :=
   fixpoint iProto_le_pre' p1 p2.
 Arguments iProto_le {_ _} _%proto _%proto.
-Instance: Params (@iProto_le) 2 := {}.
+Global Instance: Params (@iProto_le) 2 := {}.
 Notation "p ⊑ q" := (iProto_le p q) : bi_scope.
 
-Instance iProto_le_ne {Σ V} : NonExpansive2 (@iProto_le Σ V).
+Global Instance iProto_le_ne {Σ V} : NonExpansive2 (@iProto_le Σ V).
 Proof. solve_proper. Qed.
-Instance iProto_le_proper {Σ V} : Proper ((≡) ==> (≡) ==> (⊣⊢)) (@iProto_le Σ V).
+Global Instance iProto_le_proper {Σ V} : Proper ((≡) ==> (≡) ==> (⊣⊢)) (@iProto_le Σ V).
 Proof. solve_proper. Qed.
 
 Fixpoint iProto_app_recvs {Σ V} (vs : list V) (p : iProto Σ V) : iProto Σ V :=
@@ -295,21 +295,21 @@ Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp
   ∃ p, iProto_app_recvs vsr p ⊑ pl ∗ iProto_app_recvs vsl (iProto_dual p) ⊑ pr.
 
 Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
-Instance proto_name_inhabited : Inhabited proto_name :=
+Global Instance proto_name_inhabited : Inhabited proto_name :=
   populate (ProtName inhabitant inhabitant).
-Instance proto_name_eq_dec : EqDecision proto_name.
+Global Instance proto_name_eq_dec : EqDecision proto_name.
 Proof. solve_decision. Qed.
-Instance proto_name_countable : Countable proto_name.
+Global Instance proto_name_countable : Countable proto_name.
 Proof.
  refine (inj_countable (λ '(ProtName γl γr), (γl,γr))
    (λ '(γl, γr), Some (ProtName γl γr)) _); by intros [].
 Qed.
 
 Inductive side := Left | Right.
-Instance side_inhabited : Inhabited side := populate Left.
-Instance side_eq_dec : EqDecision side.
+Global Instance side_inhabited : Inhabited side := populate Left.
+Global Instance side_eq_dec : EqDecision side.
 Proof. solve_decision. Qed.
-Instance side_countable : Countable side.
+Global Instance side_countable : Countable side.
 Proof.
  refine (inj_countable (λ s, if s is Left then true else false)
    (λ b, Some (if b then Left else Right)) _); by intros [].
@@ -336,9 +336,9 @@ Definition iProto_own `{!protoG Σ V}
     (γ : proto_name) (s : side) (p : iProto Σ V) : iProp Σ :=
   ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ s p'.
 Arguments iProto_own {_ _ _} _ _%proto.
-Instance: Params (@iProto_own) 3 := {}.
+Global Instance: Params (@iProto_own) 3 := {}.
 
-Instance iProto_own_contractive `{protoG Σ V} γ s :
+Global Instance iProto_own_contractive `{protoG Σ V} γ s :
   Contractive (iProto_own γ s).
 Proof. solve_contractive. Qed.
 

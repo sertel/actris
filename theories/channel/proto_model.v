@@ -40,10 +40,10 @@ Set Default Proof Using "Type".
 
 Module Export action.
   Inductive action := Send | Recv.
-  Instance action_inhabited : Inhabited action := populate Send.
+  Global Instance action_inhabited : Inhabited action := populate Send.
   Definition action_dual (a : action) : action :=
     match a with Send => Recv | Recv => Send end.
-  Instance action_dual_involutive : Involutive (=) action_dual.
+  Global Instance action_dual_involutive : Involutive (=) action_dual.
   Proof. by intros []. Qed.
   Canonical Structure actionO := leibnizO action.
 End action.
@@ -56,7 +56,7 @@ Definition proto_auxOF (V : Type) (PROP : ofe) : oFunctor :=
 Definition proto_result (V : Type) := result_2 (proto_auxOF V).
 Definition proto (V : Type) (PROPn PROP : ofe) `{!Cofe PROPn, !Cofe PROP} : ofe :=
   solution_2_car (proto_result V) PROPn _ PROP _.
-Instance proto_cofe {V} `{!Cofe PROPn, !Cofe PROP} : Cofe (proto V PROPn PROP).
+Global Instance proto_cofe {V} `{!Cofe PROPn, !Cofe PROP} : Cofe (proto V PROPn PROP).
 Proof. apply _. Qed.
 Lemma proto_iso {V} `{!Cofe PROPn, !Cofe PROP} :
   ofe_iso (proto_auxO V PROP (proto V PROP PROPn)) (proto V PROPn PROP).
@@ -80,11 +80,11 @@ Definition proto_message {V} `{!Cofe PROPn, !Cofe PROP} (a : action)
     (m : V → laterO (proto V PROP PROPn) -n> PROP) : proto V PROPn PROP :=
   proto_fold (Some (a, m)).
 
-Instance proto_message_ne {V} `{!Cofe PROPn, !Cofe PROP} a n :
+Global Instance proto_message_ne {V} `{!Cofe PROPn, !Cofe PROP} a n :
   Proper (pointwise_relation V (dist n) ==> dist n)
          (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
 Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
-Instance proto_message_proper {V} `{!Cofe PROPn, !Cofe PROP} a :
+Global Instance proto_message_proper {V} `{!Cofe PROPn, !Cofe PROP} a :
   Proper (pointwise_relation V (≡) ==> (≡))
          (proto_message (PROPn:=PROPn) (PROP:=PROP) a).
 Proof. intros c1 c2 Hc. rewrite /proto_message. f_equiv. by repeat constructor. Qed.
@@ -96,7 +96,7 @@ Proof.
   - left. by rewrite -(proto_fold_unfold p) E.
   - right. exists a, m. by rewrite /proto_message -E proto_fold_unfold.
 Qed.
-Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
+Global Instance proto_inhabited {V} `{!Cofe PROPn, !Cofe PROP} :
   Inhabited (proto V PROPn PROP) := populate proto_end.
 
 Lemma proto_message_equivI `{!BiInternalEq SPROP} {V} `{!Cofe PROPn, !Cofe PROP} a1 a2 m1 m2 :
@@ -173,7 +173,7 @@ Next Obligation.
   apply proto_elim_ne=> // a m1 m2 Hm. by repeat f_equiv.
 Qed.
 
-Instance proto_map_aux_contractive {V}
+Global Instance proto_map_aux_contractive {V}
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'} (g : PROP -n> PROP') :
   Contractive (proto_map_aux (V:=V) (PROPn:=PROPn) (PROPn':=PROPn') g).
 Proof.
@@ -188,7 +188,7 @@ Definition proto_map_aux_2 {V}
     (rec : proto V PROPn PROP -n> proto V PROPn' PROP') :
     proto V PROPn PROP -n> proto V PROPn' PROP' :=
   proto_map_aux g (proto_map_aux gn rec).
-Instance proto_map_aux_2_contractive {V}
+Global Instance proto_map_aux_2_contractive {V}
    `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') :
   Contractive (proto_map_aux_2 (V:=V) gn g).
@@ -294,7 +294,7 @@ Next Obligation.
   apply proto_map_ext=> //= y; by rewrite ofe.oFunctor_map_compose.
 Qed.
 
-Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
+Global Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
     `{!∀ A B `{!Cofe A, !Cofe B}, Cofe (oFunctor_car Fn A B)}
     `{!∀ A B `{!Cofe A, !Cofe B}, Cofe (oFunctor_car F A B)} :
   oFunctorContractive Fn → oFunctorContractive F → 

@@ -26,9 +26,9 @@ Class ActionDualIf (d : bool) (a1 a2 : action) :=
   dual_action_if : a2 = if d then action_dual a1 else a1.
 Global Hint Mode ActionDualIf ! ! - : typeclass_instances.
 
-Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
-Instance action_dual_if_true_send : ActionDualIf true Send Recv := eq_refl.
-Instance action_dual_if_true_recv : ActionDualIf true Recv Send := eq_refl.
+Global Instance action_dual_if_false a : ActionDualIf false a a := eq_refl.
+Global Instance action_dual_if_true_send : ActionDualIf true Send Recv := eq_refl.
+Global Instance action_dual_if_true_recv : ActionDualIf true Recv Send := eq_refl.
 
 Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
     (pas : list (bool * iProto Σ)) (q : iProto Σ) :=

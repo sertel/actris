@@ -34,10 +34,10 @@ Definition lty_dual {Σ} (S : lsty Σ) : lsty Σ :=
 Definition lty_app {Σ} (S1 S2 : lsty Σ) : lsty Σ :=
   Lsty (lsty_car S1 <++> lsty_car S2).
 
-Instance: Params (@lty_message) 2 := {}.
-Instance: Params (@lty_choice) 2 := {}.
-Instance: Params (@lty_dual) 1 := {}.
-Instance: Params (@lty_app) 1 := {}.
+Global Instance: Params (@lty_message) 2 := {}.
+Global Instance: Params (@lty_choice) 2 := {}.
+Global Instance: Params (@lty_dual) 1 := {}.
+Global Instance: Params (@lty_app) 1 := {}.
 
 Notation "'TY' A ; S" := (lty_msg_base A S)
   (at level 200, right associativity,
