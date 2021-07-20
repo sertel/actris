@@ -8,7 +8,7 @@ From iris.algebra Require Import gmultiset.
 (** * Functional version of map reduce (aka the specification) *)
 Definition map_reduce {A B C} `{EqDecision K}
     (map : A → list (K * B)) (red : K → list B → list C) : list A → list C :=
-  mbind (curry red) ∘ group ∘ mbind map.
+  mbind (uncurry red) ∘ group ∘ mbind map.
 Global Instance: Params (@map_reduce) 7 := {}.
 
 (** * Distributed version (aka the implementation) *)
@@ -76,7 +76,7 @@ Section map_reduce.
   Context {A B C} `{EqDecision K} (map : A → list (K * B)) (red : K → list B → list C).
   Context `{!∀ j, Proper ((≡ₚ) ==> (≡ₚ)) (red j)}.
 
-  Global Instance bind_red_perm : Proper ((≡ₚₚ) ==> (≡ₚ)) (mbind (curry red)).
+  Global Instance bind_red_perm : Proper ((≡ₚₚ) ==> (≡ₚ)) (mbind (uncurry red)).
   Proof.
     induction 1 as [|[i1 xs1] [i2 xs2] ixss1 ixss2 [??]|[i1 xs1] [i2 xs2] ixss|];
       simplify_eq/=; try done.
@@ -224,12 +224,12 @@ Section mapper.
       llist IC l zs ∗
       csort ↣ from_option (λ _, sort_fg_tail_protocol IZB RZB iys
         (iys_sorted ++ acc miy)) END%proto miy ∗
-      cred ↣ par_map_protocol IZBs IC (curry red) n (Y : gmultiset (Z * list B)) ∗
+      cred ↣ par_map_protocol IZBs IC (uncurry red) n (Y : gmultiset (Z * list B)) ∗
       from_option (λ '(i,y,w), IB i y w) True miy
     }}}
       par_map_reduce_reduce #n csort cred (accv miy) #l
     {{{ zs', RET #();
-       ⌜ (group iys_sorted ≫= curry red) ++ zs' ≡ₚ (group iys ++ elements Y) ≫= curry red ⌝ ∗
+       ⌜ (group iys_sorted ≫= uncurry red) ++ zs' ≡ₚ (group iys ++ elements Y) ≫= uncurry red ⌝ ∗
        llist IC l (zs' ++ zs)
     }}}.
   Proof.
@@ -275,7 +275,7 @@ Section mapper.
   Lemma par_map_reduce_spec n m vmap vred l xs :
     0 < n → 0 < m →
     map_spec IA IZB map vmap -∗
-    map_spec IZBs IC (curry red) vred -∗
+    map_spec IZBs IC (uncurry red) vred -∗
     {{{ llist IA l xs }}}
       par_map_reduce #n #m vmap vred #l
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
@@ -292,7 +292,7 @@ Section mapper.
     wp_smart_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_smart_apply (start_chan_spec (par_map_protocol IZBs IC (curry red) m ∅));
+    wp_smart_apply (start_chan_spec (par_map_protocol IZBs IC (uncurry red) m ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_smart_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.

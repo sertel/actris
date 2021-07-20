@@ -34,7 +34,7 @@ Class ProtoNormalize {Σ} (d : bool) (p : iProto Σ)
     (pas : list (bool * iProto Σ)) (q : iProto Σ) :=
   proto_normalize :
     ⊢ iProto_dual_if d p <++>
-        foldr (iProto_app ∘ curry iProto_dual_if) END%proto pas ⊑ q.
+        foldr (iProto_app ∘ uncurry iProto_dual_if) END%proto pas ⊑ q.
 Global Hint Mode ProtoNormalize ! ! ! ! - : typeclass_instances.
 Arguments ProtoNormalize {_} _ _%proto _%proto _%proto.
 
