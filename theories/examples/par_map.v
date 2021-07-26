@@ -187,7 +187,7 @@ Section map.
       iIntros (ys'); iDestruct 1 as (Hys) "Hk"; simplify_eq/=.
       iApply ("HΦ" $! (ys' ++ map x)). iSplit.
       + iPureIntro. rewrite (gmultiset_disj_union_difference {[+ x +]} X)
-          -?gmultiset_elem_of_singleton_subseteq //.
+          ?gmultiset_singleton_subseteq_l //.
         rewrite (comm_L disj_union) gmultiset_elements_disj_union.
         by rewrite gmultiset_elements_singleton assoc_L bind_app -Hys /= right_id_L.
       + by rewrite -assoc_L.
