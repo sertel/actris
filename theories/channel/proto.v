@@ -46,7 +46,7 @@ notions, such as contractiveness and non-expansiveness, after which the
 specifications of the message-passing primitives are defined in terms of the
 protocol connectives. *)
 From iris.algebra Require Import excl_auth.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
 From iris.program_logic Require Import language.

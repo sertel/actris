@@ -1,5 +1,5 @@
 From actris.channel Require Import proofmode proto channel.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 
 Section subprotocol_basics.
   Context `{heapGS Σ, chanG Σ}.

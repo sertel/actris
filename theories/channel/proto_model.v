@@ -34,7 +34,7 @@ The defined functions on the type [proto] are:
 - [proto_app], which appends two protocols [p1] and [p2], by substituting
   all terminations [END] in [p1] with [p2]. *)
 From iris.base_logic Require Import base_logic.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From actris.utils Require Import cofe_solver_2.
 Set Default Proof Using "Type".
 

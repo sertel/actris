@@ -13,7 +13,7 @@ to the syntactic typing rules that are typically found in substructural type
 systems. *)
 From iris.algebra Require Export list.
 From iris.bi.lib Require Import core.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From actris.logrel Require Export term_types subtyping_rules.
 
 Inductive ctx_item Σ := CtxItem {

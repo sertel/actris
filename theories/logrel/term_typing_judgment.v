@@ -9,7 +9,7 @@ semantically well-typed programs do not get stuck. *)
 From iris.heap_lang Require Import metatheory adequacy.
 From actris.logrel Require Export term_types.
 From actris.logrel Require Export contexts.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 
 (** The semantic typing judgment *)
 Definition ltyped `{!heapGS Σ}

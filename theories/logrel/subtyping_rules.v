@@ -2,7 +2,7 @@
 session types. *)
 From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
-From iris.proofmode Require Import tactics.
+From iris.proofmode Require Import proofmode.
 From actris.logrel Require Export subtyping term_types session_types.
 
 Section subtyping_rules.
