@@ -299,8 +299,8 @@ Definition iLType_wf_pre {Σ V} (rec : ltype_env Σ V → iProp Σ) :
    (∀ x le, lenv !! x ≡ Some le -∗ le ≡ LEND) ∨
    ∃ source dest ms md,
      ⌜ source <> dest ⌝ ∗
-     lenv !! source ≡ Some (<! dest> md) ∗
-     lenv !! dest ≡ Some (<? source> ms) ∗
+     lenv !! source ≡ Some (<! dest> ms) ∗
+     lenv !! dest ≡ Some (<? source> md) ∗
      (∀v les, iLMsg_car ms v (Next les) -∗
               ∃ led, iLMsg_car md v (Next led) ∗
                      ▷(rec (<[source := les]> (<[dest := led]> lenv)))))%I.         
@@ -1020,41 +1020,41 @@ Section ltype.
     iApply iLType_le_exist_elim_r; iIntros (x).
     iApply "IH". iIntros (xs). iApply "H".
   Qed.
-  Lemma iLType_le_texist_intro_l {TT : tele} (m : TT → iMsg Σ V) x :
-    ⊢ (<!.. x> m x) ⊑ (<!> m x).
+  Lemma iLType_le_texist_intro_l {TT : tele} (m : TT → iLMsg Σ V) x y :
+    ⊢ (<!..y, x> m x) ⊑ (<!y> m x). 
   Proof.
     induction x as [|T TT x xs IH]; simpl; [iApply iLType_le_refl|].
     iApply iLType_le_trans; [by iApply iLType_le_exist_intro_l|]. iApply IH.
   Qed.
-  Lemma iLType_le_texist_intro_r {TT : tele} (m : TT → iMsg Σ V) x :
-    ⊢ (<?> m x) ⊑ (<?.. x> m x).
+  Lemma iLType_le_texist_intro_r {TT : tele} (m : TT → iLMsg Σ V) x y:
+    ⊢ (<?y> m x) ⊑ (<?.. y, x> m x).
   Proof.
     induction x as [|T TT x xs IH]; simpl; [iApply iLType_le_refl|].
     iApply iLType_le_trans; [|by iApply iLType_le_exist_intro_r]. iApply IH.
   Qed.
 
-  Lemma iLType_le_base a v P p1 p2 :
+  Lemma iLType_le_base a v P p1 (p2 : iLType Σ V):
     ▷ (p1 ⊑ p2) -∗
-    (<a> MSG v {{ P }}; p1) ⊑ (<a> MSG v {{ P }}; p2).
+    (<a> LMSG v {{ P }}; p1) ⊑ (<a> LMSG v {{ P }}; p2).
   Proof.
-    rewrite iMsg_base_eq. iIntros "H". destruct a.
-    - iApply iLType_le_send. iIntros (v' p') "(->&Hp&$)".
+    rewrite iLMsg_base_eq. iIntros "H". destruct a.
+    - iApply iLType_le_send. iIntros (_ v' p') "(->&Hp&$)".
       iExists p1. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
-    - iApply iLType_le_recv. iIntros (v' p') "(->&Hp&$)".
+    - iApply iLType_le_recv. iIntros (_ v' p') "(->&Hp&$)".
       iExists p2. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
   Qed.
 
-  Lemma iLType_le_base_swap v1 v2 P1 P2 p :
-    ⊢ (<?> MSG v1 {{ P1 }}; <!> MSG v2 {{ P2 }}; p)
-    ⊑ (<!> MSG v2 {{ P2 }}; <?> MSG v1 {{ P1 }}; p).
+  Lemma iLType_le_base_swap v1 v2 P1 P2 (p : iLType Σ V) x y:
+    ⊢ (<? x> LMSG v1 {{ P1 }}; <! y> LMSG v2 {{ P2 }}; p)
+    ⊑ (<! y> LMSG v2 {{ P2 }}; <? x> LMSG v1 {{ P1 }}; p).
   Proof.
-    rewrite {1 3}iMsg_base_eq. iApply iLType_le_swap.
+    rewrite {1 3}iLMsg_base_eq. iApply iLType_le_swap.
     iIntros (v1' v2' p1' p2') "/= (->&#Hp1&HP1) (->&#Hp2&HP2)". iExists p.
     iSplitL "HP2".
     - iIntros "!>". iRewrite -"Hp1". by iApply iLType_le_payload_intro_l.
     - iIntros "!>". iRewrite -"Hp2". by iApply iLType_le_payload_intro_r.
   Qed.
-
+(*
   Lemma iLType_le_dual p1 p2 : p2 ⊑ p1 -∗ iLType_dual p1 ⊑ iLType_dual p2.
   Proof.
     iIntros "H". iLöb as "IH" forall (p1 p2).
@@ -1084,7 +1084,7 @@ Section ltype.
       iDestruct ("IH" with "H") as "H". iExists (iLType_dual p1').
       iSplitL "H"; [iIntros "!>"; by iRewrite "Hp2d"|]. simpl; auto.
   Qed.
-
+*)
   Lemma iLType_le_amber_internal (p1 p2 : iLType Σ V → iLType Σ V)
       `{Contractive p1, Contractive p2}:
     □ (∀ rec1 rec2, ▷ (rec1 ⊑ rec2) → p1 rec1 ⊑ p2 rec2) -∗
@@ -1106,7 +1106,7 @@ Section ltype.
     - intros p' ?. rewrite (fixpoint_unfold p2). by apply IH.
     - apply bi.limit_preserving_entails; [done|solve_proper].
   Qed.
-
+(*
   Lemma iLType_le_dual_l p1 p2 : iLType_dual p2 ⊑ p1 -∗ iLType_dual p1 ⊑ p2.
   Proof.
     iIntros "H". iEval (rewrite -(involutive iLType_dual p2)).
@@ -1117,8 +1117,8 @@ Section ltype.
     iIntros "H". iEval (rewrite -(involutive iLType_dual p1)).
     by iApply iLType_le_dual.
   Qed.
-
-  Lemma iLType_le_app p1 p2 p3 p4 :
+*)
+  Lemma iLType_le_app (p1 p2 p3 p4 : iLType Σ V) :
     p1 ⊑ p2 -∗ p3 ⊑ p4 -∗ p1 <++> p3 ⊑ p2 <++> p4.
   Proof.
     iIntros "H1 H2". iLöb as "IH" forall (p1 p2 p3 p4).
@@ -1127,7 +1127,7 @@ Section ltype.
       iRewrite "H1". by rewrite !left_id.
     - iDestruct (iLType_le_send_inv with "H1") as (a1 m1) "[Hp1 H1]".
       iRewrite "Hp1"; clear p1. rewrite !iLType_app_message. destruct a1; simpl.
-      + iApply iLType_le_send. iIntros (v p24).
+      + iApply iLType_le_send. iIntros (Heq v p24); subst.
         iDestruct 1 as (p2') "[Hm2 #Hp24]".
         iDestruct ("H1" with "Hm2") as (p1') "[H1 Hm1]".
         iExists (p1' <++> p3). iSplitR "Hm1"; [|by simpl; eauto].
