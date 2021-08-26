@@ -1,0 +1,62 @@
+Local types
+
+      lt ::= !xs:ts<v>@c{P}.lt | ?xs:ts<v>@c{P}.lt | end
+
+      prot : chan -> lt
+
+
+      filter : lt -> chan -> lt
+
+      filter end _ = end
+      
+      filter !xs:ts<v>@c{P}.lt c = !xs:ts<v>{P}.(filter lt c)
+      filter !xs:ts<v>@c1{P}.lt c2 = filter lt c
+
+      filter ?xs:ts<v>@c{P}.lt c = ?xs:ts<v>{P}.(filter lt c)
+
+      a -x-> b
+      b -x-> c
+      b -y{y<x}-> c
+      c -x+y-> a
+
+
+      a: !x@b.?x+y{y<x}@c.end
+      b: ?x@a.!x@c.!y{y<x}@c.end
+      c: ?x@b.?y x{y < x}@b.!<x+y>@a.end
+
+      let prot = new_prot ()
+
+      let a = new_role prot "a"
+      let b = new_role prot "b"
+      let c = new_role prot "c"
+
+      let (ab, ba) := new_chan a b
+      let (bc, cb) := new_chan b c
+      let (ac, ca) := new_chan a c
+
+      fork { let x = recv ba; send bc 42; send bc (x - 2) };
+      fork { let z = recv cb; let y = recv cb }
+      fork { let x = recv bc; let y = recv bc; send ca (x + y) }
+
+
+      new_prot () = empty_map ()
+
+      new_role prot a = prot[a] <- empty_map ()
+
+      new_chan a b = prot[a][b] <- nil (); prot[b][a] = nil
+
+
+
+
+      a -> b
+
+
+      let (ab, ba) := new_chan ()
+
+      consistent lts =
+          (forall lt \in ran lts -> lt = end)
+	  (exists c c', c <> c' /\
+	                lts !! c = Some !m.prot1
+			lts !! c' = Some ?m.prot2 /\
+			consistent (lts[c] <- prot1)[c'] <- prot2
+		  

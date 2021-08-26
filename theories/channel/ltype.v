@@ -902,88 +902,88 @@ Section ltype.
       iApply (iLType_le_recv_recv_inv with "(H HP)"); simpl; auto.
   Qed.
   
-  Lemma iLType_le_payload_elim_r a m v P p :
-    (P -∗ (<a> m) ⊑ (<!> MSG v; p)) -∗
-    (<a> m) ⊑ (<!> MSG v {{ P }}; p).
+  Lemma iLType_le_payload_elim_r a m v P p x :
+    (P -∗ (<a> m) ⊑ (<! x> LMSG v; p)) -∗
+    (<a> m) ⊑ (<! x> LMSG v {{ P }}; p).
   Proof.
-    rewrite iMsg_base_eq. iIntros "H". destruct a.
-    - iApply iLType_le_send. iIntros (v' p') "(->&Hp&HP)".
+    rewrite iLMsg_base_eq. iIntros "H". destruct a.
+    - iApply iLType_le_send. iIntros (Hnx v' p') "(->&Hp&HP)"; subst.
       iApply (iLType_le_send_send_inv with "(H HP)"); simpl; auto.
     - iApply iLType_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1 (->&#?&HP) /=".
       iApply (iLType_le_recv_send_inv with "(H HP) Hm1"); simpl; auto.
   Qed.
-  Lemma iLType_le_payload_intro_l v P p :
-    P -∗ (<!> MSG v {{ P }}; p) ⊑ (<!> MSG v; p).
+  Lemma iLType_le_payload_intro_l v P (p : iLType Σ V) x :
+    P -∗ (<! x> LMSG v {{ P }}; p) ⊑ (<! x> LMSG v; p).
   Proof.
-    rewrite iMsg_base_eq.
-    iIntros "HP". iApply iLType_le_send. iIntros (v' p') "(->&Hp&_) /=".
+    rewrite iLMsg_base_eq.
+    iIntros "HP". iApply iLType_le_send. iIntros (_ v' p') "(->&Hp&_) /=".
     iExists p'. iSplitR; [iApply iLType_le_refl|]. auto.
   Qed.
-  Lemma iLType_le_payload_intro_r v P p :
-    P -∗ (<?> MSG v; p) ⊑ (<?> MSG v {{ P }}; p).
+  Lemma iLType_le_payload_intro_r x v P (p :iLType Σ V) :
+    P -∗ (<? x> LMSG v; p) ⊑ (<? x> LMSG v {{ P }}; p).
   Proof.
-    rewrite iMsg_base_eq.
-    iIntros "HP". iApply iLType_le_recv. iIntros (v' p') "(->&Hp&_) /=".
+    rewrite iLMsg_base_eq.
+    iIntros "HP". iApply iLType_le_recv. iIntros (_ v' p') "(->&Hp&_) /=".
     iExists p'. iSplitR; [iApply iLType_le_refl|]. auto.
   Qed.
 
-  Lemma iLType_le_exist_elim_l {A} (m1 : A → iMsg Σ V) a m2 :
-    (∀ x, (<?> m1 x) ⊑ (<a> m2)) -∗
-    (<? x> m1 x) ⊑ (<a> m2).
+  Lemma iLType_le_exist_elim_l {A} (m1 : A → iLMsg Σ V) a m2 y :
+    (∀ x : A, (<? y> m1 x) ⊑ (<a> m2)) -∗
+    (<? y, x> m1 x) ⊑ (<a> m2).
   Proof.
-    rewrite iMsg_exist_eq. iIntros "H". destruct a.
+    rewrite iLMsg_exist_eq. iIntros "H". destruct a.
     - iApply iLType_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1 Hm2 /=".
       iDestruct "Hm1" as (x) "Hm1".
       iApply (iLType_le_recv_send_inv with "H Hm1 Hm2").
-    - iApply iLType_le_recv. iIntros (v p1') "/=". iDestruct 1 as (x) "Hm".
+    - iApply iLType_le_recv. iIntros (Heq v p1') "/="; subst. iDestruct 1 as (x) "Hm".
       by iApply (iLType_le_recv_recv_inv with "H").
   Qed.
 
-  Lemma iLType_le_exist_elim_l_inhabited `{!Inhabited A} (m : A → iMsg Σ V) p :
-    (∀ x, (<?> m x) ⊑ p) -∗
-    (<? x> m x) ⊑ p.
+  Lemma iLType_le_exist_elim_l_inhabited `{!Inhabited A} (m : A → iLMsg Σ V) p y :
+    (∀ x, (<? y> m x) ⊑ p) -∗
+    (<? y, x> m x) ⊑ p.
   Proof.
-    rewrite iMsg_exist_eq. iIntros "H".
+    rewrite iLMsg_exist_eq. iIntros "H".
     destruct (iLType_case p) as [Heq | [a [m' Heq]]].
     - unshelve iSpecialize ("H" $!inhabitant); first by apply _.
       rewrite Heq.
       iDestruct (iLType_le_end_inv_l with "H") as "H".
       rewrite iLType_end_eq iLType_message_eq.
-      iDestruct (proto_message_end_equivI with "H") as "[]".
+      iDestruct (ltype_message_end_equivI with "H") as "[]".
     - iEval (rewrite Heq). destruct a.
       + iApply iLType_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1 Hm2 /=".
         iDestruct "Hm1" as (x) "Hm1".
         iSpecialize ("H" $! x). rewrite Heq.
         iApply (iLType_le_recv_send_inv with "H Hm1 Hm2").
-      + iApply iLType_le_recv. iIntros (v p1') "/=". iDestruct 1 as (x) "Hm".
+      + iApply iLType_le_recv. iIntros (Heq' v p1') "/="; subst. iDestruct 1 as (x) "Hm".
         iSpecialize ("H" $! x). rewrite Heq.
         by iApply (iLType_le_recv_recv_inv with "H").
   Qed.
 
-  Lemma iLType_le_exist_elim_r {A} a m1 (m2 : A → iMsg Σ V) :
-    (∀ x, (<a> m1) ⊑ (<!> m2 x)) -∗
-    (<a> m1) ⊑ (<! x> m2 x).
+  Lemma iLType_le_exist_elim_r {A} a m1 (m2 : A → iLMsg Σ V) y :
+    (∀ x, (<a> m1) ⊑ (<!y> m2 x)) -∗
+    (<a> m1) ⊑ (<! y, x> m2 x).
   Proof.
-    rewrite iMsg_exist_eq. iIntros "H". destruct a.
-    - iApply iLType_le_send. iIntros (v p2'). iDestruct 1 as (x) "Hm".
+    rewrite iLMsg_exist_eq. iIntros "H". destruct a.
+    - iApply iLType_le_send. iIntros (Heq v p2'); subst. iDestruct 1 as (x) "Hm".
       by iApply (iLType_le_send_send_inv with "H").
     - iApply iLType_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1".
       iDestruct 1 as (x) "Hm2".
       iApply (iLType_le_recv_send_inv with "H Hm1 Hm2").
   Qed.
-  Lemma iLType_le_exist_elim_r_inhabited `{Hinh : Inhabited A} p (m : A → iMsg Σ V) :
-    (∀ x, p ⊑ (<!> m x)) -∗
-    p ⊑ (<! x> m x).
+  Lemma iLType_le_exist_elim_r_inhabited `{Hinh : Inhabited A} p (m : A → iLMsg Σ V) y :
+    (∀ x, p ⊑ (<!y > m x)) -∗
+    p ⊑ (<! y, x> m x).
   Proof.
-    rewrite iMsg_exist_eq. iIntros "H".
+    rewrite iLMsg_exist_eq. iIntros "H".
     destruct (iLType_case p) as [Heq | [a [m' Heq]]].
     - unshelve iSpecialize ("H" $!inhabitant); first by apply _.
       rewrite Heq.
       iDestruct (iLType_le_end_inv_r with "H") as "H".
       rewrite iLType_end_eq iLType_message_eq.
-      iDestruct (proto_message_end_equivI with "H") as "[]".
+      iDestruct (ltype_message_end_equivI with "H") as "[]".
     - iEval (rewrite Heq). destruct a.
-      + iApply iLType_le_send. iIntros (v p2'). iDestruct 1 as (x) "Hm".
+      + iApply iLType_le_send. iIntros (Heq' v p2'); subst. iDestruct 1 as (x) "Hm".
         iSpecialize ("H" $! x). rewrite Heq.
         by iApply (iLType_le_send_send_inv with "H").
       + iApply iLType_le_swap. iIntros (v1 v2 p1' p2') "/= Hm1".
@@ -991,30 +991,30 @@ Section ltype.
         iSpecialize ("H" $! x). rewrite Heq.
         iApply (iLType_le_recv_send_inv with "H Hm1 Hm2").
   Qed.
-  Lemma iLType_le_exist_intro_l {A} (m : A → iMsg Σ V) a :
-    ⊢ (<! x> m x) ⊑ (<!> m a).
+  Lemma iLType_le_exist_intro_l {A} (m : A → iLMsg Σ V) a y :
+    ⊢ (<! y, x> m x) ⊑ (<!y > m a).
   Proof.
-    rewrite iMsg_exist_eq. iApply iLType_le_send. iIntros (v p') "Hm /=".
+    rewrite iLMsg_exist_eq. iApply iLType_le_send. iIntros (_ v p') "Hm /=".
     iExists p'. iSplitR; last by auto. iApply iLType_le_refl.
   Qed.
-  Lemma iLType_le_exist_intro_r {A} (m : A → iMsg Σ V) a :
-    ⊢ (<?> m a) ⊑ (<? x> m x).
+  Lemma iLType_le_exist_intro_r {A} (m : A → iLMsg Σ V) a y :
+    ⊢ (<?y > m a) ⊑ (<? y, x> m x).
   Proof.
-    rewrite iMsg_exist_eq. iApply iLType_le_recv. iIntros (v p') "Hm /=".
+    rewrite iLMsg_exist_eq. iApply iLType_le_recv. iIntros (_ v p') "Hm /=".
     iExists p'. iSplitR; last by auto. iApply iLType_le_refl.
   Qed.
 
-  Lemma iLType_le_texist_elim_l {TT : tele} (m1 : TT → iMsg Σ V) a m2 :
-    (∀ x, (<?> m1 x) ⊑ (<a> m2)) -∗
-    (<?.. x> m1 x) ⊑ (<a> m2).
+  Lemma iLType_le_texist_elim_l {TT : tele} (m1 : TT → iLMsg Σ V) a m2 y :
+    (∀ x, (<?y > m1 x) ⊑ (<a> m2)) -∗
+    (<?..y, x> m1 x) ⊑ (<a> m2).
   Proof.
     iIntros "H". iInduction TT as [|T TT] "IH"; simpl; [done|].
     iApply iLType_le_exist_elim_l; iIntros (x).
     iApply "IH". iIntros (xs). iApply "H".
   Qed.
-  Lemma iLType_le_texist_elim_r {TT : tele} a m1 (m2 : TT → iMsg Σ V) :
-    (∀ x, (<a> m1) ⊑ (<!> m2 x)) -∗
-    (<a> m1) ⊑ (<!.. x> m2 x).
+  Lemma iLType_le_texist_elim_r {TT : tele} a m1 (m2 : TT → iLMsg Σ V) y :
+    (∀ x, (<a> m1) ⊑ (<! y> m2 x)) -∗
+    (<a> m1) ⊑ (<!.. y, x> m2 x).
   Proof.
     iIntros "H". iInduction TT as [|T TT] "IH"; simpl; [done|].
     iApply iLType_le_exist_elim_r; iIntros (x).
