@@ -1129,24 +1129,28 @@ Section ltype.
       iRewrite "Hp1"; clear p1. rewrite !iLType_app_message. destruct a1; simpl.
       + iApply iLType_le_send. iIntros (Heq v p24); subst.
         iDestruct 1 as (p2') "[Hm2 #Hp24]".
-        iDestruct ("H1" with "Hm2") as (p1') "[H1 Hm1]".
+        iDestruct "H1" as "[H1 | H1]"; [|iDestruct "H1" as (y) "[%Heq _]"; simplify_eq].
+        iDestruct "H1" as (y) "[%Heq H1]"; simplify_eq.
+        iDestruct ("H1" $!eq_refl with "Hm2") as (p1') "[H1 Hm1]".
         iExists (p1' <++> p3). iSplitR "Hm1"; [|by simpl; eauto].
         iIntros "!>". iRewrite "Hp24". by iApply ("IH" with "H1").
       + iApply iLType_le_swap. iIntros (v1 v2 p13 p24).
         iDestruct 1 as (p1') "[Hm1 #Hp13]". iDestruct 1 as (p2') "[Hm2 #Hp24]".
+        iDestruct "H1" as "[H1 | H1]"; [iDestruct "H1" as (y) "[%Heq _]"; simplify_eq|].
+        iDestruct "H1" as (y) "[%Heq H1]"; simplify_eq.
         iSpecialize ("H1" with "Hm1 Hm2").
         iDestruct "H1" as (pt) "[H1 H1']".
         iExists (pt <++> p3). iSplitL "H1".
         * iIntros "!>". iRewrite "Hp13".
-          rewrite /= -iMsg_app_base -iLType_app_message.
+          rewrite /= -iLMsg_app_base -iLType_app_message.
           iApply ("IH" with "H1"). iApply iLType_le_refl.
         * iIntros "!>". iRewrite "Hp24".
-          rewrite /= -iMsg_app_base -iLType_app_message.
+          rewrite /= -iLMsg_app_base -iLType_app_message.
           iApply ("IH" with "H1' H2").
-    - iDestruct (iLType_le_recv_inv with "H1") as (m1) "[Hp1 H1]".
+    - iDestruct (iLType_le_recv_inv with "H1") as (m1 y) "[Hp1 H1]".
       iRewrite "Hp1"; clear p1. rewrite !iLType_app_message. iApply iLType_le_recv.
-      iIntros (v p13). iDestruct 1 as (p1') "[Hm1 #Hp13]".
-      iDestruct ("H1" with "Hm1") as (p2'') "[H1 Hm2]".
+      iIntros (Heq v p13); subst. iDestruct 1 as (p1') "[Hm1 #Hp13]".
+      iDestruct ("H1" $!eq_refl with "Hm1") as (p2'') "[H1 Hm2]".
       iExists (p2'' <++> p4). iSplitR "Hm2"; [|by simpl; eauto].
       iIntros "!>". iRewrite "Hp13". by iApply ("IH" with "H1").
   Qed.
@@ -1158,20 +1162,22 @@ Section ltype.
   Global Instance iLType_app_recvs_proper vs :
     Proper ((≡) ==> (≡)) (iLType_app_recvs (Σ:=Σ) (V:=V) vs).
   Proof. induction vs; solve_proper. Qed.
-  Global Instance iLType_interp_ne vsl vsr :
-    NonExpansive2 (iLType_interp (Σ:=Σ) (V:=V) vsl vsr).
+  (*
+  Global Instance iLType_interp_ne vs ltys :
+    NonExpansive2 (iLType_interp (Σ:=Σ) (V:=V) vs ltys).
   Proof. solve_proper. Qed.
-  Global Instance iLType_interp_proper vsl vsr :
-    Proper ((≡) ==> (≡) ==> (≡)) (iLType_interp (Σ:=Σ) (V:=V) vsl vsr).
+  Global Instance iLType_interp_proper vs ltys :
+    Proper ((≡) ==> (≡) ==> (≡)) (iLType_interp (Σ:=Σ) (V:=V) vs ltys).
   Proof. apply (ne_proper_2 _). Qed.
-
+*)
   Global Instance iLType_own_frag_ne γ s : NonExpansive (iLType_own_frag γ s).
   Proof. solve_proper. Qed.
 
   Lemma iLType_own_auth_agree γ s p p' :
     iLType_own_auth γ s p -∗ iLType_own_frag γ s p' -∗ ▷ (p ≡ p').
   Proof.
-    iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓".
+    iIntros "[%y1 [%Heq1 H●]] [%y2 [%Heq2 H◯]]"; simplify_eq; clear Heq1.
+    iDestruct (own_valid_2 with "H● H◯") as "H✓".
     iDestruct (excl_auth_agreeI with "H✓") as "H✓".
     iApply (later_equivI_1 with "H✓").
   Qed.
@@ -1180,9 +1186,14 @@ Section ltype.
     iLType_own_auth γ s p -∗ iLType_own_frag γ s p' ==∗
     iLType_own_auth γ s p'' ∗ iLType_own_frag γ s p''.
   Proof.
-    iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H".
+    iIntros "[%y1 [%Heq1 H●]] [%y2 [%Heq2 H◯]]"; simplify_eq; subst.
+    iDestruct (own_update_2 with "H● H◯") as "H".
     { eapply (excl_auth_update _ _ (Next p'')). }
-    by rewrite own_op.
+    rewrite own_op.
+    iApply bupd_mono; [|iAssumption].
+    iIntros "[H● H◯]"; iSplitL "H●".
+    + iExists y1; iSplitR; done.
+    + iExists y1; iSplitR; done.
   Qed.
 
   (* TODO: Move somewhere else *)
