@@ -292,7 +292,7 @@ Definition remove_from_list {A} (P : A -> Prop) {DecP : forall x, Decision (P x)
   | None        => None
   end.
 
-
+ 
 Definition iLType_wf_pre {Σ V} (rec : ltype_env Σ V → iProp Σ) : 
   ltype_env Σ V → iProp Σ := 
   (λ lenv, 
@@ -414,14 +414,13 @@ Fixpoint iLType_app_recvs {Σ V} (vs : list (nat * V)) (p : iLType Σ V) : iLTyp
 Definition iLType_interp {Σ V} (vs : gmap nat (list (nat * V)))
            (ltys : ltype_env Σ V) : iProp Σ :=  
   ⌜ List.map fst (map_to_list vs) ≡ List.map fst (map_to_list ltys) ⌝ ∗
-    (∃ltys' : ltype_env Σ V, map_fold 
-               (λ k lty' acc, 
-                ∃bs lty,
-                  ⌜ vs !! k ≡ Some bs ∧ ltys' !! k ≡ Some lty ⌝ ∗
-                  iLType_app_recvs bs lty ⊑ lty' ∗ acc)
-               (⌜ List.map fst (map_to_list vs) ≡ List.map fst (map_to_list ltys') ⌝ ∗
-                iLType_wf ltys')
-               ltys)%I.
+    (∃ltys' : ltype_env Σ V,
+        ⌜ List.map fst (map_to_list vs) ≡ List.map fst (map_to_list ltys') ⌝ ∗
+          iLType_wf ltys' ∗
+        [∗ map] k ↦ lty ∈ ltys,
+                ∃bs lty',
+                  ⌜ vs !! k ≡ Some bs ∧ ltys' !! k ≡ Some lty' ⌝ ∗
+                  iLType_app_recvs bs lty' ⊑ lty).
 
 Definition ltype_name := gmap nat gname.
 Instance ltype_name_inhabited : Inhabited ltype_name := _.
@@ -1204,7 +1203,7 @@ Section ltype.
   Lemma pure_sep_cong (φ1 φ2 : Prop) (P1 P2 : iProp Σ) :
     (φ1 ↔ φ2) → (φ1 → φ2 → P1 ⊣⊢ P2) → (⌜φ1⌝ ∗ P1) ⊣⊢ (⌜φ2⌝ ∗ P2).
   Proof. intros -> HP. iSplit; iDestruct 1 as (Hϕ) "H"; rewrite HP; auto. Qed.
-
+(*
   Lemma iLType_interp_nil p : ⊢ iLType_interp [] [] p (iLType_dual p).
   Proof. iExists p; simpl. iSplitL; iApply iLType_le_refl. Qed.
 
@@ -1227,12 +1226,101 @@ Section ltype.
     iIntros "H Hle". iApply iLType_interp_flip.
     iApply (iLType_interp_le_l with "[H] Hle"). by iApply iLType_interp_flip.
   Qed.
+ *)
 
-  Lemma iLType_interp_send vl ml vsl vsr pr pl' :
-    iLType_interp vsl vsr (<!> ml) pr -∗
-    iMsg_car ml vl (Next pl') -∗
-    ▷^(length vsr) iLType_interp (vsl ++ [vl]) vsr pl' pr.
+  Lemma iLType_interp_send source dest vs v lenv ml lty :
+    ⌜ lenv !! source = Some (<! dest> ml) ⌝ -∗
+    iLType_interp vs lenv -∗
+    iLMsg_car ml v (Next lty) -∗
+    iLType_interp (<[dest := ((vs !!! dest) ++ [(source, v)])]> vs) (<[source:=lty]> lenv).
+(*    ▷^(length vsr) iLType_interp (vsl ++ [vl]) vsr pl' pr.*)
   Proof.
+    iIntros "%Heq [%Heq' [%lenv' [%Heq'' [Hwf Henv]]]] Hcar". unfold ltype_env in lenv.
+    iInduction lenv as [|k v' lenv''] "IH" using map_ind.
+    + rewrite lookup_empty in Heq; simplify_eq.
+    + apply (lookup_insert_Some lenv'') in Heq as [[Hk Hv']|H1]; subst.
+    - iClear "IH"; rewrite insert_insert.
+      rewrite big_sepM_insert; [|apply H].
+      iDestruct "Henv" as "[[%v' [%lty' [[%Heq1 %Heq2] Hvs']]] Henv]".
+      unfold iLType_interp.
+      Check big_sepM_insert _ lenv'' source (<! dest> ml) H.
+      iRewrite (big_sepM_insert $! _ lenv'' source (<! dest> ml) H) in "Henv".
+     Search insert big_opM bi_sep.
+        unfold iLType_interp.
+      Search insert.
+
+      destruct (nat_eq_dec k source); subst.
+      Check lookup_insert_Some.
+      Search lookup Some.
+      Search big_opM.
+      unfold iLType_interp.
+      Set Printing All.
+      Search insert lookup gmap.
+      
+      unfold iLType_interp at 3.
+      Search map_fold.
+    admit.
+    Check map_fold_insert.
+
+    iIntros "%Henv [%Heq [%lenv' Hlenv]] Hcar".
+    iPoseProof (@map_fold_ind nat (gmap nat) _ _ _ _ _ _ _ _ _ (iLType Σ V) (iProp Σ) _ ((λ (k : nat) lty0 (acc : iPropI Σ),
+                 ∃ (bs : list (nat * V)) lty',
+                   ⌜vs !! k ≡ Some bs ∧ lenv' !! k ≡ Some lty'⌝ ∗
+                                              iLType_app_recvs bs lty' ⊑ lty0 ∗ acc)%I) ((⌜map fst (map_to_list vs) ≡ map fst (map_to_list lenv')⌝ ∗
+             iLType_wf lenv')%I)) as "Hpat".
+    apply  ((λ (k : nat) lty0 (acc : iPropI Σ),
+                 ∃ (bs : list (nat * V)) lty',
+                   ⌜vs !! k ≡ Some bs ∧ lenv' !! k ≡ Some lty'⌝ ∗
+                                              iLType_app_recvs bs lty' ⊑ lty0 ∗ acc)%I).
+    apply ((⌜map fst (map_to_list vs) ≡ map fst (map_to_list lenv')⌝ ∗
+             iLType_wf lenv')%I).
+    Focus 2. intros.
+    apply map_fold_ind with (B := iProp Σ).
+    Check @map_fold_ind.
+    Check map_fold_ind.
+    induction lenv using (@map_fold_ind nat (gmap nat) _ _ _ _ _ _ _ _ _ (iLType Σ V) (iProp Σ) _ ((λ (k : nat) lty0 (acc : iPropI Σ),
+                 ∃ (bs : list (nat * V)) lty',
+                   ⌜vs !! k ≡ Some bs ∧ lenv' !! k ≡ Some lty'⌝ ∗
+                   iLType_app_recvs bs lty' ⊑ lty0 ∗ acc)%I)).
+    induction lenv using map_fold_ind.
+    induction lenv using (@map_fold_ind nat (gmap nat) _ _ _ _ _ _ _ _ _ (iLType Σ V) (iProp Σ)).
+    iInduction lenv as [| a b c d] "IH" using (@map_fold_ind nat (gmap nat) _ _ _ _ _ _ _ _ _ (iLType Σ V) (iProp Σ)).
+    iInduction lenv as [| k x1 levn r] "IH" using map_fold_ind.
+    iInduction lenv as [| k x1 lenv] "IH" using map_ind; simpl.
+    + rewrite lookup_empty in Henv; simplify_eq.
+    + destruct (nat_eq_dec k source); subst.
+      - iClear "IH".
+        iDestruct "Hlenv" as (Heq lenv') "Hlenv".
+        Search map_fold insert.
+        Check @map_fold_insert.
+        
+        iPoseProof (@map_fold_insert nat (gmap nat) _ _ _ _ _ _ _ _ _ (iLType Σ V) (iProp Σ) bi_entails _
+                                     ((λ (k : nat) lty0 (acc : iPropI Σ),
+                 ∃ (bs : list (nat * V)) lty',
+                   ⌜vs !! k ≡ Some bs ∧ lenv' !! k ≡ Some lty'⌝ ∗
+                   iLType_app_recvs bs lty' ⊑ lty0 ∗ acc)%I)
+                                     ((⌜map fst (map_to_list vs) ≡ map fst (map_to_list lenv')⌝ ∗
+               iLType_wf lenv')%I) Source x1 lenv) as "Hpat"; [| | apply H| ].
+        Focus 3.
+        iSpecialize ("Hpat" with "Hlenv").
+        iDestruct "Hpat" as (vs' lty' [Heq1 Heq2]) "[Happ Hmap]".
+        Search map_fold.
+        unfold iLType_interp.
+        iSplitR.
+        simpl.
+        Set Printing All.
+        iRewrite "ipat" in "Hlenv".
+        Check (@map_fold_insert nat _ _ _ _ _ _ _ _ _ _ _ _ bi_entails).
+        iRewrite (@map_fold_insert $! nat _ _ _ _ _ _ _ _ _ _ _ bi_entails) in "Hlenv".
+        iRewrite map_fold_insert (R := bi_wand) in "Hlenv" with .
+        simpl.
+      Search gmap_lookup insert Some.
+      apply lookup_fmap_Some in H.
+    Search lookup.
+    Check lookup_empty.
+    Check map_ind.
+    
+    simpl.
     iDestruct 1 as (p) "[Hp Hdp] /="; iIntros "Hml".
     iDestruct (iLType_le_trans _ _ (<!> MSG vl; pl') with "Hp [Hml]") as "Hp".
     { iApply iLType_le_send. rewrite iMsg_base_eq. iIntros (v' p') "(->&Hp&_) /=".
