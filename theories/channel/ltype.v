@@ -1243,6 +1243,15 @@ Section ltype.
       rewrite big_sepM_insert; [|apply H].
       iDestruct "Henv" as "[[%v' [%lty' [[%Heq1 %Heq2] Hvs']]] Henv]".
       unfold iLType_interp.
+      iSplitR. admit.
+      iExists lenv'.
+      iSplitR. admit.
+      iSplitL "Hwf". done.
+      rewrite big_sepM_insert; [|done].
+      iSplitL "Hvs'".
+      iExists v'.
+      admit.
+      
       Check big_sepM_insert _ lenv'' source (<! dest> ml) H.
       iRewrite (big_sepM_insert $! _ lenv'' source (<! dest> ml) H) in "Henv".
      Search insert big_opM bi_sep.
