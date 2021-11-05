@@ -1230,26 +1230,62 @@ Section ltype.
 
   Lemma iLType_interp_send source dest vs v lenv ml lty :
     ⌜ lenv !! source = Some (<! dest> ml) ⌝ -∗
+    iLType_wf lenv -∗
     iLType_interp vs lenv -∗
     iLMsg_car ml v (Next lty) -∗
     iLType_interp (<[dest := ((vs !!! dest) ++ [(source, v)])]> vs) (<[source:=lty]> lenv).
 (*    ▷^(length vsr) iLType_interp (vsl ++ [vl]) vsr pl' pr.*)
   Proof.
-    iIntros "%Heq [%Heq' [%lenv' [%Heq'' [Hwf Henv]]]] Hcar". unfold ltype_env in lenv.
+    iIntros "%Heq Hwf [%Heq' [%lenv' [%Heq'' [Hwf' Henv]]]] Hcar".
+    iSplitL "Hwf"; [admit|].
+    Search big_opM lookup delete.
+    iDestruct (big_sepM_delete with "Henv") as "[[%bs [%lty' [[%Hvs %Hsource] Hsub]]] Henv]"; [apply Heq|].
+    iDestruct (iLType_le_trans _ _ (<! dest> LMSG v; lty) with "Hsub [Hcar]") as "Hp".
+      { iApply iLType_le_send.
+        rewrite iLMsg_base_eq. iIntros (_ v'' lty'') "(->&Hp&_) /=".
+        iExists lty''.
+        iSplitR; [iApply iLType_le_refl|].  by iRewrite -"Hp". }
+    iExists (<[source:=lty]> lenv').
+    iSplitR; [admit|].
+    iSplitR; [admit|].    
+    iApply (big_sepM_delete _ _ source lty);
+      [rewrite lookup_insert_Some; left; done|].
+    Search lookup insert delete.
+    iSplitL "Hp". admit.
+    assert (delete source (<[source:=lty]> lenv) = delete source lenv) by admit.
+    rewrite H.
+    done.
+    iRewrite H.
+    Search lookup insert Some.
+    iApply (big_sepM_lookup with "Henv").
+    unfold iLType_interp.
+    unfold ltype_env in lenv.
+    unfold iLType_interp.
     iInduction lenv as [|k v' lenv''] "IH" using map_ind.
     + rewrite lookup_empty in Heq; simplify_eq.
     + apply (lookup_insert_Some lenv'') in Heq as [[Hk Hv']|H1]; subst.
-    - iClear "IH"; rewrite insert_insert.
+    - iClear "IH". rewrite insert_insert.
       rewrite big_sepM_insert; [|apply H].
       iDestruct "Henv" as "[[%v' [%lty' [[%Heq1 %Heq2] Hvs']]] Henv]".
-      unfold iLType_interp.
       iSplitR. admit.
+      iDestruct (iLType_le_trans _ _ (<! dest> LMSG v; lty) with "Hvs' [Hcar]") as "Hp".
+      { iApply iLType_le_send.
+        rewrite iLMsg_base_eq. iIntros (_ v'' lty'') "(->&Hp&_) /=".
+        iExists lty''.
+        iSplitR; [iApply iLType_le_refl|].  by iRewrite -"Hp". }
       iExists lenv'.
       iSplitR. admit.
       iSplitL "Hwf". done.
       rewrite big_sepM_insert; [|done].
+      iSplitL "Hp".
+      iExists v', lty'.
+      Print iLType_app_recvs.
+      Check big_sepM_insert.
       iSplitL "Hvs'".
       iExists v'.
+      iExists lty'.
+      iSplit; [admit|].
+      
       admit.
       
       Check big_sepM_insert _ lenv'' source (<! dest> ml) H.
