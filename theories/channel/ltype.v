@@ -1236,10 +1236,17 @@ Section ltype.
 (*    ▷^(length vsr) iLType_interp (vsl ++ [vl]) vsr pl' pr.*)
   Proof.
     iIntros "%Heq [%Heq' [%lenv' [%Heq'' [Hwf Henv]]]] Hcar". unfold ltype_env in lenv.
+    unfold iLType_interp.
+    iSplitR. 
     iInduction lenv as [|k v' lenv''] "IH" using map_ind.
-    + rewrite lookup_empty in Heq; simplify_eq.
-    + apply (lookup_insert_Some lenv'') in Heq as [[Hk Hv']|H1]; subst.
-    - iClear "IH"; rewrite insert_insert.
+    - rewrite lookup_empty in Heq; simplify_eq.
+    - apply (lookup_insert_Some lenv'') in Heq as [[Hk Hv'] | [Hk Hv']]; subst.
+      + iClear "IH". rewrite insert_insert. admit.
+      + admit.
+    - 
+
+      admit.
+      
       rewrite big_sepM_insert; [|apply H].
       iDestruct "Henv" as "[[%v' [%lty' [[%Heq1 %Heq2] Hvs']]] Henv]".
       unfold iLType_interp.
