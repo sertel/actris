@@ -209,7 +209,7 @@ Proof.
     iApply iProto_le_trans; [|iApply (iProto_le_texist_intro_r _ x)]; simpl.
     iIntros "H". by iDestruct (HP with "H") as "$". }
   rewrite -wp_bind. eapply bi.wand_apply;
-    [by eapply (recv_spec _ (tele_app tv) (tele_app tP') (tele_app tp))|f_equiv].
+    [by eapply (recv_spec _ (tele_app tv) (tele_app tP') (tele_app tp))|f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> x.
   specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
   rewrite envs_app_sound //; simpl. by rewrite right_id HΦ.
