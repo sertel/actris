@@ -235,7 +235,6 @@ Definition dual_act x a :=
 Definition ltype_env Σ V := gmap nat (iLType Σ V).
 Definition ltype_envO Σ V := gmap.gmapO nat (iLType Σ V).
 
-Local Instance Dist_ltype_env  Σ V : Dist (ltype_env Σ V) := gmap.gmap_dist.
 
 (*
 
@@ -284,41 +283,80 @@ Definition isKey {A B} (a : A) (p : A * B) := fst p = a.
 Instance isKey_dec {A B : Type} {EqA : EqDecision A} (a : A) (p : A * B) : Decision (isKey a p).
 Proof. apply EqA. Qed.
 
-
-
 Definition remove_from_list {A} (P : A -> Prop) {DecP : forall x, Decision (P x)} (xs : list A) :=
   match list_find P xs with
   | Some (n, x) => Some (x, delete n xs)
   | None        => None
   end.
 
- 
-Definition iLType_wf_pre {Σ V} (rec : ltype_env Σ V → iProp Σ) : 
-  ltype_env Σ V → iProp Σ := 
-  (λ lenv, 
-   (∀ x le, lenv !! x ≡ Some le -∗ le ≡ LEND) ∨
-   ∃ source dest ms md,
-     ⌜ source <> dest ⌝ ∗
-     lenv !! source ≡ Some (<! dest> ms) ∗
-     lenv !! dest ≡ Some (<? source> md) ∗
-     (∀v les, iLMsg_car ms v (Next les) -∗
-              ∃ led, iLMsg_car md v (Next led) ∗
-                     ▷(rec (<[source := les]> (<[dest := led]> lenv)))))%I.         
+Definition iLType_bcompat {Σ V} (lenv : ltype_env Σ V) (vs : gmap (nat * nat) (list V)) :=
+  ∀x, In x (map fst (map_to_list lenv)) ↔
+      (∃a b, In (a, b) (map fst (map_to_list vs)) ∧ (x = a ∨ x = b)).
 
-Program Instance iLType_wf_ne {Σ V} rec : 
-  NonExpansive (@iLType_wf_pre Σ V rec).
+Definition extract_receive {Σ V} source (rec : ltype_env Σ V → ltype_env Σ V → iProp Σ) :
+  ltype_env Σ V  → ltype_env Σ V  → iProp Σ :=
+  (λ lty1 lty2,
+   (∀ms, lty1 ≡ <source
+
+Program Definition iLType_wf_pre {Σ V}
+        (rec : gmap (nat * nat) (list V) → ltype_env Σ V  → iProp Σ) : 
+   gmap (nat * nat) (list V) → ltype_env Σ V → iProp Σ :=
+  (λ vss lenv,
+   (∀ dest, lenv !! dest ≡ Some LEND -∗ ∀ source, ⌜ vss !! (source, dest) ≡ Some [] ⌝) ∗
+   (∀ source dest ms,
+       lenv !! source ≡ Some (<! dest> ms) -∗
+            (* must be rec
+        ∃ vs, ⌜ vss !! (source, dest) ≡ Some vs ⌝ ∗
+              ∀ v les, iLMsg_car ms v (Next les) -∗
+              ▷(rec (<[(source, dest) := v::vs]> vss) (<[source := les]> lenv))) ∗
+   (∀ source dest mr,
+        lenv !! dest ≡ Some (<? source> mr) -∗ 
+        ∃vs, ⌜ vss !! (source, dest) ≡ Some vs ⌝ ∗
+                ∀ v vs', ⌜ vs ≡ v :: vs' ⌝ -∗ ∃ler, iLMsg_car mr v (Next ler) ∗               
+                       ▷(rec (<[(source, dest) := vs']> vss) (<[dest := ler]> lenv))))%I.
+
+Program Definition iLType_wf_pre2 {Σ V}
+        (rec :  ltype_env Σ V  → iProp Σ) : 
+    ltype_env Σ V → iProp Σ :=
+  (λ vss lenv,
+   (∀ dest, lenv !! dest ≡ Some LEND -∗ ∀ source, ⌜ vss !! (source, dest) ≡ Some [] ⌝) ∗
+   (∀ source dest ms1 ms2 ms md,
+        lenv !! source ≡ Some ms1 -∗
+        lenv !! dest ≡ Some ms2 -∗
+        target ms1 = dest -∗ target ms2 = source -∗      
+        (ms1 = <! ms> * ms2 = <? md> \/ ms1 = <? ms> * ms2 = <! md>) *  
+        ∀ v les, iLMsg_car ms v (Next les) -∗
+                 ∃ler, iLMsg_car mr v (Next ler) ∗
+                       ▷(rec (<[dest := ler]> <[source := les]> lenv))))%I.
+(*
+ 
+A : !B
+B : ?A. !C
+C : ?B. 
+
+
+A : !B (x)<x> . !C<x> . end
+B : ?A (x)<x> . !A<x> . end
+C : ?A (x)<x> . !A<x> . end
+
+*)
+
+Local Instance dist_ltype_env {Σ V} : Dist (ltype_env Σ V) := gmap.gmap_dist.
+
+Program Instance iLType_wf_ne {Σ V} rec vss : 
+  NonExpansive (@iLType_wf_pre Σ V rec vss).
 Next Obligation.
   
 Admitted.
 
   Program Definition iLType_wf_pre' {Σ V}
-          (rec : ltype_envO Σ V -n> iPropO Σ) :
-    ltype_envO Σ V -n> iPropO Σ :=
-    λne lenv,
-    (iLType_wf_pre (λ lenv', rec lenv') lenv).
+          (rec : gmap (nat * nat) (list V) → ltype_envO Σ V -n> iPropO Σ) :
+    gmap (nat * nat) (list V) → ltype_envO Σ V -n> iPropO Σ :=
+    λ vss, λne lenv,
+    (iLType_wf_pre (λ vss' lenv', rec vss' lenv') vss lenv).
 
-  Local Instance iLType_wf_contractive {Σ V} : 
-    Contractive (@iLType_wf_pre' Σ V).
+  Local Instance iLType_wf_contractive {Σ V} rec vs: 
+    Contractive (@iLType_wf_pre' Σ V rec vs).
     Admitted.
 (*
   Proof.
@@ -327,10 +365,11 @@ Admitted.
     repeat (f_contractive || f_equiv);
       apply dist_later_dist; assumption.
   Qed.
-  *)
+ *)
+Print fixpoint.
 
-  Definition iLType_wf {Σ V} (lenv : ltype_envO Σ V) : iPropO Σ :=
-    fixpoint iLType_wf_pre' lenv.
+  Definition iLType_wf {Σ : gFunctors} {V} (vss : gmap (nat * nat) (list V)) (lenv : ltype_envO Σ V) : iPropO Σ :=
+    fixpoint (iLType_wf_pre' vss) lenv.
 
 (** * Protocol entailment *)
 
@@ -416,7 +455,7 @@ Definition iLType_interp {Σ V} (vs : gmap nat (list (nat * V)))
   ⌜ List.map fst (map_to_list vs) ≡ List.map fst (map_to_list ltys) ⌝ ∗
     (∃ltys' : ltype_env Σ V,
         ⌜ List.map fst (map_to_list vs) ≡ List.map fst (map_to_list ltys') ⌝ ∗
-          iLType_wf ltys' ∗
+          iLType_wf vs ltys' ∗
         [∗ map] k ↦ lty ∈ ltys,
                 ∃bs lty',
                   ⌜ vs !! k ≡ Some bs ∧ ltys' !! k ≡ Some lty' ⌝ ∗
@@ -1230,11 +1269,13 @@ Section ltype.
 
   Lemma iLType_interp_send source dest vs v lenv ml lty :
     ⌜ lenv !! source = Some (<! dest> ml) ⌝ -∗
+    iLType_wf lenv -∗
     iLType_interp vs lenv -∗
     iLMsg_car ml v (Next lty) -∗
     iLType_interp (<[dest := ((vs !!! dest) ++ [(source, v)])]> vs) (<[source:=lty]> lenv).
 (*    ▷^(length vsr) iLType_interp (vsl ++ [vl]) vsr pl' pr.*)
   Proof.
+
     iIntros "%Heq [%Heq' [%lenv' [%Heq'' [Hwf Henv]]]] Hcar". unfold ltype_env in lenv.
     unfold iLType_interp.
     iSplitR. 
@@ -1247,16 +1288,58 @@ Section ltype.
 
       admit.
       
+
+    iIntros "%Heq Hwf [%Heq' [%lenv' [%Heq'' [Hwf' Henv]]]] Hcar".
+    iSplitL "Hwf"; [admit|].
+    Search big_opM lookup delete.
+    iDestruct (big_sepM_delete with "Henv") as "[[%bs [%lty' [[%Hvs %Hsource] Hsub]]] Henv]"; [apply Heq|].
+    iDestruct (iLType_le_trans _ _ (<! dest> LMSG v; lty) with "Hsub [Hcar]") as "Hp".
+      { iApply iLType_le_send.
+        rewrite iLMsg_base_eq. iIntros (_ v'' lty'') "(->&Hp&_) /=".
+        iExists lty''.
+        iSplitR; [iApply iLType_le_refl|].  by iRewrite -"Hp". }
+    iExists (<[source:=lty]> lenv').
+    iSplitR; [admit|].
+    iSplitR; [admit|].    
+    iApply (big_sepM_delete _ _ source lty);
+      [rewrite lookup_insert_Some; left; done|].
+    Search lookup insert delete.
+    iSplitL "Hp". admit.
+    assert (delete source (<[source:=lty]> lenv) = delete source lenv) by admit.
+    rewrite H.
+    done.
+    iRewrite H.
+    Search lookup insert Some.
+    iApply (big_sepM_lookup with "Henv").
+    unfold iLType_interp.
+    unfold ltype_env in lenv.
+    unfold iLType_interp.
+    iInduction lenv as [|k v' lenv''] "IH" using map_ind.
+    + rewrite lookup_empty in Heq; simplify_eq.
+    + apply (lookup_insert_Some lenv'') in Heq as [[Hk Hv']|H1]; subst.
+    - iClear "IH". rewrite insert_insert.
+
       rewrite big_sepM_insert; [|apply H].
       iDestruct "Henv" as "[[%v' [%lty' [[%Heq1 %Heq2] Hvs']]] Henv]".
-      unfold iLType_interp.
       iSplitR. admit.
+      iDestruct (iLType_le_trans _ _ (<! dest> LMSG v; lty) with "Hvs' [Hcar]") as "Hp".
+      { iApply iLType_le_send.
+        rewrite iLMsg_base_eq. iIntros (_ v'' lty'') "(->&Hp&_) /=".
+        iExists lty''.
+        iSplitR; [iApply iLType_le_refl|].  by iRewrite -"Hp". }
       iExists lenv'.
       iSplitR. admit.
       iSplitL "Hwf". done.
       rewrite big_sepM_insert; [|done].
+      iSplitL "Hp".
+      iExists v', lty'.
+      Print iLType_app_recvs.
+      Check big_sepM_insert.
       iSplitL "Hvs'".
       iExists v'.
+      iExists lty'.
+      iSplit; [admit|].
+      
       admit.
       
       Check big_sepM_insert _ lenv'' source (<! dest> ml) H.
