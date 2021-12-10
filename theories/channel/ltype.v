@@ -235,7 +235,6 @@ Definition dual_act x a :=
 Definition ltype_env Σ V := gmap nat (iLType Σ V).
 Definition ltype_envO Σ V := gmap.gmapO nat (iLType Σ V).
 
-Local Instance Dist_ltype_env  Σ V : Dist (ltype_env Σ V) := gmap.gmap_dist.
 
 (*
 
@@ -292,33 +291,43 @@ Definition remove_from_list {A} (P : A -> Prop) {DecP : forall x, Decision (P x)
   | None        => None
   end.
 
- 
-Definition iLType_wf_pre {Σ V} (rec : ltype_env Σ V → iProp Σ) : 
-  ltype_env Σ V → iProp Σ := 
-  (λ lenv, 
-   (∀ x le, lenv !! x ≡ Some le -∗ le ≡ LEND) ∨
-   ∃ source dest ms md,
-     ⌜ source <> dest ⌝ ∗
-     lenv !! source ≡ Some (<! dest> ms) ∗
-     lenv !! dest ≡ Some (<? source> md) ∗
-     (∀v les, iLMsg_car ms v (Next les) -∗
-              ∃ led, iLMsg_car md v (Next led) ∗
-                     ▷(rec (<[source := les]> (<[dest := led]> lenv)))))%I.         
+Definition iLType_bcompat {Σ V} (lenv : ltype_env Σ V) (vs : gmap (nat * nat) (list V)) :=
+  ∀x, In x (map fst (map_to_list lenv)) ↔
+      (∃a b, In (a, b) (map fst (map_to_list vs)) ∧ (x = a ∨ x = b)).
 
-Program Instance iLType_wf_ne {Σ V} rec : 
-  NonExpansive (@iLType_wf_pre Σ V rec).
+Program Definition iLType_wf_pre {Σ V}
+        (rec : gmap (nat * nat) (list V) → ltype_env Σ V  → iProp Σ) : 
+   gmap (nat * nat) (list V) → ltype_env Σ V → iProp Σ :=
+  (λ vss lenv,
+   ((∀ x le, lenv !! x ≡ Some le -∗ le ≡ LEND) ∗
+    (⌜ ∀x y vs, vss !! (x, y) ≡ Some vs → vs ≡ [] ⌝)) ∨
+   (∀ source dest ms v les,
+        lenv !! source ≡ Some (<! dest> ms) -∗ 
+        iLMsg_car ms v (Next les) -∗
+        ∃ vs, ⌜ vss !! (source, dest) ≡ Some vs ⌝ ∗     
+              ▷(rec (<[(source, dest) := v::vs]> vss) (<[source := les]> lenv))) ∨
+   (∀ source dest mr,
+        lenv !! dest ≡ Some (<? source> mr) -∗ 
+        ∃v vs, ⌜ vss !! (source, dest) ≡ Some (v :: vs) ⌝ ∗
+                ∀ ler, iLMsg_car mr v (Next ler) -∗               
+                       ▷(rec (<[(source, dest) := vs]> vss) (<[dest := ler]> lenv))))%I.
+
+Local Instance dist_ltype_env {Σ V} : Dist (ltype_env Σ V) := gmap.gmap_dist.
+
+Program Instance iLType_wf_ne {Σ V} rec vss : 
+  NonExpansive (@iLType_wf_pre Σ V rec vss).
 Next Obligation.
   
 Admitted.
 
   Program Definition iLType_wf_pre' {Σ V}
-          (rec : ltype_envO Σ V -n> iPropO Σ) :
-    ltype_envO Σ V -n> iPropO Σ :=
-    λne lenv,
-    (iLType_wf_pre (λ lenv', rec lenv') lenv).
+          (rec : gmap (nat * nat) (list V) → ltype_envO Σ V -n> iPropO Σ) :
+    gmap (nat * nat) (list V) → ltype_envO Σ V -n> iPropO Σ :=
+    λ vss, λne lenv,
+    (iLType_wf_pre (λ vss' lenv', rec vss' lenv') vss lenv).
 
-  Local Instance iLType_wf_contractive {Σ V} : 
-    Contractive (@iLType_wf_pre' Σ V).
+  Local Instance iLType_wf_contractive {Σ V} rec vs: 
+    Contractive (@iLType_wf_pre' Σ V rec vs).
     Admitted.
 (*
   Proof.
@@ -327,10 +336,11 @@ Admitted.
     repeat (f_contractive || f_equiv);
       apply dist_later_dist; assumption.
   Qed.
-  *)
+ *)
+Print fixpoint.
 
-  Definition iLType_wf {Σ V} (lenv : ltype_envO Σ V) : iPropO Σ :=
-    fixpoint iLType_wf_pre' lenv.
+  Definition iLType_wf {Σ : gFunctors} {V} (vss : gmap (nat * nat) (list V)) (lenv : ltype_envO Σ V) : iPropO Σ :=
+    fixpoint (iLType_wf_pre' vss) lenv.
 
 (** * Protocol entailment *)
 
