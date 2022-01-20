@@ -36,7 +36,7 @@ From iris.bi.lib Require Import core.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export lib.spin_lock.
 From actris.logrel Require Export model.
-From actris.channel Require Export channel.
+From actris.channel Require Export proofmode.
 
 Definition lty_unit {Σ} : ltty Σ := Ltty (λ w, ⌜ w = #() ⌝%I).
 Definition lty_bool {Σ} : ltty Σ := Ltty (λ w, ∃ b : bool, ⌜ w = #b ⌝)%I.

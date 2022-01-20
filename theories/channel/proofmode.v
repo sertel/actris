@@ -9,7 +9,7 @@ In addition to the tactics for symbolic execution, this file defines the tactic
 recursive protocols are contractive. *)
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 From iris.heap_lang Require Export proofmode notation.
-From actris Require Export channel.
+From actris Require Export channel_closure.
 
 (** * Tactics for proving contractiveness of protocols *)
 Ltac f_dist_le :=

@@ -1,5 +1,5 @@
-From actris.channel Require Import proofmode proto channel.
 From iris.proofmode Require Import proofmode.
+From actris.channel Require Import proofmode.
 From actris.utils Require Import llist.
 
 Definition list_rev_service : val :=

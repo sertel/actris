@@ -19,7 +19,7 @@ In this file we define the three message-passing connectives:
 - [recv] performs a busy loop until there is something in the second buffer,
   which it pops and returns, locking during each peek.
 
-It is additionaly shown that the channel ownership [c ↣ prot] is closed under
+It is additionally shown that the channel ownership [c ↣ prot] is closed under
 the subprotocol relation [⊑] *)
 From iris.heap_lang Require Export primitive_laws notation.
 From iris.heap_lang Require Export proofmode.

@@ -1,5 +1,5 @@
-From actris.channel Require Import proofmode proto channel.
 From iris.proofmode Require Import proofmode.
+From actris.channel Require Import proofmode.
 From actris.utils Require Import llist.
 From iris.heap_lang Require Import notation.
 From actris.examples Require Import sort_fg.

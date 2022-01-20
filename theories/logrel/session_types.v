@@ -4,7 +4,7 @@ polymorphism, as well as n-ary choice. Recursive protocols are defined in
 the [model.v] file. *)
 From iris.algebra Require Export gmap.
 From actris.logrel Require Export model telescopes.
-From actris.channel Require Export channel.
+From actris.channel Require Export proofmode.
 
 Definition lmsg Σ := iMsg Σ.
 Declare Scope lmsg_scope.
