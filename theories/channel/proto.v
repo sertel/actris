@@ -493,7 +493,8 @@ Section proto.
   Proof.
     rewrite iProto_message_eq iProto_dual_eq /iProto_dual_def /iProto_map_app.
     etrans; [apply (fixpoint_unfold (iProto_map_app_aux _ _))|]; simpl.
-    apply: proto_elim_message=> a' m1 m2 Hm; f_equiv; solve_proper.
+    rewrite /iProto_message_def. rewrite ->proto_elim_message; [done|].
+    intros a' m1 m2 Hm; f_equiv; solve_proper.
   Qed.
   Lemma iMsg_dual_base v P p :
     iMsg_dual (MSG v {{ P }}; p) ≡ (MSG v {{ P }}; iProto_dual p)%msg.
@@ -529,7 +530,8 @@ Section proto.
   Proof.
     rewrite iProto_message_eq iProto_app_eq /iProto_app_def /iProto_map_app.
     etrans; [apply (fixpoint_unfold (iProto_map_app_aux _ _))|]; simpl.
-    apply: proto_elim_message=> a' m1 m2 Hm. f_equiv; solve_proper.
+    rewrite /iProto_message_def. rewrite ->proto_elim_message; [done|].
+    intros a' m1 m2 Hm. f_equiv; solve_proper.
   Qed.
 
   Global Instance iProto_app_ne : NonExpansive2 (@iProto_app Σ V).
