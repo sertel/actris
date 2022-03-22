@@ -47,7 +47,6 @@ Definition send : val :=
     let: "r" := Snd (Fst "c") in
     acquire "lk";;
     lsnoc "l" "v";;
-    skipN (llength "r");; (* "Ghost" operation for later stripping *)
     release "lk".
 
 Definition try_recv : val :=
@@ -99,6 +98,7 @@ Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
     is_lock (chan_lock_name γ) lk (∃ vsl vsr,
       llist internal_eq l vsl ∗
       llist internal_eq r vsr ∗
+      steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx (chan_proto_name γ) vsl vsr) ∗
     iProto_own (chan_proto_name γ) s p.
 Definition iProto_mapsto_aux : seal (@iProto_mapsto_def). by eexists. Qed.
@@ -205,14 +205,20 @@ Section channel.
     {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
     iIntros (Φ _) "HΦ". wp_lam.
+    wp_bind (lnil _).
+    iApply wp_lb_init.
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (l) "Hl".
+    iIntros "Hlb".
+    iDestruct (steps_lb_le _ 0 with "Hlb") as "#Hlb'"; [lia|].
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_smart_apply (newlock_spec (∃ vsl vsr,
       llist internal_eq l vsl ∗ llist internal_eq r vsr ∗
+      steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
-    { iExists [], []. iFrame. }
-    iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
+    { iExists [], []. iFrame "#∗". }
+    iIntros (lk γlk) "#Hlk". wp_pures.
+    iApply "HΦ".
     set (γ := ChanName γlk γp). iSplitL "Hcl".
     - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
     - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
@@ -238,20 +244,49 @@ Section channel.
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
-    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
-    - iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
-      { rewrite iMsg_base_eq /=; auto. }
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
+    destruct s; simpl.
+    - wp_pures. wp_bind (lsnoc _ _).
+      iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
+      { iApply fupd_mask_intro; [set_solver|].
+        iIntros "Hclose".
+        iIntros "!>!>".
+        iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
+        { rewrite iMsg_base_eq /=; auto. }
+        iModIntro.
+        iApply step_fupdN_intro; [done|].
+        iIntros "!>". iMod "Hclose".
+        iCombine ("Hctx H") as "H".
+        iExact "H". }
+      iApply (wp_lb_update with "Hlbl").
       wp_smart_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
-      wp_smart_apply (llength_spec with "[$Hr //]"); iIntros "Hr".
-      wp_smart_apply skipN_spec.
-      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "#Hlbl' [Hctx H] !>".
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
+      { iExists (vsl ++ [v]), vsr.
+        rewrite app_length /=.
+        replace (length vsl + 1) with (S (length vsl)) by lia.
+        iFrame "#∗". }
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
-    - iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
-      { rewrite iMsg_base_eq /=; auto. }
+    - wp_pures. wp_bind (lsnoc _ _).
+      iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
+      { iApply fupd_mask_intro; [set_solver|].
+        iIntros "Hclose".
+        iIntros "!>!>".
+        iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
+        { rewrite iMsg_base_eq /=; auto. }
+        iModIntro.
+        iApply step_fupdN_intro; [done|].
+        iIntros "!>". iMod "Hclose".
+        iCombine ("Hctx H") as "H".
+        iExact "H". }
+      iApply (wp_lb_update with "Hlbr").
       wp_smart_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
-      wp_smart_apply (llength_spec with "[$Hl //]"); iIntros "Hl".
-      wp_smart_apply skipN_spec.
-      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
+      iIntros "#Hlbr' [Hctx H] !>".
+      wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
+      { iExists vsl, (vsr ++ [v]).
+        rewrite app_length /=.
+        replace (length vsr + 1) with (S (length vsr)) by lia.
+        iFrame "#∗". }
       iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
   Qed.
 
@@ -280,7 +315,7 @@ Section channel.
     rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
-    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)". destruct s; simpl.
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)". destruct s; simpl.
     - wp_smart_apply (lisnil_spec with "Hr"); iIntros "Hr".
       destruct vsr as [|vr vsr]; wp_pures.
       { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
@@ -290,6 +325,7 @@ Section channel.
       iMod (iProto_recv_l with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq.
       iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
+      iDestruct (steps_lb_le _ (length vsr) with "Hlbr") as "#Hlbr'"; [lia|].
       wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
@@ -303,6 +339,7 @@ Section channel.
       iMod (iProto_recv_r with "Hctx H") as (q) "(Hctx & H & Hm)". wp_pures.
       rewrite iMsg_base_eq.
       iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
+      iDestruct (steps_lb_le _ (length vsl) with "Hlbl") as "#Hlbl'"; [lia|].
       wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
       iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Right, l, r, lk. iSplit; [done|]. iFrame "Hlk".
