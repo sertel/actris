@@ -206,10 +206,8 @@ Section channel.
   Proof.
     iIntros (Φ _) "HΦ". wp_lam.
     wp_bind (lnil _).
-    iApply wp_lb_init.
+    iApply wp_lb_init; iIntros "#Hlb".
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (l) "Hl".
-    iIntros "Hlb".
-    iDestruct (steps_lb_le _ 0 with "Hlb") as "#Hlb'"; [lia|].
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_smart_apply (newlock_spec (∃ vsl vsr,
