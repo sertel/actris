@@ -222,7 +222,7 @@ Section ctx.
     revert Hx. rewrite lookup_insert_Some. naive_solver.
   Qed.
 
-  (** Ctxironment subtyping *)
+  (** Context subtyping *)
   Global Instance ctx_le_plain Γ1 Γ2 : Plain (Γ1 <ctx: Γ2).
   Proof. rewrite /ctx_le /=. apply _. Qed.
 
