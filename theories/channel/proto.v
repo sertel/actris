@@ -1043,15 +1043,6 @@ Section proto.
     by rewrite own_op.
   Qed.
 
-  (* TODO: Move somewhere else *)
-  Lemma false_disj_cong (P Q Q' : iProp Σ) :
-    (P ⊢ False) → (Q ⊣⊢ Q') → (P ∨ Q ⊣⊢ Q').
-  Proof. intros HP ->. apply (anti_symm _). by rewrite HP left_id. auto. Qed.
-
-  Lemma pure_sep_cong (φ1 φ2 : Prop) (P1 P2 : iProp Σ) :
-    (φ1 ↔ φ2) → (φ1 → φ2 → P1 ⊣⊢ P2) → (⌜φ1⌝ ∗ P1) ⊣⊢ (⌜φ2⌝ ∗ P2).
-  Proof. intros -> HP. iSplit; iDestruct 1 as (Hϕ) "H"; rewrite HP; auto. Qed.
-
   Lemma iProto_interp_nil p : ⊢ iProto_interp [] [] p (iProto_dual p).
   Proof. iExists p; simpl. iSplitL; iApply iProto_le_refl. Qed.
 
