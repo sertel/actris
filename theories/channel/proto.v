@@ -878,16 +878,19 @@ Section proto.
     iApply iProto_le_exist_elim_r; iIntros (x).
     iApply "IH". iIntros (xs). iApply "H".
   Qed.
+
   Lemma iProto_le_texist_intro_l {TT : tele} (m : TT → iMsg Σ V) x :
     ⊢ (<!.. x> m x) ⊑ (<!> m x).
   Proof.
-    induction x as [|T TT x xs IH]; simpl; [iApply iProto_le_refl|].
+    induction x as [|T TT x xs IH] using tele_arg_ind; simpl.
+    { iApply iProto_le_refl. }
     iApply iProto_le_trans; [by iApply iProto_le_exist_intro_l|]. iApply IH.
   Qed.
   Lemma iProto_le_texist_intro_r {TT : tele} (m : TT → iMsg Σ V) x :
     ⊢ (<?> m x) ⊑ (<?.. x> m x).
   Proof.
-    induction x as [|T TT x xs IH]; simpl; [iApply iProto_le_refl|].
+    induction x as [|T TT x xs IH] using tele_arg_ind; simpl.
+    { iApply iProto_le_refl. }
     iApply iProto_le_trans; [|by iApply iProto_le_exist_intro_r]. iApply IH.
   Qed.
 
