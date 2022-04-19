@@ -215,8 +215,7 @@ Section channel.
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame "#∗". }
-    iIntros (lk γlk) "#Hlk". wp_pures.
-    iApply "HΦ".
+    iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
     set (γ := ChanName γlk γp). iSplitL "Hcl".
     - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
     - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
@@ -246,9 +245,8 @@ Section channel.
     destruct s; simpl.
     - wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
-      { iApply fupd_mask_intro; [set_solver|].
-        iIntros "Hclose".
-        iIntros "!>!>".
+      { iApply fupd_mask_intro; [set_solver|]. simpl.
+        iIntros "Hclose !>!>".
         iMod (iProto_send_l with "Hctx H []") as "[Hctx H]".
         { rewrite iMsg_base_eq /=; auto. }
         iModIntro.
@@ -267,9 +265,8 @@ Section channel.
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
     - wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
-      { iApply fupd_mask_intro; [set_solver|].
-        iIntros "Hclose".
-        iIntros "!>!>".
+      { iApply fupd_mask_intro; [set_solver|]. simpl.
+        iIntros "Hclose !>!>".
         iMod (iProto_send_r with "Hctx H []") as "[Hctx H]".
         { rewrite iMsg_base_eq /=; auto. }
         iModIntro.
