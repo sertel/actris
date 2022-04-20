@@ -335,7 +335,7 @@ Definition iProto_ctx `{protoG Σ V}
 Definition iProto_own `{!protoG Σ V}
     (γ : proto_name) (s : side) (p : iProto Σ V) : iProp Σ :=
   ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ s p'.
-Arguments iProto_own {_ _ _} _ _%proto.
+Arguments iProto_own {_ _ _} _ _ _%proto.
 Global Instance: Params (@iProto_own) 3 := {}.
 
 Global Instance iProto_own_contractive `{protoG Σ V} γ s :
@@ -1119,7 +1119,7 @@ Section proto.
   Qed.
 
   Lemma iProto_interp_end_inv vsl vsr pr :
-    iProto_interp vsl vsr END%proto pr -∗ ⌜vsr = []⌝.
+    iProto_interp vsl vsr END pr -∗ ⌜vsr = []⌝.
   Proof.
     iDestruct 1 as (p) "[Hp Hdp] /=".
     destruct vsr; [done|].
@@ -1128,7 +1128,7 @@ Section proto.
   Qed.
 
   Lemma iProto_interp_send_end_inv vsl vsr vl pl :
-    iProto_interp vsl vsr (<!> MSG vl; pl) END%proto -∗
+    iProto_interp vsl vsr (<!> MSG vl; pl) END -∗
     ▷^(length vsr) False.
   Proof.
     iIntros "H".
@@ -1303,7 +1303,7 @@ Section proto.
 
   Lemma iProto_end_inv_l γ vsl vsr :
     iProto_ctx γ vsl vsr -∗
-    iProto_own γ Left END%proto -∗
+    iProto_own γ Left END -∗
     ▷ ⌜vsr = []⌝.
   Proof.
     iDestruct 1 as (pl' pr') "(H●l & H●r & Hinterp)".
@@ -1317,7 +1317,7 @@ Section proto.
 
   Lemma iProto_end_inv_r γ vsl vsr :
     iProto_ctx γ vsl vsr -∗
-    iProto_own γ Right END%proto -∗
+    iProto_own γ Right END -∗
     ▷ ⌜vsl = []⌝.
   Proof.
     iDestruct 1 as (pl' pr') "(H●l & H●r & Hinterp)".

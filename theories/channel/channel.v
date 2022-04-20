@@ -103,8 +103,8 @@ Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
     is_lock (chan_lock_name γ) lk (∃ vsl vsr,
-      (llist internal_eq l vsl ∨ iProto_own (chan_proto_name γ) Right END%proto) ∗
-      (llist internal_eq r vsr ∨ iProto_own (chan_proto_name γ) Left END%proto) ∗
+      (llist internal_eq l vsl ∨ iProto_own (chan_proto_name γ) Right END) ∗
+      (llist internal_eq r vsr ∨ iProto_own (chan_proto_name γ) Left END) ∗
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx (chan_proto_name γ) vsl vsr) ∗
     iProto_own (chan_proto_name γ) s p.
@@ -218,8 +218,8 @@ Section channel.
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_smart_apply (newlock_spec (∃ vsl vsr,
-      (llist internal_eq l vsl ∨ iProto_own γp Right END%proto) ∗
-      (llist internal_eq r vsr ∨ iProto_own γp Left END%proto) ∗
+      (llist internal_eq l vsl ∨ iProto_own γp Right END) ∗
+      (llist internal_eq r vsr ∨ iProto_own γp Left END) ∗
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame "#∗". }
@@ -256,7 +256,7 @@ Section channel.
         wp_bind (Rec _ _ _).
         iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
         { iApply fupd_mask_intro; [set_solver|]. simpl.
-          iIntros "Hclose !>!>!>".
+          iIntros "Hclose !> !> !>".
           iApply step_fupdN_intro; [done|]. iNext.
           iMod "Hclose". iModIntro. iExact "HF". }
         wp_pures. iIntros "!>[]". }
@@ -285,7 +285,7 @@ Section channel.
         wp_bind (Rec _ _ _).
         iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
         { iApply fupd_mask_intro; [set_solver|]. simpl.
-          iIntros "Hclose !>!>!>".
+          iIntros "Hclose !> !> !>".
           iApply step_fupdN_intro; [done|]. iNext.
           iMod "Hclose". iModIntro. iExact "HF". }
         wp_pures. iIntros "!>[]". }
