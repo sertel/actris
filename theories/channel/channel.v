@@ -252,8 +252,14 @@ Section channel.
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
     destruct s; simpl.
     - iDestruct "Hl" as "[Hl | Hl]"; last first.
-      { iDestruct (iProto_send_end_inv_l with "Hctx H Hl") as "#Hneq".
-        wp_pures. by iDestruct "Hneq" as %Hneq. }
+      { iDestruct (iProto_send_end_inv_l with "Hctx H Hl") as "#HF".
+        wp_bind (Rec _ _ _).
+        iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
+        { iApply fupd_mask_intro; [set_solver|]. simpl.
+          iIntros "Hclose !>!>!>".
+          iApply step_fupdN_intro; [done|]. iNext.
+          iMod "Hclose". iModIntro. iExact "HF". }
+        wp_pures. iIntros "!>[]". }
       wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
       { iApply fupd_mask_intro; [set_solver|]. simpl.
@@ -275,8 +281,14 @@ Section channel.
         iFrame "#∗". }
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
     - iDestruct "Hr" as "[Hr | Hr]"; last first.
-      { iDestruct (iProto_send_end_inv_r with "Hctx Hr H") as "#Hneq".
-        wp_pures. by iDestruct "Hneq" as %Hneq. }
+      { iDestruct (iProto_send_end_inv_r with "Hctx Hr H") as "#HF".
+        wp_bind (Rec _ _ _).
+        iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
+        { iApply fupd_mask_intro; [set_solver|]. simpl.
+          iIntros "Hclose !>!>!>".
+          iApply step_fupdN_intro; [done|]. iNext.
+          iMod "Hclose". iModIntro. iExact "HF". }
+        wp_pures. iIntros "!>[]". }
       wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
       { iApply fupd_mask_intro; [set_solver|]. simpl.
