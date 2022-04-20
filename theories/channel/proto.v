@@ -344,7 +344,14 @@ Proof. solve_contractive. Qed.
 
 Lemma iProto_own_exclusive `{protoG Σ V} γ s p1 p2 :
   iProto_own γ s p1 -∗ iProto_own γ s p2 -∗ False.
-Proof. Admitted.
+Proof.
+  iIntros "Hp1 Hp2".
+  iDestruct "Hp1" as (p1') "[_ Hp1]".
+  iDestruct "Hp2" as (p2') "[_ Hp2]".
+  iDestruct (own_valid_2 with "Hp1 Hp2") as "H".
+  iRevert "H". iApply uPred.cmra_valid_elim. rewrite /not.
+  apply excl_auth_frag_validN_op_1_l.
+Qed.
 
 (** * Proofs *)
 Section proto.
