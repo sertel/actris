@@ -224,7 +224,7 @@ Lemma proto_map_message {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'
   ≡ proto_message a (λ v, g ◎ m v ◎ laterO_map (proto_map g gn)).
 Proof.
   rewrite proto_map_unfold /proto_map_aux /=.
-  apply: proto_elim_message=> a' m1 m2 Hm; f_equiv; solve_proper.
+  apply: proto_elim_message=> a' m1 m2 Hm. f_equiv. solve_proper.
 Qed.
 
 Lemma proto_map_ne {V}
