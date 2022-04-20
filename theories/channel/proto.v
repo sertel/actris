@@ -1148,35 +1148,6 @@ Section proto.
       by iApply ("IHvsr" with "Hp1").
   Qed.
 
-  (* TODO: Unsure if this is a better primitive lemma. *)
-  (* Lemma iProto_interp_send_end_inv' vsl vsr (ml : iMsg Σ V) vl pl : *)
-  (*   iProto_interp vsl vsr (<!> ml) END%proto -∗ *)
-  (*   iMsg_car ml vl (Next pl) -∗ *)
-  (*   ▷^(length vsr) False. *)
-  (* Proof. *)
-  (*   iIntros "H Hm". *)
-  (*   iDestruct (iProto_interp_flip with "H") as "H". *)
-  (*   iDestruct (iProto_interp_end_inv with "H") as %->. *)
-  (*   iDestruct (iProto_interp_flip with "H") as "H". *)
-  (*   iDestruct "H" as (p) "[Hp Hdp] /=". *)
-  (*   iDestruct (iProto_le_dual_l with "Hdp") as "Hdp". *)
-  (*   rewrite iProto_dual_end. *)
-  (*   iDestruct (iProto_le_end_inv_r with "Hdp") as "Heq". *)
-  (*   iRewrite "Heq" in "Hp". *)
-  (*   iInduction (vsr) as [|vr vsr] "IHvsr" forall (ml pl); simpl. *)
-  (*   - iDestruct (iProto_le_end_inv_r with "Hp") as "Hp". *)
-  (*     by rewrite iProto_message_end_equivI. *)
-  (*   - iDestruct (iProto_le_send_inv with "Hp") as (a1 m') "[Heq Hp]". *)
-  (*     rewrite iProto_message_equivI. *)
-  (*     iDestruct "Heq" as (<-) "Heq". *)
-  (*     iSpecialize ("Heq" $! vr (Next (iProto_app_recvs vsr END))). *)
-  (*     iSpecialize ("Hp" $! vr vl (iProto_app_recvs vsr END) pl). *)
-  (*     iRewrite -"Heq" in "Hp". *)
-  (*     rewrite iMsg_base_eq /iMsg_base_def /=. *)
-  (*     iDestruct ("Hp" with "[//] Hm") as (pt) "[Hp1 Hp2]". *)
-  (*     by iApply ("IHvsr" with "[] Hp1"). *)
-  (* Qed. *)
-
   Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
   Proof. solve_proper. Qed.
   Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s).
