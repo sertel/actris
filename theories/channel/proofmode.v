@@ -135,7 +135,7 @@ Section classes.
     (∀.. x1, MsgTele (tele_app tm1 x1) tv2 tP2 (tele_app tp x1)) →
     ProtoNormalize d (<a> m) pas (<!.. x2> MSG tele_app tv2 x2 {{ tele_app tP2 x2 }};
                                   <?.. x1> MSG tele_app tv1 x1 {{ tele_app tP1 x1 }};
-                                  tele_app (tele_app tp x1) x2).
+                                  tele_app (tele_app tp x1) x2) | 1.
   Proof.
     rewrite /ActionDualIf /MsgNormalize /ProtoNormalize /MsgTele.
     rewrite tforall_forall=> Ha Hm Hm' Hm''.
