@@ -220,7 +220,8 @@ Lemma ltype_map_message {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'
   ≡ ltype_message a (λ v, g ◎ m v ◎ laterO_map (ltype_map g gn)).
 Proof.
   rewrite ltype_map_unfold /ltype_map_aux /=.
-  apply: ltype_elim_message=> a' m1 m2 Hm; f_equiv; solve_proper.
+  rewrite ->ltype_elim_message; [done|].
+  intros a' m1 m2 Hm. f_equiv; solve_proper.
 Qed.
 
 Lemma ltype_map_ne {V}

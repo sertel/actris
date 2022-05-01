@@ -493,7 +493,8 @@ Section proto.
   Proof.
     rewrite iProto_message_eq iProto_dual_eq /iProto_dual_def /iProto_map_app.
     etrans; [apply (fixpoint_unfold (iProto_map_app_aux _ _))|]; simpl.
-    apply: proto_elim_message=> a' m1 m2 Hm; f_equiv; solve_proper.
+    rewrite /iProto_message_def. rewrite ->proto_elim_message; [done|].
+    intros a' m1 m2 Hm; f_equiv; solve_proper.
   Qed.
   Lemma iMsg_dual_base v P p :
     iMsg_dual (MSG v {{ P }}; p) ≡ (MSG v {{ P }}; iProto_dual p)%msg.
@@ -529,7 +530,8 @@ Section proto.
   Proof.
     rewrite iProto_message_eq iProto_app_eq /iProto_app_def /iProto_map_app.
     etrans; [apply (fixpoint_unfold (iProto_map_app_aux _ _))|]; simpl.
-    apply: proto_elim_message=> a' m1 m2 Hm. f_equiv; solve_proper.
+    rewrite /iProto_message_def. rewrite ->proto_elim_message; [done|].
+    intros a' m1 m2 Hm. f_equiv; solve_proper.
   Qed.
 
   Global Instance iProto_app_ne : NonExpansive2 (@iProto_app Σ V).
@@ -876,16 +878,19 @@ Section proto.
     iApply iProto_le_exist_elim_r; iIntros (x).
     iApply "IH". iIntros (xs). iApply "H".
   Qed.
+
   Lemma iProto_le_texist_intro_l {TT : tele} (m : TT → iMsg Σ V) x :
     ⊢ (<!.. x> m x) ⊑ (<!> m x).
   Proof.
-    induction x as [|T TT x xs IH]; simpl; [iApply iProto_le_refl|].
+    induction x as [|T TT x xs IH] using tele_arg_ind; simpl.
+    { iApply iProto_le_refl. }
     iApply iProto_le_trans; [by iApply iProto_le_exist_intro_l|]. iApply IH.
   Qed.
   Lemma iProto_le_texist_intro_r {TT : tele} (m : TT → iMsg Σ V) x :
     ⊢ (<?> m x) ⊑ (<?.. x> m x).
   Proof.
-    induction x as [|T TT x xs IH]; simpl; [iApply iProto_le_refl|].
+    induction x as [|T TT x xs IH] using tele_arg_ind; simpl.
+    { iApply iProto_le_refl. }
     iApply iProto_le_trans; [|by iApply iProto_le_exist_intro_r]. iApply IH.
   Qed.
 
@@ -1040,15 +1045,6 @@ Section proto.
     { eapply (excl_auth_update _ _ (Next p'')). }
     by rewrite own_op.
   Qed.
-
-  (* TODO: Move somewhere else *)
-  Lemma false_disj_cong (P Q Q' : iProp Σ) :
-    (P ⊢ False) → (Q ⊣⊢ Q') → (P ∨ Q ⊣⊢ Q').
-  Proof. intros HP ->. apply (anti_symm _). by rewrite HP left_id. auto. Qed.
-
-  Lemma pure_sep_cong (φ1 φ2 : Prop) (P1 P2 : iProp Σ) :
-    (φ1 ↔ φ2) → (φ1 → φ2 → P1 ⊣⊢ P2) → (⌜φ1⌝ ∗ P1) ⊣⊢ (⌜φ2⌝ ∗ P2).
-  Proof. intros -> HP. iSplit; iDestruct 1 as (Hϕ) "H"; rewrite HP; auto. Qed.
 
   Lemma iProto_interp_nil p : ⊢ iProto_interp [] [] p (iProto_dual p).
   Proof. iExists p; simpl. iSplitL; iApply iProto_le_refl. Qed.

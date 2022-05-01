@@ -209,7 +209,7 @@ Proof.
     iApply iProto_le_trans; [|iApply (iProto_le_texist_intro_r _ x)]; simpl.
     iIntros "H". by iDestruct (HP with "H") as "$". }
   rewrite -wp_bind. eapply bi.wand_apply;
-    [by eapply (recv_spec _ (tele_app tv) (tele_app tP') (tele_app tp))|f_equiv].
+    [by eapply (recv_spec _ (tele_app tv) (tele_app tP') (tele_app tp))|f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> x.
   specialize (HΦ x). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
   rewrite envs_app_sound //; simpl. by rewrite right_id HΦ.
@@ -389,7 +389,7 @@ Proof.
   rewrite envs_entails_eq /ProtoNormalize /= right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl.
   rewrite (iProto_mapsto_le _ _ (p1 <{P1}&{P2}> p2)%proto) -bi.later_intro -Hp left_id.
-  rewrite -wp_bind. eapply bi.wand_apply; [by eapply branch_spec|f_equiv].
+  rewrite -wp_bind. eapply bi.wand_apply; [by eapply branch_spec|f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> b.
   specialize (HΦ b). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
   rewrite envs_app_sound //; simpl. by rewrite right_id HΦ.
@@ -443,7 +443,7 @@ Proof.
   rewrite envs_lookup_sound //; simpl.
   rewrite (iProto_mapsto_le _ _ (p1 <{P1}+{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply select_spec|].
-  rewrite -assoc; f_equiv.
+  rewrite -assoc; f_equiv; first done.
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
   destruct (envs_app _ _ _) as [Δ2'|] eqn:? => //.
   rewrite envs_split_sound //; rewrite (envs_app_sound Δ2) //; simpl.
