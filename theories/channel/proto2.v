@@ -771,10 +771,10 @@ Section proto.
                iProto_buffer_pred vs p)%I
   end.
 
-Lemma iProto_consistent_example (P Q : V → iProp Σ) :
+  Lemma iProto_consistent_example (P Q : V → iProp Σ) :
     ⊢ iProto_consistent [] []
-        (<!(x:V)> MSG x {{ P x }}; <?(y:V)> MSG y {{ Q y }} ; END)%proto
-        (<?(x:V)> MSG x {{ P x }}; <!(y:V)> MSG y {{ Q y }} ; END)%proto.
+        (<!(x:V)> MSG x {{ P x }}; <?(y:V)> MSG y {{ Q y }} ; END)
+        (<?(x:V)> MSG x {{ P x }}; <!(y:V)> MSG y {{ Q y }} ; END).
   Proof.
     rewrite iProto_consistent_unfold /iProto_consistent_pre.
     iSplit; [by eauto|].
