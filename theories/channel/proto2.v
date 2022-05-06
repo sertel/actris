@@ -400,8 +400,6 @@ Fixpoint iProto_app_sends {Σ V} (vs : list V) (p : iProto Σ V) : iProto Σ V :
 Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   ∃ p, iProto_app_recvs vsr p ⊑ pl ∗ iProto_app_recvs vsl (iProto_dual p) ⊑ pr.
 
-  
-
 Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
 Global Instance proto_name_inhabited : Inhabited proto_name :=
   populate (ProtName inhabitant inhabitant).
@@ -437,7 +435,7 @@ Definition iProto_ctx `{protoG Σ V}
   ∃ pl pr,
     iProto_own_auth γ Left pl ∗
     iProto_own_auth γ Right pr ∗
-    ▷ iProto_interp vsl vsr pl pr.
+    ▷ iProto_consistent vsl vsr pl pr.
 
 (** * The connective for ownership of channel ends *)
 Definition iProto_own `{!protoG Σ V}
@@ -725,7 +723,7 @@ Section proto.
     unfold iProto_consistent_pre.
     iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
     iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
-    
+
     { iDestruct (iProto_message_end_equivI with "H") as %[]. }
     iPoseProof iProto_message_end_equivI "H" as "H3".
     iApply iProto_message_end_equivI. apply H.
@@ -734,10 +732,10 @@ Section proto.
     rewrite iProto_message_eq. simpl.
     unfold iProto_message_def. simpl. unfold proto_message.
     iDestruct "H" as %H. Search END.
-    
+
   *)
 
-  
+
   (** ** Protocol entailment **)
   (*
   Lemma iProto_le_unfold p1 p2 : iProto_le p1 p2 ≡ iProto_le_pre iProto_le p1 p2.
@@ -772,7 +770,99 @@ Section proto.
                iMsg_car m v (Next (iProto_app_sends vs p)) ∗
                iProto_buffer_pred vs p)%I
   end.
-  
+
+Lemma iProto_consistent_example (P Q : V → iProp Σ) :
+    ⊢ iProto_consistent [] []
+        (<!(x:V)> MSG x {{ P x }}; <?(y:V)> MSG y {{ Q y }} ; END)%proto
+        (<?(x:V)> MSG x {{ P x }}; <!(y:V)> MSG y {{ Q y }} ; END)%proto.
+  Proof.
+    rewrite iProto_consistent_unfold /iProto_consistent_pre.
+    iSplit; [by eauto|].
+    iSplit; [by eauto|].
+    iSplit.
+    - iIntros (a m) "H".
+      rewrite iProto_message_equivI.
+      iDestruct "H" as (<-) "H".
+      iIntros (v p') "Hm".
+      iSpecialize ("H" $!v (Next p')).
+      rewrite {1}iMsg_exist_eq {1}iMsg_base_eq.
+      iRewrite -"H" in "Hm".
+      iDestruct "Hm" as (x ->) "[Hm HP]".
+      iIntros "!>".
+      rewrite iProto_consistent_unfold /iProto_consistent_pre.
+      iSplit; [by eauto|].
+      iSplit; [by rewrite iProto_message_end_equivI|].
+      iSplit.
+      + iIntros (a m') "Hp'".
+        iRewrite -"Hm" in "Hp'".
+        rewrite iProto_message_equivI.
+        iDestruct "Hp'" as (<-) "Hp'".
+        iIntros (v' vs Heq). done.
+      + iIntros (a m') "Hp'".
+        rewrite iProto_message_equivI.
+        iDestruct "Hp'" as (<-) "Hp'".
+        iIntros (v' vs Heq).
+        assert (v' = v) as -> by set_solver.
+        assert (vs = []) as -> by set_solver.
+        iSpecialize ("Hp'" $!v (Next (<! (y : V)> MSG y {{ Q y }}; END))).
+        iExists (<! (y : V)> MSG y {{ Q y }}; END).
+        rewrite {1}iMsg_exist_eq {1}iMsg_base_eq.
+        iRewrite -"Hp'".
+        iSplitL "HP".
+        { rewrite iMsg_exist_eq iMsg_base_eq.
+          iExists _. iSplit; [done|]. iSplit; [done|done]. }
+        iRewrite -"Hm".
+        iIntros "!>".
+        rewrite iProto_consistent_unfold /iProto_consistent_pre.
+        iSplit; [by eauto|].
+        iSplit; [by rewrite iProto_message_end_equivI|].
+        iSplit.
+        * iIntros (a m'') "Hm".
+          rewrite iProto_message_equivI.
+          iDestruct "Hm" as (<-) "Hm".
+          iIntros (v' vs' Heq'). done.
+        * iIntros (a m'') "Hm".
+          rewrite iProto_message_equivI.
+          iDestruct "Hm" as (<-) "Hm".
+          iIntros (v' p'') "Hp''".
+          iSpecialize ("Hm" $!v' (Next p'')).
+          iRewrite -"Hm" in "Hp''".
+          rewrite {1}iMsg_exist_eq {1}iMsg_base_eq.
+          iDestruct "Hp''" as (x <-) "[Hp HQ]".
+          iIntros "!>".
+          rewrite iProto_consistent_unfold /iProto_consistent_pre.
+          iSplit; [by rewrite iProto_message_end_equivI|].
+          iSplit; [by eauto|].
+          iSplit.
+          -- iIntros (a m''') "Hm".
+             rewrite iProto_message_equivI.
+             iDestruct "Hm" as (<-) "Hm".
+             iIntros (v' vs Heq').
+             assert (x = v') as -> by set_solver.
+             assert (vs = []) as -> by set_solver.
+             iSpecialize ("Hm" $!v' (Next END)).
+             iExists (END).
+             iRewrite -"Hm".
+             iSplitL "HQ".
+             { iExists _. iSplit; [done|]. iSplit; [done|done]. }
+             iIntros "!>".
+             rewrite iProto_consistent_unfold /iProto_consistent_pre.
+             iSplit; [by eauto|]. iSplit; [by eauto|].
+             iSplit.
+             { iIntros (a m'''') "Hm".
+               by rewrite iProto_end_message_equivI. }
+             { iIntros (a m'''') "Hm".
+               iRewrite -"Hp" in "Hm".
+               by rewrite iProto_end_message_equivI. }
+          -- iIntros (a m'''') "Hm".
+               iRewrite -"Hp" in "Hm".
+               by rewrite iProto_end_message_equivI.
+    - iIntros (a m) "Hm".
+      rewrite iProto_message_equivI.
+      iDestruct "Hm" as (<-) "Hm".
+      iIntros (v vs Heq). done.
+  Qed.
+
   Lemma iProto_consistent_dual (vsl vsr : list V) p :
   (*  iProto_buffer_pred vsl p -∗
       iProto_buffer_pred vsr (iProto_dual p) -∗ *)
@@ -784,12 +874,12 @@ Section proto.
     { iIntros "H".
       destruct vsr; [done|]; simpl.
       iDestruct (iProto_message_end_equivI with "H") as %[]. }
-    { iIntros "H". 
+    { iIntros "H".
       destruct vsl; [done|]; simpl.
       iDestruct (iProto_message_end_equivI with "H") as %[]. }
-    { iIntros (a m) "#Heq"; destruct a; simpl. 
+    { iIntros (a m) "#Heq"; destruct a; simpl.
       { iIntros (v p') "H".
-        destruct vsr; [|admit]; subst; simpl. 
+        destruct vsr; [|admit]; subst; simpl.
         iSpecialize ("IH" $! (vsl ++ [v]) [] p'); simpl. admit.  }
       { iIntros (v vs H); subst.
         rewrite iMsg_car_base.
@@ -797,29 +887,29 @@ Section proto.
         destruct vsr; simpl.
         { destruct vsl; simpl.
           { iSpecialize ("IH" $! [v] [] p'); simpl.
-            
+
             rewrite -iMsg_dual_base.
             iRewrite "Heq".
             admit. (* problem with rewriting. *) }
             { iSpecialize ("IH" $! (v0 :: vsl ++ [v]) [] p'); simpl.
             admit. (* problem with rewriting. *) } }
         { admit. (* Contradiction in Heq *) } }
-      { iIntros (v vs Heq2); subst; simpl. 
+      { iIntros (v vs Heq2); subst; simpl.
         iSpecialize ("IH" $! vsl [] p); simpl.
         Search equiv iProto.
         iPoseProof (iProto_message_equivI with "Heq") as "[_ H]".
 
         { iIntros (v vs Heq); subst; simpl.
-          
+
           iApply "IH".
         unfold internal_eq, equiv, set_equiv_instance in Heq2. simpl in *.
         Set Printing All.
         iExists v, vsr.
         iSplit; [done|].
-        
-          { 
+
+          {
           destruct vsl; simpl.
-          
+
           { iRewrite "Heq".
           iAssert ( iProto_consistent (vsl ++ [v]) [] p' (iProto_app_recvs vsl (iProto_dual (<!> m)))) as "H1".
           iRewrite iProto_dual_message.
@@ -830,23 +920,23 @@ Section proto.
           iRewrite "Heq".
           iNext. iRewrite "Heq".
           iSpecialize ("IH" $! (vsl ++ [v]) [] p').
-          simpl. 
-        
+          simpl.
 
-  
+
+
   Lemma iProto_le_end : ⊢ END ⊑ (END : iProto Σ V).
   Proof.
     unfold iProto_le. iIntros (bl pr p) "H".
     rewrite iProto_consistent_unfold. unfold iProto_consistent_pre. auto 10 with iFrame.
   Qed.
-    
+
   Lemma iProto_le_send m1 m2 :
     (∀ v p2', iMsg_car m2 v (Next p2') -∗ ∃ p1',
       ▷ (p1' ⊑ p2') ∗ iMsg_car m1 v (Next p1')) -∗
     (<!> m1) ⊑ (<!> m2).
   Proof.
     iLöb as "IH" forall (m1 m2).
-    iIntros "H1". 
+    iIntros "H1".
     repeat (unfold iProto_le at 3).
     iIntros (bl br p) "H2".
     repeat rewrite iProto_consistent_unfold; unfold iProto_consistent_pre.
@@ -854,7 +944,7 @@ Section proto.
     iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
     iSplit; [iApply "H2"|].
     iSplit; [iDestruct "H3" as "[H3 _]"|iDestruct "H3" as "[_ H3]"].
-    { iDestruct "H3" as (a m) "[H3 H4]". 
+    { iDestruct "H3" as (a m) "[H3 H4]".
       iDestruct (iProto_message_equivI with "H3") as (Heq) "{H3} #Hm".
       rewrite <- Heq.
       iExists Send, m2. iSplit; [done|].
@@ -885,7 +975,7 @@ Section proto.
         iApply ("IH" with "[H1 H2] [H5]"); [|iApply "H5"].
         iIntros (v' p'') "H4". iSpecialize ("H1" with "H4").
         iDestruct "H1" as (p''') "[H1 H4]".
-        iExists p'''; iSplitR "H4"; [iApply "H1" | iApply "H4"]. 
+        iExists p'''; iSplitR "H4"; [iApply "H1" | iApply "H4"].
     } }
   Qed.
 
