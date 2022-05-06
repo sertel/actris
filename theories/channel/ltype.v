@@ -112,7 +112,7 @@ Definition iLMsg_base := iLMsg_base_aux.(unseal).
 Definition iLMsg_base_eq : @iLMsg_base = @iLMsg_base_def := iLMsg_base_aux.(seal_eq).
 Arguments iLMsg_base {_ _} _%V _%I _%ltype.
 Instance: Params (@iLMsg_base) 3 := {}.
-
+Search Params.
 Program Definition iLMsg_exist_def {Σ V A} (m : A → iLMsg Σ V) : iLMsg Σ V :=
   ILMsg (λ v', λne p', ∃ x, iLMsg_car (m x) v' p')%I.
 Next Obligation. solve_proper. Qed.
@@ -184,6 +184,7 @@ Notation "<?.. x , x1 .. xn > m" := (<Recv x> ∃.. x1, .. (∃.. xn, m) ..)
    format "<?..  x , x1  ..  xn > m") : ltype_scope.
 
 (** * Operations *)
+
 Program Definition iLMsg_map {Σ V}
     (rec : iLType Σ V → iLType Σ V) (m : iLMsg Σ V) : iLMsg Σ V :=
   ILMsg (λ v, λne p1', ∃ p1, iLMsg_car m v (Next p1) ∗ p1' ≡ Next (rec p1))%I.
@@ -292,7 +293,7 @@ Definition remove_from_list {A} (P : A -> Prop) {DecP : forall x, Decision (P x)
 Definition iLType_bcompat {Σ V} (lenv : ltype_env Σ V) (vs : gmap (nat * nat) (list V)) :=
   ∀x, In x (map fst (map_to_list lenv)) ↔
          (∃a b, In (a, b) (map fst (map_to_list vs)) ∧ (x = a ∨ x = b)).
-Search option ofe.
+
 (*
 Program Definition extract_receive_msg {Σ V} (source : nat) 
         (rec : iLType Σ V → option (iLType Σ V)) : iLType Σ V -n> iLType Σ V :=
@@ -323,7 +324,7 @@ Definition iLType_er_pre {Σ V} source
     (⌜ a1 ≠ Recv source ⌝ -∗                 
        ∀ v1 v2 lty1' lty2',
            iLMsg_car m1 v1 (Next lty1') -∗ iLMsg_car m2 v2 (Next lty2') -∗ ∃ pt,
-               ▷ rec lty1' (<a1> LMSG v2; pt) ∗ ▷ rec (<? source> LMSG v1; pt) lty2').
+               (▷ rec lty1' (<a1> LMSG v2; pt)) ∗ (▷ rec (<? source> LMSG v1; pt) lty2')).
 
 Instance iLType_er_pre_ne {Σ V} source (rec : iLType Σ V → iLType Σ V → iProp Σ) :
   NonExpansive2 (iLType_er_pre source rec).
@@ -347,6 +348,66 @@ Definition iLType_er {Σ V} source (lty1 lty2 : iLType Σ V) : iProp Σ :=
 Arguments iLType_er {_ _} _%ltype _%ltype.
 Instance: Params (@iLType_er) 2 := {}.
 
+Section TestER.
+  
+  Definition A {Σ V} v: iLType Σ V := (<? 2> (LMSG v; <? 1> (LMSG v; LEND)))%ltype.
+  Definition B {Σ V} v: iLType Σ V := (<? 1> (LMSG v; <? 2> (LMSG v; LEND)))%ltype.
+
+
+  Lemma test_er {Σ V} v : ⊢iLType_er 1 (@A Σ V v) (@B Σ V v).
+  Proof.
+    unfold iLType_er.
+    iApply (fixpoint_unfold (iLType_er_pre' 1)).
+    unfold iLType_er_pre' at 1, iLType_er_pre; simpl.
+    unfold A, B.
+    iExists _, _, _.
+    iSplit.
+
+    iApply internal_eq_refl.
+    iAccu.
+    iSplit.
+    iApply internal_eq_refl.
+    iAccu.
+    iSplit.
+    iIntros "#H".
+    iDestruct "H" as %H. inversion H.
+    iIntros "_".
+    iIntros (v1 v2 lty1 lty2) "H1 H2".
+    iExists (B v).
+    Search bi_sep.
+    Search (_ -∗ _ ∗ _).
+    iApply into_sep; [|iAccu].
+    unfold IntoSep.
+    iIntros "[H1 H2]".
+    
+    iSplit.
+    Print IntoSep.
+    
+    iSplit.
+    iApply bi.pure_intro.
+    reflexivity.
+    iAccu.
+    Search bi_pure.
+    Search equiv bi_pure.
+    Set Printing All.
+    iReflexivity.
+    iApply internal_eq_refl.
+    iDestruct "H" as %H.
+    Search (True%I).
+    iApply (True%I).
+    Search (.
+    Search internal_eq.
+    Set Printing All.
+    Search equiv.
+    simpl. 
+    iApply 
+    iRewrite fixpoint_unfold with (f := iLType_er_pre' 1).
+    Print fixpoint_unfold.
+    rewrite fixpoint_unfold.
+    Search fixpoint.
+
+End TestER.
+  
 Program Definition iLType_wf_pre {Σ V}
         (rec : gmap (nat * nat) (list V) → ltype_env Σ V  → iProp Σ) : 
    gmap (nat * nat) (list V) → ltype_env Σ V → iProp Σ :=
@@ -1836,3 +1897,4 @@ Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
 
 
 End ltype.
+*)
