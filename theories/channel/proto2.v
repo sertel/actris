@@ -396,10 +396,11 @@ Fixpoint iProto_app_sends {Σ V} (vs : list V) (p : iProto Σ V) : iProto Σ V :
   match vs with
   | [] => p
   | v :: vs => <!> MSG v; iProto_app_recvs vs p
-  end.
+end.
+(*
 Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   ∃ p, iProto_app_recvs vsr p ⊑ pl ∗ iProto_app_recvs vsl (iProto_dual p) ⊑ pr.
-
+*)
 Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
 Global Instance proto_name_inhabited : Inhabited proto_name :=
   populate (ProtName inhabitant inhabitant).
@@ -1091,67 +1092,6 @@ Section proto.
     ⊢ iProto_consistent [] [] p (iProto_dual p).
   Proof. iApply iProto_consistent_dual_app_recvs. Qed.
 
-  Lemma iProto_consistent_dual (vsl vsr : list V) p :
-  (*  iProto_buffer_pred vsl p -∗
-      iProto_buffer_pred vsr (iProto_dual p) -∗ *)
-      ⊢ iProto_consistent vsl vsr (iProto_app_recvs vsr p) (iProto_app_recvs vsl (iProto_dual p)).
-  Proof.
-    iLöb as "IH" forall (vsl vsr p).
-    iApply iProto_consistent_app_recvs_l.
-    iApply iProto_consistent_app_recvs_r.
-    rewrite iProto_consistent_unfold /iProto_consistent_pre.
-(*    iIntros "Hl Hr";*) repeat iSplit.
-    { iIntros "H".
-      destruct vsr; [done|]; simpl.
-      iDestruct (iProto_message_end_equivI with "H") as %[]. }
-    { iIntros "H".
-      destruct vsl; [done|]; simpl.
-      iDestruct (iProto_message_end_equivI with "H") as %[]. }
-    { iIntros (a m) "#Heq"; destruct a; simpl.
-      { iIntros (v p') "H".
-        destruct vsr; [|admit]; subst; simpl.
-        iSpecialize ("IH" $! (vsl ++ [v]) [] p'); simpl. admit.  }
-      { iIntros (v vs H); subst.
-        rewrite iMsg_car_base.
-        iNext.
-        destruct vsr; simpl.
-        { destruct vsl; simpl.
-          { iSpecialize ("IH" $! [v] [] p'); simpl.
-
-            rewrite -iMsg_dual_base.
-            iRewrite "Heq".
-            admit. (* problem with rewriting. *) }
-            { iSpecialize ("IH" $! (v0 :: vsl ++ [v]) [] p'); simpl.
-            admit. (* problem with rewriting. *) } }
-        { admit. (* Contradiction in Heq *) } }
-      { iIntros (v vs Heq2); subst; simpl.
-        iSpecialize ("IH" $! vsl [] p); simpl.
-        Search equiv iProto.
-        iPoseProof (iProto_message_equivI with "Heq") as "[_ H]".
-
-        { iIntros (v vs Heq); subst; simpl.
-
-          iApply "IH".
-        unfold internal_eq, equiv, set_equiv_instance in Heq2. simpl in *.
-        Set Printing All.
-        iExists v, vsr.
-        iSplit; [done|].
-
-          {
-          destruct vsl; simpl.
-
-          { iRewrite "Heq".
-          iAssert ( iProto_consistent (vsl ++ [v]) [] p' (iProto_app_recvs vsl (iProto_dual (<!> m)))) as "H1".
-          iRewrite iProto_dual_message.
-          Search iProto_dual.
-          rewrite iProto_dual_eq.
-          unfold iProto_dual_def.
-          unfold iProto_dual.
-          iRewrite "Heq".
-          iNext. iRewrite "Heq".
-          iSpecialize ("IH" $! (vsl ++ [v]) [] p').
-          simpl.
-
   Lemma iProto_le_end : ⊢ END ⊑ (END : iProto Σ V).
   Proof.
     unfold iProto_le. iIntros (bl pr p) "H".
@@ -1172,39 +1112,32 @@ Section proto.
     iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
     iSplit; [iApply "H2"|].
     iSplit; [iDestruct "H3" as "[H3 _]"|iDestruct "H3" as "[_ H3]"].
-    { iDestruct "H3" as (a m) "[H3 H4]".
-      iDestruct (iProto_message_equivI with "H3") as (Heq) "{H3} #Hm".
-      rewrite <- Heq.
-      iExists Send, m2. iSplit; [done|].
-      iIntros (v p') "H5".
-      iSpecialize ("H1" with "H5").
-      iDestruct "H1" as (p1') "[H1 H3]".
-      iSpecialize ("Hm" $! v (Next p1')).
-      iRewrite "Hm" in "H3".
-      iSpecialize ("H4" with "H3").
-      iApply "H1". iApply "H4". }
-    { iDestruct "H3" as (a m) "[#H3 H4]".
-      iExists a, m. iSplit; [iApply "H3"|].
+    { iIntros (a m) "H".
+      iDestruct (iProto_message_equivI with "H") as (Heq) "{H} #Hm"; subst.
+      iIntros (v p') "H4".
+      iSpecialize ("H3" $! Send m1 _ v).
+      iSpecialize ("Hm" $! v (Next p')). iRewrite -"Hm" in "H4".
+      iSpecialize ("H1" $! _ _ with "H4"). iDestruct "H1" as (p'') "[H1 H5]".
+      iApply "H1". iApply "H3". iApply "H5". }
+    { iIntros (a m) "H".
+      iSpecialize ("H3" $! _ _ with "H").
       destruct a. {
-        iIntros (v p') "H5".
-        iSpecialize ("H4" with "H5").
-        iNext.
-        iApply ("IH" with "[H1 H2] [H4]"). {
-          iIntros (v' p'') "H4".
-          iSpecialize ("H1" with "H4"). iDestruct "H1" as (p''') "[H1 H4]".
-          iExists p'''. iSplitL "H1"; [iApply "H1"|].
-          iApply "H4". }
-        { iApply "H4". } }
-      { iDestruct "H4" as (v vs) "[#Heq H4]".
-        iExists v, vs. iSplit; [iApply "Heq"|].
-        iIntros (p'). iSpecialize ("H4" $! p'). iDestruct "H4" as "[H4 H5]".
-        iSplitL "H4". iApply "H4".
-        iNext.
-        iApply ("IH" with "[H1 H2] [H5]"); [|iApply "H5"].
-        iIntros (v' p'') "H4". iSpecialize ("H1" with "H4").
-        iDestruct "H1" as (p''') "[H1 H4]".
-        iExists p'''; iSplitR "H4"; [iApply "H1" | iApply "H4"].
-    } }
+        iIntros (v p') "H4".
+        iApply ("IH" with "[H1]").
+        { iNext. iIntros (v' p'') "H2".
+          iSpecialize ("H1" with "H2").
+          iDestruct "H1" as (p''') "[H1 H2]".
+          iExists p'''. iSplitR "H2"; [iApply "H1" | iApply "H2"]. }
+        { iApply "H3". iApply "H4". } }
+      { iIntros (v vs Heq); subst.
+        iSpecialize ("H3" $! _ _ eq_refl). iDestruct "H3" as (p') "[H3 H4]".
+        iExists (p'). iSplitL "H3"; [iApply "H3"|].
+        iApply ("IH" with "[H1 H2] [H4]"); [|iApply "H4"].
+        iNext. iIntros (v' p'') "H3".
+        iSpecialize ("H1" with "H3"). iDestruct "H1" as (p''') "[H1 H4]".
+        iExists p'''; iSplitR "H4"; [iApply "H1" |iApply "H4"]. } }
+    Unshelve.
+    done.
   Qed.
 
   Lemma iProto_le_recv m1 m2 :
