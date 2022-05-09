@@ -1090,6 +1090,25 @@ Section proto.
     ⊢ iProto_consistent [] [] p (iProto_dual p).
   Proof. iApply iProto_consistent_dual_app_recvs. Qed.
 
+  Lemma iProto_consistent_example_alt (P Q : V → iProp Σ) :
+    ⊢ iProto_consistent [] []
+        (<!(x:V)> MSG x {{ P x }}; <?(y:V)> MSG y {{ Q y }} ; END)
+        (<?(x:V)> MSG x {{ P x }}; <!(y:V)> MSG y {{ Q y }} ; END).
+  Proof.
+    assert ((<?(x:V)> MSG x {{ P x }}; <!(y:V)> MSG y {{ Q y }} ; END)
+           ≡ iProto_dual ((<!(x:V)> MSG x {{ P x }}; <?(y:V)> MSG y {{ Q y }} ; END))) as ->.
+    { rewrite iProto_dual_message iMsg_dual_exist.
+      do 3 f_equiv.
+      rewrite iMsg_dual_base.
+      f_equiv.
+      rewrite iProto_dual_message iMsg_dual_exist.
+      do 3 f_equiv.
+      rewrite iMsg_dual_base.
+      f_equiv.
+      by rewrite iProto_dual_end. }
+    iApply iProto_consistent_dual.
+  Qed.
+
   Lemma iProto_le_end : ⊢ END ⊑ (END : iProto Σ V).
   Proof.
     unfold iProto_le. iIntros (bl pr p) "H".
