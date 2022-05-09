@@ -245,8 +245,6 @@ Definition iProto_dual_if {Σ V} (d : bool) (p : iProto Σ V) : iProto Σ V :=
 Arguments iProto_dual_if {_ _} _ _%proto.
 Global Instance: Params (@iProto_dual_if) 3 := {}.
 
-Search Dist list.
-
 Definition iProto_consistent_pre {Σ V} (rec : list V → list V → iProto Σ V → iProto Σ V → iProp Σ)
   (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   (pl ≡ END -∗ ⌜vsr = []⌝) ∧
@@ -264,11 +262,11 @@ Definition iProto_consistent_pre {Σ V} (rec : list V → list V → iProto Σ V
       | Send => ∀v p, iMsg_car m v (Next p) -∗ ▷(rec vsl (vsr ++ [v]) pl p)
     end))%I.
 
-Global Instance iProto_consistent_pre_ne {Σ V} (bl br : list V) (rec : list V → list V → iProto Σ V → iProto Σ V → iProp Σ) :
-  NonExpansive2 (iProto_consistent_pre rec bl br).
-Proof.
-  (*solve_proper.*)
-Admitted.
+Global Instance iProto_consistent_pre_ne {Σ V} (bl br : list V)
+       (rec : list V → list V → iProto Σ V -n> iProto Σ V -n> iPropO Σ) :
+  NonExpansive2
+    (iProto_consistent_pre (λ l r p1 p2, rec l r p1 p2) bl br).
+Proof. solve_proper. Qed.
 
 Program Definition iProto_consistent_pre' {Σ V}
   (rec : list V -d> list V -d> iProto Σ V -n> iProto Σ V -n> iPropO Σ) :
