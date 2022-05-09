@@ -245,22 +245,25 @@ Definition iProto_dual_if {Σ V} (d : bool) (p : iProto Σ V) : iProto Σ V :=
 Arguments iProto_dual_if {_ _} _ _%proto.
 Global Instance: Params (@iProto_dual_if) 3 := {}.
 
-Definition iProto_consistent_pre {Σ V} (rec : list V → list V → iProto Σ V → iProto Σ V → iProp Σ)
+Definition iProto_consistent_pre {Σ V}
+           (rec : list V → list V → iProto Σ V → iProto Σ V → iProp Σ)
   (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   (pl ≡ END -∗ ⌜vsr = []⌝) ∧
   (pr ≡ END -∗ ⌜vsl = []⌝) ∧
-  ((∀ a m,
+  (∀ a m,
     (pl ≡ <a> m) -∗
       match a with
-      | Recv => (∀ v vs, ⌜ vsr = v :: vs ⌝ -∗ ∃p, iMsg_car m v (Next p) ∗ ▷(rec vsl vs p pr))
-      | Send => ∀v p, iMsg_car m v (Next p) -∗ ▷(rec (vsl ++ [v]) vsr p pr)
+      | Recv => ∀ v vs, ⌜ vsr = v :: vs ⌝ -∗
+                        ∃ p, iMsg_car m v (Next p) ∗ ▷ (rec vsl vs p pr)
+      | Send => ∀ v p, iMsg_car m v (Next p) -∗ ▷ (rec (vsl ++ [v]) vsr p pr)
     end) ∧
    (∀ a m,
      (pr ≡ <a> m) -∗
       match a with
-      | Recv => (∀ v vs, ⌜ vsl = v :: vs ⌝ -∗ ∃p, iMsg_car m v (Next p) ∗ ▷(rec vs vsr pl p))
-      | Send => ∀v p, iMsg_car m v (Next p) -∗ ▷(rec vsl (vsr ++ [v]) pl p)
-    end))%I.
+      | Recv => ∀ v vs, ⌜ vsl = v :: vs ⌝ -∗
+                        ∃ p, iMsg_car m v (Next p) ∗ ▷ (rec vs vsr pl p)
+      | Send => ∀ v p, iMsg_car m v (Next p) -∗ ▷ (rec vsl (vsr ++ [v]) pl p)
+    end).
 
 Global Instance iProto_consistent_pre_ne {Σ V} (bl br : list V)
        (rec : list V → list V → iProto Σ V -n> iProto Σ V -n> iPropO Σ) :
