@@ -1136,6 +1136,33 @@ Section proto.
     by iSpecialize ("Hprot" with "[//] Hm").
   Qed.
 
+  Lemma iProto_consistent_send_end vsl vsr vl pl :
+    iProto_consistent vsl vsr (<!> MSG vl ; pl) END -∗ ▷ False.
+  Proof.
+    iIntros "Hprot".
+    rewrite iProto_consistent_unfold /iProto_consistent_pre.
+    iDestruct "Hprot" as "(_&_&Hprot&_)".
+    iDestruct ("Hprot" with "[//] []") as "Hprot".
+    { by rewrite iMsg_base_eq. }
+    iIntros "!>".
+    rewrite iProto_consistent_unfold /iProto_consistent_pre.
+    iDestruct "Hprot" as "(_&Hprot&_&_)".
+    iDestruct ("Hprot" with "[//]") as %Heq.
+    apply app_nil in Heq. by destruct Heq as [_ Heq].
+  Qed.
+
+  Lemma iProto_consistent_send_end_alt vsl vsr vl pl pr :
+    iProto_consistent vsl vsr (<!> MSG vl ; pl) pr -∗
+    ◇ ∃ a m, pr ≡ <a> m.
+  Proof.
+    iIntros "Hprot".
+    destruct (iProto_case pr) as [Hpr | Hpr].
+    { rewrite ->Hpr.
+      iDestruct (iProto_consistent_send_end with "Hprot") as ">HF".
+      done. }
+    done.
+  Qed.
+
   Lemma iProto_consistent_recv vl vsl vsr pl mr :
     iProto_consistent (vl :: vsl) vsr pl (<?> mr) -∗
     ∃ pr, iMsg_car mr vl (Next pr) ∗ ▷ iProto_consistent vsl vsr pl pr.
