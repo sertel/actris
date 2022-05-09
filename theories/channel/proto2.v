@@ -245,6 +245,19 @@ Definition iProto_dual_if {Σ V} (d : bool) (p : iProto Σ V) : iProto Σ V :=
 Arguments iProto_dual_if {_ _} _ _%proto.
 Global Instance: Params (@iProto_dual_if) 3 := {}.
 
+(** This definition of consistency "simulates" all legal actions on the
+protocols, and the state of the buffers.
+We use regular conjunction [∧] to indicate that all paths must hold, but that
+only one is eventually taken.
+The base cases ensure that the inbound buffers of terminated protocols must be
+empty.
+This prevents e.g. [iProto_consistent vsl [] END <!> MSG <v> ; p],
+as it would reduce to the impossible case [(pl ≡ END -∗ ⌜[v] = []⌝)] in one step. 
+The definition admits unsatisfied receives, such as
+[iProto_consistent [] [] END <?> m], as nothing is ever put in [vsl], and since
+the received step trivially holds for an empty buffer.
+TODO: It should be figured out if the behaviour on unsatisfied received should
+change, as it is prone to deadlocks, although it is communication safe. *)
 Definition iProto_consistent_pre {Σ V}
            (rec : list V → list V → iProto Σ V → iProto Σ V → iProp Σ)
   (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
