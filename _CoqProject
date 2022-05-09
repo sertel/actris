@@ -16,6 +16,7 @@ theories/utils/cofe_solver_2.v
 theories/utils/switch.v
 theories/channel/proto_model.v
 theories/channel/proto.v
+theories/channel/proto2.v
 theories/channel/ltype_model.v
 theories/channel/channel.v
 theories/channel/proofmode.v

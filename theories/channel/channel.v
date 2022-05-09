@@ -24,7 +24,7 @@ the subprotocol relation [⊑] *)
 From iris.heap_lang Require Export primitive_laws notation.
 From iris.heap_lang Require Export proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
-From actris.channel Require Export proto.
+From actris.channel Require Export proto2.
 From actris.utils Require Import llist skip.
 Set Default Proof Using "Type".
 
@@ -189,14 +189,14 @@ Section channel.
     f_equiv; f_equiv=> -[]; by rewrite iMsg_app_base.
   Qed.
 
-  Lemma iProto_le_choice a P1 P2 p1 p2 p1' p2' :
-    (P1 -∗ P1 ∗ ▷ (p1 ⊑ p1')) ∧ (P2 -∗ P2 ∗ ▷ (p2 ⊑ p2')) -∗
-    iProto_choice a P1 P2 p1 p2 ⊑ iProto_choice a P1 P2 p1' p2'.
-  Proof.
-    iIntros "H". rewrite /iProto_choice. destruct a;
-      iIntros (b) "HP"; iExists b; destruct b;
-      iDestruct ("H" with "HP") as "[$ ?]"; by iModIntro.
-  Qed.
+  (* Lemma iProto_le_choice a P1 P2 p1 p2 p1' p2' : *)
+  (*   (P1 -∗ P1 ∗ ▷ (p1 ⊑ p1')) ∧ (P2 -∗ P2 ∗ ▷ (p2 ⊑ p2')) -∗ *)
+  (*   iProto_choice a P1 P2 p1 p2 ⊑ iProto_choice a P1 P2 p1' p2'. *)
+  (* Proof. *)
+  (*   iIntros "H". rewrite /iProto_choice. destruct a; *)
+  (*     iIntros (b) "HP"; iExists b; destruct b; *)
+  (*     iDestruct ("H" with "HP") as "[$ ?]"; by iModIntro. *)
+  (* Qed. *)
 
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec p :
@@ -285,21 +285,21 @@ Section channel.
       iIntros "_". iApply "HΦ". iExists γ, Right, l, r, lk. eauto 10 with iFrame.
   Qed.
 
-  Lemma send_spec_tele {TT} c (tt : TT)
-        (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ (<!.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
-      send c (v tt)
-    {{{ RET #(); c ↣ (p tt) }}}.
-  Proof.
-    iIntros (Φ) "[Hc HP] HΦ".
-    iDestruct (iProto_mapsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]")
-      as "Hc".
-    { iIntros "!>".
-      iApply iProto_le_trans.
-      iApply iProto_le_texist_intro_l.
-      by iFrame "HP". }
-    by iApply (send_spec with "Hc").
-  Qed.
+  (* Lemma send_spec_tele {TT} c (tt : TT) *)
+  (*       (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) : *)
+  (*   {{{ c ↣ (<!.. x > MSG v x {{ P x }}; p x) ∗ P tt }}} *)
+  (*     send c (v tt) *)
+  (*   {{{ RET #(); c ↣ (p tt) }}}. *)
+  (* Proof. *)
+  (*   iIntros (Φ) "[Hc HP] HΦ". *)
+  (*   iDestruct (iProto_mapsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]") *)
+  (*     as "Hc". *)
+  (*   { iIntros "!>". *)
+  (*     iApply iProto_le_trans. *)
+  (*     iApply iProto_le_texist_intro_l. *)
+  (*     by iFrame "HP". } *)
+  (*   by iApply (send_spec with "Hc"). *)
+  (* Qed. *)
 
   Lemma try_recv_spec {TT} c (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
     {{{ c ↣ <?.. x> MSG v x {{ P x }}; p x }}}
@@ -352,30 +352,31 @@ Section channel.
     iDestruct "H" as (x ->) "[Hc HP]". wp_pures. iApply "HΦ". by iFrame.
   Qed.
 
-  (** ** Specifications for choice *)
-  Lemma select_spec c (b : bool) P1 P2 p1 p2 :
-    {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}}
-      send c #b
-    {{{ RET #(); c ↣ (if b then p1 else p2) }}}.
-  Proof.
-    rewrite /iProto_choice. iIntros (Φ) "[Hc HP] HΦ".
-    iApply (send_spec with "[Hc HP] HΦ").
-    iApply (iProto_mapsto_le with "Hc").
-    iIntros "!>". iExists b. by iFrame "HP".
-  Qed.
+  (* (** ** Specifications for choice *) *)
+  (* Lemma select_spec c (b : bool) P1 P2 p1 p2 : *)
+  (*   {{{ c ↣ (p1 <{P1}+{P2}> p2) ∗ if b then P1 else P2 }}} *)
+  (*     send c #b *)
+  (*   {{{ RET #(); c ↣ (if b then p1 else p2) }}}. *)
+  (* Proof. *)
+  (*   rewrite /iProto_choice. iIntros (Φ) "[Hc HP] HΦ". *)
+  (*   iApply (send_spec with "[Hc HP] HΦ"). *)
+  (*   iApply (iProto_mapsto_le with "Hc"). *)
+  (*   iIntros "!>". iExists b. by iFrame "HP". *)
+  (* Qed. *)
 
-  Lemma branch_spec c P1 P2 p1 p2 :
-    {{{ c ↣ (p1 <{P1}&{P2}> p2) }}}
-      recv c
-    {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}.
-  Proof.
-    rewrite /iProto_choice. iIntros (Φ) "Hc HΦ".
-    iApply (recv_spec _ (tele_app _)
-      (tele_app (TT:=[tele _ : bool]) (λ b, if b then P1 else P2))%I
-      (tele_app _) with "[Hc]").
-    { iApply (iProto_mapsto_le with "Hc").
-      iIntros "!> /=" (b) "HP". iExists b. by iSplitL. }
-    rewrite -bi_tforall_forall.
-    iIntros "!>" (x) "[Hc H]". iApply "HΦ". iFrame.
-  Qed.
+  (* Lemma branch_spec c P1 P2 p1 p2 : *)
+  (*   {{{ c ↣ (p1 <{P1}&{P2}> p2) }}} *)
+  (*     recv c *)
+  (*   {{{ b, RET #b; c ↣ (if b : bool then p1 else p2) ∗ if b then P1 else P2 }}}. *)
+  (* Proof. *)
+  (*   rewrite /iProto_choice. iIntros (Φ) "Hc HΦ". *)
+  (*   iApply (recv_spec _ (tele_app _) *)
+  (*     (tele_app (TT:=[tele _ : bool]) (λ b, if b then P1 else P2))%I *)
+  (*     (tele_app _) with "[Hc]"). *)
+  (*   { iApply (iProto_mapsto_le with "Hc"). *)
+  (*     iIntros "!> /=" (b) "HP". iExists b. by iSplitL. } *)
+  (*   rewrite -bi_tforall_forall. *)
+  (*   iIntros "!>" (x) "[Hc H]". iApply "HΦ". iFrame. *)
+  (* Qed. *)
+
 End channel.
