@@ -1146,6 +1146,16 @@ Section proto.
     by iSpecialize ("Hprot" with "[//] [//]")=> /=.
   Qed.
 
+  Lemma iProto_consistent_le_l vsl vsr pl pl' pr :
+    iProto_consistent vsl vsr pl pr -∗ pl ⊑ pl' -∗ iProto_consistent vsl vsr pl' pr.
+  Proof. iIntros "Hprot Hle". by iApply "Hle". Qed.
+  Lemma iProto_consistent_le_r vsl vsr pl pr pr' :
+    iProto_consistent vsl vsr pl pr -∗ pr ⊑ pr' -∗ iProto_consistent vsl vsr pl pr'.
+  Proof.
+    iIntros "H Hle". iApply iProto_consistent_flip.
+    iApply "Hle". by iApply iProto_consistent_flip.
+  Qed.
+
   Lemma iProto_le_end : ⊢ END ⊑ (END : iProto Σ V).
   Proof.
     unfold iProto_le. iIntros (bl pr p) "H".
@@ -1194,19 +1204,59 @@ Section proto.
     done.
   Qed.
 
-  (* Lemma iProto_le_recv m1 m2 : *)
-  (*   (∀ v p1', iMsg_car m1 v (Next p1') -∗ ∃ p2', *)
-  (*     ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2')) -∗ *)
-  (*   (<?> m1) ⊑ (<?> m2). *)
-  (* Proof. Admitted. *)
+  Lemma iProto_le_recv m1 m2 :
+    (∀ v p1', iMsg_car m1 v (Next p1') -∗ ∃ p2',
+      ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2')) -∗
+    (<?> m1) ⊑ (<?> m2).
+  Proof.
+    iIntros "H" (vsl vsr p) "Hprot".
+    iLöb as "IH" forall (vsl vsr m2 p).
+    iEval (rewrite iProto_consistent_unfold).
+    rewrite /iProto_consistent_pre.
+    rewrite iProto_consistent_unfold /iProto_consistent_pre.
+    iSplit.
+    { iIntros "Hpeq".
+      by iDestruct (iProto_message_end_equivI with "Hpeq") as "Hpeq". }
+    iSplit.
+    { by iDestruct "Hprot" as "(_&$&_)". }
+    iSplit; last first.
+    {
+      iDestruct "Hprot" as "(_&_&_&Hprot)".
+      iIntros ([] m) "Heq".
+      { iIntros (v vs) "Hm".
+        iDestruct ("Hprot" with "Heq Hm") as "Hprot".
+        iIntros "!>".
+        by iApply ("IH" with "H"). }
+      { iIntros (v vs) "Hm".
+        iDestruct ("Hprot" with "Heq Hm") as (p') "[Hm Hprot]".
+        iExists p'. iFrame.
+        iIntros "!>".
+        by iApply ("IH" with "H"). }
+    }
+    destruct vsr.
+    { iIntros (a m) "Heq". rewrite iProto_message_equivI.
+      iDestruct "Heq" as (<-) "Heq".
+      iIntros (v vs Heq). done. }
+    iIntros (a m) "Heq". rewrite iProto_message_equivI.
+    iDestruct "Heq" as (<-) "Heq".
+    iIntros (w vs Heq).
+    assert (v = w) as <- by set_solver.
+    assert (vsr = vs) as <- by set_solver.
+    iDestruct "Hprot" as "(_&_&Hprot&_)".
+    iDestruct ("Hprot" with "[//] [//]") as (p') "[Hm Hprot]".
+    iDestruct ("H" with "Hm") as (p'') "[Hle H]".
+    iExists p''.
+    iSpecialize ("Heq" $! v (Next p'')). iRewrite -"Heq".
+    iFrame. iIntros "!>".
+    iApply (iProto_consistent_le_l with "Hprot Hle").
+  Qed.
 
   (* Lemma iProto_le_swap m1 m2 : *)
   (*   (∀ v1 v2 p1' p2', *)
   (*      iMsg_car m1 v1 (Next p1') -∗ iMsg_car m2 v2 (Next p2') -∗ ∃ pt, *)
   (*        ▷ (p1' ⊑ <!> MSG v2; pt) ∗ ▷ ((<?> MSG v1; pt) ⊑ p2')) -∗ *)
   (*   (<?> m1) ⊑ (<!> m2). *)
-  (* Proof. rewrite iProto_le_unfold. iIntros "H". iRight. auto 10. Qed. *)
-
+  (* Proof. Admitted. *)
 
   Lemma iProto_le_refl p : ⊢ p ⊑ p.
   Proof. iIntros (bl br p') "$". Qed.
@@ -1595,16 +1645,6 @@ Section proto.
     iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H".
     { eapply (excl_auth_update _ _ (Next p'')). }
     by rewrite own_op.
-  Qed.
-
-  Lemma iProto_consistent_le_l vsl vsr pl pl' pr :
-    iProto_consistent vsl vsr pl pr -∗ pl ⊑ pl' -∗ iProto_consistent vsl vsr pl' pr.
-  Proof. iIntros "Hprot Hle". by iApply "Hle". Qed.
-  Lemma iProto_consistent_le_r vsl vsr pl pr pr' :
-    iProto_consistent vsl vsr pl pr -∗ pr ⊑ pr' -∗ iProto_consistent vsl vsr pl pr'.
-  Proof.
-    iIntros "H Hle". iApply iProto_consistent_flip.
-    iApply "Hle". by iApply iProto_consistent_flip.
   Qed.
 
   Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
