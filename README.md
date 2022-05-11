@@ -10,7 +10,7 @@ the paper
 
 It has been built and tested with the following dependencies
 
- - Coq 8.13.2
+ - Coq 8.15.1
  - The version of Iris in the [opam file](opam)
 
 In order to build, install the above dependencies and then run
