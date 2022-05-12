@@ -1289,7 +1289,7 @@ Section proto.
 
 End proto.
 
-Typeclasses Opaque iProto_ctx iProto_own.
+Global Typeclasses Opaque iProto_ctx iProto_own.
 
 Global Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
   first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.

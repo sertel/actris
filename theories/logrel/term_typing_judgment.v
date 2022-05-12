@@ -16,7 +16,7 @@ Definition ltyped `{!heapGS Σ}
     (Γ1 Γ2 : ctx Σ) (e : expr) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ∀ vs, ctx_ltyped vs Γ1 -∗
     WP subst_map vs e {{ v, ltty_car A v ∗ ctx_ltyped vs Γ2 }})%I.
-Instance: Params (@ltyped) 2 := {}.
+Global Instance: Params (@ltyped) 2 := {}.
 
 Notation "Γ1 ⊨ e : A ⫤ Γ2" := (ltyped Γ1 Γ2 e A)
   (at level 100, e at next level, A at level 200) : bi_scope.
@@ -57,7 +57,7 @@ The value typing judgement subsumes the typing judgement on expressions,
 as made precise by the [ltyped_val_ltyped] lemma. *)
 Definition ltyped_val `{!heapGS Σ} (v : val) (A : ltty Σ) : iProp Σ :=
   tc_opaque (■ ltty_car A v)%I.
-Instance: Params (@ltyped_val) 3 := {}.
+Global Instance: Params (@ltyped_val) 3 := {}.
 Notation "⊨ᵥ v : A" := (ltyped_val v A)
   (at level 100, v at next level, A at level 200) : bi_scope.
 Notation "⊨ᵥ v : A" := (⊢ ⊨ᵥ v : A)

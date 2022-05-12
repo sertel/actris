@@ -117,7 +117,7 @@ Proof. rewrite iProto_mapsto_eq. solve_contractive. Qed.
 Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
   (<a @ (b : bool)> MSG #b {{ if b then P1 else P2 }}; if b then p1 else p2)%proto.
-Typeclasses Opaque iProto_choice.
+Global Typeclasses Opaque iProto_choice.
 Arguments iProto_choice {_} _ _%I _%I _%proto _%proto.
 Global Instance: Params (@iProto_choice) 2 := {}.
 Infix "<{ P1 }+{ P2 }>" := (iProto_choice Send P1 P2) (at level 85) : proto_scope.
