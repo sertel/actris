@@ -198,7 +198,7 @@ Lemma tac_wp_recv `{!chanG Σ, !heapGS Σ} {TT : tele} Δ i j K c p m tv tP tP' 
     end) →
   envs_entails Δ (WP fill K (recv c) {{ Φ }}).
 Proof.
-  rewrite envs_entails_eq /ProtoNormalize /MsgTele /MaybeIntoLaterN /=.
+  rewrite envs_entails_unseal /ProtoNormalize /MsgTele /MaybeIntoLaterN /=.
   rewrite !tforall_forall right_id.
   intros ? Hp Hm HP HΦ. rewrite envs_lookup_sound //; simpl.
   assert (c ↣ p ⊢ c ↣ <?.. x>
@@ -292,7 +292,7 @@ Lemma tac_wp_send `{!chanG Σ, !heapGS Σ} {TT : tele} Δ neg i js K c v p m tv 
     end) →
   envs_entails Δ (WP fill K (send c v) {{ Φ }}).
 Proof.
-  rewrite envs_entails_eq /ProtoNormalize /MsgTele /= right_id texist_exist.
+  rewrite envs_entails_unseal /ProtoNormalize /MsgTele /= right_id texist_exist.
   intros ? Hp Hm [x HΦ]. rewrite envs_lookup_sound //; simpl.
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
   destruct (envs_app _ _ _) as [Δ2'|] eqn:? => //.
@@ -386,7 +386,7 @@ Lemma tac_wp_branch `{!chanG Σ, !heapGS Σ} Δ i j K
     end) →
   envs_entails Δ (WP fill K (recv c) {{ Φ }}).
 Proof.
-  rewrite envs_entails_eq /ProtoNormalize /= right_id=> ? Hp HΦ.
+  rewrite envs_entails_unseal /ProtoNormalize /= right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl.
   rewrite (iProto_mapsto_le _ _ (p1 <{P1}&{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply branch_spec|f_equiv; first done].
@@ -439,7 +439,7 @@ Lemma tac_wp_select `{!chanG Σ, !heapGS Σ} Δ neg i js K
   end →
   envs_entails Δ (WP fill K (send c #b) {{ Φ }}).
 Proof.
-  rewrite envs_entails_eq /ProtoNormalize /= right_id=> ? Hp HΦ.
+  rewrite envs_entails_unseal /ProtoNormalize /= right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl.
   rewrite (iProto_mapsto_le _ _ (p1 <{P1}+{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply select_spec|].
