@@ -34,6 +34,8 @@ build-coq.8.15.1:
     OPAM_PINS: "coq version 8.15.1"
     DENY_WARNINGS: "1"
     OPAM_PKG: "1"
+  tags:
+  - fp-timing
 
 trigger-iris.dev:
   <<: *template
