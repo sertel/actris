@@ -1069,6 +1069,135 @@ Section proto.
       iExists p2. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
   Qed.
 
+  Lemma foo (P Q : iProp Σ) :
+    (▷ ■ P -∗ ▷ Q) ⊢ ▷ (■ P -∗ Q).
+  Proof.
+    Local Arguments uPred_holds _ !_.
+    uPred.unseal; split; intros [|n] x ? H; simpl in *; [done|].
+    intros n' x' ?? HP.
+    specialize (H (S n') ε). simpl in *.
+    apply uPred_mono with n' x; [|apply cmra_includedN_l|done].
+    rewrite right_id in H. apply H; [lia| |done].
+    eapply cmra_validN_le; [done|lia].
+  Qed.
+
+  Lemma iProto_le_base_swap v1 v2 P1 P2 p :
+    ⊢ (<?> MSG v1 {{ P1 }}; <!> MSG v2 {{ P2 }}; p)
+        ⊑ (<!> MSG v2 {{ P2 }}; <?> MSG v1 {{ P1 }}; p).
+  Proof.
+    iIntros (vl vr p3) "H".
+    iLöb as "IH" forall (vl vr p p3).
+    iEval (rewrite !iProto_consistent_unfold /iProto_consistent_pre /=).
+    iSplit.
+    { iIntros (a m) "Heq".
+      iDestruct (iProto_message_equivI with "Heq") as "[<- #Heq]".
+      iIntros (v p') "Hp'".
+      iRewrite -("Heq" $! v (Next p')) in "Hp'". iClear "Heq".
+      iEval (rewrite {1}iMsg_base_eq) in "Hp'". simpl.
+      iDestruct "Hp'" as "(->&Heq&HP)".
+      iAssert (▷ iProto_consistent (vl ++ [v]) vr (<?> MSG v1 {{ P1 }}; p) p3)%I
+        with "[-Heq]" as "H"; last first.
+      { iNext. by iRewrite -"Heq". }
+      clear p'.
+      iLöb as "IH2" forall (vl vr p p3).
+      iEval (rewrite !iProto_consistent_unfold /iProto_consistent_pre /=).
+      iSplit.
+      - iIntros ([] m').
+        { iIntros "!> Heq".
+          by iDestruct (iProto_message_equivI with "Heq") as "[% _]". }
+        iAssert (▷ (∀ v0 (vs : list V),
+                      ⌜vr = v0 :: vs⌝ -∗
+                      (<?> MSG v1 {{ P1 }}; p) ≡ (<?> m') -∗
+                      ∃ p0, iMsg_car m' v0 (Next p0) ∗
+                            ▷ iProto_consistent (vl ++ [v]) vs p0 p3))%I
+          with "[-]" as "H"; last first.
+        { iIntros "!> Heq" (v' vs ->). by iApply "H". }
+        iIntros (v' vs ?).
+        rewrite !iProto_consistent_unfold /iProto_consistent_pre /=.
+        iDestruct "H" as "[H _]".
+        iDestruct ("H" with "[//] [//]") as (p') "[H1 H2]".
+        iEval (rewrite {1}iMsg_base_eq) in "H1". simpl.
+        iDestruct "H1" as "(->&Heq'&HP1)".
+        iModIntro. iRewrite -"Heq'" in "H2". iIntros "Heq".
+        iDestruct (iProto_message_equivI with "Heq") as "[_ #Heq]".
+        iEval (rewrite !iProto_consistent_unfold /iProto_consistent_pre /=) in "H2".
+        iDestruct "H2" as "[H2 _]".
+        iExists p. iSplitL "HP1".
+        + iRewrite -("Heq" $! v' (Next p)).
+          iEval (rewrite {1}iMsg_base_eq); simpl. by iFrame.
+        + iApply ("H2" with "[//]").
+          iEval (rewrite {1}iMsg_base_eq); simpl. by iFrame.
+      - rewrite !iProto_consistent_unfold /iProto_consistent_pre /=.
+        iDestruct "H" as "[_ H]".
+        iIntros (a m').
+        rewrite <-plainly_internal_eq.
+        iApply foo.
+        rewrite ->plainly_internal_eq.
+        iIntros "Heq".
+        destruct (iProto_case p3) as [Heq|[a' [m'' Heq]]].
+        { setoid_rewrite Heq. rewrite iProto_end_message_equivI. eauto. }
+        setoid_rewrite Heq.
+        rewrite iProto_message_equivI.
+        iDestruct "Heq" as "[>%Ha Heq]".
+        rewrite Ha.
+        iDestruct ("H" with "[//]") as "H".
+        destruct a.
+        + iIntros (w p').
+          iAssert (▷ (iMsg_car m'' w (Next p') -∗
+                      ▷ iProto_consistent (vl ++ [v]) (vr ++ [w])
+                        (<?> MSG v1 {{ P1 }}; p) p'))%I
+                  with "[-Heq]" as "H"; last first.
+          { iNext.
+            iSpecialize ("Heq" $!w (Next p')).
+            by iRewrite -"Heq". }
+          (* The following does not hold, but illustrates the problem. *)
+          iAssert (▷ ∀ v0 p0,
+                     iMsg_car m'' v0 (Next p0) -∗
+                     iProto_consistent vl (vr ++ [v0])
+                                       (<?> MSG v1 {{ P1 }};
+                                        <!> MSG v {{ P2 }}; p) p0)%I
+            with "[H]" as "H".
+          { (* Cannot move later out of implication. *)
+            (* The need for this arises as the simulations are out of sync. *)
+            admit. }
+          iSpecialize ("H" $! w p').
+          iNext. iIntros "Hm".
+          iDestruct ("H" with "Hm") as "H".
+          iApply ("IH2" with "H HP").
+        + iIntros (w vs Heq').
+          (* The following does not hold, but illustrates the problem. *)
+          assert (∃ ws, vl = w :: ws) as [ws ->].
+          { (* Cannot guarantee that buffer is non-empty. *)
+            (* Goal buffer has an added value from send,
+               but that send has not been fired in assumption simulation. *)
+            admit. }
+          assert (vs = ws ++ [v]) as -> by set_solver.
+          iDestruct ("H" with "[//]") as (p') "[Hm H]".
+          iExists p'.
+          iAssert (▷ (iMsg_car m'' w (Next p') ∗
+                      ▷ iProto_consistent (ws ++ [v]) vr (<?> MSG v1 {{ P1 }}; p) p'))%I
+                  with "[-Heq]" as "H"; last first.
+          { iNext.
+            iSpecialize ("Heq" $!w (Next p')).
+            iRewrite -"Heq".
+            done. }
+          iFrame "Hm".
+          iNext. iApply ("IH2" with "H HP").
+    }
+    iIntros (a m) "Heq".
+    rewrite iProto_consistent_unfold /iProto_consistent_pre /=.
+    iDestruct "H" as "[_ H]".
+    iSpecialize ("H" with "Heq").
+    destruct a.
+    - iIntros (v p') "Hm".
+      iSpecialize ("H" with "Hm").
+      by iApply "IH".
+    - iIntros (v vs) "Heq".
+      iDestruct ("H" with "Heq") as (p') "[Hm H]".
+      iExists p'. iFrame "Hm".
+      by iApply "IH".
+  Admitted.
+
   (* Lemma iProto_le_swap m1 m2 : *)
   (*   (∀ v1 v2 p1' p2', *)
   (*      iMsg_car m1 v1 (Next p1') -∗ iMsg_car m2 v2 (Next p2') -∗ ∃ pt, *)
