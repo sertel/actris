@@ -1058,6 +1058,17 @@ Section proto.
     iApply (iProto_consistent_le_l with "Hprot Hle").
   Qed.
 
+  Lemma iProto_le_base a v P p1 p2 :
+    ▷ (p1 ⊑ p2) -∗
+    (<a> MSG v {{ P }}; p1) ⊑ (<a> MSG v {{ P }}; p2).
+  Proof.
+    rewrite iMsg_base_eq. iIntros "H". destruct a.
+    - iApply iProto_le_send. iIntros (v' p') "(->&Hp&$)".
+      iExists p1. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
+    - iApply iProto_le_recv. iIntros (v' p') "(->&Hp&$)".
+      iExists p2. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
+  Qed.
+
   (* Lemma iProto_le_swap m1 m2 : *)
   (*   (∀ v1 v2 p1' p2', *)
   (*      iMsg_car m1 v1 (Next p1') -∗ iMsg_car m2 v2 (Next p2') -∗ ∃ pt, *)
