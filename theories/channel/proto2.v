@@ -96,7 +96,6 @@ Section imsg_ofe.
   Lemma iMsg_ofe_mixin : OfeMixin (iMsg Σ V).
   Proof. by apply (iso_ofe_mixin (iMsg_car : _ → V -d> _ -n> _)). Qed.
   Canonical Structure iMsgO := Ofe (iMsg Σ V) iMsg_ofe_mixin.
-Check iso_ofe_mixin.
   Global Instance iMsg_cofe : Cofe iMsgO.
   Proof. by apply (iso_cofe (IMsg : (V -d> _ -n> _) → _) iMsg_car). Qed.
 End imsg_ofe.
@@ -310,86 +309,8 @@ Lemma iProto_consistent_unfold {Σ V} (bl br : list V) (pl pr : iProto Σ V) :
 Proof.
   apply: (fixpoint_unfold iProto_consistent_pre').
 Qed.
-(*
-Lemma iProto_consistent_comm {Σ V} :
-  ∀ (bl br : list V) (pl pr : iProto Σ V),
-  iProto_consistent bl br pl pr -∗ iProto_consistent br bl pr pl.
-Proof.
-  iLöb as "IH".
-  iIntros (bl br pl pr) "H".
-  rewrite iProto_consistent_unfold.
-  iEval (rewrite iProto_consistent_unfold).
-  repeat (unfold iProto_consistent_pre).
-  iDestruct "H" as "[H1 [H2 H3]]".
-  iSplit; [iApply "H2"|].
-  iSplit; [iApply "H1"|].
-  iSplit.
-  { iDestruct "H3" as "[_ H3]".
-    iDestruct "H3" as (a m) "[H3 H4]".
-    iExists a, m.
-    iSplitL "H3"; [iApply "H3"|].
-    destruct a.
-    { iIntros (v p) "H3".
-      iApply "IH". iApply "H4". iApply "H3". }
-    { iDestruct "H4" as (v vs) "[#H3 H4]".
-      iExists v, vs. iSplit; [iApply "H3"|].
-      iIntros (p).
-      iSpecialize ("H4" $! p).
-      iDestruct "H4" as "[H4 H5]".
-      iSplitL "H4"; [iApply "H4"|].
-       iApply "IH". iApply "H5". } }
-  { iDestruct "H3" as "[H3 _]".
-    iDestruct "H3" as (a m) "[H3 H4]".
-    iExists a, m.
-    iSplitL "H3"; [iApply "H3"|].
-    destruct a.
-    { iIntros (v p) "H3".
-      iApply "IH". iApply "H4". iApply "H3". }
-    { iDestruct "H4" as (v vs) "[#H3 H4]".
-      iExists v, vs. iSplit; [iApply "H3"|].
-      iIntros (p).
-      iSpecialize ("H4" $! p).
-      iDestruct "H4" as "[H4 H5]".
-      iSplitL "H4"; [iApply "H4"|].
-       iApply "IH". iApply "H5". } }
-Qed.
-*)
 Definition iProto_le {Σ V} (p1 p2 : iProto Σ V) : iProp Σ :=
   ∀bl br p3, iProto_consistent bl br p1 p3 -∗ iProto_consistent bl br p2 p3.
-(*
-(** * Protocol entailment *)
-Definition iProto_le_pre {Σ V}
-    (rec : iProto Σ V → iProto Σ V → iProp Σ) (p1 p2 : iProto Σ V) : iProp Σ :=
-  (p1 ≡ END ∗ p2 ≡ END) ∨
-  ∃ a1 a2 m1 m2,
-    (p1 ≡ <a1> m1) ∗ (p2 ≡ <a2> m2) ∗
-    match a1, a2 with
-    | Recv, Recv => ∀ v p1',
-       iMsg_car m1 v (Next p1') -∗ ∃ p2', ▷ rec p1' p2' ∗ iMsg_car m2 v (Next p2')
-    | Send, Send => ∀ v p2',
-       iMsg_car m2 v (Next p2') -∗ ∃ p1', ▷ rec p1' p2' ∗ iMsg_car m1 v (Next p1')
-    | Recv, Send => ∀ v1 v2 p1' p2',
-       iMsg_car m1 v1 (Next p1') -∗ iMsg_car m2 v2 (Next p2') -∗ ∃ pt,
-         ▷ rec p1' (<!> MSG v2; pt) ∗ ▷ rec (<?> MSG v1; pt) p2'
-    | Send, Recv => False
-    end.
-Global Instance iProto_le_pre_ne {Σ V} (rec : iProto Σ V → iProto Σ V → iProp Σ) :
-  NonExpansive2 (iProto_le_pre rec).
-Proof. solve_proper. Qed.
-
-Program Definition iProto_le_pre' {Σ V}
-    (rec : iProto Σ V -n> iProto Σ V -n> iPropO Σ) :
-    iProto Σ V -n> iProto Σ V -n> iPropO Σ := λne p1 p2,
-  iProto_le_pre (λ p1' p2', rec p1' p2') p1 p2.
-Solve Obligations with solve_proper.
-Local Instance iProto_le_pre_contractive {Σ V} : Contractive (@iProto_le_pre' Σ V).
-Proof.
-  intros n rec1 rec2 Hrec p1 p2. rewrite /iProto_le_pre' /iProto_le_pre /=.
-  by repeat (f_contractive || f_equiv).
-Qed.
-Definition iProto_le {Σ V} (p1 p2 : iProto Σ V) : iProp Σ :=
-  fixpoint iProto_le_pre' p1 p2.
-*)
 Arguments iProto_le {_ _} _%proto _%proto.
 Global Instance: Params (@iProto_le) 2 := {}.
 Notation "p ⊑ q" := (iProto_le p q) : bi_scope.
@@ -409,10 +330,7 @@ Fixpoint iProto_app_sends {Σ V} (vs : list V) (p : iProto Σ V) : iProto Σ V :
   | [] => p
   | v :: vs => <!> MSG v; iProto_app_recvs vs p
 end.
-(*
-Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
-  ∃ p, iProto_app_recvs vsr p ⊑ pl ∗ iProto_app_recvs vsl (iProto_dual p) ⊑ pr.
-*)
+
 Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
 Global Instance proto_name_inhabited : Inhabited proto_name :=
   populate (ProtName inhabitant inhabitant).
@@ -722,58 +640,6 @@ Section proto.
       iExists (p1d <++> p2). iSplitL; [by auto|].
       iRewrite "Hp12". iIntros "!>". iRewrite "Hp1'". by iRewrite ("IH" $! p1d p2).
   Qed.
-
-  (** ** Protocol consistency **)
-
-  (*
-  Lemma iProto_consistent_send_l bl br v m p1 p2 :
-    iMsg_car m v (Next p1) -∗
-      ▷(iProto_consistent (bl ++ [v]) br p1 p2) -∗
-      iProto_consistent bl br (<!> m) p2.
-  Proof.
-    iIntros "H1 H2".
-    iEval (rewrite iProto_consistent_unfold).
-    unfold iProto_consistent_pre.
-    iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
-    iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |].
-
-    { iDestruct (iProto_message_end_equivI with "H") as %[]. }
-    iPoseProof iProto_message_end_equivI "H" as "H3".
-    iApply iProto_message_end_equivI. apply H.
-      Check @proto_elim.
-    rewrite iProto_end_eq.
-    rewrite iProto_message_eq. simpl.
-    unfold iProto_message_def. simpl. unfold proto_message.
-    iDestruct "H" as %H. Search END.
-
-  *)
-
-
-  (** ** Protocol entailment **)
-  (*
-  Lemma iProto_le_unfold p1 p2 : iProto_le p1 p2 ≡ iProto_le_pre iProto_le p1 p2.
-  Proof. apply: (fixpoint_unfold iProto_le_pre'). Qed.
-   *)
-(*
-  Lemma iProto_consistent_recv_r (vsl vsr : list V) p m v p' :
-    p ≡ (<!>m) -∗
-    iMsg_car m v (Next p') -∗ (▷ iProto_consistent vsl vsr p p') -∗
-      iProto_consistent (v :: vsl) vsr p (<?> m).
-  Proof.
-    iLöb as "IH" forall (vsl vsr p p').
-    iIntros "#Heq1 H1 H2".
-    iEval (rewrite iProto_consistent_unfold /iProto_consistent_pre).
-    iSplit. iIntros "H". iRewrite "Heq1" in "H". admit.
-    iSplit; [admit|].
-    iSplit.
-    { iIntros (a m') "#Heq2".
-      iRewrite "Heq1" in "Heq2".
-      iDestruct (iProto_message_equivI with "Heq2") as "[H3 H4]".
-      iDestruct "H3" as %H3. rewrite <- H3.
-      iIntros (v' p'') "H3". simpl.
-      iApply "IH".
-      Search iProto equiv.
- *)
 
   Fixpoint iProto_buffer_pred (vs : list V) p :=
     match vs with
@@ -1118,40 +984,36 @@ Section proto.
     (<!> m1) ⊑ (<!> m2).
   Proof.
     iLöb as "IH" forall (m1 m2).
-    iIntros "H1".
+    iIntros "Hle".
     repeat (unfold iProto_le at 3).
-    iIntros (bl br p) "H2".
+    iIntros (bl br p) "Hprot".
     repeat rewrite iProto_consistent_unfold; unfold iProto_consistent_pre.
-    (* iDestruct "H2" as "[H2 H3]". *)
-    (* iSplit; [iIntros "Heq"; iDestruct (iProto_message_end_equivI with "Heq") as %[] |]. *)
-    (* iSplit; [iApply "H2"|]. *)
-    iSplit; [iDestruct "H2" as "[H3 _]"|iDestruct "H2" as "[_ H3]"].
+    iSplit; [iDestruct "Hprot" as "[Hprot _]"|iDestruct "Hprot" as "[_ Hprot]"].
     { iIntros (a m) "H".
-      iDestruct (iProto_message_equivI with "H") as (Heq) "{H} #Hm"; subst.
-      iIntros (v p') "H4".
-      iSpecialize ("H3" $! Send m1 _ v).
-      iSpecialize ("Hm" $! v (Next p')). iRewrite -"Hm" in "H4".
-      iSpecialize ("H1" $! _ _ with "H4"). iDestruct "H1" as (p'') "[H1 H5]".
-      iApply "H1". iApply "H3". iApply "H5". }
+      iDestruct (iProto_message_equivI with "H") as (Heq) "{H} #Hmeq"; subst.
+      iIntros (v p') "Hm".
+      iSpecialize ("Hprot" with "[//]").
+      iSpecialize ("Hmeq" $! v (Next p')). iRewrite -"Hmeq" in "Hm".
+      iSpecialize ("Hle" $! _ _ with "Hm"). iDestruct "Hle" as (p'') "[Hle Hm]".
+      iApply "Hle". iApply "Hprot". iApply "Hm". }
     { iIntros (a m) "H".
-      iSpecialize ("H3" $! _ _ with "H").
-      destruct a. {
-        iIntros (v p') "H4".
-        iApply ("IH" with "[H1]").
-        { iNext. iIntros (v' p'') "H2".
-          iSpecialize ("H1" with "H2").
-          iDestruct "H1" as (p''') "[H1 H2]".
-          iExists p'''. iSplitR "H2"; [iApply "H1" | iApply "H2"]. }
-        { iApply "H3". iApply "H4". } }
-      { iIntros (v vs Heq); subst.
-        iSpecialize ("H3" $! _ _ eq_refl). iDestruct "H3" as (p') "[H3 H4]".
-        iExists (p'). iSplitL "H3"; [iApply "H3"|].
-        iApply ("IH" with "[H1] [H4]"); [|iApply "H4"].
-        iNext. iIntros (v' p'') "H3".
-        iSpecialize ("H1" with "H3"). iDestruct "H1" as (p''') "[H1 H4]".
-        iExists p'''; iSplitR "H4"; [iApply "H1" |iApply "H4"]. } }
-    Unshelve.
-    done.
+      iSpecialize ("Hprot" $! _ _ with "H").
+      destruct a.
+      - iIntros (v p') "Hm".
+        iApply ("IH" with "[Hle]").
+        { iNext. iIntros (v' p'') "Hm".
+          iSpecialize ("Hle" with "Hm").
+          iDestruct "Hle" as (p''') "[Hle Hm]".
+          iExists p'''. iSplitR "Hm"; [iApply "Hle" | iApply "Hm"]. }
+        iApply "Hprot". iApply "Hm".
+      - iIntros (v vs Heq); subst.
+        iSpecialize ("Hprot" $! _ _ eq_refl).
+        iDestruct "Hprot" as (p') "[Hm Hprot]".
+        iExists (p'). iFrame "Hm".
+        iApply ("IH" with "[Hle] [Hprot]"); [|iApply "Hprot"].
+        iNext. iIntros (v' p'') "Hm".
+        iSpecialize ("Hle" with "Hm"). iDestruct "Hle" as (p''') "[Hle Hm]".
+        iExists p'''; iSplitR "Hm"; [iApply "Hle" |iApply "Hm"]. }
   Qed.
 
   Lemma iProto_le_recv m1 m2 :
