@@ -96,7 +96,7 @@ Lemma ltyped_safety `{heapGpreS Σ} e σ es σ' e' :
   rtc erased_step ([e], σ) (es, σ') → e' ∈ es →
   is_Some (to_val e') ∨ reducible e' σ'.
 Proof.
-  intros Hty. apply (heap_adequacy Σ NotStuck e σ (λ _, True))=> // ?.
+  intros Hty. apply (heap_adequacy Σ NotStuck e σ (λ _, True))=> // ??.
   destruct (Hty _) as (A & He). iIntros "_".
   iDestruct (He $!∅ with "[]") as "He"; first by rewrite /ctx_ltyped.
   iEval (rewrite -(subst_map_empty e)). iApply (wp_wand with "He"); auto.
