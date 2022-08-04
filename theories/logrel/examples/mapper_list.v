@@ -307,16 +307,16 @@ Section mapper_example.
   Proof.
     iIntros (Φ) "[Hl Hc] HΦ".
     iLöb as "IH" forall (n Φ).
-    destruct n.
+    destruct n as [|n].
     { wp_lam. wp_pures. iApply "HΦ". by iFrame. }
     wp_lam. wp_recv (w) as "Hw". wp_pures.
     rewrite Nat2Z.inj_succ.
     replace (Z.succ (Z.of_nat (n)) - 1)%Z with (Z.of_nat (n)) by lia.
     wp_smart_apply ("IH" with "Hl Hc").
-    iIntros (ys) "(% & Hl & Hc)".
+    iIntros (ys) "(%Hlen & Hl & Hc)".
     wp_smart_apply (lcons_spec with "[$Hl $Hw//]").
     iIntros "Hl". iApply "HΦ". iFrame.
-    iPureIntro. by rewrite H1.
+    iPureIntro. by rewrite Hlen.
   Qed.
 
   Lemma ltyped_mapper_client_ad_hoc Γ (A B : ltty Σ) :

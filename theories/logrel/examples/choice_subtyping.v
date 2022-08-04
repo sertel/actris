@@ -149,8 +149,7 @@ Section choice_example.
     iIntros "#HRM #HSM #HRP #HSP #HR".
     (** Weakening of select *)
     iApply (lty_le_trans _ prot1).
-    {
-      iApply lty_le_branch.
+    { iApply lty_le_branch.
       rewrite big_sepM2_insert=> //.
       iSplit.
       - iApply lty_le_recv; [iApply lty_le_refl | ].
@@ -158,22 +157,18 @@ Section choice_example.
         rewrite (insert_commute _ 2%Z 3%Z) //.
         rewrite (insert_commute _ 1%Z 3%Z) //.
         by apply insert_subseteq.
-      - rewrite big_sepM2_insert //. eauto.
-    }
+      - rewrite big_sepM2_insert //. eauto. }
     (** Swap recv/select *)
     iApply (lty_le_trans _ prot2).
-    {
-      iApply lty_le_branch.
+    { iApply lty_le_branch.
       rewrite big_sepM2_insert=> //.
       iSplit.
       - iApply lty_le_swap_recv_select.
       - rewrite big_sepM2_insert=> //. iSplit=> //.
-        iApply lty_le_swap_recv_select.
-    }
+        iApply lty_le_swap_recv_select. }
     (** Swap branch/select *)
     iApply (lty_le_trans _ prot3).
-    {
-      iApply (lty_le_swap_branch_select
+    { iApply (lty_le_swap_branch_select
                 (<[1%Z:=
                      <[1%Z:=(<??> TY Sr; <!!> TY Srm; Tr)%lty]>
                      (<[2%Z:= (<??> TY Sr; <!!> TY Srp; Tr')%lty]>∅)]>
@@ -188,21 +183,17 @@ Section choice_example.
                      (<[2%Z:= (<??> TY Ss; <!!> TY Ssp; Ts')%lty]>∅)]>∅))
              ).
       intros i j Ss1' Ss2' Hin1 Hin2.
-      assert (i = 1%Z ∨ i = 2%Z).
-      {
-        destruct (decide (i = 1)). eauto.
+      assert (i = 1%Z ∨ i = 2%Z) as Hdisj1.
+      { destruct (decide (i = 1)). eauto.
         destruct (decide (i = 2)). eauto.
         rewrite lookup_insert_ne in Hin1=> //.
-        rewrite lookup_insert_ne in Hin1=> //.
-      }
-      assert (j = 1%Z ∨ j = 2%Z).
-      {
-        destruct (decide (j = 1)). eauto.
+        rewrite lookup_insert_ne in Hin1=> //. }
+      assert (j = 1%Z ∨ j = 2%Z) as Hdisj2.
+      { destruct (decide (j = 1)). eauto.
         destruct (decide (j = 2)). eauto.
         rewrite lookup_insert_ne in Hin2=> //.
-        rewrite lookup_insert_ne in Hin2=> //.
-      }
-      destruct H2 as [-> | ->] ,H1 as [-> | ->].
+        rewrite lookup_insert_ne in Hin2=> //. }
+      destruct Hdisj2 as [-> | ->], Hdisj1 as [-> | ->].
       - rewrite lookup_insert in Hin1.
         rewrite lookup_insert in Hin2.
         inversion Hin1; inversion Hin2; eauto.
@@ -218,12 +209,10 @@ Section choice_example.
         rewrite (insert_commute _ 1%Z 2%Z) in Hin2=> //.
         rewrite lookup_insert in Hin1.
         rewrite lookup_insert in Hin2.
-        inversion Hin1; inversion Hin2; eauto.
-    }
+        inversion Hin1; inversion Hin2; eauto. }
     (** Swap recv/send *)
     iApply (lty_le_trans _ prot4).
-    {
-      iApply lty_le_select.
+    { iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply lty_le_branch. iIntros "!>".
         rewrite big_sepM2_insert=> //. iSplit.
@@ -235,11 +224,9 @@ Section choice_example.
         rewrite big_sepM2_insert=> //. iSplit.
         + iApply lty_le_swap_recv_send.
         + rewrite big_sepM2_insert=> //.
-          iSplit=> //. iApply lty_le_swap_recv_send.
-    }
+          iSplit=> //. iApply lty_le_swap_recv_send. }
     iApply (lty_le_trans _ prot5).
-    {
-      iApply lty_le_select.
+    { iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply lty_le_branch. iIntros "!>".
         rewrite big_sepM2_insert=> //. iSplit.
@@ -252,19 +239,17 @@ Section choice_example.
         + iApply lty_le_send; [eauto|].
           iApply lty_le_recv; eauto.
         + rewrite big_sepM2_insert=> //. iSplit=> //.
-          iApply lty_le_send; eauto.
-    }
+          iApply lty_le_send; eauto. }
     (** Swap branch/send *)
     iApply (lty_le_trans _ prot6).
-    {
-      iApply lty_le_select.
+    { iApply lty_le_select.
       rewrite big_sepM2_insert=> //. iSplit.
       - iApply (lty_le_swap_branch_send _
           (<[1%Z:=(<??> TY Sr; Tr)%lty]> (<[2%Z:=(<??> TY Ss; Ts)%lty]> ∅))).
       - rewrite big_sepM2_insert=> //. iSplit=> //.
         iApply (lty_le_swap_branch_send _
-          ((<[1%Z:=(<??> TY Sr'; Tr')%lty]> (<[2%Z:=(<??> TY Ss; Ts')%lty]> ∅)))).
-    }
+          ((<[1%Z:=(<??> TY Sr'; Tr')%lty]>
+              (<[2%Z:=(<??> TY Ss; Ts')%lty]> ∅)))). }
     (** Weaken branch *)
     iApply lty_le_select.
     rewrite big_sepM2_insert=> //. iSplit=> //.
