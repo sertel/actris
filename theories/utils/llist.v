@@ -253,7 +253,7 @@ Lemma lsplit_spec l xs :
 Proof.
   iIntros (Φ) "Hl HΦ". wp_lam.
   wp_smart_apply (llength_spec with "Hl"); iIntros "Hl". wp_pures.
-  rewrite Z.quot_div_nonneg; [|lia..]. rewrite -(Nat2Z_inj_div _ 2).
+  rewrite Z.quot_div_nonneg; [|lia..]. rewrite -(Nat2Z.inj_div _ 2).
   wp_smart_apply (lsplit_at_spec with "Hl"); iIntros (k) "[Hl Hk]".
   iApply "HΦ". iFrame. by rewrite take_drop.
 Qed.
