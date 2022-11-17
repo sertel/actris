@@ -1,16 +1,4 @@
 -Q theories actris
--arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files,-convert_concl_no_check,-undeclared-scope,-ambiguous-paths
-theories/utils/llist.v
-theories/utils/compare.v
-theories/utils/contribution.v
-theories/utils/group.v
-theories/channel/channel.v
-theories/channel/proto_model.v
-theories/channel/proto_channel.v
-theories/channel/proofmode.v
-theories/examples/basics.v
-theories/examples/sort.v
-theories/examples/sort_br_del.v
-theories/examples/sort_fg.v
-theories/examples/map.v
-theories/examples/map_reduce.v
+theories/llist.v
+theories/proto_model.v
+theories/proto_channel.v
