@@ -80,7 +80,7 @@ Definition proto_inv `{!chanG Σ, !heapGS Σ} (γl γr : gname) (l r : loc) : iP
 Definition mapsto_proto `{!chanG Σ, !heapGS Σ} (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ γl γr (l r : loc) lk p',
     ⌜ c = (#l, #r, lk)%V ⌝ ∗ is_lock γ lk (proto_inv γl γr l r) ∗
-    iProto_le p' p ∗ saved_anything_own γl (DfracOwn (1/2)) (Next p').
+    ▷ iProto_le p' p ∗ saved_anything_own γl (DfracOwn (1/2)) (Next p').
 Notation "c ↣ p" := (mapsto_proto c p) (at level 20, format "c  ↣  p").
 
 Section proto.
@@ -227,7 +227,7 @@ Section proto.
     iExists x2. iSplit; [done|]. iSplit; [by iApply "Hpc"|done].
   Qed.
 
-  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ iProto_le p1 p2 -∗ c ↣ p2.
+  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 -∗ ▷ iProto_le p1 p2 -∗ c ↣ p2.
   Proof.
     iDestruct 1 as (γ γl γr l r lk p1' ->) "(Hlk & Hle & H)".
     iIntros "Hle'". iExists γ, γl, γr, l, r, lk, p1'. iSplit; first done. iFrame.
