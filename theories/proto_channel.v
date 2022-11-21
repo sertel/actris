@@ -37,7 +37,7 @@ Definition iProto_end {Σ} : iProto Σ := proto_end.
 Program Definition iProto_message {Σ A} (a : action)
     (pc : A → val * iProp Σ * iProto Σ) : iProto Σ :=
   proto_message a (λ v, λne f, ∃ x : A,
-    ⌜ v = (pc x).1.1 ⌝ ∗ ▷ (pc x).1.2 ∗ f (Next (pc x).2))%I.
+    ⌜ v = (pc x).1.1 ⌝ ∗ (pc x).1.2 ∗ f (Next (pc x).2))%I.
 Next Obligation. solve_proper. Qed.
 
 Definition iProto_dual {Σ} (p : iProto Σ) : iProto Σ :=
@@ -194,9 +194,9 @@ Section proto.
 
   Lemma iProto_send_le {A1 A2} (pc1 : A1 → val * iProp Σ * iProto Σ)
       (pc2 : A2 → val * iProp Σ * iProto Σ) :
-    (∀ x2 : A2, ▷ (pc2 x2).1.2 -∗ ∃ x1 : A1,
+    (∀ x2 : A2, (pc2 x2).1.2 -∗ ∃ x1 : A1,
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
-      ▷ (pc1 x1).1.2 ∗
+      (pc1 x1).1.2 ∗
       ▷ iProto_le (pc1 x1).2 (pc2 x2).2) -∗
     iProto_le (iProto_message Send pc1) (iProto_message Send pc2).
   Proof.
@@ -212,9 +212,9 @@ Section proto.
 
   Lemma iProto_recv_le {A1 A2} (pc1 : A1 → val * iProp Σ * iProto Σ)
       (pc2 : A2 → val * iProp Σ * iProto Σ) :
-    (∀ x1 : A1, ▷ (pc1 x1).1.2 -∗ ∃ x2 : A2,
+    (∀ x1 : A1, (pc1 x1).1.2 -∗ ∃ x2 : A2,
       ⌜(pc1 x1).1.1 = (pc2 x2).1.1⌝ ∗
-      ▷ (pc2 x2).1.2 ∗
+      (pc2 x2).1.2 ∗
       ▷ iProto_le (pc1 x1).2 (pc2 x2).2) -∗
     iProto_le (iProto_message Receive pc1) (iProto_message Receive pc2).
   Proof.
