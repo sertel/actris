@@ -227,9 +227,9 @@ Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_recv _ _ Hnew K))
       |fail 1 "wp_recv: cannot find 'recv' in" e];
     [solve_mapsto ()
-       |iSolveTC || fail 1 "wp_recv: protocol not of the shape <?>"
-    |iSolveTC || fail 1 "wp_recv: cannot convert to telescope"
-    |iSolveTC
+       |tc_solve || fail 1 "wp_recv: protocol not of the shape <?>"
+    |tc_solve || fail 1 "wp_recv: cannot convert to telescope"
+    |tc_solve
     |pm_reduce; simpl; tac_intros;
      tac Hnew;
      wp_finish]
@@ -328,8 +328,8 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
          [reshape_expr e ltac:(fun K e' => eapply (tac_wp_send _ neg _ Hs' K))
          |fail 1 "wp_send: cannot find 'send' in" e];
        [solve_mapsto ()
-       |iSolveTC || fail 1 "wp_send: protocol not of the shape <!>"
-       |iSolveTC || fail 1 "wp_send: cannot convert to telescope"
+       |tc_solve || fail 1 "wp_send: protocol not of the shape <!>"
+       |tc_solve || fail 1 "wp_send: cannot convert to telescope"
        |pm_reduce; simpl; tac_exist;
         repeat lazymatch goal with
         | |- ∃ _, _ => eexists _
@@ -407,7 +407,7 @@ Tactic Notation "wp_branch_core" "as" tactic3(tac1) tactic3(tac2) :=
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_branch _ _ Hnew K))
       |fail 1 "wp_branch: cannot find 'recv' in" e];
     [solve_mapsto ()
-       |iSolveTC || fail 1 "wp_send: protocol not of the shape <&>"
+       |tc_solve || fail 1 "wp_send: protocol not of the shape <&>"
     |pm_reduce; intros []; [tac1 Hnew|tac2 Hnew]; wp_finish]
   | _ => fail "wp_branch: not a 'wp'"
   end.
@@ -472,7 +472,7 @@ Tactic Notation "wp_select" "with" constr(pat) :=
          [reshape_expr e ltac:(fun K e' => eapply (tac_wp_select _ neg _ Hs' K))
          |fail 1 "wp_select: cannot find 'send' in" e];
        [solve_mapsto ()
-       |iSolveTC || fail 1 "wp_select: protocol not of the shape <+>"
+       |tc_solve || fail 1 "wp_select: protocol not of the shape <+>"
        |pm_reduce;
         lazymatch goal with
         | |- False => fail "wp_select:" Hs' "not fresh"
