@@ -113,9 +113,11 @@ Section term_types.
   Global Instance lty_arr_contractive `{heapGS Σ} n :
     Proper (dist_later n ==> dist_later n ==> dist n) lty_arr.
   Proof.
-    intros A A' ? B B' ?. apply Ltty_ne=> v. f_equiv=> w.
+    intros A A' HA B B' HB. apply Ltty_ne=> v. f_equiv=> w.
     f_equiv; [by f_contractive|].
-    apply (wp_contractive _ _ _ _ _)=> v'. destruct n=> //=; by f_equiv.
+    apply (wp_contractive _ _ _ _ _)=> v'.
+    apply dist_later_fin_iff in HA; apply dist_later_fin_iff in HB.
+    apply dist_later_fin_iff. destruct n=> //=; by f_equiv.
   Qed.
   Global Instance lty_arr_ne `{heapGS Σ} : NonExpansive2 lty_arr.
   Proof. solve_proper. Qed.
@@ -135,6 +137,7 @@ Section term_types.
   Proof.
     intros F F' A. apply Ltty_ne=> w. f_equiv=> B.
     apply (wp_contractive _ _ _ _ _)=> u. specialize (A B).
+    apply dist_later_fin_iff in A. apply dist_later_fin_iff.
     by destruct n as [|n]; simpl.
   Qed.
   Global Instance lty_forall_ne `{heapGS Σ} k n :

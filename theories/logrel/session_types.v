@@ -115,7 +115,7 @@ Section session_types.
     do 2 f_equiv. f_equiv => i.
     rewrite !lookup_total_alt.
     specialize (Heq i).
-    destruct (Ss !! i), (Ts !! i);
+    destruct (Ss !! i), (Ts !! i); simpl in Heq;
       [ f_contractive | contradiction | contradiction | done ].
     - f_equiv. split; intros H; eauto.
     - by rewrite Heq.

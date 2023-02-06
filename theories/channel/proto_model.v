@@ -178,8 +178,8 @@ Global Instance proto_map_aux_contractive {V}
   Contractive (proto_map_aux (V:=V) (PROPn:=PROPn) (PROPn':=PROPn') g).
 Proof.
   intros n rec1 rec2 Hrec p. simpl. apply proto_elim_ne=> // a m1 m2 Hm.
-  f_equiv=> v p' /=. do 2 f_equiv; [done|].
-  apply Next_contractive; destruct n as [|n]=> //=.
+  f_equiv=> v p' /=. do 2 f_equiv; [done|]. apply dist_later_fin_iff in Hrec.
+  apply Next_contractive, dist_later_fin_iff. destruct n as [|n]=> //=.
 Qed.
 
 Definition proto_map_aux_2 {V}
@@ -211,8 +211,8 @@ Proof.
   induction (lt_wf n) as [n _ IH]=>
     PROPn Hcn PROPn' Hcn' PROP Hc PROP' Hc' gn g p.
   etrans; [apply equiv_dist, (fixpoint_unfold (proto_map_aux_2 gn g))|].
-  apply proto_map_aux_contractive; destruct n as [|n]; [done|]; simpl.
-  symmetry. apply: IH. lia.
+  apply proto_map_aux_contractive. apply dist_later_fin_iff.
+  destruct n as [|n]; [done|]; simpl. symmetry. apply: IH. lia.
 Qed.
 Lemma proto_map_end {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (gn : PROPn' -n> PROPn) (g : PROP -n> PROP') :
@@ -240,7 +240,8 @@ Proof.
   destruct (proto_case p) as [->|(a & m & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=.
   apply proto_message_ne=> // v p' /=. f_equiv; [done|]. f_equiv.
-  apply Next_contractive; destruct n as [|n]=> //=; auto using dist_S with lia.
+  apply Next_contractive, dist_later_fin_iff; destruct n as [|n]=> //=.
+  auto using dist_S with lia.
 Qed.
 Lemma proto_map_ext {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (gn1 gn2 : PROPn' -n> PROPn) (g1 g2 : PROP -n> PROP') p :
@@ -256,7 +257,7 @@ Proof.
   induction (lt_wf n) as [n _ IH]=> PROPn ? PROP ? p /=.
   destruct (proto_case p) as [->|(a & m & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=. apply proto_message_ne=> // v p' /=. f_equiv.
-  apply Next_contractive; destruct n as [|n]=> //=; auto.
+  apply Next_contractive, dist_later_fin_iff; destruct n as [|n]=> //=; auto.
 Qed.
 Lemma proto_map_compose {V}
    `{Hcn:!Cofe PROPn, Hcn':!Cofe PROPn', Hcn'':!Cofe PROPn'',
@@ -271,7 +272,7 @@ Proof.
     PROP ? PROP' ? PROP'' ? gn1 gn2 g1 g2 p /=.
   destruct (proto_case p) as [->|(a & c & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=. apply proto_message_ne=> // v p' /=.
-  do 3 f_equiv. apply Next_contractive; destruct n as [|n]=> //=; auto.
+  do 3 f_equiv. apply Next_contractive, dist_later_fin_iff; destruct n as [|n]=> //=; auto.
 Qed.
 
 Program Definition protoOF (V : Type) (Fn F : oFunctor)
@@ -298,10 +299,11 @@ Qed.
 Global Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
     `{!∀ A B `{!Cofe A, !Cofe B}, Cofe (oFunctor_car Fn A B)}
     `{!∀ A B `{!Cofe A, !Cofe B}, Cofe (oFunctor_car F A B)} :
-  oFunctorContractive Fn → oFunctorContractive F → 
+  oFunctorContractive Fn → oFunctorContractive F →
   oFunctorContractive (protoOF V Fn F).
 Proof.
   intros ?? A1 ? A2 ? B1 ? B2 ? n f g Hfg p; simpl in *.
+  apply dist_later_fin_iff in Hfg.
   apply proto_map_ne=> //= y;
-    [destruct n; [|destruct Hfg]; by apply oFunctor_map_contractive..].
+    [destruct n; [|destruct Hfg]; by apply oFunctor_map_contractive, dist_later_fin_iff..].
 Qed.
