@@ -72,15 +72,15 @@ Section cofe_solver_2.
       rewrite -{2}(ofe_iso_12 T_result y). f_equiv.
       rewrite -(oFunctor_map_id (F _) (ofe_iso_2 T_result y))
               -!oFunctor_map_compose.
-      f_equiv; apply Fcontr; destruct n as [|n]; simpl; [done|].
-      split => x /=; rewrite ofe_iso_21 -{2}(oFunctor_map_id (F _) x)
-        -!oFunctor_map_compose; do 2 f_equiv; split=> z /=; auto.
+      f_equiv; apply Fcontr; f_contractive_core n' Hn'; split=> x /=;
+        rewrite ofe_iso_21 -{2}(oFunctor_map_id (F _) x)
+          -!oFunctor_map_compose; do 2 f_equiv; split=> z /=; auto.
     - intros y. apply equiv_dist=> n. revert An Hcn A Hc y.
       induction (lt_wf n) as [n _ IH]; intros An ? A ? y.
       rewrite T_iso_fun_unfold_1 T_iso_fun_unfold_2 /= ofe_iso_21.
       rewrite -(oFunctor_map_id (F _) y) -!oFunctor_map_compose.
-      f_equiv; apply Fcontr; destruct n as [|n]; simpl; [done|].
-      split => x /=; rewrite -{2}(ofe_iso_12 T_result x); f_equiv;
+      f_equiv; apply Fcontr; f_contractive_core n' Hn'; split=> x /=;
+        rewrite -{2}(ofe_iso_12 T_result x); f_equiv;
         rewrite -{2}(oFunctor_map_id (F _) (ofe_iso_2 T_result x))
                 -!oFunctor_map_compose;
         do 2 f_equiv; split=> z /=; auto.
