@@ -179,7 +179,7 @@ Global Instance proto_map_aux_contractive {V}
 Proof.
   intros n rec1 rec2 Hrec p. simpl. apply proto_elim_ne=> // a m1 m2 Hm.
   f_equiv=> v p' /=. do 2 f_equiv; [done|].
-  apply Next_contractive; by dist_later_intro n' Hn'.
+  apply Next_contractive; by dist_later_intro as n' Hn'.
 Qed.
 
 Definition proto_map_aux_2 {V}
@@ -239,7 +239,7 @@ Proof.
   destruct (proto_case p) as [->|(a & m & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=.
   apply proto_message_ne=> // v p' /=. f_equiv; [done|]. f_equiv.
-  apply Next_contractive; dist_later_intro n' Hn'; eauto using dist_le with lia.
+  apply Next_contractive; dist_later_intro as n' Hn'; eauto using dist_le with lia.
 Qed.
 Lemma proto_map_ext {V} `{!Cofe PROPn, !Cofe PROPn', !Cofe PROP, !Cofe PROP'}
     (gn1 gn2 : PROPn' -n> PROPn) (g1 g2 : PROP -n> PROP') p :
@@ -255,7 +255,7 @@ Proof.
   induction (lt_wf n) as [n _ IH]=> PROPn ? PROP ? p /=.
   destruct (proto_case p) as [->|(a & m & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=. apply proto_message_ne=> // v p' /=. f_equiv.
-  apply Next_contractive; dist_later_intro n' Hn'; auto.
+  apply Next_contractive; dist_later_intro as n' Hn'; auto.
 Qed.
 Lemma proto_map_compose {V}
    `{Hcn:!Cofe PROPn, Hcn':!Cofe PROPn', Hcn'':!Cofe PROPn'',
@@ -270,7 +270,7 @@ Proof.
     PROP ? PROP' ? PROP'' ? gn1 gn2 g1 g2 p /=.
   destruct (proto_case p) as [->|(a & c & ->)]; [by rewrite !proto_map_end|].
   rewrite !proto_map_message /=. apply proto_message_ne=> // v p' /=.
-  do 3 f_equiv. apply Next_contractive; dist_later_intro n' Hn'; simpl; auto.
+  do 3 f_equiv. apply Next_contractive; dist_later_intro as n' Hn'; simpl; auto.
 Qed.
 
 Program Definition protoOF (V : Type) (Fn F : oFunctor)
@@ -302,6 +302,6 @@ Global Instance protoOF_contractive (V : Type) (Fn F : oFunctor)
 Proof.
   intros HFn HF A1 ? A2 ? B1 ? B2 ? n f g Hfg p; simpl in *.
   apply proto_map_ne=> y //=.
-  + apply HFn. dist_later_intro n' Hn'. f_equiv; apply Hfg.
-  + apply HF. by dist_later_intro n' Hn'.
+  + apply HFn. dist_later_intro as n' Hn'. f_equiv; apply Hfg.
+  + apply HF. by dist_later_intro as n' Hn'.
 Qed.
