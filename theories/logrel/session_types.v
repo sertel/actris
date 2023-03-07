@@ -114,9 +114,8 @@ Section session_types.
     intros Ss Ts Heq. rewrite /lty_choice.
     do 2 f_equiv. f_equiv => i.
     rewrite !lookup_total_alt.
-    specialize (Heq i).
-    destruct (Ss !! i), (Ts !! i);
-      [ f_contractive | contradiction | contradiction | done ].
+    specialize (Heq i). destruct (Ss !! i), (Ts !! i); simplify_eq/=; try done.
+    f_contractive.
     - f_equiv. split; intros H; eauto.
     - by rewrite Heq.
   Qed.
