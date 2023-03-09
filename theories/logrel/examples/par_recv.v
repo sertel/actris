@@ -77,7 +77,7 @@ Section double.
         iIntros "_". wp_pures.
         eauto.
       + iDestruct "Hc" as "[Hcredit2 Hc]".
-        by iDestruct (own_valid_2 with "Hcredit1 Hcredit2") as %[].
+        by iCombine "Hcredit1 Hcredit2" gives %[].
     - (* Acquire lock *)
       wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
@@ -95,7 +95,7 @@ Section double.
         iIntros "_". wp_pures.
         eauto.
       + iDestruct "Hc" as "[Hcredit1 Hc]".
-        by iDestruct (own_valid_2 with "Hcredit1 Hcredit2") as %[].
+        by iCombine "Hcredit1 Hcredit2" gives %[].
     - iIntros (?? [[x1 ->] [x2 ->]]) "!>". by iApply "HΦ".
   Qed.
 
@@ -165,7 +165,7 @@ Section double_fc.
         { iRight. iLeft. iExists true, v. iFrame. }
         iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ2 Hc]".
-        { by iDestruct (own_valid_2 with "Hγ1 Hγ2") as %[]. }
+        { by iCombine "Hγ1 Hγ2" gives %[]. }
         wp_recv (v') as "HP". wp_pures.
         iMod (own_update _ _ ((1/4 ⋅ 3/4), to_agree (Some v'))%Qp with "Hγ1")
           as "[Hγ1a Hγ1b]"; [by apply cmra_update_exclusive|].
@@ -175,7 +175,7 @@ Section double_fc.
         { do 2 iRight. iExists v', v. iFrame. }
         iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "[Hγ1' _]".
-        by iDestruct (own_valid_2 with "Hγ1 Hγ1'") as %[].
+        by iCombine "Hγ1 Hγ1'" gives %[].
     - (* Acquire lock *)
       wp_smart_apply (acquire_spec with "Hlock").
       iIntros "[Hlocked Hc]". wp_pures.
@@ -187,7 +187,7 @@ Section double_fc.
         { iRight. iLeft. iExists false, v. iFrame. }
         iIntros "_". wp_pures. iLeft. by iFrame.
       + iDestruct "Hc" as ([] v) "[Hγ1 Hc]"; last first.
-        { by iDestruct (own_valid_2 with "Hγ1 Hγ2") as %[]. }
+        { by iCombine "Hγ1 Hγ2" gives %[]. }
         wp_recv (v') as "HP". wp_pures.
         iMod (own_update _ _ ((1/4 ⋅ 3/4), to_agree (Some v'))%Qp with "Hγ2")
           as "[Hγ2a Hγ2b]"; [by apply cmra_update_exclusive|].
@@ -197,17 +197,17 @@ Section double_fc.
         { do 2 iRight. iExists v, v'. iFrame. }
         iIntros "_". wp_pures. iRight. iExists v. by iFrame.
       + iDestruct "Hc" as (v v') "(_ & Hγ2' & _)".
-        by iDestruct (own_valid_2 with "Hγ2 Hγ2'") as %[].
+        by iCombine "Hγ2 Hγ2'" gives %[].
     - iIntros (v1 v2) "[[[H1 Hγ]|H1] [[H2 Hγ']|H2]] !>".
-      + by iDestruct (own_valid_2 with "Hγ Hγ'") as %[].
+      + by iCombine "Hγ Hγ'" gives %[].
       + iDestruct "H2" as (v2') "(_&H1'&HP)".
-        iDestruct (own_valid_2 with "H1 H1'") as %[_ [=->]%to_agree_op_inv_L].
+        iCombine "H1 H1'" gives %[_ [=->]%to_agree_op_inv_L].
         iApply "HΦ"; auto.
       + iDestruct "H1" as (v1') "(_&H2'&HP)".
-        iDestruct (own_valid_2 with "H2 H2'") as %[_ [=->]%to_agree_op_inv_L].
+        iCombine "H2 H2'" gives %[_ [=->]%to_agree_op_inv_L].
         iApply "HΦ"; auto.
       + iDestruct "H1" as (v1') "[H1 _]"; iDestruct "H2" as (v2') "(_&H2&_)".
-        by iDestruct (own_valid_2 with "H1 H2") as %[].
+        by iCombine "H1 H2" gives %[].
   Qed.
 
   Lemma prog_typed_fc :

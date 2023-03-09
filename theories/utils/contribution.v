@@ -87,7 +87,7 @@ Section contribution.
   Proof.
     rewrite /server /client. iIntros "Hs Hc". case_decide; subst.
     - iDestruct "Hs" as "(_ & _ & Hc')".
-      by iDestruct (own_valid_2 with "Hc Hc'") as %?%auth_frag_op_valid_1.
+      by iCombine "Hc Hc'" gives %?%auth_frag_op_valid_1.
     - iDestruct (own_valid_2 with "Hs Hc")
         as %[[[??]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete.
       { setoid_subst. by destruct n. }

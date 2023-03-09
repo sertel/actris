@@ -172,7 +172,7 @@ Section compute_example.
       wp_smart_apply (acquire_spec with "Hlk").
       iIntros "[Hlocked HI]".
       iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
-      { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
+      { by iCombine "Hf Hf'" gives %[]. }
       iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
       { iApply iProto_le_trans.
         { iApply iProto_le_app; [ iApply iProto_le_refl | ].
@@ -192,7 +192,7 @@ Section compute_example.
     wp_smart_apply (acquire_spec with "Hlk").
     iIntros "[Hlocked HI]".
     iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
-    { by iDestruct (own_valid_2 with "Hf Hf'") as %[]. }
+    { by iCombine "Hf Hf'" gives %[]. }
     iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
     { iApply iProto_le_trans.
       { iApply iProto_le_app; [ iApply iProto_le_refl | ].

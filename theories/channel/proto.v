@@ -1032,8 +1032,8 @@ Section proto.
   Lemma iProto_own_auth_agree γ s p p' :
     iProto_own_auth γ s p -∗ iProto_own_frag γ s p' -∗ ▷ (p ≡ p').
   Proof.
-    iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓".
-    iDestruct (excl_auth_agreeI with "H✓") as "H✓".
+    iIntros "H● H◯". iCombine "H● H◯" gives "H✓".
+    iDestruct (excl_auth_agreeI with "H✓") as "{H✓} H✓".
     iApply (later_equivI_1 with "H✓").
   Qed.
 
