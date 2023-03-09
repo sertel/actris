@@ -63,8 +63,8 @@ Section contribution.
   Lemma server_1_agree γ x y : server γ 1 x -∗ client γ y -∗ ⌜ x ≡ y ⌝.
   Proof.
     rewrite /server /client. case_decide=> //. iIntros "Hs Hc".
-    iDestruct (own_valid_2 with "Hs Hc")
-      as %[[[_ ?]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete; first done.
+    iCombine "Hs Hc"
+      gives %[[[_ ?]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete; first done.
     move: Hincl. rewrite Cinl_included prod_included /= pos_included=> -[? _].
     by destruct (Pos.lt_irrefl 1).
   Qed.
@@ -88,8 +88,8 @@ Section contribution.
     rewrite /server /client. iIntros "Hs Hc". case_decide; subst.
     - iDestruct "Hs" as "(_ & _ & Hc')".
       by iCombine "Hc Hc'" gives %?%auth_frag_op_valid_1.
-    - iDestruct (own_valid_2 with "Hs Hc")
-        as %[[[??]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete.
+    - iCombine "Hs Hc"
+        gives %[[[??]%(inj Cinl)|Hincl]%Some_included _]%auth_both_valid_discrete.
       { setoid_subst. by destruct n. }
       move: Hincl. rewrite Cinl_included prod_included /= pos_included=> -[??].
       by destruct n.
