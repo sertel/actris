@@ -1,4 +1,5 @@
--Q theories actris
+-Q actris actris
+-Q miniactris miniactris
 # We sometimes want to locally override notation, and there is no good way to do that with scopes.
 -arg -w -arg -notation-overridden
 # Coq emits warnings when a custom entry is reimported, this is too noisy.
@@ -7,49 +8,57 @@
 # (https://github.com/coq/coq/issues/6294).
 -arg -w -arg -redundant-canonical-projection
 
-theories/utils/skip.v
-theories/utils/llist.v
-theories/utils/compare.v
-theories/utils/contribution.v
-theories/utils/group.v
-theories/utils/cofe_solver_2.v
-theories/utils/switch.v
-theories/channel/proto_model.v
-theories/channel/proto.v
-theories/channel/channel.v
-theories/channel/proofmode.v
-theories/examples/basics.v
-theories/examples/equivalence.v
-theories/examples/sort.v
-theories/examples/sort_br_del.v
-theories/examples/sort_fg.v
-theories/examples/par_map.v
-theories/examples/map_reduce.v
-theories/examples/swap_mapper.v
-theories/examples/subprotocols.v
-theories/examples/list_rev.v
-theories/examples/rpc.v
-theories/examples/pizza.v
-theories/logrel/model.v
-theories/logrel/telescopes.v
-theories/logrel/subtyping.v
-theories/logrel/contexts.v
-theories/logrel/term_types.v
-theories/logrel/session_types.v
-theories/logrel/operators.v
-theories/logrel/term_typing_judgment.v
-theories/logrel/subtyping_rules.v
-theories/logrel/term_typing_rules.v
-theories/logrel/session_typing_rules.v
-theories/logrel/napp.v
-theories/logrel/lib/mutex.v
-theories/logrel/lib/list.v
-theories/logrel/lib/par_start.v
-theories/logrel/examples/pair.v
-theories/logrel/examples/par_recv.v
-theories/logrel/examples/rec_subtyping.v
-theories/logrel/examples/choice_subtyping.v
-theories/logrel/examples/mapper.v
-theories/logrel/examples/mapper_list.v
-theories/logrel/examples/compute_service.v
-theories/logrel/examples/compute_client_list.v
+actris/utils/skip.v
+actris/utils/llist.v
+actris/utils/compare.v
+actris/utils/contribution.v
+actris/utils/group.v
+actris/utils/cofe_solver_2.v
+actris/utils/switch.v
+actris/channel/proto_model.v
+actris/channel/proto.v
+actris/channel/channel.v
+actris/channel/proofmode.v
+actris/examples/basics.v
+actris/examples/equivalence.v
+actris/examples/sort.v
+actris/examples/sort_br_del.v
+actris/examples/sort_fg.v
+actris/examples/par_map.v
+actris/examples/map_reduce.v
+actris/examples/swap_mapper.v
+actris/examples/subprotocols.v
+actris/examples/list_rev.v
+actris/examples/rpc.v
+actris/examples/pizza.v
+actris/logrel/model.v
+actris/logrel/telescopes.v
+actris/logrel/subtyping.v
+actris/logrel/contexts.v
+actris/logrel/term_types.v
+actris/logrel/session_types.v
+actris/logrel/operators.v
+actris/logrel/term_typing_judgment.v
+actris/logrel/subtyping_rules.v
+actris/logrel/term_typing_rules.v
+actris/logrel/session_typing_rules.v
+actris/logrel/napp.v
+actris/logrel/lib/mutex.v
+actris/logrel/lib/list.v
+actris/logrel/lib/par_start.v
+actris/logrel/examples/pair.v
+actris/logrel/examples/par_recv.v
+actris/logrel/examples/rec_subtyping.v
+actris/logrel/examples/choice_subtyping.v
+actris/logrel/examples/mapper.v
+actris/logrel/examples/mapper_list.v
+actris/logrel/examples/compute_service.v
+actris/logrel/examples/compute_client_list.v
+
+miniactris/base.v
+miniactris/sub.v
+miniactris/session.v
+miniactris/imp.v
+miniactris/send_close.v
+miniactris/sym_close.v
+miniactris/close.v
