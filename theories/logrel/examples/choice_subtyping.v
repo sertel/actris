@@ -168,21 +168,9 @@ Section choice_example.
         iApply lty_le_swap_recv_select. }
     (** Swap branch/select *)
     iApply (lty_le_trans _ prot3).
-    { iApply (lty_le_swap_branch_select
-                (<[1%Z:=
-                     <[1%Z:=(<??> TY Sr; <!!> TY Srm; Tr)%lty]>
-                     (<[2%Z:= (<??> TY Sr; <!!> TY Srp; Tr')%lty]>∅)]>
-                 (<[2%Z:=
-                     <[1%Z:=(<??> TY Ss; <!!> TY Ssm; Ts)%lty]>
-                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssp; Ts')%lty]>∅)]>∅))
-                (<[1%Z:=
-                     <[1%Z:=(<??> TY Sr; <!!> TY Srm; Tr)%lty]>
-                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssm; Ts)%lty]>∅)]>
-                 (<[2%Z:=
-                     <[1%Z:=(<??> TY Sr; <!!> TY Srp; Tr')%lty]>
-                     (<[2%Z:= (<??> TY Ss; <!!> TY Ssp; Ts')%lty]>∅)]>∅))
-             ).
-      intros i j Ss1' Ss2' Hin1 Hin2.
+    { rewrite /prot2 -{3}(fmap_empty lty_select) -!fmap_insert.
+      rewrite /prot3 -{5}(fmap_empty lty_branch) -!fmap_insert.
+      iApply lty_le_swap_branch_select. intros i j Ss1' Ss2' Hin1 Hin2.
       assert (i = 1%Z ∨ i = 2%Z) as Hdisj1.
       { destruct (decide (i = 1)). eauto.
         destruct (decide (i = 2)). eauto.
