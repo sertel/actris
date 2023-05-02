@@ -44,7 +44,7 @@ Arguments lsty_car {_} _ : simpl never.
 Global Instance lty_inhabited Σ k : Inhabited (lty Σ k) := populate $
   match k with
   | tty_kind => Ltty inhabitant
-  | lty_kind => Lsty inhabitant
+  | sty_kind => Lsty inhabitant
   end.
 
 Section lty_ofe.
@@ -53,12 +53,12 @@ Section lty_ofe.
   Instance lty_equiv k : Equiv (lty Σ k) :=
     match k with
     | tty_kind => λ A B, ∀ w, ltty_car A w ≡ ltty_car B w
-    | lty_kind => λ S T, lsty_car S ≡ lsty_car T
+    | sty_kind => λ S T, lsty_car S ≡ lsty_car T
     end.
   Instance lty_dist k : Dist (lty Σ k) :=
     match k with
     | tty_kind => λ n A B, ∀ w, ltty_car A w ≡{n}≡ ltty_car B w
-    | lty_kind => λ n S T, lsty_car S ≡{n}≡ lsty_car T
+    | sty_kind => λ n S T, lsty_car S ≡{n}≡ lsty_car T
     end.
 
   Lemma lty_ofe_mixin k : OfeMixin (lty Σ k).

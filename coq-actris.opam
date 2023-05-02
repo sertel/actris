@@ -8,7 +8,7 @@ bug-reports: "https://gitlab.mpi-sws.org/iris/actris/issues"
 dev-repo: "git+https://gitlab.mpi-sws.org/iris/actris.git"
 
 depends: [
-  "coq-iris-heap-lang" { (= "dev.2023-03-09.0.f91e8eab") | (= "dev") }
+  "coq-iris-heap-lang" { (= "dev.2023-05-02.4.943e9b74") | (= "dev") }
 ]
 
 build: [make "-j%{jobs}%"]

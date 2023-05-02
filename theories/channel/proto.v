@@ -56,7 +56,7 @@ Export action.
 
 (** * Setup of Iris's cameras *)
 Class protoG Σ V :=
-  protoG_authG :>
+  protoG_authG ::
     inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))).
 
 Definition protoΣ V := #[

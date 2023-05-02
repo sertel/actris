@@ -90,8 +90,8 @@ End map_reduce.
 
 (** * Correctness proofs of the distributed version *)
 Class map_reduceG Σ A B `{Countable A, Countable B} := {
-  map_reduce_mapG :> mapG Σ A;
-  map_reduce_reduceG :> mapG Σ (Z * list B);
+  map_reduce_mapG :: mapG Σ A;
+  map_reduce_reduceG :: mapG Σ (Z * list B);
 }.
 
 Section mapper.

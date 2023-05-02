@@ -54,8 +54,8 @@ Definition par_map_client : val := λ: "n" "map" "xs",
 
 (** * Correctness proofs of the distributed version *)
 Class mapG Σ A `{Countable A} := {
-  map_contributionG :> contributionG Σ (gmultisetUR A);
-  map_lockG :> lockG Σ;
+  map_contributionG :: contributionG Σ (gmultisetUR A);
+  map_lockG :: lockG Σ;
 }.
 
 Section map.

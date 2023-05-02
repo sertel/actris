@@ -8,7 +8,7 @@ From actris.logrel Require Export model term_types.
 Definition lty_le {Σ k} : lty Σ k → lty Σ k → iProp Σ :=
   match k with
   | tty_kind => λ A1 A2, ■ ∀ v, ltty_car A1 v -∗ ltty_car A2 v
-  | lty_kind => λ P1 P2, ■ iProto_le (lsty_car P1) (lsty_car P2)
+  | sty_kind => λ P1 P2, ■ iProto_le (lsty_car P1) (lsty_car P2)
   end%I.
 Arguments lty_le : simpl never.
 Infix "<:" := lty_le (at level 70) : bi_scope.

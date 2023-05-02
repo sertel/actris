@@ -21,7 +21,7 @@ From iris.algebra Require Import excl auth csum gmultiset numbers.
 From iris.algebra Require Export local_updates.
 
 Class contributionG Σ (A : ucmra) `{!CmraDiscrete A} := {
-  contribution_inG :> inG Σ
+  contribution_inG :: inG Σ
     (authR (optionUR (csumR (prodR positiveR A) (exclR unitO))))
 }.
 
