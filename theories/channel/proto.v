@@ -751,7 +751,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_payload_elim_l a m v P p :
-    (P -∗ (<?> MSG v; p) ⊑ (<a> m)) -∗
+    (P -∗ (<?> MSG v; p) ⊑ (<a> m)) ⊢
     (<?> MSG v {{ P }}; p) ⊑ (<a> m).
   Proof.
     rewrite iMsg_base_eq. iIntros "H". destruct a.
@@ -761,7 +761,7 @@ Section proto.
       iApply (iProto_le_recv_recv_inv with "(H HP)"); simpl; auto.
   Qed.
   Lemma iProto_le_payload_elim_r a m v P p :
-    (P -∗ (<a> m) ⊑ (<!> MSG v; p)) -∗
+    (P -∗ (<a> m) ⊑ (<!> MSG v; p)) ⊢
     (<a> m) ⊑ (<!> MSG v {{ P }}; p).
   Proof.
     rewrite iMsg_base_eq. iIntros "H". destruct a.
@@ -786,7 +786,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_exist_elim_l {A} (m1 : A → iMsg Σ V) a m2 :
-    (∀ x, (<?> m1 x) ⊑ (<a> m2)) -∗
+    (∀ x, (<?> m1 x) ⊑ (<a> m2)) ⊢
     (<? x> m1 x) ⊑ (<a> m2).
   Proof.
     rewrite iMsg_exist_eq. iIntros "H". destruct a.
@@ -798,7 +798,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_exist_elim_l_inhabited `{!Inhabited A} (m : A → iMsg Σ V) p :
-    (∀ x, (<?> m x) ⊑ p) -∗
+    (∀ x, (<?> m x) ⊑ p) ⊢
     (<? x> m x) ⊑ p.
   Proof.
     rewrite iMsg_exist_eq. iIntros "H".
@@ -819,7 +819,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_exist_elim_r {A} a m1 (m2 : A → iMsg Σ V) :
-    (∀ x, (<a> m1) ⊑ (<!> m2 x)) -∗
+    (∀ x, (<a> m1) ⊑ (<!> m2 x)) ⊢
     (<a> m1) ⊑ (<! x> m2 x).
   Proof.
     rewrite iMsg_exist_eq. iIntros "H". destruct a.
@@ -830,7 +830,7 @@ Section proto.
       iApply (iProto_le_recv_send_inv with "H Hm1 Hm2").
   Qed.
   Lemma iProto_le_exist_elim_r_inhabited `{Hinh : Inhabited A} p (m : A → iMsg Σ V) :
-    (∀ x, p ⊑ (<!> m x)) -∗
+    (∀ x, p ⊑ (<!> m x)) ⊢
     p ⊑ (<! x> m x).
   Proof.
     rewrite iMsg_exist_eq. iIntros "H".
@@ -863,7 +863,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_texist_elim_l {TT : tele} (m1 : TT → iMsg Σ V) a m2 :
-    (∀ x, (<?> m1 x) ⊑ (<a> m2)) -∗
+    (∀ x, (<?> m1 x) ⊑ (<a> m2)) ⊢
     (<?.. x> m1 x) ⊑ (<a> m2).
   Proof.
     iIntros "H". iInduction TT as [|T TT] "IH"; simpl; [done|].
@@ -895,7 +895,7 @@ Section proto.
   Qed.
 
   Lemma iProto_le_base a v P p1 p2 :
-    ▷ (p1 ⊑ p2) -∗
+    ▷ (p1 ⊑ p2) ⊢
     (<a> MSG v {{ P }}; p1) ⊑ (<a> MSG v {{ P }}; p2).
   Proof.
     rewrite iMsg_base_eq. iIntros "H". destruct a.
@@ -948,7 +948,7 @@ Section proto.
 
   Lemma iProto_le_amber_internal (p1 p2 : iProto Σ V → iProto Σ V)
       `{Contractive p1, Contractive p2}:
-    □ (∀ rec1 rec2, ▷ (rec1 ⊑ rec2) → p1 rec1 ⊑ p2 rec2) -∗
+    □ (∀ rec1 rec2, ▷ (rec1 ⊑ rec2) → p1 rec1 ⊑ p2 rec2) ⊢
     fixpoint p1 ⊑ fixpoint p2.
   Proof.
     iIntros "#H". iLöb as "IH".
@@ -968,12 +968,12 @@ Section proto.
     - apply bi.limit_preserving_entails; [done|solve_proper].
   Qed.
 
-  Lemma iProto_le_dual_l p1 p2 : iProto_dual p2 ⊑ p1 -∗ iProto_dual p1 ⊑ p2.
+  Lemma iProto_le_dual_l p1 p2 : iProto_dual p2 ⊑ p1 ⊢ iProto_dual p1 ⊑ p2.
   Proof.
     iIntros "H". iEval (rewrite -(involutive iProto_dual p2)).
     by iApply iProto_le_dual.
   Qed.
-  Lemma iProto_le_dual_r p1 p2 : p2 ⊑ iProto_dual p1 -∗ p1 ⊑ iProto_dual p2.
+  Lemma iProto_le_dual_r p1 p2 : p2 ⊑ iProto_dual p1 ⊢ p1 ⊑ iProto_dual p2.
   Proof.
     iIntros "H". iEval (rewrite -(involutive iProto_dual p1)).
     by iApply iProto_le_dual.

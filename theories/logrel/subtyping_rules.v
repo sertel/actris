@@ -245,7 +245,7 @@ Section subtyping_rules.
   Proof. iIntros (v) "!> #Hv !>". iFrame "Hv". Qed.
 
   Lemma lty_le_chan S1 S2 :
-    ▷ (S1 <: S2) -∗ chan S1 <: chan S2.
+    ▷ (S1 <: S2) ⊢ chan S1 <: chan S2.
   Proof.
     iIntros "#Hle" (v) "!> H".
     iApply (iProto_mapsto_le with "H [Hle]"). eauto.
@@ -269,14 +269,14 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_exist_elim_l k (M : lty Σ k → lmsg Σ) S :
-    (∀ (A : lty Σ k), (<??> M A) <: S) -∗
+    (∀ (A : lty Σ k), (<??> M A) <: S) ⊢
     (<?? (A : lty Σ k)> M A) <: S.
   Proof.
     iIntros "#Hle !>". iApply (iProto_le_exist_elim_l_inhabited M). auto.
   Qed.
 
   Lemma lty_le_exist_elim_r k (M : lty Σ k → lmsg Σ) S :
-    (∀ (A : lty Σ k), S <: (<!!> M A)) -∗
+    (∀ (A : lty Σ k), S <: (<!!> M A)) ⊢
     S <: (<!! (A : lty Σ k)> M A).
   Proof.
     iIntros "#Hle !>". iApply (iProto_le_exist_elim_r_inhabited _ M). auto.
@@ -291,7 +291,7 @@ Section subtyping_rules.
   Proof. iIntros "!>". iApply (iProto_le_exist_intro_r). Qed.
 
   Lemma lty_le_texist_elim_l {kt} (M : ltys Σ kt → lmsg Σ) S :
-    (∀ Xs, (<??> M Xs) <: S) -∗
+    (∀ Xs, (<??> M Xs) <: S) ⊢
     (<??.. Xs> M Xs) <: S.
   Proof.
     iIntros "H". iInduction kt as [|k kt] "IH"; simpl; [done|].
@@ -300,7 +300,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_texist_elim_r {kt : ktele Σ} (M : ltys Σ kt → lmsg Σ) S :
-    (∀ Xs, S <: (<!!> M Xs)) -∗
+    (∀ Xs, S <: (<!!> M Xs)) ⊢
     S <: (<!!.. Xs> M Xs).
   Proof.
     iIntros "H". iInduction kt as [|k kt] "IH"; simpl; [done|].
@@ -403,7 +403,7 @@ Section subtyping_rules.
   Qed.
 
   Lemma lty_le_branch (Ss1 Ss2 : gmap Z (lsty Σ)) :
-    ([∗ map] S1;S2 ∈ Ss1; Ss2, ▷ (S1 <: S2)) -∗
+    ([∗ map] S1;S2 ∈ Ss1; Ss2, ▷ (S1 <: S2)) ⊢
     lty_branch Ss1 <: lty_branch Ss2.
   Proof.
     iIntros "#H !>" (x); iDestruct 1 as %[S1 HSs1]. iExists x.

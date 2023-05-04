@@ -62,7 +62,7 @@ Section with_Σ.
     (send_once $ recv_once $ prot).
 
   Lemma send_once_mono prot1 prot2 :
-    ▷ (∀ x, prot1 x ⊑ prot2 x) -∗ send_once prot1 ⊑ send_once prot2.
+    ▷ (∀ x, prot1 x ⊑ prot2 x) ⊢ send_once prot1 ⊑ send_once prot2.
   Proof.
     iIntros "Hsub".
     iModIntro.
@@ -76,7 +76,7 @@ Section with_Σ.
   Proof. intros _. apply send_once_mono. Qed.
 
   Lemma recv_once_mono prot1 prot2 x :
-    ▷ (prot1 ⊑ prot2) -∗ recv_once prot1 x ⊑ recv_once prot2 x.
+    ▷ (prot1 ⊑ prot2) ⊢ recv_once prot1 x ⊑ recv_once prot2 x.
   Proof.
     iIntros "Hsub".
     iIntros (w) "Hw". iExists w. iFrame "Hw". iModIntro.
@@ -89,7 +89,7 @@ Section with_Σ.
   Proof. intros _. apply recv_once_mono. Qed.
 
   Lemma map_once_mono prot1 prot2 :
-    ▷ (prot1 ⊑ prot2) -∗ map_once prot1 ⊑ map_once prot2.
+    ▷ (prot1 ⊑ prot2) ⊢ map_once prot1 ⊑ map_once prot2.
   Proof. iIntros "Hsub". iModIntro. iIntros (x). iModIntro. eauto. Qed.
 
   Global Instance map_once_from_modal p1 p2 :
