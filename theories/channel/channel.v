@@ -21,7 +21,6 @@ In this file we define the three message-passing connectives:
 
 It is additionaly shown that the channel ownership [c ↣ prot] is closed under
 the subprotocol relation [⊑] *)
-From iris.program_logic Require Import step_update.
 From iris.heap_lang Require Export primitive_laws notation.
 From iris.heap_lang Require Export proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
@@ -243,7 +242,7 @@ Section channel.
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & Hctx)".
     destruct s; simpl.
     - wp_pures. wp_bind (lsnoc _ _).
-      iApply (wp_step_update with "[Hctx H]"); [set_solver| |].
+      iApply (wp_step_update with "[Hctx H]").
       { iApply (iProto_step_send_l with "Hctx H []"). by rewrite iMsg_base_eq. }
       wp_smart_apply (lsnoc_spec with "[$Hl //]"); iIntros "Hl".
       iIntros "[Hctx H] !>".
@@ -251,7 +250,7 @@ Section channel.
       { iExists (vsl ++ [v]), vsr. iFrame "#∗". }
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
     - wp_pures. wp_bind (lsnoc _ _).
-      iApply (wp_step_update with "[Hctx H]"); [set_solver| |].
+      iApply (wp_step_update with "[Hctx H]").
       { iApply (iProto_step_send_r with "Hctx H []"). by rewrite iMsg_base_eq. }
       wp_smart_apply (lsnoc_spec with "[$Hr //]"); iIntros "Hr".
       iIntros "[Hctx H] !>".
@@ -293,7 +292,7 @@ Section channel.
         iExists γ, Left, l, r, lk. eauto 10 with iFrame. }
       wp_smart_apply (lpop_spec with "Hr"); iIntros (v') "[% Hr]"; simplify_eq/=.
       wp_bind (InjR _).
-      iApply (wp_step_update with "[Hctx H]"); [set_solver| |].
+      iApply (wp_step_update with "[Hctx H]").
       { iApply (iProto_step_recv_l with "Hctx H"). }
       rewrite iMsg_base_eq.
       wp_pure. iModIntro. iDestruct 1 as (q) "(Hctx & H & Hm)". iModIntro.
@@ -309,7 +308,7 @@ Section channel.
         iExists γ, Right, l, r, lk. eauto 10 with iFrame. }
       wp_smart_apply (lpop_spec with "Hl"); iIntros (v') "[% Hl]"; simplify_eq/=.
       wp_bind (InjR _).
-      iApply (wp_step_update with "[Hctx H]"); [set_solver| |].
+      iApply (wp_step_update with "[Hctx H]").
       { iApply (iProto_step_recv_r with "Hctx H"). }
       rewrite iMsg_base_eq.
       wp_pure. iModIntro. iDestruct 1 as (q) "(Hctx & H & Hm)". iModIntro.
