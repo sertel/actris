@@ -129,8 +129,7 @@ Definition auth_auth_sent (χ : session_escrow_name) (s : side) (n : nat) : iPro
   Qed.
 
   Lemma step_get_Ses_init E p :
-    ⊢ |~{E}~| ∃ χ, Ses χ ∗ ses_own χ Left 0 0 p ∗
-                   ses_own χ Right 0 0 (iProto_dual p).
+    ⊢ |~{E}~| ∃ χ, ses_own χ Left 0 0 p ∗ ses_own χ Right 0 0 (iProto_dual p).
   Proof.
     iPoseProof iProto_step_init as "-#Hp".
     iMod (own_alloc (●ML [])) as (γl) "Hl"; [apply mono_list_auth_valid|].
