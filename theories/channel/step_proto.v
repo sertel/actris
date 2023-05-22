@@ -25,26 +25,21 @@ Section iProto_step.
     iModIntro. iExists χ. iFrame "#∗".
   Qed.
 
-  Instance step_update_except0 E P : IsExcept0 (|~{E}~> P).
-  Proof.
-    rewrite /IsExcept0. iIntros "Hstep". iApply fupd_step_update.
-    iApply is_except_0. by iMod "Hstep".
-  Qed.
-
   Lemma iProto_step_send_l E χ m vsr vsl vl p :
     ▷ iProto_step_ctx χ vsl vsr -∗
     ▷ iProto_own χ Left (<!> m)%proto -∗
     ▷ iMsg_car m vl (Next p) -∗
     |~{E}~> iProto_step_ctx χ (vsl ++ [vl]) vsr ∗ iProto_own χ Left p.
   Proof.
-    iIntros "(>Hlbl & #>Hlbr & Hctx) Hp Hpm".
-    iDestruct (step_update_lb_step with "Hlbr [Hctx Hp Hpm]") as "Hctx".
-    { simpl. iIntros "!>!>". iMod (iProto_send_l with "Hctx Hp Hpm") as "H".
+    iIntros "(>#Hlbl & #>Hlbr & Hctx) Hp Hpm".
+    iAssert (|={∅}▷=>^(S $ length vsr) _)%I with "[Hctx Hp Hpm]" as "Hctx".
+    { iIntros "!>!>". iMod (iProto_send_l with "Hctx Hp Hpm") as "H".
       iApply step_fupdN_intro; [done|]. iIntros "!>!>". iExact "H". }
-    iDestruct (step_update_lb_update with "Hlbl") as "Hlbl'".
+    iDestruct (step_update_lb_step with "Hlbr Hctx") as "Hctx".
+    iDestruct (step_update_lb_update with "Hlbl") as "-#Hlbl'".
     iIntros "!>". iDestruct "Hctx" as "[Hctx Hown]". iFrame "#∗".
     rewrite app_length=> /=.
-    replace (S (length vsl)) with ((length vsl) + 1)%nat by lia. by iFrame.
+    by replace (S $ length vsl) with (length vsl + 1)%nat by lia.
   Qed.
 
   Lemma iProto_step_send_r E χ m vsr vsl vr p :
@@ -53,11 +48,12 @@ Section iProto_step.
     ▷ iMsg_car m vr (Next p) -∗
     |~{E}~> iProto_step_ctx χ vsl (vsr ++ [vr]) ∗ iProto_own χ Right p.
   Proof.
-    iIntros "(#>Hlbl & >Hlbr & Hctx) Hp Hpm".
-    iDestruct (step_update_lb_step with "Hlbl [Hctx Hp Hpm]") as "Hctx".
-    { simpl. iIntros "!>!>". iMod (iProto_send_r with "Hctx Hp Hpm") as "H".
+    iIntros "(#>Hlbl & >#Hlbr & Hctx) Hp Hpm".
+    iAssert (|={∅}▷=>^(S $ length vsl) _)%I with "[Hctx Hp Hpm]" as "Hctx".
+    { iIntros "!>!>". iMod (iProto_send_r with "Hctx Hp Hpm") as "H".
       iApply step_fupdN_intro; [done|]. iIntros "!>!>". iExact "H". }
-    iDestruct (step_update_lb_update with "Hlbr") as "Hlbr'".
+    iDestruct (step_update_lb_step with "Hlbl Hctx") as "Hctx".
+    iDestruct (step_update_lb_update with "Hlbr") as "-#Hlbr'".
     iIntros "!>". iDestruct "Hctx" as "[Hctx Hown]". iFrame "#∗".
     rewrite (app_length vsr [vr])=> /=.
     replace (S (length vsr)) with ((length vsr) + 1)%nat by lia. by iFrame.

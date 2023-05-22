@@ -157,8 +157,8 @@ Definition auth_auth_sent (χ : session_escrow_name) (s : side) (n : nat) : iPro
     rewrite ses_own_eq ses_idx_eq.
     iIntros (HE) "[#HI (Hp&HsF&HrF)] Hpm".
     iInv N as "H" "Hclose".
-    iDestruct "H" as (Tl Tr nl nr)
-                       "(>%Hle&>%Hle2&Hctx&>HTl&>HTr&>Hsl&>Hrl&>Hsr&>Hrr)".
+    iDestruct "H" as
+      (Tl Tr nl nr) "(>%Hle&>%Hle2&Hctx&>HTl&>HTr&>Hsl&>Hrl&>Hsr&>Hrr)".
     destruct s.
     - iDestruct (iProto_step_send_l with "Hctx Hp Hpm") as "Hctx".
       iIntros "!>". iApply step_update_fupd. iIntros "!>".
