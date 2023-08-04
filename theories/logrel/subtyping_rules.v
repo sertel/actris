@@ -482,9 +482,9 @@ Section subtyping_rules.
     (<!!> M) <++> S2 <:>
         <!!.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
   Proof.
-    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /LtyMsgTele. intros ->.
     rewrite /lty_app /lty_message iProto_app_message /=.
-    induction kt as [|k kt IH]; rewrite iMsg_app_exist.
+    induction kt as [|k kt IH]; rewrite /= iMsg_app_exist.
     - iSplit; iIntros (v); iExists v; rewrite iMsg_app_base; eauto.
     - iSplit.
       + iIntros (v). iExists v.
@@ -498,9 +498,9 @@ Section subtyping_rules.
     (<??> M) <++> S2 <:>
         <??.. As> TY (ktele_app A As) ; (ktele_app S As) <++> S2.
   Proof.
-    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /LtyMsgTele. intros ->.
     rewrite /lty_app /lty_message iProto_app_message /=.
-    induction kt as [|k kt IH]; rewrite iMsg_app_exist.
+    induction kt as [|k kt IH]; rewrite /= iMsg_app_exist.
     - iSplit; iIntros (v); iExists v; rewrite iMsg_app_base; eauto.
     - iSplit.
       + iIntros (v). iExists v.
@@ -555,9 +555,9 @@ Section subtyping_rules.
     lty_dual (<!!> M) <:>
         <??.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
   Proof.
-    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /LtyMsgTele. intros ->.
     rewrite /lty_dual /lty_message iProto_dual_message /=.
-    induction kt as [|k kt IH]; rewrite iMsg_dual_exist.
+    induction kt as [|k kt IH]; rewrite /= iMsg_dual_exist.
     - iSplit; iIntros (v); iExists v; rewrite iMsg_dual_base; eauto.
     - iSplit.
       + iIntros (v). iExists v.
@@ -571,9 +571,9 @@ Section subtyping_rules.
     lty_dual (<??> M) <:>
       <!!.. As> TY (ktele_app A As) ; lty_dual (ktele_app S As).
   Proof.
-    rewrite /LtyMsgTele. iIntros (->).
+    rewrite /LtyMsgTele. intros ->.
     rewrite /lty_dual /lty_message iProto_dual_message /=.
-    induction kt as [|k kt IH]; rewrite iMsg_dual_exist.
+    induction kt as [|k kt IH]; rewrite /= iMsg_dual_exist.
     - iSplit; iIntros (v); iExists v; rewrite iMsg_dual_base; eauto.
     - iSplit.
       + iIntros (v). iExists v.
