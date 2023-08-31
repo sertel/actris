@@ -5,6 +5,8 @@ From iris.heap_lang Require Import lib.spin_lock.
 From actris.utils Require Import llist contribution.
 From iris.algebra Require Import gmultiset.
 
+Local Existing Instance spin_lock.
+
 (** * Distributed version (aka the implementation) *)
 Definition par_map_worker : val :=
   rec: "go" "map" "l" "c" :=

@@ -18,6 +18,8 @@ From iris.heap_lang.lib Require Export par spin_lock.
 From actris.channel Require Import proofmode.
 From actris.logrel Require Export term_typing_judgment session_types.
 
+Local Existing Instance spin_lock.
+
 Definition prog : val := λ: "c",
   let: "lock" := newlock #() in
   (

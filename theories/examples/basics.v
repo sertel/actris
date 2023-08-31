@@ -4,6 +4,8 @@ From actris.channel Require Import proofmode.
 From iris.heap_lang Require Import lib.spin_lock.
 From actris.utils Require Import contribution.
 
+Local Existing Instance spin_lock.
+
 (** Basic *)
 Definition prog : val := λ: <>,
   let: "c" := start_chan (λ: "c'", send "c'" #42) in

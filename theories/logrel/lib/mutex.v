@@ -24,10 +24,12 @@ This type former is strongly inspired by the [Mutex] type in the standard
 library of Rust, which has also been semantically modelled in the LambdaRust
 project.
 *)
-From iris.heap_lang.lib Require Export spin_lock.
+From iris.heap_lang.lib Require Import spin_lock.
 From iris.heap_lang Require Import metatheory.
 From actris.channel Require Import proofmode.
 From actris.logrel Require Export term_types term_typing_judgment subtyping.
+
+Local Existing Instance spin_lock.
 
 (** Mutex functions *)
 Definition mutex_alloc : val := λ: "x", (newlock #(), ref "x").
@@ -37,15 +39,15 @@ Definition mutex_release : val :=
 
 (** Semantic types *)
 Definition lty_mutex `{heapGS Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
-  ∃ (γ : gname) (l : loc) (lk : val),
+  ∃ (γ : lock_name) (l : loc) (lk : val),
     ⌜ w = (lk,#l)%V ⌝ ∗
     is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ ltty_car A v_inner))%I.
 
 Definition lty_mutex_guard `{heapGS Σ, lockG Σ} (A : ltty Σ) : ltty Σ := Ltty (λ w,
-  ∃ (γ : gname) (l : loc) (lk : val) (v : val),
+  ∃ (γ : lock_name) (l : loc) (lk : val) (v : val),
     ⌜ w = (lk,#l)%V ⌝ ∗
     is_lock γ lk (∃ v_inner, l ↦ v_inner ∗ ltty_car A v_inner) ∗
-    spin_lock.locked γ ∗ l ↦ v)%I.
+    lock.locked γ ∗ l ↦ v)%I.
 
 Global Instance: Params (@lty_mutex) 3 := {}.
 Global Instance: Params (@lty_mutex_guard) 3 := {}.
@@ -73,7 +75,7 @@ Section properties.
   Proof.
     iIntros "#[Hle1 Hle2]" (v) "!>". iDestruct 1 as (γ l lk ->) "Hinv".
     iExists γ, l, lk. iSplit; first done.
-    iApply (spin_lock.is_lock_iff with "Hinv").
+    iApply (is_lock_iff with "Hinv").
     iIntros "!> !>". iSplit.
     - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
     - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
@@ -90,7 +92,7 @@ Section properties.
     iIntros "#[Hle1 Hle2]" (v) "!>".
     iDestruct 1 as (γ l lk w ->) "[Hinv [Hlock Hinner]]".
     iExists γ, l, lk, w. iSplit; first done.
-    iFrame "Hlock Hinner". iApply (spin_lock.is_lock_iff with "Hinv").
+    iFrame "Hlock Hinner". iApply (is_lock_iff with "Hinv").
     iIntros "!> !>". iSplit.
     - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle1".
     - iDestruct 1 as (v) "[Hl HA]". iExists v. iFrame "Hl". by iApply "Hle2".
@@ -98,7 +100,7 @@ Section properties.
 End properties.
 
 Section rules.
-  Context `{heapGS Σ, lockG Σ}.
+  Context `{heapGS Σ, spin_lockG Σ}.
 
   (** Mutex properties *)
   Lemma ltyped_mutex_alloc Γ A :

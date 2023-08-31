@@ -3,6 +3,8 @@ From actris.utils Require Import llist.
 From actris.channel Require Import proofmode.
 From stdpp Require Import list.
 
+Local Existing Instance spin_lock.
+
 Inductive pizza :=
   | Margherita
   | Calzone.

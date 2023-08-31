@@ -22,6 +22,8 @@ From actris.logrel Require Import session_typing_rules napp.
 From actris.logrel.lib Require Import list par_start.
 From actris.logrel.examples Require Import compute_service.
 
+Local Existing Instance spin_lock.
+
 Definition send_all_par : val :=
   rec: "go" "c" "xs" "lk" "counter" :=
     if: lisnil "xs" then
@@ -56,7 +58,7 @@ Definition compute_client : val :=
     recv_all_par "c" "ys" "n" "lk" "counter");; "ys".
 
 Section compute_example.
-  Context `{heapGS Σ, chanG Σ, lockG Σ, spawnG Σ}.
+  Context `{heapGS Σ, chanG Σ, spin_lockG Σ, spawnG Σ}.
   Context `{!inG Σ fracR}.
 
   Definition compute_type_client_aux (rec : lsty Σ) : lsty Σ :=

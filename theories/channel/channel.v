@@ -28,6 +28,8 @@ From actris.channel Require Export proto.
 From actris.utils Require Import llist skip.
 Set Default Proof Using "Type".
 
+Local Existing Instance spin_lock.
+
 (** * The definition of the message-passing connectives *)
 Definition new_chan : val :=
   λ: <>,
@@ -69,7 +71,7 @@ Class chanG Σ := {
   chanG_lockG :: lockG Σ;
   chanG_protoG :: protoG Σ val;
 }.
-Definition chanΣ : gFunctors := #[ lockΣ; protoΣ val ].
+Definition chanΣ : gFunctors := #[ spin_lockΣ; protoΣ val ].
 Global Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
 Proof. solve_inG. Qed.
 
