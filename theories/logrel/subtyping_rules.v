@@ -591,10 +591,10 @@ Section subtyping_rules.
     lty_dual (lty_choice a Ss) <:> lty_choice (action_dual a) (lty_dual <$> Ss).
   Proof.
     rewrite /lty_dual /lty_choice iProto_dual_message iMsg_dual_exist;
-      setoid_rewrite iMsg_dual_base; setoid_rewrite lookup_total_alt;
-      setoid_rewrite lookup_fmap; setoid_rewrite fmap_is_Some.
-    iSplit; iIntros "!> /="; destruct a;
-      iIntros (x); iExists x; iDestruct 1 as %[S ->]; iSplitR; eauto.
+      setoid_rewrite iMsg_dual_base.
+    iSplit; iIntros "!> /="; destruct a; iIntros (x); iExists x;
+      rewrite !lookup_total_alt lookup_fmap fmap_is_Some;
+      iDestruct 1 as %[S ->]; iSplitR; eauto.
   Qed.
 
   Lemma lty_le_dual_select (Ss : gmap Z (lsty Σ)) :
