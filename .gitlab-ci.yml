@@ -6,7 +6,6 @@ stages:
 variables:
   CPU_CORES: "10"
   OCAML: "ocaml-variants.4.14.0+options ocaml-option-flambda"
-  NIGHTLY_COQ: "8.17.dev" # 8.18.dev causes an anomaly
 
 .template: &template
   stage: build
