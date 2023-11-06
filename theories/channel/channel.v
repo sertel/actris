@@ -89,11 +89,11 @@ Proof.
    (λ '(γl, γr), Some (ChanName γl γr)) _); by intros [].
 Qed.
 
-(** * Definition of the mapsto connective *)
+(** * Definition of the pointsto connective *)
 Notation iProto Σ := (iProto Σ val).
 Notation iMsg Σ := (iMsg Σ val).
 
-Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
+Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
@@ -103,18 +103,18 @@ Definition iProto_mapsto_def `{!heapGS Σ, !chanG Σ}
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx (chan_proto_name γ) vsl vsr) ∗
     iProto_own (chan_proto_name γ) s p.
-Definition iProto_mapsto_aux : seal (@iProto_mapsto_def). by eexists. Qed.
-Definition iProto_mapsto := iProto_mapsto_aux.(unseal).
-Definition iProto_mapsto_eq :
-  @iProto_mapsto = @iProto_mapsto_def := iProto_mapsto_aux.(seal_eq).
-Arguments iProto_mapsto {_ _ _} _ _%proto.
-Global Instance: Params (@iProto_mapsto) 4 := {}.
-Notation "c ↣ p" := (iProto_mapsto c p)
+Definition iProto_pointsto_aux : seal (@iProto_pointsto_def). by eexists. Qed.
+Definition iProto_pointsto := iProto_pointsto_aux.(unseal).
+Definition iProto_pointsto_eq :
+  @iProto_pointsto = @iProto_pointsto_def := iProto_pointsto_aux.(seal_eq).
+Arguments iProto_pointsto {_ _ _} _ _%proto.
+Global Instance: Params (@iProto_pointsto) 4 := {}.
+Notation "c ↣ p" := (iProto_pointsto c p)
   (at level 20, format "c  ↣  p").
 
-Global Instance iProto_mapsto_contractive `{!heapGS Σ, !chanG Σ} c :
-  Contractive (iProto_mapsto c).
-Proof. rewrite iProto_mapsto_eq. solve_contractive. Qed.
+Global Instance iProto_pointsto_contractive `{!heapGS Σ, !chanG Σ} c :
+  Contractive (iProto_pointsto c).
+Proof. rewrite iProto_pointsto_eq. solve_contractive. Qed.
 
 Definition iProto_choice {Σ} (a : action) (P1 P2 : iProp Σ)
     (p1 p2 : iProto Σ) : iProto Σ :=
@@ -136,14 +136,14 @@ Section channel.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
-  Global Instance iProto_mapsto_ne c : NonExpansive (iProto_mapsto c).
-  Proof. rewrite iProto_mapsto_eq. solve_proper. Qed.
-  Global Instance iProto_mapsto_proper c : Proper ((≡) ==> (≡)) (iProto_mapsto c).
+  Global Instance iProto_pointsto_ne c : NonExpansive (iProto_pointsto c).
+  Proof. rewrite iProto_pointsto_eq. solve_proper. Qed.
+  Global Instance iProto_pointsto_proper c : Proper ((≡) ==> (≡)) (iProto_pointsto c).
   Proof. apply (ne_proper _). Qed.
 
-  Lemma iProto_mapsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
+  Lemma iProto_pointsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
   Proof.
-    rewrite iProto_mapsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
+    rewrite iProto_pointsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]".
     iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk".
     by iApply (iProto_own_le with "H").
   Qed.
@@ -219,8 +219,8 @@ Section channel.
     { iExists [], []. iFrame "#∗". }
     iIntros (lk γlk) "#Hlk". wp_pures. iApply "HΦ".
     set (γ := ChanName γlk γp). iSplitL "Hcl".
-    - rewrite iProto_mapsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
-    - rewrite iProto_mapsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
+    - rewrite iProto_pointsto_eq. iExists γ, Left, l, r, lk. by iFrame "Hcl #".
+    - rewrite iProto_pointsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
   Qed.
 
   Lemma start_chan_spec p Φ (f : val) :
@@ -240,7 +240,7 @@ Section channel.
       send c v
     {{{ RET #(); c ↣ p }}}.
   Proof.
-    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
+    rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
@@ -294,7 +294,7 @@ Section channel.
     {{{ RET #(); c ↣ (p tt) }}}.
   Proof.
     iIntros (Φ) "[Hc HP] HΦ".
-    iDestruct (iProto_mapsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]")
+    iDestruct (iProto_pointsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]")
       as "Hc".
     { iIntros "!>".
       iApply iProto_le_trans.
@@ -309,7 +309,7 @@ Section channel.
     {{{ w, RET w; (⌜w = NONEV⌝ ∗ c ↣ <?.. x> MSG v x {{ P x }}; p x) ∨
                   (∃.. x, ⌜w = SOMEV (v x)⌝ ∗ c ↣ p x ∗ P x) }}}.
   Proof.
-    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
+    rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)". destruct s; simpl.
@@ -362,7 +362,7 @@ Section channel.
   Proof.
     rewrite /iProto_choice. iIntros (Φ) "[Hc HP] HΦ".
     iApply (send_spec with "[Hc HP] HΦ").
-    iApply (iProto_mapsto_le with "Hc").
+    iApply (iProto_pointsto_le with "Hc").
     iIntros "!>". iExists b. by iFrame "HP".
   Qed.
 
@@ -375,7 +375,7 @@ Section channel.
     iApply (recv_spec _ (tele_app _)
       (tele_app (TT:=[tele _ : bool]) (λ b, if b then P1 else P2))%I
       (tele_app _) with "[Hc]").
-    { iApply (iProto_mapsto_le with "Hc").
+    { iApply (iProto_pointsto_le with "Hc").
       iIntros "!> /=" (b) "HP". iExists b. by iSplitL. }
     rewrite -bi_tforall_forall.
     iIntros "!>" (x) "[Hc H]". iApply "HΦ". iFrame.

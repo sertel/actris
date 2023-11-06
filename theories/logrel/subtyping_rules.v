@@ -248,7 +248,7 @@ Section subtyping_rules.
     ▷ (S1 <: S2) ⊢ chan S1 <: chan S2.
   Proof.
     iIntros "#Hle" (v) "!> H".
-    iApply (iProto_mapsto_le with "H [Hle]"). eauto.
+    iApply (iProto_pointsto_le with "H [Hle]"). eauto.
   Qed.
 
   (** Session subtyping *)

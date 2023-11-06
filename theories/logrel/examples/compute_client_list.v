@@ -175,7 +175,7 @@ Section compute_example.
       iIntros "[Hlocked HI]".
       iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
       { by iCombine "Hf Hf'" gives %[]. }
-      iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
+      iDestruct (iProto_pointsto_le with "Hc []") as "Hc".
       { iApply iProto_le_trans.
         { iApply iProto_le_app; [ iApply iProto_le_refl | ].
           iApply compute_type_client_unfold_app_stop. }
@@ -195,7 +195,7 @@ Section compute_example.
     iIntros "[Hlocked HI]".
     iDestruct "HI" as (n [ | ]) "(Hf' & Hcounter & Hc)"; last first.
     { by iCombine "Hf Hf'" gives %[]. }
-    iDestruct (iProto_mapsto_le with "Hc []") as "Hc".
+    iDestruct (iProto_pointsto_le with "Hc []") as "Hc".
     { iApply iProto_le_trans.
       { iApply iProto_le_app; [ iApply iProto_le_refl | ].
         iApply compute_type_client_unfold_app_cont. }

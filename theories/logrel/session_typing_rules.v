@@ -91,7 +91,7 @@ Section session_typing_rules.
     iAssert (c ↣ <? (Xs : ltys Σ kt) (v : val)>
       MSG v {{ ltty_car (ktele_app A Xs) v }};
         lsty_car (ktele_app S Xs)) with "[Hc]" as "Hc".
-    { iApply (iProto_mapsto_le with "Hc"); iIntros "!>". rewrite HM.
+    { iApply (iProto_pointsto_le with "Hc"); iIntros "!>". rewrite HM.
       iApply iProto_le_lmsg_texist. }
     wp_recv (Xs v) as "HA". wp_pures. rewrite -subst_map_binder_insert.
     wp_smart_apply (wp_wand with "(He [- HΓ1eq])").

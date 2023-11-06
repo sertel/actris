@@ -164,21 +164,21 @@ Section classes.
 
   (** Automatically perform normalization of protocols in the proof mode when
   using [iAssumption] and [iFrame]. *)
-  Global Instance mapsto_proto_from_assumption q c p1 p2 :
+  Global Instance pointsto_proto_from_assumption q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
     FromAssumption q (c ↣ p1) (c ↣ p2).
   Proof.
     rewrite /FromAssumption /ProtoNormalize /= right_id.
     rewrite bi.intuitionistically_if_elim.
-    iIntros (?) "H". by iApply (iProto_mapsto_le with "H").
+    iIntros (?) "H". by iApply (iProto_pointsto_le with "H").
   Qed.
-  Global Instance mapsto_proto_from_frame q c p1 p2 :
+  Global Instance pointsto_proto_from_frame q c p1 p2 :
     ProtoNormalize false p1 [] p2 →
     Frame q (c ↣ p1) (c ↣ p2) True.
   Proof.
     rewrite /Frame /ProtoNormalize /= right_id.
     rewrite bi.intuitionistically_if_elim.
-    iIntros (?) "[H _]". by iApply (iProto_mapsto_le with "H").
+    iIntros (?) "[H _]". by iApply (iProto_pointsto_le with "H").
   Qed.
 End classes.
 
@@ -203,7 +203,7 @@ Proof.
   intros ? Hp Hm HP HΦ. rewrite envs_lookup_sound //; simpl.
   assert (c ↣ p ⊢ c ↣ <?.. x>
     MSG tele_app tv x {{ ▷ tele_app tP' x }}; tele_app tp x) as ->.
-  { iIntros "Hc". iApply (iProto_mapsto_le with "Hc"). iIntros "!>".
+  { iIntros "Hc". iApply (iProto_pointsto_le with "Hc"). iIntros "!>".
     iApply iProto_le_trans; [iApply Hp|rewrite Hm].
     iApply iProto_le_texist_elim_l; iIntros (x).
     iApply iProto_le_trans; [|iApply (iProto_le_texist_intro_r _ x)]; simpl.
@@ -216,7 +216,7 @@ Proof.
 Qed.
 
 Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
-  let solve_mapsto _ :=
+  let solve_pointsto _ :=
     let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_recv: cannot find" c "↣ ? @ ?" in
   wp_pures;
@@ -226,7 +226,7 @@ Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_recv _ _ Hnew K))
       |fail 1 "wp_recv: cannot find 'recv' in" e];
-    [solve_mapsto ()
+    [solve_pointsto ()
        |tc_solve || fail 1 "wp_recv: protocol not of the shape <?>"
     |tc_solve || fail 1 "wp_recv: cannot convert to telescope"
     |tc_solve
@@ -300,14 +300,14 @@ Proof.
   destruct HΦ as (-> & -> & ->). rewrite right_id assoc.
   assert (c ↣ p ⊢
     c ↣ <!.. (x : TT)> MSG tele_app tv x {{ tele_app tP x }}; tele_app tp x) as ->.
-  { iIntros "Hc". iApply (iProto_mapsto_le with "Hc"); iIntros "!>".
+  { iIntros "Hc". iApply (iProto_pointsto_le with "Hc"); iIntros "!>".
     iApply iProto_le_trans; [iApply Hp|]. by rewrite Hm. }
   eapply bi.wand_apply; [rewrite -wp_bind; by eapply bi.wand_entails, send_spec_tele|].
   by rewrite -bi.later_intro.
 Qed.
 
 Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
-  let solve_mapsto _ :=
+  let solve_pointsto _ :=
     let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_send: cannot find" c "↣ ? @ ?" in
   let solve_done d :=
@@ -327,7 +327,7 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
        first
          [reshape_expr e ltac:(fun K e' => eapply (tac_wp_send _ neg _ Hs' K))
          |fail 1 "wp_send: cannot find 'send' in" e];
-       [solve_mapsto ()
+       [solve_pointsto ()
        |tc_solve || fail 1 "wp_send: protocol not of the shape <!>"
        |tc_solve || fail 1 "wp_send: cannot convert to telescope"
        |pm_reduce; simpl; tac_exist;
@@ -388,7 +388,7 @@ Lemma tac_wp_branch `{!chanG Σ, !heapGS Σ} Δ i j K
 Proof.
   rewrite envs_entails_unseal /ProtoNormalize /= right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl.
-  rewrite (iProto_mapsto_le _ _ (p1 <{P1}&{P2}> p2)%proto) -bi.later_intro -Hp left_id.
+  rewrite (iProto_pointsto_le _ _ (p1 <{P1}&{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply bi.wand_entails, branch_spec|f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> b.
   specialize (HΦ b). destruct (envs_app _ _) as [Δ'|] eqn:HΔ'=> //.
@@ -396,7 +396,7 @@ Proof.
 Qed.
 
 Tactic Notation "wp_branch_core" "as" tactic3(tac1) tactic3(tac2) :=
-  let solve_mapsto _ :=
+  let solve_pointsto _ :=
     let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_branch: cannot find" c "↣ ? @ ?" in
   wp_pures;
@@ -406,7 +406,7 @@ Tactic Notation "wp_branch_core" "as" tactic3(tac1) tactic3(tac2) :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_branch _ _ Hnew K))
       |fail 1 "wp_branch: cannot find 'recv' in" e];
-    [solve_mapsto ()
+    [solve_pointsto ()
        |tc_solve || fail 1 "wp_send: protocol not of the shape <&>"
     |pm_reduce; intros []; [tac1 Hnew|tac2 Hnew]; wp_finish]
   | _ => fail "wp_branch: not a 'wp'"
@@ -441,7 +441,7 @@ Lemma tac_wp_select `{!chanG Σ, !heapGS Σ} Δ neg i js K
 Proof.
   rewrite envs_entails_unseal /ProtoNormalize /= right_id=> ? Hp HΦ.
   rewrite envs_lookup_sound //; simpl.
-  rewrite (iProto_mapsto_le _ _ (p1 <{P1}+{P2}> p2)%proto) -bi.later_intro -Hp left_id.
+  rewrite (iProto_pointsto_le _ _ (p1 <{P1}+{P2}> p2)%proto) -bi.later_intro -Hp left_id.
   rewrite -wp_bind. eapply bi.wand_apply; [by eapply bi.wand_entails, select_spec|].
   rewrite -assoc; f_equiv; first done.
   destruct (envs_split _ _ _) as [[Δ1 Δ2]|] eqn:? => //.
@@ -451,7 +451,7 @@ Proof.
 Qed.
 
 Tactic Notation "wp_select" "with" constr(pat) :=
-  let solve_mapsto _ :=
+  let solve_pointsto _ :=
     let c := match goal with |- _ = Some (_, (?c ↣ _)%I) => c end in
     iAssumptionCore || fail "wp_select: cannot find" c "↣ ? @ ?" in
   let solve_done d :=
@@ -471,7 +471,7 @@ Tactic Notation "wp_select" "with" constr(pat) :=
        first
          [reshape_expr e ltac:(fun K e' => eapply (tac_wp_select _ neg _ Hs' K))
          |fail 1 "wp_select: cannot find 'send' in" e];
-       [solve_mapsto ()
+       [solve_pointsto ()
        |tc_solve || fail 1 "wp_select: protocol not of the shape <+>"
        |pm_reduce;
         lazymatch goal with

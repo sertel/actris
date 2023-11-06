@@ -379,7 +379,7 @@ Section with_Σ.
       auto. }
     wp_smart_apply (llength_spec with "HIT"); iIntros "HIT".
     wp_smart_apply (send_all_spec with "[$HIT Hc]").
-    { iApply (iProto_mapsto_le with "Hc").
+    { iApply (iProto_pointsto_le with "Hc").
       iApply subprot_n_swap. }
     iIntros "[HIT Hc]".
     rewrite right_id rev_involutive.

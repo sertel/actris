@@ -271,7 +271,7 @@ Section mapper_example.
       iApply "HΦ". by iFrame. }
     wp_lam. wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
     simpl.
-    iDestruct (iProto_mapsto_le c with "Hc []") as "Hc".
+    iDestruct (iProto_pointsto_le c with "Hc []") as "Hc".
     { iApply recv_mapper_type_rec_client_unfold_app. }
     rewrite /select.
     wp_send with "[]"; first by eauto.
@@ -375,7 +375,7 @@ Section mapper_example.
     wp_smart_apply (llength_spec with "Hl").
     iIntros (xs n) "[<- Hl]".
     wp_pures.
-    iDestruct (iProto_mapsto_le vc with "Hc []") as "Hc".
+    iDestruct (iProto_pointsto_le vc with "Hc []") as "Hc".
     { iApply (mapper_type_rec_client_unfold_app_n A B (length xs)). }
     wp_smart_apply (send_all_spec_upfront with "[$Hl $Hc]").
     iIntros "[Hl Hc]".

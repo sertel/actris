@@ -109,7 +109,7 @@ Section double.
     iFrame "HΓ".
     iIntros (c) "Hc".
     iApply (wp_prog with "[Hc]").
-    { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
+    { iApply (iProto_pointsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
       iIntros "!> !>" (v1). iDestruct 1 as %[x1 ->]. iExists x1.
       iIntros "!>" (v2). iDestruct 1 as %[x2 ->]. iExists x2. auto. }
     iIntros "!>" (k1 k2 _).
@@ -219,7 +219,7 @@ Section double_fc.
     iApply wp_value. iSplitL; last by iApply ctx_ltyped_nil.
     iIntros (c) "Hc".
     iApply (wp_prog_fc (λ v1 v2, ltty_car lty_int v1 ∗ ltty_car lty_int v2)%I with "[Hc]").
-    { iApply (iProto_mapsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
+    { iApply (iProto_pointsto_le _ (lsty_car (<??> TY lty_int; <??> TY lty_int; END)) with "Hc").
       iIntros "!> !>" (v1). iDestruct 1 as %[x1 ->]. iExists #x1.
       iIntros "!>" (v2). iDestruct 1 as %[x2 ->]. iExists #x2. iSplitL; last done.
       rewrite /ltty_car /=. auto. }

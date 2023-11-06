@@ -78,7 +78,7 @@ Section list_rev_example.
     wp_smart_apply (start_chan_spec (list_rev_prot)%proto); iIntros (c) "Hc".
     - rewrite -(iProto_app_end_r list_rev_prot).
       iApply (list_rev_service_spec with "Hc"). eauto.
-    - iDestruct (iProto_mapsto_le _ _ (list_rev_protI IT) with "Hc []") as "Hc".
+    - iDestruct (iProto_pointsto_le _ _ (list_rev_protI IT) with "Hc []") as "Hc".
       { iApply list_rev_subprot. }
       wp_send (l xs) with "[$Hl]". wp_recv as "Hl". by iApply "HΦ".
   Qed.
