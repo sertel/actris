@@ -37,7 +37,7 @@ The individual types contain the following:
   bidirectional channels in terms of Iris's HeapLang language, with specifications
   defined in terms of the dependent separation protocols.
   The relevant definitions and proof rules are as follows:
-  + `iProto_mapsto`: endpoint ownership (notation `↣`).
+  + `iProto_pointsto`: endpoint ownership (notation `↣`).
   + `new_chan_spec`, `send_spec` and `recv_spec`: proof rule for `new_chan`,
 	`send`, and `recv`.
   + `select_spec` and `branch_spec`: proof rule for the derived (binary)
