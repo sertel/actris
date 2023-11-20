@@ -206,9 +206,7 @@ Section channel.
       new_chan #()
     {{{ c1 c2, RET (c1,c2); c1 ↣ p ∗ c2 ↣ iProto_dual p }}}.
   Proof.
-    iIntros (Φ _) "HΦ". wp_lam.
-    wp_bind (lnil _).
-    iApply wp_lb_init; iIntros "#Hlb".
+    iIntros (Φ _) "HΦ". wp_lam. iMod (steps_lb_0) as "#Hlb".
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (l) "Hl".
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
