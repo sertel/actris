@@ -57,13 +57,38 @@ Export action.
 (** * Setup of Iris's cameras *)
 Class protoG Σ V :=
   protoG_authG ::
-    inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))).
+    inG Σ (authUR (gmapR natO
+      (optionUR (exclR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ))))))).
 
 Definition protoΣ V := #[
-  GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))
+  GFunctor (authRF (gmapURF natO (optionRF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF))))))
 ].
 Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
 Proof. solve_inG. Qed.
+
+(* (** * Setup of Iris's cameras *) *)
+(* Class protoG Σ V := *)
+(*   protoG_authG :: *)
+(*     inG Σ (gmapR natO *)
+(*       (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ))))). *)
+
+(* Definition protoΣ V := #[ *)
+(*   GFunctor (gmapRF natO (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))) *)
+(* ]. *)
+(* Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V. *)
+(* Proof. solve_inG. Qed. *)
+
+
+(* (** * Setup of Iris's cameras *) *)
+(* Class protoG Σ V := *)
+(*   protoG_authG :: *)
+(*     inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))). *)
+
+(* Definition protoΣ V := #[ *)
+(*   GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF))))) *)
+(* ]. *)
+(* Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V. *)
+(* Proof. solve_inG. Qed. *)
 
 (** * Types *)
 Definition iProto Σ V := proto V (iPropO Σ) (iPropO Σ).
@@ -687,53 +712,45 @@ Qed.
 (*      iProto_consistent (ps))%I -∗ *)
 (*   iProto_consistent ps. *)
 
-Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
+Record proto_name := ProtName { proto_names : gmap nat gname }.
 Global Instance proto_name_inhabited : Inhabited proto_name :=
-  populate (ProtName inhabitant inhabitant).
+  populate (ProtName inhabitant).
 Global Instance proto_name_eq_dec : EqDecision proto_name.
 Proof. solve_decision. Qed.
 Global Instance proto_name_countable : Countable proto_name.
 Proof.
- refine (inj_countable (λ '(ProtName γl γr), (γl,γr))
-   (λ '(γl, γr), Some (ProtName γl γr)) _); by intros [].
+ refine (inj_countable (λ '(ProtName γs), (γs))
+   (λ '(γs), Some (ProtName γs)) _); by intros [].
 Qed.
 
-Inductive side := Left | Right.
-Global Instance side_inhabited : Inhabited side := populate Left.
-Global Instance side_eq_dec : EqDecision side.
-Proof. solve_decision. Qed.
-Global Instance side_countable : Countable side.
-Proof.
- refine (inj_countable (λ s, if s is Left then true else false)
-   (λ b, Some (if b then Left else Right)) _); by intros [].
-Qed.
-Definition side_elim {A} (s : side) (l r : A) : A :=
-  match s with Left => l | Right => r end.
+Definition iProto_own_frag `{!protoG Σ V} (γ : gname)
+    (i : nat) (p : iProto Σ V) : iProp Σ :=
+  own γ (◯ ({[i := Excl' (Next p)]})).
 
-Definition iProto_own_frag `{!protoG Σ V} (γ : proto_name) (s : side)
-    (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (◯E (Next p)).
-Definition iProto_own_auth `{!protoG Σ V} (γ : proto_name) (s : side)
-    (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (●E (Next p)).
+(* TODO: Fix this def. *)
+Definition iProto_own_auth `{!protoG Σ V} (γ : gname)
+    (ps : gmap nat (iProto Σ V)) : iProp Σ :=
+  own γ (● ∅).
+  (* own γ (● ((λ (p : iProto Σ V), Excl' (Next p)) <$> ps)). *)
 
-(* Definition iProto_ctx `{protoG Σ V} *)
-(*     (γ : proto_name) : iProp Σ := *)
-(*   ∃ ps, *)
-(*     iProto_own_auth γ Left pl ∗ *)
-(*     iProto_own_auth γ Right pr ∗ *)
-(*     ▷ iProto_consistent ps. *)
+Definition iProto_ctx `{protoG Σ V}
+    (γ : gname) : iProp Σ :=
+  ∃ ps, iProto_own_auth γ ps ∗ ▷ iProto_consistent ps.
 
-(* (** * The connective for ownership of channel ends *) *)
-(* Definition iProto_own `{!protoG Σ V} *)
-(*     (γ : proto_name) (s : side) (p : iProto Σ V) : iProp Σ := *)
-(*   ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ s p'. *)
-(* Arguments iProto_own {_ _ _} _ _%proto. *)
-(* Global Instance: Params (@iProto_own) 3 := {}. *)
+(** * The connective for ownership of channel ends *)
+Definition iProto_own `{!protoG Σ V}
+    (γ : gname) (i : nat) (p : iProto Σ V) : iProp Σ :=
+  iProto_own_frag γ i p.
+Arguments iProto_own {_ _ _} _ _ _%proto.
+Global Instance: Params (@iProto_own) 3 := {}.
 
-(* Global Instance iProto_own_contractive `{protoG Σ V} γ s : *)
-(*   Contractive (iProto_own γ s). *)
-(* Proof. solve_contractive. Qed. *)
+Global Instance iProto_own_frag_contractive `{protoG Σ V} γ i :
+  Contractive (iProto_own_frag γ i).
+Proof. solve_contractive. Qed.
+
+Global Instance iProto_own_contractive `{protoG Σ V} γ i :
+  Contractive (iProto_own γ i).
+Proof. solve_contractive. Qed.
 
 (** * Proofs *)
 Section proto.
@@ -765,39 +782,33 @@ Section proto.
   Global Instance iProto_own_frag_ne γ s : NonExpansive (iProto_own_frag γ s).
   Proof. solve_proper. Qed.
 
-  Lemma iProto_own_auth_agree γ s p p' :
-    iProto_own_auth γ s p -∗ iProto_own_frag γ s p' -∗ ▷ (p ≡ p').
-  Proof.
-    iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓".
-    iDestruct (excl_auth_agreeI with "H✓") as "H✓".
-    iApply (later_equivI_1 with "H✓").
-  Qed.
-
-  Lemma iProto_own_auth_update γ s p p' p'' :
-    iProto_own_auth γ s p -∗ iProto_own_frag γ s p' ==∗
-    iProto_own_auth γ s p'' ∗ iProto_own_frag γ s p''.
-  Proof.
-    iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H".
-    { eapply (excl_auth_update _ _ (Next p'')). }
-    by rewrite own_op.
-  Qed.
-
-  (* Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s). *)
-  (* Proof. solve_proper. Qed. *)
-  (* Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s). *)
-  (* Proof. apply (ne_proper _). Qed. *)
-
-  (* Lemma iProto_own_le γ s p1 p2 : *)
-  (*   iProto_own γ s p1 -∗ ▷ (p1 ⊑ p2) -∗ iProto_own γ s p2. *)
-  (* Proof. *)
-  (*   iDestruct 1 as (p1') "[Hle H]". iIntros "Hle'". *)
-  (*   iExists p1'. iFrame "H". by iApply (iProto_le_trans with "Hle"). *)
+  (* TODO: Relies on above def *)
+  Lemma iProto_own_auth_agree γ ps i p :
+    iProto_own_auth γ ps -∗ iProto_own_frag γ i p -∗ ▷ (ps !!! i ≡ p).
+  Proof. Admitted.
+  (*   iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓". *)
+  (*   iDestruct (excl_auth_agreeI with "H✓") as "H✓". *)
+  (*   iApply (later_equivI_1 with "H✓"). *)
   (* Qed. *)
 
-  (* Lemma iProto_init p : *)
-  (*   ⊢ |==> ∃ γ, *)
-  (*     iProto_ctx γ ∗ iProto_own γ Left p ∗ iProto_own γ Right (iProto_dual p). *)
-  (* Proof. *)
+  Lemma iProto_own_auth_update γ ps i p p' :
+    iProto_own_auth γ ps -∗ iProto_own_frag γ i p ==∗
+    iProto_own_auth γ (<[i := p']>ps) ∗ iProto_own_frag γ i p'.
+  Proof. Admitted.
+  (*   iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H". *)
+  (*   { eapply (excl_auth_update _ _ (Next p'')). } *)
+  (*   by rewrite own_op. *)
+  (* Qed. *)
+
+  Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
+  Proof. solve_proper. Qed.
+  Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s).
+  Proof. apply (ne_proper _). Qed.
+
+  Lemma iProto_init ps :
+    iProto_consistent ps -∗
+    |==> ∃ γ, iProto_ctx γ ∗ [∗ map] i ↦p ∈ ps, iProto_own γ i p.
+  Proof. Admitted.
   (*   iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (lγ) "[H●l H◯l]". *)
   (*   { by apply excl_auth_valid. } *)
   (*   iMod (own_alloc (●E (Next (iProto_dual p)) ⋅ *)
@@ -808,18 +819,14 @@ Section proto.
   (*   iSplitL "H◯l"; iExists _; iFrame; iApply iProto_le_refl. *)
   (* Qed. *)
 
-  (* Definition side_dual s := *)
-  (*   match s with *)
-  (*   | Left => Right *)
-  (*   | Right => Left *)
-  (*   end. *)
-  
-  (* Lemma iProto_step_l γ m1 m2 p1 v : *)
-  (*   iProto_ctx γ -∗ iProto_own γ Left (<!> m1) -∗ iProto_own γ Right (<?> m2) -∗ *)
-  (*   iMsg_car m1 v (Next p1) ==∗ *)
-  (*     ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗ *)
-  (*           iProto_own γ Left p1 ∗ iProto_own γ Right p2. *)
-  (* Proof. *)
+  Lemma iProto_step γ i j m1 m2 p1 v :
+    iProto_ctx γ -∗
+    iProto_own γ i (<(Send j)> m1) -∗
+    iProto_own γ j (<(Recv i)> m2) -∗
+    iMsg_car m1 v (Next p1) ==∗
+      ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗
+            iProto_own γ i p1 ∗ iProto_own γ j p2.
+  Proof. Admitted.
   (*   iDestruct 1 as (pl pr) "(H●l & H●r & Hconsistent)". *)
   (*   iDestruct 1 as (pl') "[Hlel H◯l]". *)
   (*   iDestruct 1 as (pr') "[Hler H◯r]". *)
@@ -840,39 +847,6 @@ Section proto.
   (*   iExists p2. iFrame. *)
   (*   iSplitL "Hconsistent H●l H●r". *)
   (*   - iExists _, _. iFrame. *)
-  (*   - iSplitL "H◯l". *)
-  (*     + iExists _. iFrame. iApply iProto_le_refl. *)
-  (*     + iExists _. iFrame. iApply iProto_le_refl. *)
-  (* Qed. *)
-
-  (* Lemma iProto_step_r γ m1 m2 p2 v : *)
-  (*   iProto_ctx γ -∗ iProto_own γ Left (<?> m1) -∗ iProto_own γ Right (<!> m2) -∗ *)
-  (*   iMsg_car m2 v (Next p2) ==∗ *)
-  (*     ▷ ∃ p1, iMsg_car m1 v (Next p1) ∗ ▷ iProto_ctx γ ∗ *)
-  (*           iProto_own γ Left p1 ∗ iProto_own γ Right p2. *)
-  (* Proof. *)
-  (*   iDestruct 1 as (pl pr) "(H●l & H●r & Hconsistent)". *)
-  (*   iDestruct 1 as (pl') "[Hlel H◯l]". *)
-  (*   iDestruct 1 as (pr') "[Hler H◯r]". *)
-  (*   iIntros "Hm". *)
-  (*   iDestruct (iProto_own_auth_agree with "H●l H◯l") as "#Hpl". *)
-  (*   iDestruct (iProto_own_auth_agree with "H●r H◯r") as "#Hpr". *)
-  (*   iAssert (▷ (pl ⊑ <?> m1))%I *)
-  (*     with "[Hlel]" as "{Hpl} Hlel"; first (iNext; by iRewrite "Hpl"). *)
-  (*   iAssert (▷ (pr ⊑ <!> m2))%I *)
-  (*     with "[Hler]" as "{Hpr} Hler"; first (iNext; by iRewrite "Hpr"). *)
-  (*   iDestruct (iProto_consistent_le_l with "Hconsistent Hlel") as "Hconsistent". *)
-  (*   iDestruct (iProto_consistent_le_r with "Hconsistent Hler") as "Hconsistent". *)
-  (*   iDestruct (iProto_consistent_flip with "Hconsistent") as *)
-  (*     "Hconsistent". *)
-  (*   iDestruct (iProto_consistent_step with "Hconsistent [Hm //]") as *)
-  (*     (p1) "[Hm1 Hconsistent]". *)
-  (*   iMod (iProto_own_auth_update _ _ _ _ p1 with "H●l H◯l") as "[H●l H◯l]". *)
-  (*   iMod (iProto_own_auth_update _ _ _ _ p2 with "H●r H◯r") as "[H●r H◯r]". *)
-  (*   iIntros "!>!>". *)
-  (*   iExists p1. iFrame. *)
-  (*   iSplitL "Hconsistent H●l H●r". *)
-  (*   - iExists _, _. iFrame. iApply iProto_consistent_flip. iFrame. *)
   (*   - iSplitL "H◯l". *)
   (*     + iExists _. iFrame. iApply iProto_le_refl. *)
   (*     + iExists _. iFrame. iApply iProto_le_refl. *)
