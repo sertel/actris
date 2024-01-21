@@ -760,14 +760,14 @@ Section proto.
   Implicit Types m : iMsg Σ V.
 
   Lemma iProto_consistent_step ps m1 m2 i j v p1 :
+    iProto_consistent ps -∗
     ps !!! i ≡ (<(Send j)> m1) -∗
     ps !!! j ≡ (<(Recv i)> m2) -∗
-    iProto_consistent ps -∗
     iMsg_car m1 v (Next p1) -∗
     ∃ p2, iMsg_car m2 v (Next p2) ∗
           ▷ iProto_consistent (<[i := p1]>(<[j := p2]>ps)).
   Proof.
-    iIntros "#Hi #Hj Hprot Hm1".
+    iIntros "Hprot #Hi #Hj Hm1".
     rewrite iProto_consistent_unfold /iProto_consistent_pre.
     iDestruct ("Hprot" $!i j with "[] [] Hi Hj Hm1") as (p2) "[Hm2 Hprot]".
     { rewrite !lookup_total_alt elem_of_dom.
@@ -824,33 +824,19 @@ Section proto.
     iProto_own γ i (<(Send j)> m1) -∗
     iProto_own γ j (<(Recv i)> m2) -∗
     iMsg_car m1 v (Next p1) ==∗
-      ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗
+    ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗
             iProto_own γ i p1 ∗ iProto_own γ j p2.
-  Proof. Admitted.
-  (*   iDestruct 1 as (pl pr) "(H●l & H●r & Hconsistent)". *)
-  (*   iDestruct 1 as (pl') "[Hlel H◯l]". *)
-  (*   iDestruct 1 as (pr') "[Hler H◯r]". *)
-  (*   iIntros "Hm". *)
-  (*   iDestruct (iProto_own_auth_agree with "H●l H◯l") as "#Hpl". *)
-  (*   iDestruct (iProto_own_auth_agree with "H●r H◯r") as "#Hpr". *)
-  (*   iAssert (▷ (pl ⊑ <!> m1))%I *)
-  (*     with "[Hlel]" as "{Hpl} Hlel"; first (iNext; by iRewrite "Hpl"). *)
-  (*   iAssert (▷ (pr ⊑ <?> m2))%I *)
-  (*     with "[Hler]" as "{Hpr} Hler"; first (iNext; by iRewrite "Hpr"). *)
-  (*   iDestruct (iProto_consistent_le_l with "Hconsistent Hlel") as "Hconsistent". *)
-  (*   iDestruct (iProto_consistent_le_r with "Hconsistent Hler") as "Hconsistent". *)
-  (*   iDestruct (iProto_consistent_step with "Hconsistent [Hm //]") as *)
-  (*     (p2) "[Hm2 Hconsistent]". *)
-  (*   iMod (iProto_own_auth_update _ _ _ _ p1 with "H●l H◯l") as "[H●l H◯l]". *)
-  (*   iMod (iProto_own_auth_update _ _ _ _ p2 with "H●r H◯r") as "[H●r H◯r]". *)
-  (*   iIntros "!>!>". *)
-  (*   iExists p2. iFrame. *)
-  (*   iSplitL "Hconsistent H●l H●r". *)
-  (*   - iExists _, _. iFrame. *)
-  (*   - iSplitL "H◯l". *)
-  (*     + iExists _. iFrame. iApply iProto_le_refl. *)
-  (*     + iExists _. iFrame. iApply iProto_le_refl. *)
-  (* Qed. *)
+  Proof.
+    iIntros "Hctx Hi Hj Hm".
+    iDestruct "Hctx" as (ps) "[Hauth Hconsistent]".
+    iDestruct (iProto_own_auth_agree with "Hauth Hi") as "#Hpi".
+    iDestruct (iProto_own_auth_agree with "Hauth Hj") as "#Hpj".
+    iDestruct (iProto_consistent_step with "Hconsistent [//] [//] [Hm //]") as
+      (p2) "[Hm2 Hconsistent]".
+    iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
+    iMod (iProto_own_auth_update _ _ _ _ p2 with "Hauth Hj") as "[Hauth Hj]".
+    iIntros "!>!>". iExists p2. iFrame. iIntros "!>". iExists _. iFrame.
+  Qed.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)
   (* [iExist], [iSplitL]/[iSplitR], [iFrame] and [iModIntro] on [iProto_le] goals. *) *)
