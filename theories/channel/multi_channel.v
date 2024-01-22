@@ -22,12 +22,9 @@ In this file we define the three message-passing connectives:
 It is additionaly shown that the channel ownership [c ↣ prot] is closed under
 the subprotocol relation [⊑] *)
 From iris.algebra Require Import gmap excl_auth gmap_view.
-From iris.heap_lang Require Export primitive_laws notation.
-From iris.heap_lang Require Export proofmode.
-From iris.heap_lang.lib Require Import spin_lock.
-From actris.utils Require Export llist.
-From actris.channel Require Import multi_proto_model.
-From actris.channel Require Export multi_proto.
+From iris.base_logic.lib Require Import invariants.
+From iris.heap_lang Require Export primitive_laws notation proofmode.
+From actris.channel Require Import multi_proto_model multi_proto.
 Set Default Proof Using "Type".
 
 (* TODO: Update new_chan definition to use pointers with offsets *)
@@ -35,13 +32,13 @@ Set Default Proof Using "Type".
 Definition new_chan : val :=
   λ: "n",
     let: "l" := AllocN ("n"*"n") NONEV in
-    let: "xxs" := lnil #() in
+    let: "xxs" := AllocN "n" NONEV in
     (rec: "go1" "i" := if: "i" = "n" then #() else
-       let: "xs" := lnil #() in
+       let: "xs" := AllocN "n" NONEV in
        (rec: "go2" "j" := if: "j" = "n" then #() else
-          lcons ("l" +ₗ ("i"*"n"+"j"), "l" +ₗ ("j"*"n"+"i")) "xs";;
+          ("xs" +ₗ "j") <- ("l" +ₗ ("i"*"n"+"j"), "l" +ₗ ("j"*"n"+"i"));;
           "go2" ("j"+#1)) #0;;
-       lcons "xs" "xxs";;
+       ("xxs" +ₗ "i") <- "xs";;
        "go1" ("i"+#1)) #0;; "xxs".
 
 Definition wait : val :=
