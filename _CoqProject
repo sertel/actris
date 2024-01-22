@@ -16,9 +16,10 @@ theories/utils/cofe_solver_2.v
 theories/utils/switch.v
 theories/channel/proto_model.v
 theories/channel/proto.v
+theories/channel/channel.v
 theories/channel/multi_proto_model.v
 theories/channel/multi_proto.v
-theories/channel/channel.v
+theories/channel/multi_channel.v
 theories/channel/proofmode.v
 theories/examples/basics.v
 theories/examples/equivalence.v

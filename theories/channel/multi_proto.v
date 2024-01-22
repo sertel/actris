@@ -707,7 +707,7 @@ Section proto.
     iProto_own γ i (<(Send j)> m1) -∗
     iProto_own γ j (<(Recv i)> m2) -∗
     iMsg_car m1 v (Next p1) ==∗
-    ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗
+    ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ iProto_ctx γ ∗
             iProto_own γ i p1 ∗ iProto_own γ j p2.
   Proof.
     iIntros "Hctx Hi Hj Hm".
@@ -718,7 +718,7 @@ Section proto.
       (p2) "[Hm2 Hconsistent]".
     iMod (iProto_own_auth_update _ _ _ _ p2 with "Hauth Hj") as "[Hauth Hj]".
     iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
-    iIntros "!>!>". iExists p2. iFrame. iIntros "!>". iExists _. iFrame.
+    iIntros "!>!>". iExists p2. iFrame. iExists _. iFrame.
   Qed.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)
