@@ -300,8 +300,7 @@ Definition roundtrip_prog : val :=
      let: "c2" := ! ("cs" +ₗ #2) in 
      Fork (let: "x" := recv "c1" #0 in send "c1" #2 "x");;
      Fork (let: "x" := recv "c2" #1 in send "c2" #0 "x");;
-     send "c0" #1 #42;;
-     recv "c0" #2.
+     send "c0" #1 #42;; recv "c0" #2.
 
 Section channel.
   Context `{!heapGS Σ, !chanG Σ}.
@@ -312,8 +311,7 @@ Section channel.
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_pures.
-    wp_apply (new_chan_spec 3 iProto_example3 with "[]").
+    wp_smart_apply (new_chan_spec 3 iProto_example3 with "[]").
     { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
     { iApply iProto_example3_consistent. }
     iIntros (cs ls) "[%Hlen [Hcs Hls]]".
@@ -344,37 +342,33 @@ Section channel.
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
       wp_smart_apply
-        (recv_spec (TT:=[tele Z]) c1 1 0
+        (recv_spec (TT:=[tele Z]) c1 0
                    (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
           with "Hc1").
       iIntros (x') "[Hc1 _]".
       epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
-      wp_smart_apply (send_spec c1 1 2 with "Hc1").
+      wp_smart_apply (send_spec c1 2 with "Hc1").
       by iIntros "_". }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>".
       wp_smart_apply
-        (recv_spec (TT:=[tele Z]) c2 2 1
+        (recv_spec (TT:=[tele Z]) c2 1
                    (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
                    with "Hc2").
       iIntros (x') "[Hc1 _]".
       epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
-      wp_smart_apply (send_spec c2 2 0 with "Hc1").
+      wp_smart_apply (send_spec c2 0 with "Hc1").
       by iIntros "_". }
     wp_smart_apply
-      (send_spec_tele (TT:=[tele Z]) c0 1 0 ([tele_arg 42%Z])
+      (send_spec_tele (TT:=[tele Z]) c0 1 ([tele_arg 42%Z])
                       (tele_app (λ (x:Z), #x)) (λ _, True)%I
                       (tele_app (λ (x:Z), _))
                    with "[Hc0]").
     { iSplitL; [|done]. simpl. iFrame "Hc0". }
     iIntros "Hc0".
-    wp_smart_apply (recv_spec (TT:=[tele]) c0 0 2
-                              (λ _, #42)
-                              (λ _, True)%I
-                              (λ _, _)
+    wp_smart_apply (recv_spec (TT:=[tele]) c0 2 (λ _, #42) (λ _, True)%I (λ _, _)
                       with "Hc0").
-    iIntros (_) "Hc0".
-    by iApply "HΦ".
+    iIntros (_) "Hc0". by iApply "HΦ".
   Qed.
 
 End channel.

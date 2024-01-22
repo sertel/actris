@@ -106,8 +106,8 @@ Definition chan_inv `{!heapGS Σ, !chanG Σ} γ γE γt i j (l:loc) : iProp Σ :
           iProto_own γ i p ∗ own γE (●E (Next p))).
 
 Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
-    (c : val) (i:nat) (p : iProto Σ) : iProp Σ :=
-  ∃ γ γE1 γE2 γt1 γt2 (l:loc) ls,
+    (c : val) (p : iProto Σ) : iProp Σ :=
+  ∃ γ γE1 γE2 γt1 γt2 i (l:loc) ls,
     ⌜ c = PairV #(length ls) #l ⌝ ∗
     inv (nroot.@"ctx") (iProto_ctx γ) ∗
     l ↦∗ ls ∗
@@ -128,19 +128,19 @@ Definition iProto_pointsto_aux : seal (@iProto_pointsto_def). by eexists. Qed.
 Definition iProto_pointsto := iProto_pointsto_aux.(unseal).
 Definition iProto_pointsto_eq :
   @iProto_pointsto = @iProto_pointsto_def := iProto_pointsto_aux.(seal_eq).
-Arguments iProto_pointsto {_ _ _} _ _ _%proto.
-Global Instance: Params (@iProto_pointsto) 4 := {}.
-Notation "c ↣{ i } p" := (iProto_pointsto c i p)
-  (at level 20, format "c  ↣{  i  }  p").
+Arguments iProto_pointsto {_ _ _} _ _%proto.
+Global Instance: Params (@iProto_pointsto) 5 := {}.
+Notation "c ↣ p" := (iProto_pointsto c p)
+  (at level 20, format "c  ↣  p").
 
 Section channel.
   Context `{!heapGS Σ, !chanG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
-  Global Instance iProto_pointsto_ne c i : NonExpansive (iProto_pointsto c i).
+  Global Instance iProto_pointsto_ne c : NonExpansive (iProto_pointsto c).
   Proof. rewrite iProto_pointsto_eq. solve_proper. Qed.
-  Global Instance iProto_pointsto_proper c i : Proper ((≡) ==> (≡)) (iProto_pointsto c i).
+  Global Instance iProto_pointsto_proper c : Proper ((≡) ==> (≡)) (iProto_pointsto c).
   Proof. apply (ne_proper _). Qed.
 
   (* Lemma iProto_pointsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2. *)
@@ -157,7 +157,7 @@ Section channel.
       new_chan #n
     {{{ cs ls, RET #cs;
         ⌜length ls = n⌝ ∗ cs ↦∗ ls ∗
-        [∗list] i ↦ l ∈ ls, l ↣{i} (ps !!! i) }}}.
+        [∗list] i ↦ l ∈ ls, l ↣ (ps !!! i) }}}.
   Proof. Admitted.
 
   Lemma own_prot_excl γ i (p1 p2 : iProto Σ) :
@@ -166,14 +166,14 @@ Section channel.
     False.
   Proof. Admitted.
 
-  Lemma send_spec c i j v p :
-    {{{ c ↣{i} <Send j> MSG v; p }}}
+  Lemma send_spec c j v p :
+    {{{ c ↣ <Send j> MSG v; p }}}
       send c #j v
-    {{{ RET #(); c ↣{i} p }}}.
+    {{{ RET #(); c ↣ p }}}.
   Proof.
     rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
     wp_pures.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
@@ -235,20 +235,20 @@ Section channel.
       { apply excl_auth_update. }
       iModIntro.
       iApply "HΦ".
-      iExists _, _, _, _, _, _, _.
+      iExists _, _, _, _, _, _, _, _.
       iSplit; [done|]. iFrame "#∗".
       iRewrite -"Hagree'". done.
   Qed.
   
-  Lemma send_spec_tele {TT} c j i (tt : TT)
+  Lemma send_spec_tele {TT} c j (tt : TT)
         (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣{i} (<(Send j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
+    {{{ c ↣ (<(Send j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
       send c #j (v tt)
-    {{{ RET #(); c ↣{i} (p tt) }}}.
+    {{{ RET #(); c ↣ (p tt) }}}.
   Proof.
     rewrite iProto_pointsto_eq. iIntros (Φ) "[Hc HP] HΦ". wp_lam; wp_pures.    
     iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
     wp_pures.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
@@ -315,20 +315,20 @@ Section channel.
       { apply excl_auth_update. }
       iModIntro.
       iApply "HΦ".
-      iExists _, _, _, _, _, _, _.
+      iExists _, _, _, _, _, _, _, _.
       iSplit; [done|]. iFrame "#∗".
       iRewrite -"Hagree'". done.
   Qed.
 
-  Lemma recv_spec {TT} c i j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣{i} <(Recv j) @.. x> MSG v x {{ P x }}; p x }}}
+  Lemma recv_spec {TT} c j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
+    {{{ c ↣ <(Recv j) @.. x> MSG v x {{ P x }}; p x }}}
       recv c #j
-    {{{ x, RET v x; c ↣{i} p x ∗ P x }}}.
+    {{{ x, RET v x; c ↣ p x ∗ P x }}}.
   Proof.
     iIntros (Φ) "Hc HΦ". iLöb as "HL". wp_lam.
     rewrite iProto_pointsto_eq.
     iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
     wp_pures.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
@@ -353,7 +353,7 @@ Section channel.
       iSplitL "Hl' Htok".
       { iLeft. iFrame. }
       wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl] HΦ").
-      iExists _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
+      iExists _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
     iDestruct "HIp" as "[HIp|HIp]"; last first.
     { iDestruct "HIp" as (p') "[>Hl' [Hown' H◯']]".
       wp_xchg.
@@ -361,7 +361,7 @@ Section channel.
       iSplitL "Hl' Hown' H◯'".
       { iRight. iRight. iExists _. iFrame. }
       wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl] HΦ").
-      iExists _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
+      iExists _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
     iDestruct "HIp" as (w m) "(>Hl' & Hown' & HIp)".
     iDestruct "HIp" as (p') "[Hm Hp']".
     iInv "IH" as "Hctx".
@@ -381,7 +381,7 @@ Section channel.
     { apply excl_auth_update. }
     iModIntro. iApply "HΦ".
     iFrame.
-    iExists _, _, _, _, _, _, _. iSplit; [done|].
+    iExists _, _, _, _, _, _, _, _. iSplit; [done|].
     iRewrite "Hp". iFrame "#∗".
   Qed.
 
