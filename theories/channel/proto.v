@@ -1206,8 +1206,8 @@ Section proto.
   Lemma iProto_step_l γ m1 m2 p1 v :
     iProto_ctx γ -∗ iProto_own γ Left (<!> m1) -∗ iProto_own γ Right (<?> m2) -∗
     iMsg_car m1 v (Next p1) ==∗
-      ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ ▷ iProto_ctx γ ∗
-            iProto_own γ Left p1 ∗ iProto_own γ Right p2.
+      ▷ ∃ p2, iMsg_car m2 v (Next p2) ∗ iProto_ctx γ ∗
+              iProto_own γ Left p1 ∗ iProto_own γ Right p2.
   Proof.
     iDestruct 1 as (pl pr) "(H●l & H●r & Hconsistent)".
     iDestruct 1 as (pl') "[Hlel H◯l]".
@@ -1237,8 +1237,8 @@ Section proto.
   Lemma iProto_step_r γ m1 m2 p2 v :
     iProto_ctx γ -∗ iProto_own γ Left (<?> m1) -∗ iProto_own γ Right (<!> m2) -∗
     iMsg_car m2 v (Next p2) ==∗
-      ▷ ∃ p1, iMsg_car m1 v (Next p1) ∗ ▷ iProto_ctx γ ∗
-            iProto_own γ Left p1 ∗ iProto_own γ Right p2.
+      ▷ ∃ p1, iMsg_car m1 v (Next p1) ∗ iProto_ctx γ ∗
+              iProto_own γ Left p1 ∗ iProto_own γ Right p2.
   Proof.
     iDestruct 1 as (pl pr) "(H●l & H●r & Hconsistent)".
     iDestruct 1 as (pl') "[Hlel H◯l]".
