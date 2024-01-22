@@ -178,9 +178,6 @@ Section channel.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
       iLöb as "IH". wp_lam. iApply "IH". }
-    (* assert (is_Some ((zip (seq 0 (length ls)) ls) !! j)) as [l' HSome]. *)
-    (* { apply lookup_lt_is_Some_2. lia. } *)
-    (* wp_smart_apply (llookup_spec with "Hls"); [done|]. *)
     assert (is_Some (ls !! j)) as [l' HSome].
     { apply lookup_lt_is_Some_2. lia. }
     wp_pures.
@@ -243,24 +240,88 @@ Section channel.
       iRewrite -"Hagree'". done.
   Qed.
   
-  (* Lemma send_spec_tele {TT} c (tt : TT) *)
-  (*       (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) : *)
-  (*   {{{ c ↣ (<!.. x > MSG v x {{ P x }}; p x) ∗ P tt }}} *)
-  (*     send c (v tt) *)
-  (*   {{{ RET #(); c ↣ (p tt) }}}. *)
-  (* Proof. *)
-  (*   iIntros (Φ) "[Hc HP] HΦ". *)
-  (*   iDestruct (iProto_pointsto_le _ _ (<!> MSG v tt; p tt)%proto with "Hc [HP]") *)
-  (*     as "Hc". *)
-  (*   { iIntros "!>". *)
-  (*     iApply iProto_le_trans. *)
-  (*     iApply iProto_le_texist_intro_l. *)
-  (*     by iFrame "HP". } *)
-  (*   by iApply (send_spec with "Hc"). *)
-  (* Qed. *)
+  Lemma send_spec_tele {TT} c j i (tt : TT)
+        (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
+    {{{ c ↣{i} (<(Send j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
+      send c #j (v tt)
+    {{{ RET #(); c ↣{i} (p tt) }}}.
+  Proof.
+    rewrite iProto_pointsto_eq. iIntros (Φ) "[Hc HP] HΦ". wp_lam; wp_pures.    
+    iDestruct "Hc" as
+      (γ γE1 γE2 γt1 γt2 l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+    wp_pures.
+    case_bool_decide; last first.
+    { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
+      iLöb as "IH". wp_lam. iApply "IH". iFrame. }
+    assert (is_Some (ls !! j)) as [l' HSome].
+    { apply lookup_lt_is_Some_2. lia. }
+    wp_pures.
+    wp_smart_apply (wp_load_offset with "Hl").
+    { done. } 
+    iIntros "Hl". wp_pures.
+    iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj Hls]"; [done|].
+    iDestruct "Hj" as (l1 l2 ->) "#[IHl1 IHl2]". 
+    iDestruct ("Hls" with "[]") as "Hls".
+    { iExists _, _. iFrame "#". done. }
+    wp_pures.
+    wp_bind (Store _ _).
+    iInv "IHl1" as "HIp".
+    iDestruct "HIp" as "[HIp|HIp]"; last first.
+    { iDestruct "HIp" as "[HIp|HIp]".
+      - iDestruct "HIp" as (? m) "(>Hl' & Hown' & HIp)".
+        wp_store.
+        rewrite /iProto_own.
+        iDestruct (own_prot_excl with "Hown Hown'") as "H". done.
+      - iDestruct "HIp" as (p') "(>Hl' & Hown' & HIp)".
+        wp_store.
+        rewrite /iProto_own.
+        iDestruct (own_prot_excl with "Hown Hown'") as "H". done. }
+    iDestruct "HIp" as "[>Hl' Htok]".
+    wp_store.
+    iMod (own_update_2 with "H● H◯") as "[H● H◯]".
+    { apply excl_auth_update. }
+    iModIntro.
+    iSplitL "Hl' H● Hown HP". 
+    { iRight. iLeft. iIntros "!>". iExists _, _. iFrame.
+      iExists _. iFrame. rewrite iMsg_base_eq. simpl.
+      iApply iMsg_texist_exist.
+      simpl. iExists tt.
+      iSplit; [done|]. 
+      iSplit; [done|]. 
+      done. }
+    wp_pures.
+    iLöb as "HL".
+    wp_lam.
+    wp_bind (Load _).
+    iInv "IHl1" as "HIp".
+    iDestruct "HIp" as "[HIp|HIp]".
+    { iDestruct "HIp" as ">[Hl' Htok']".
+      iDestruct (own_valid_2 with "Htok Htok'") as %[]. }
+    iDestruct "HIp" as "[HIp|HIp]".
+    - iDestruct "HIp" as (? m) "(>Hl' & Hown & HIp)".
+      wp_load. iModIntro.
+      iSplitL "Hl' Hown HIp".
+      { iRight. iLeft. iExists _, _. iFrame. }
+      wp_pures. iApply ("HL" with "HΦ Hl Hls Htok H◯").
+    - iDestruct "HIp" as (p') "(>Hl' & Hown & H●)".
+      wp_load.
+      iModIntro.
+      iSplitL "Hl' Htok".
+      { iLeft. iFrame. }
+      iDestruct (own_valid_2 with "H● H◯") as "#Hagree".
+      iDestruct (excl_auth_agreeI with "Hagree") as "Hagree'".
+      wp_pures.
+      iMod (own_update_2 with "H● H◯") as "[H● H◯]".
+      { apply excl_auth_update. }
+      iModIntro.
+      iApply "HΦ".
+      iExists _, _, _, _, _, _, _.
+      iSplit; [done|]. iFrame "#∗".
+      iRewrite -"Hagree'". done.
+  Qed.
 
   Lemma recv_spec {TT} c i j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣{i} <(Recv j) @.. x> MSG v x {{ ▷ P x }}; p x }}}
+    {{{ c ↣{i} <(Recv j) @.. x> MSG v x {{ P x }}; p x }}}
       recv c #j
     {{{ x, RET v x; c ↣{i} p x ∗ P x }}}.
   Proof.

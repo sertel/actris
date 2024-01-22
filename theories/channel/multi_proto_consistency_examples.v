@@ -310,7 +310,7 @@ Section channel.
 
   Lemma roundtrip_prog_spec :
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
-  Proof.
+  Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
     wp_pures.
     wp_apply (new_chan_spec 3 iProto_example3 with "[]").
@@ -342,15 +342,39 @@ Section channel.
     rewrite lookup_total_insert_ne; [|done].
     rewrite !lookup_total_insert.
     wp_smart_apply (wp_fork with "[Hc1]").
-    { iIntros "!>". wp_pures.
-      wp_apply (recv_spec c1 _ 0 with "[Hc1]"); [admit|].
-      admit. }
+    { iIntros "!>".
+      wp_smart_apply
+        (recv_spec (TT:=[tele Z]) c1 1 0
+                   (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
+          with "Hc1").
+      iIntros (x') "[Hc1 _]".
+      epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
+      wp_smart_apply (send_spec c1 1 2 with "Hc1").
+      by iIntros "_". }
     wp_smart_apply (wp_fork with "[Hc2]").
-    { iIntros "!>". wp_pures.
-      wp_apply (recv_spec c2 _ 1 with "[Hc2]"); [admit|].
-      admit. }
-    wp_pures. wp_apply (send_spec c0 0 1 #42 with "[Hc0]"); [admit|].
+    { iIntros "!>".
+      wp_smart_apply
+        (recv_spec (TT:=[tele Z]) c2 2 1
+                   (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
+                   with "Hc2").
+      iIntros (x') "[Hc1 _]".
+      epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
+      wp_smart_apply (send_spec c2 2 0 with "Hc1").
+      by iIntros "_". }
+    wp_smart_apply
+      (send_spec_tele (TT:=[tele Z]) c0 1 0 ([tele_arg 42%Z])
+                      (tele_app (λ (x:Z), #x)) (λ _, True)%I
+                      (tele_app (λ (x:Z), _))
+                   with "[Hc0]").
+    { iSplitL; [|done]. simpl. iFrame "Hc0". }
     iIntros "Hc0".
-  Admitted.
+    wp_smart_apply (recv_spec (TT:=[tele]) c0 0 2
+                              (λ _, #42)
+                              (λ _, True)%I
+                              (λ _, _)
+                      with "Hc0").
+    iIntros (_) "Hc0".
+    by iApply "HΦ".
+  Qed.
 
 End channel.
