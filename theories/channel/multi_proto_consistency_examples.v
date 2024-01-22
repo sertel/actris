@@ -3,15 +3,15 @@ From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
 From iris.program_logic Require Import language.
-From actris.channel Require Import multi_proto_model multi_proto.
+From actris.channel Require Import multi_proto_model multi_proto multi_channel.
 Set Default Proof Using "Type".
 Export action.
 
-Definition iProto_example1 {Σ V} : gmap nat (iProto Σ V) :=
+Definition iProto_example1 {Σ} : gmap nat (iProto Σ) :=
   ∅.
 
-Lemma iProto_example1_consistent {Σ V} :
-  ⊢ iProto_consistent (@iProto_example1 Σ V).
+Lemma iProto_example1_consistent {Σ} :
+  ⊢ iProto_consistent (@iProto_example1 Σ).
 Proof.
   rewrite iProto_consistent_unfold.
   iIntros (i j m1 m2) "Hi Hj".
@@ -19,13 +19,13 @@ Proof.
   by rewrite iProto_end_message_equivI.
 Qed.
 
-Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ Z) :=
-  <[0 := (<(Send 1) @ (x:Z)> MSG x {{ P }} ; END)%proto ]>
-  (<[1 := (<(Recv 0) @ (x:Z)> MSG x {{ P }} ; END)%proto ]>
+Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
+  <[0 := (<(Send 1) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
+  (<[1 := (<(Recv 0) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
    ∅).
 
 Lemma iProto_example2_consistent `{!invGS Σ} (P : iProp Σ) :
-  ⊢ iProto_consistent (@iProto_example2 _ Σ invGS0 P).
+  ⊢ iProto_consistent (@iProto_example2 Σ invGS0 P).
 Proof.
   rewrite iProto_consistent_unfold.
   rewrite /iProto_example2.
@@ -102,14 +102,14 @@ Proof.
     done.
 Qed.
 
-Definition iProto_example3 `{!invGS Σ}  : gmap nat (iProto Σ Z) :=
-  <[0 := (<(Send 1) @ (x:Z)> MSG x ; <(Recv 2)> MSG x; END)%proto ]>
-  (<[1 := (<(Recv 0) @ (x:Z)> MSG x ; <(Send 2)> MSG x; END)%proto ]>
-  (<[2 := (<(Recv 1) @ (x:Z)> MSG x ; <(Send 0)> MSG x; END)%proto ]>
+Definition iProto_example3 `{!invGS Σ} : gmap nat (iProto Σ) :=
+   <[0 := (<(Send 1) @ (x:Z)> MSG #x ; <(Recv 2)> MSG #x; END)%proto ]>
+  (<[1 := (<(Recv 0) @ (x:Z)> MSG #x ; <(Send 2)> MSG #x; END)%proto ]>
+  (<[2 := (<(Recv 1) @ (x:Z)> MSG #x ; <(Send 0)> MSG #x; END)%proto ]>
     ∅)).
 
 Lemma iProto_example3_consistent `{!invGS Σ} :
-  ⊢ iProto_consistent (@iProto_example3 _ Σ invGS0).
+  ⊢ iProto_consistent (@iProto_example3 Σ invGS0).
 Proof.
   rewrite iProto_consistent_unfold.
   rewrite /iProto_example3.
@@ -157,8 +157,8 @@ Proof.
   rewrite !iMsg_exist_eq.
   iRewrite -"Hm1" in "Hm1'".
   iDestruct "Hm1'" as (x Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<Send 2> iMsg_base_def x True END)))%proto.
-  iExists (<Send 2> iMsg_base_def x True END)%proto.
+  iSpecialize ("Hm2" $!v (Next (<Send 2> iMsg_base_def #x True END)))%proto.
+  iExists (<Send 2> iMsg_base_def #x True END)%proto.
   iRewrite -"Hm2".
   simpl.
   iSplitL.
@@ -210,8 +210,8 @@ Proof.
   iSpecialize ("Hm1" $!v (Next p1)).
   iRewrite -"Hm1" in "Hm1'".
   iDestruct "Hm1'" as (Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<Send 0> iMsg_base_def x True END)))%proto.
-  iExists (<Send 0> iMsg_base_def x True END)%proto.
+  iSpecialize ("Hm2" $!v (Next (<Send 0> iMsg_base_def #x True END)))%proto.
+  iExists (<Send 0> iMsg_base_def #x True END)%proto.
   iRewrite -"Hm2".
   simpl.
   iSplitL.
@@ -291,3 +291,66 @@ Proof.
   rewrite lookup_total_empty.
   by rewrite iProto_end_message_equivI.
 Qed.
+
+Definition roundtrip_prog : val :=
+  λ: <>,
+     let: "cs" := new_chan #3 in
+     let: "c0" := ! ("cs" +ₗ #0) in 
+     let: "c1" := ! ("cs" +ₗ #1) in 
+     let: "c2" := ! ("cs" +ₗ #2) in 
+     Fork (let: "x" := recv "c1" #0 in send "c1" #2 "x");;
+     Fork (let: "x" := recv "c2" #1 in send "c2" #0 "x");;
+     send "c0" #1 #42;;
+     recv "c0" #2.
+
+Section channel.
+  Context `{!heapGS Σ, !chanG Σ}.
+  Implicit Types p : iProto Σ.
+  Implicit Types TT : tele.
+
+  Lemma roundtrip_prog_spec :
+    {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
+  Proof.
+    iIntros (Φ) "_ HΦ". wp_lam.
+    wp_pures.
+    wp_apply (new_chan_spec 3 iProto_example3 with "[]").
+    { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
+    { iApply iProto_example3_consistent. }
+    iIntros (cs ls) "[%Hlen [Hcs Hls]]".
+    assert (is_Some (ls !! 0)) as [c0 HSome0].
+    { apply lookup_lt_is_Some_2. lia. }
+    assert (is_Some (ls !! 1)) as [c1 HSome1].
+    { apply lookup_lt_is_Some_2. lia. }
+    assert (is_Some (ls !! 2)) as [c2 HSome2].
+    { apply lookup_lt_is_Some_2. lia. }
+    wp_smart_apply (wp_load_offset _ _ _ _ 0 with "Hcs"); [done|].
+    iIntros "Hcs".
+    wp_smart_apply (wp_load_offset _ _ _ _ 1 with "Hcs"); [done|].
+    iIntros "Hcs".
+    wp_smart_apply (wp_load_offset _ _ _ _ 2 with "Hcs"); [done|].
+    iIntros "Hcs".
+    iDestruct (big_sepL_delete' _ _ 0 with "Hls") as "[Hc0 Hls]"; [set_solver|].
+    iDestruct (big_sepL_delete' _ _ 1 with "Hls") as "[Hc1 Hls]"; [set_solver|].
+    iDestruct (big_sepL_delete' _ _ 2 with "Hls") as "[Hc2 _]"; [set_solver|].
+    iDestruct ("Hc1" with "[//]") as "Hc1".
+    iDestruct ("Hc2" with "[//] [//]") as "Hc2".
+    rewrite /iProto_example3.
+    rewrite !lookup_total_insert.
+    rewrite lookup_total_insert_ne; [|done].
+    rewrite !lookup_total_insert.
+    rewrite lookup_total_insert_ne; [|done].
+    rewrite lookup_total_insert_ne; [|done].
+    rewrite !lookup_total_insert.
+    wp_smart_apply (wp_fork with "[Hc1]").
+    { iIntros "!>". wp_pures.
+      wp_apply (recv_spec c1 _ 0 with "[Hc1]"); [admit|].
+      admit. }
+    wp_smart_apply (wp_fork with "[Hc2]").
+    { iIntros "!>". wp_pures.
+      wp_apply (recv_spec c2 _ 1 with "[Hc2]"); [admit|].
+      admit. }
+    wp_pures. wp_apply (send_spec c0 0 1 #42 with "[Hc0]"); [admit|].
+    iIntros "Hc0".
+  Admitted.
+
+End channel.
