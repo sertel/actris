@@ -45,7 +45,7 @@ Lastly, relevant type classes instances are defined for each of the above
 notions, such as contractiveness and non-expansiveness, after which the
 specifications of the message-passing primitives are defined in terms of the
 protocol connectives. *)
-From iris.algebra Require Import gmap excl_auth.
+From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
@@ -57,38 +57,14 @@ Export action.
 (** * Setup of Iris's cameras *)
 Class protoG Σ V :=
   protoG_authG ::
-    inG Σ (authUR (gmapR natO
-      (optionUR (exclR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ))))))).
+    inG Σ (gmap_viewR natO
+      (optionUR (exclR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))))).
 
 Definition protoΣ V := #[
-  GFunctor (authRF (gmapURF natO (optionRF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF))))))
+  GFunctor ((gmap_viewRF natO (optionRF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF))))))
 ].
 Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
 Proof. solve_inG. Qed.
-
-(* (** * Setup of Iris's cameras *) *)
-(* Class protoG Σ V := *)
-(*   protoG_authG :: *)
-(*     inG Σ (gmapR natO *)
-(*       (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ))))). *)
-
-(* Definition protoΣ V := #[ *)
-(*   GFunctor (gmapRF natO (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))) *)
-(* ]. *)
-(* Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V. *)
-(* Proof. solve_inG. Qed. *)
-
-
-(* (** * Setup of Iris's cameras *) *)
-(* Class protoG Σ V := *)
-(*   protoG_authG :: *)
-(*     inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))). *)
-
-(* Definition protoΣ V := #[ *)
-(*   GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF))))) *)
-(* ]. *)
-(* Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V. *)
-(* Proof. solve_inG. Qed. *)
 
 (** * Types *)
 Definition iProto Σ V := proto V (iPropO Σ) (iPropO Σ).
@@ -550,8 +526,8 @@ Definition iProto_consistent_pre {Σ V} (rec : gmap nat (iProto Σ V) → iProp 
 
 Global Instance iProto_consistent_pre_ne {Σ V}
        (rec : gmapO natO (iProto Σ V) -n> iPropO Σ) :
-  NonExpansive (iProto_consistent_pre (λ ps, rec ps)).
-Proof. Admitted.
+  NonExpansive (iProto_consistent_pre rec).
+Proof. rewrite /iProto_consistent_pre /can_step. solve_proper. Qed.
 
 Program Definition iProto_consistent_pre' {Σ V}
   (rec : gmapO natO (iProto Σ V) -n> iPropO Σ) :
@@ -559,7 +535,10 @@ Program Definition iProto_consistent_pre' {Σ V}
   λne ps, iProto_consistent_pre (λ ps, rec ps) ps.
 
 Local Instance iProto_consistent_pre_contractive {Σ V} : Contractive (@iProto_consistent_pre' Σ V).
-Proof. Admitted.
+Proof.
+  rewrite /iProto_consistent_pre' /iProto_consistent_pre /can_step.
+  solve_contractive.
+Qed.
 
 Definition iProto_consistent {Σ V} (ps : gmap nat (iProto Σ V)) : iProp Σ :=
   fixpoint iProto_consistent_pre' ps.
@@ -872,7 +851,7 @@ Proof.
   rewrite lookup_total_empty.
   by rewrite iProto_end_message_equivI.
 Qed.
-
+  
 Record proto_name := ProtName { proto_names : gmap nat gname }.
 Global Instance proto_name_inhabited : Inhabited proto_name :=
   populate (ProtName inhabitant).
@@ -886,13 +865,12 @@ Qed.
 
 Definition iProto_own_frag `{!protoG Σ V} (γ : gname)
     (i : nat) (p : iProto Σ V) : iProp Σ :=
-  own γ (◯ ({[i := Excl' (Next p)]})).
+  own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p))).
 
-(* TODO: Fix this def. *)
 Definition iProto_own_auth `{!protoG Σ V} (γ : gname)
     (ps : gmap nat (iProto Σ V)) : iProp Σ :=
-  own γ (● ∅).
-  (* own γ (● ((λ (p : iProto Σ V), Excl' (Next p)) <$> ps)). *)
+  (* own γ (● ∅). *)
+  own γ (gmap_view_auth (DfracOwn 1) (((λ p, Excl' (Next p)) <$> ps) : gmap _ _)).
 
 Definition iProto_ctx `{protoG Σ V}
     (γ : gname) : iProp Σ :=
@@ -937,42 +915,66 @@ Section proto.
   Global Instance iProto_own_frag_ne γ s : NonExpansive (iProto_own_frag γ s).
   Proof. solve_proper. Qed.
 
-  (* TODO: Relies on above def *)
   Lemma iProto_own_auth_agree γ ps i p :
     iProto_own_auth γ ps -∗ iProto_own_frag γ i p -∗ ▷ (ps !!! i ≡ p).
-  Proof. Admitted.
-  (*   iIntros "H● H◯". iDestruct (own_valid_2 with "H● H◯") as "H✓". *)
-  (*   iDestruct (excl_auth_agreeI with "H✓") as "H✓". *)
-  (*   iApply (later_equivI_1 with "H✓"). *)
-  (* Qed. *)
-
+  Proof.
+    iIntros "H● H◯". 
+    iDestruct (own_valid_2 with "H● H◯") as "H✓".
+    rewrite gmap_view_both_validI.
+    iDestruct "H✓" as "[_ [H1 H2]]".
+    rewrite lookup_total_alt.
+    rewrite lookup_fmap.
+    destruct (ps !! i); last first.
+    { simpl. rewrite !option_equivI. done. }
+    simpl.
+    rewrite !option_equivI excl_equivI.
+    by iNext.
+  Qed.
+  
   Lemma iProto_own_auth_update γ ps i p p' :
     iProto_own_auth γ ps -∗ iProto_own_frag γ i p ==∗
     iProto_own_auth γ (<[i := p']>ps) ∗ iProto_own_frag γ i p'.
-  Proof. Admitted.
-  (*   iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H". *)
-  (*   { eapply (excl_auth_update _ _ (Next p'')). } *)
-  (*   by rewrite own_op. *)
-  (* Qed. *)
+  Proof.
+    iIntros "H● H◯".
+    iMod (own_update_2 with "H● H◯") as "[H1 H2]"; [|iModIntro].
+    { eapply (gmap_view_replace _ _ _ (Excl' (Next p'))). done. }
+    iFrame. rewrite -fmap_insert. done.
+  Qed.
 
   Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
   Proof. solve_proper. Qed.
   Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s).
   Proof. apply (ne_proper _). Qed.
 
+  Lemma iProto_own_auth_alloc ps :
+    ⊢ |==> ∃ γ, iProto_own_auth γ ps ∗ [∗ map] i ↦p ∈ ps, iProto_own γ i p.
+  Proof.
+    iMod (own_alloc (gmap_view_auth (DfracOwn 1) ∅)) as (γ) "Hauth".
+    { apply gmap_view_auth_valid. }
+    iExists γ.
+    iInduction ps as [|i p ps Hin] "IH" using map_ind.
+    { iModIntro. iFrame.
+      by iApply big_sepM_empty. }
+    iMod ("IH" with "Hauth") as "[Hauth Hfrags]".
+    rewrite big_sepM_insert; [|done]. iFrame "Hfrags".
+    iMod (own_update with "Hauth") as "[Hauth Hfrag]".
+    { apply (gmap_view_alloc _ i (DfracOwn 1) (Excl' (Next p))).
+      - rewrite lookup_fmap. rewrite Hin. done.
+      - done.
+      - done. }
+    iFrame.
+    iModIntro.
+    rewrite -fmap_insert. iFrame.
+  Qed.      
+
   Lemma iProto_init ps :
-    iProto_consistent ps -∗
+    ▷ iProto_consistent ps -∗
     |==> ∃ γ, iProto_ctx γ ∗ [∗ map] i ↦p ∈ ps, iProto_own γ i p.
-  Proof. Admitted.
-  (* iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (lγ) "[H●l H◯l]". *)
-  (* { by apply excl_auth_valid. } *)
-  (*   iMod (own_alloc (●E (Next (iProto_dual p)) ⋅ *)
-  (*     ◯E (Next (iProto_dual p)))) as (rγ) "[H●r H◯r]". *)
-  (*   { by apply excl_auth_valid. } *)
-  (*   pose (ProtName lγ rγ) as γ. iModIntro. iExists γ. iSplitL "H●l H●r". *)
-  (*   { iExists p, (iProto_dual p). iFrame. iApply iProto_consistent_dual. } *)
-  (*   iSplitL "H◯l"; iExists _; iFrame; iApply iProto_le_refl. *)
-  (* Qed. *)
+  Proof.
+    iIntros "Hconsistnet".
+    iMod iProto_own_auth_alloc as (γ) "[Hauth Hfrags]".
+    iExists γ. iFrame. iExists _. iFrame. done.
+  Qed. 
 
   Lemma iProto_step γ i j m1 m2 p1 v :
     iProto_ctx γ -∗
@@ -988,8 +990,8 @@ Section proto.
     iDestruct (iProto_own_auth_agree with "Hauth Hj") as "#Hpj".
     iDestruct (iProto_consistent_step with "Hconsistent [//] [//] [Hm //]") as
       (p2) "[Hm2 Hconsistent]".
-    iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
     iMod (iProto_own_auth_update _ _ _ _ p2 with "Hauth Hj") as "[Hauth Hj]".
+    iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
     iIntros "!>!>". iExists p2. iFrame. iIntros "!>". iExists _. iFrame.
   Qed.
 
