@@ -113,12 +113,6 @@ Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
          ⌜v = PairV #l1 #l2⌝ ∗
          inv (nroot.@"p") (chan_inv γ γE1 γt1 i j l1) ∗
          inv (nroot.@"p") (chan_inv γ γE2 γt2 j i l2)) ∗
-    (* llist (λ l v, *)
-    (*          ∃ (j:nat) (l1 l2 : loc), *)
-    (*            ⌜l = (j,(l1,l2))⌝ ∗ ⌜v = PairV #l1 #l2⌝ ∗ *)
-    (*            inv (nroot.@"p") (chan_inv γ γE1 γt1 i j l1) ∗ *)
-    (*            inv (nroot.@"p") (chan_inv γ γE2 γt2 j i l2)) l *)
-    (*       (zip (seq 0 (length ls)) ls) ∗ *)
     own γE1 (●E (Next p)) ∗ own γE1 (◯E (Next p)) ∗
     iProto_own γ i p.
 Definition iProto_pointsto_aux : seal (@iProto_pointsto_def). by eexists. Qed.

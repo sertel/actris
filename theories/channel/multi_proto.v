@@ -559,8 +559,8 @@ Qed.
 Definition iProto_le {Σ V} (i:nat) (p1 p2 : iProto Σ V) : iProp Σ :=
   ∀ ps, iProto_consistent (<[i:=p1]>ps) -∗ iProto_consistent (<[i:=p2]>ps).
 Arguments iProto_le {_ _} _ _%proto _%proto.
-Global Instance: Params (@iProto_le) 3 := {}.
-(* Notation "p ⊑ q" := (iProto_le i p q) : bi_scope. *)
+Global Instance: Params (@iProto_le) 2 := {}.
+Notation "p ⊑{ i } q" := (iProto_le i p q) (at level 20) : bi_scope.
 
 Global Instance iProto_le_ne {Σ V} n : Proper ((=) ==> (dist n) ==> (dist n) ==> (dist n)) (@iProto_le Σ V).
 Proof. solve_proper. Qed.
@@ -615,13 +615,124 @@ Section proto.
 
   Lemma iProto_consistent_le ps i p1 p2 :
     ps !! i = Some p1 →
-    iProto_le i p1 p2 -∗
+    p1 ⊑{i} p2 -∗
     iProto_consistent ps -∗
     iProto_consistent (<[i := p2]>ps).
   Proof.
     iIntros (HSome) "Hle".
     rewrite -{1}(insert_id ps i p1); [|done].
     iApply "Hle".
+  Qed.
+
+  Lemma iProto_le_refl i p : ⊢ iProto_le i p p.
+  Proof. iIntros (ps) "$". Qed.
+
+  Lemma iProto_le_send i j m1 m2 :
+    (∀ v p2', iMsg_car m2 v (Next p2') -∗ ∃ p1',
+      ▷ (p1' ⊑{i} p2') ∗ iMsg_car m1 v (Next p1')) -∗
+    (<Send j> m1) ⊑{i} (<Send j> m2).
+  Proof.
+    iIntros "Hle".
+    iIntros (ps) "H".
+    iLöb as "IH" forall (ps m1 m2).
+    rewrite !iProto_consistent_unfold.
+    iIntros (i' j' m1' m2') "#Hm1' #Hm2'".
+    iAssert (⌜i ≠ j'⌝)%I as %Hneq'.
+    { destruct (decide (i = j')) as [<-|Hneq]; [|done].
+      rewrite lookup_total_insert. rewrite iProto_message_equivI.
+      iDestruct "Hm2'" as (Heq) "_". inversion Heq. }
+    destruct (decide (i = i')) as [<-|Hne]; last first.
+    { rewrite lookup_total_insert_ne; [|done].
+      rewrite lookup_total_insert_ne; [|done].
+      iDestruct ("H" $! i' j' with "[Hm1'] [Hm2']") as "H".
+      { rewrite lookup_total_insert_ne; [|done]. done. }
+      { rewrite lookup_total_insert_ne; [|done]. done. }
+      iIntros (v p1) "Hm1".
+      iDestruct ("H" with "Hm1") as (p2) "[Hm2 H]".
+      iExists p2. iFrame. iNext.
+      rewrite !(insert_commute _ j' i); [|done..].
+      rewrite !(insert_commute _ i' i); [|done..].
+      iApply ("IH" with "Hle H"). }
+    rewrite lookup_total_insert.
+    rewrite lookup_total_insert_ne; [|done].
+    iIntros (v p1) "Hm1".
+    rewrite iProto_message_equivI.
+    iDestruct "Hm1'" as "[%Heq #Hm1']".
+    inversion Heq. simplify_eq.
+    iSpecialize ("Hm1'" $! v (Next p1)).
+    iRewrite -"Hm1'" in "Hm1".
+    iDestruct ("Hle" with "Hm1") as (p2) "[Hle Hm2]".
+    iDestruct ("H" $!i with "[] [] Hm2") as (p2') "[Hm2 H]".
+    { rewrite lookup_total_insert. done. }
+    { rewrite lookup_total_insert_ne; [|done]. done. }
+    iExists p2'.
+    iFrame.
+    iNext. iApply "Hle".
+    rewrite !(insert_commute _ j' i); [|done..].
+    rewrite !insert_insert. done.
+  Qed.
+
+  Lemma iProto_le_recv i j m1 m2 :
+    (∀ v p1', iMsg_car m1 v (Next p1') -∗ ∃ p2',
+      ▷ (p1' ⊑{i} p2') ∗ iMsg_car m2 v (Next p2')) -∗
+    (<Recv j> m1) ⊑{i} (<Recv j> m2).
+  Proof.
+    iIntros "Hle".
+    iIntros (ps) "H".
+    iLöb as "IH" forall (ps m1 m2).
+    rewrite !iProto_consistent_unfold.
+    iIntros (i' j' m1' m2') "#Hm1' #Hm2'".
+    iAssert (⌜i ≠ i'⌝)%I as %Hneq'.
+    { destruct (decide (i = i')) as [<-|Hneq]; [|done].
+      rewrite lookup_total_insert. rewrite iProto_message_equivI.
+      iDestruct "Hm1'" as (Heq) "_". inversion Heq. }
+    destruct (decide (i = j')) as [<-|Hne]; last first.
+    { rewrite lookup_total_insert_ne; [|done].
+      rewrite lookup_total_insert_ne; [|done].
+      iDestruct ("H" $! i' j' with "[Hm1'] [Hm2']") as "H".
+      { rewrite lookup_total_insert_ne; [|done]. done. }
+      { rewrite lookup_total_insert_ne; [|done]. done. }
+      iIntros (v p1) "Hm1".
+      iDestruct ("H" with "Hm1") as (p2) "[Hm2 H]".
+      iExists p2. iFrame. iNext.
+      rewrite !(insert_commute _ j' i); [|done..].
+      rewrite !(insert_commute _ i' i); [|done..].
+      iApply ("IH" with "Hle H"). }
+    rewrite lookup_total_insert.
+    rewrite lookup_total_insert_ne; [|done].
+    iIntros (v p1) "Hm1".
+    rewrite iProto_message_equivI.
+    iDestruct "Hm2'" as "[%Heq #Hm2']".
+    inversion Heq. simplify_eq.
+    iDestruct ("H" $!i' with "[] [] Hm1") as (p2') "[Hm2 H]".
+    { rewrite lookup_total_insert_ne; [|done]. done. }
+    { rewrite lookup_total_insert. done. }
+    iDestruct ("Hle" with "Hm2") as (p2) "[Hle Hm2]".
+    iSpecialize ("Hm2'" $! v (Next p2)).
+    iRewrite "Hm2'" in "Hm2".
+    iExists p2.
+    iFrame.
+    iNext.
+    rewrite !insert_insert.
+    rewrite !(insert_commute _ i' i); [|done..].
+    iApply "Hle". done.
+  Qed.
+
+  Lemma iProto_le_base i a v P p1 p2 :
+    ▷ (p1 ⊑{i} p2) -∗
+    (<a> MSG v {{ P }}; p1) ⊑{i} (<a> MSG v {{ P }}; p2).
+  Proof.
+    rewrite iMsg_base_eq. iIntros "H". destruct a.
+    - iApply iProto_le_send. iIntros (v' p') "(->&Hp&$)".
+      iExists p1. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
+    - iApply iProto_le_recv. iIntros (v' p') "(->&Hp&$)".
+      iExists p2. iSplit; [|by auto]. iIntros "!>". by iRewrite -"Hp".
+  Qed.
+
+  Lemma iProto_le_trans i p1 p2 p3 : p1 ⊑{i} p2 -∗ p2 ⊑{i} p3 -∗ p1 ⊑{i} p3.
+  Proof.
+    iIntros "H1 H2" (p) "Hprot".
+    iApply "H2". iApply "H1". done.
   Qed.
 
   Lemma iProto_consistent_step ps m1 m2 i j v p1 :
