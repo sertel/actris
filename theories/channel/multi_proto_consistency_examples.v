@@ -325,17 +325,16 @@ Section channel.
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
-      (* TODO: Fix unification *)
-      wp_recv (x) as "_"; [done|].
-      wp_send with "[//]"; [done|].
+      wp_recv (x) as "_".
+      wp_send with "[//]".
       done. }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>".
-      wp_recv (x) as "_"; [done|].
-      wp_send with "[//]"; [done|].
+      wp_recv (x) as "_".
+      wp_send with "[//]".
       done. }
-    wp_send with "[//]"; [done|].
-    wp_recv as "_"; [done|].
+    wp_send with "[//]".
+    wp_recv as "_".
     by iApply "HΦ".
   Qed.
 
@@ -347,10 +346,10 @@ Section example4.
   Definition iProto_example4 : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
             <(Recv, 2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
-      (<[1 := (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-               <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; END)%proto]>
-         (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-                  <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
+   (<[1 := (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+            <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; END)%proto]>
+   (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+            <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
             ∅)).
 
   Lemma iProto_example4_consistent :
@@ -575,19 +574,12 @@ Section proof.
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
-      wp_recv (l x) as "Hl"; [done|].
-      wp_load. wp_store.
-      wp_send with "[$Hl]"; [done|].
-      done. }
+      wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[$Hl]". }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>".
-      wp_recv (l x) as "Hl"; [done|].
-      wp_load. wp_store.
-      wp_send with "[$Hl]"; [done|].
-      done. }
-    wp_alloc l as "Hl".
-    wp_send with "[$Hl]"; [done|].
-    wp_recv as "Hl"; [done|]. wp_load. by iApply "HΦ".
+      wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[$Hl]". }
+    wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
+    by iApply "HΦ".
   Qed.
 
 End proof.

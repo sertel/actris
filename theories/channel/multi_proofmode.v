@@ -194,14 +194,13 @@ Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
     first
       [reshape_expr e ltac:(fun K e' => eapply (tac_wp_recv _ _ Hnew K))
       |fail 1 "wp_recv: cannot find 'recv' in" e];
-    [try done|
-      solve_pointsto ()
+    [|solve_pointsto ()
        |tc_solve || fail 1 "wp_recv: protocol not of the shape <?>"
     |tc_solve || fail 1 "wp_recv: cannot convert to telescope"
     |tc_solve
     |pm_reduce; simpl; tac_intros;
      tac Hnew;
-     wp_finish]
+     wp_finish];[try done|]
   | _ => fail "wp_recv: not a 'wp'"
   end.
 
@@ -311,7 +310,7 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
        first
          [reshape_expr e ltac:(fun K e' => eapply (tac_wp_send _ neg _ Hs' K))
          |fail 1 "wp_send: cannot find 'send' in" e];
-       [try done|solve_pointsto ()
+       [|solve_pointsto ()
        |tc_solve || fail 1 "wp_send: protocol not of the shape <!>"
        |tc_solve || fail 1 "wp_send: cannot convert to telescope"
        |pm_reduce; simpl; tac_exist;
@@ -323,7 +322,7 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
         | _ => notypeclasses refine (conj (eq_refl _) (conj _ _));
                 [iFrame Hs_frame; solve_done d
                 |wp_finish]
-        end]
+        end]; [try done|..]
      | _ => fail "wp_send: not a 'wp'"
      end
   | _ => fail "wp_send: only a single goal spec pattern supported"
@@ -357,26 +356,28 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-(* Section channel. *)
-(*   Context `{!heapGS Σ, !chanG Σ}. *)
-(*   Implicit Types p : iProto Σ. *)
-(*   Implicit Types TT : tele. *)
+Section channel.
+  Context `{!heapGS Σ, !chanG Σ}.
+  Implicit Types p : iProto Σ.
+  Implicit Types TT : tele.
 
-(*   (* Lemma recv_test c p : *) *)
-(*   (*   {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}} *) *)
-(*   (*     recv c #0 *) *)
-(*   (*   {{{ x, RET #x; c ↣ p }}}. *) *)
-(*   (* Proof. *) *)
-(*   (*   iIntros (Φ) "Hc HΦ". *) *)
-(*   (*   wp_recv (x) as "_". *) *)
-(*   (*   { done. } *) *)
-(*   (*   iApply "HΦ". *) *)
+  (* TODO: Why do the tactics not strip laters? *)
+  Lemma recv_test c p :
+    {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}}
+      recv c #0
+    {{{ x, RET #x; c ↣ p }}}.
+  Proof.
+    iIntros (Φ) "Hc HΦ".
+    wp_recv (x) as "_".
+  Admitted.
 
-(*   Lemma send_test c p : *)
-(*     {{{ c ↣ (<(Send,0) @(x:Z)> MSG #x ; p) }}} *)
-(*       send c #0 #42 *)
-(*     {{{ x, RET #x; c ↣ p }}}. *)
-(*   Proof. *)
-(*     iIntros (Φ) "Hc HΦ". *)
-(*     wp_send (42%Z) with "[]". *)
-    
+  Lemma send_test c p :
+    {{{ c ↣ (<(Send,0) @(x:Z)> MSG #x ; p) }}}
+      send c #0 #42
+    {{{ x, RET #x; c ↣ p }}}.
+  Proof.
+    iIntros (Φ) "Hc HΦ".
+    wp_send (42%Z) with "[//]".
+  Admitted.
+
+End channel.
