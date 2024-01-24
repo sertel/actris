@@ -104,7 +104,7 @@ Definition chan_inv `{!heapGS Σ, !chanG Σ} γ γE γt i j (l:loc) : iProp Σ :
 
 Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
-  ∃ γ γE1 γE2 γt1 γt2 i (l:loc) ls,
+  ∃ γ γE1 γE2 γt1 γt2 i (l:loc) ls p',
     ⌜ c = PairV #(length ls) #l ⌝ ∗
     inv (nroot.@"ctx") (iProto_ctx γ) ∗
     l ↦∗ ls ∗
@@ -113,8 +113,9 @@ Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
          ⌜v = PairV #l1 #l2⌝ ∗
          inv (nroot.@"p") (chan_inv γ γE1 γt1 i j l1) ∗
          inv (nroot.@"p") (chan_inv γ γE2 γt2 j i l2)) ∗
-    own γE1 (●E (Next p)) ∗ own γE1 (◯E (Next p)) ∗
-    iProto_own γ i p.
+    ▷ (p' ⊑ p) ∗
+    own γE1 (●E (Next p')) ∗ own γE1 (◯E (Next p')) ∗
+    iProto_own γ i p'.
 Definition iProto_pointsto_aux : seal (@iProto_pointsto_def). by eexists. Qed.
 Definition iProto_pointsto := iProto_pointsto_aux.(unseal).
 Definition iProto_pointsto_eq :
@@ -134,12 +135,15 @@ Section channel.
   Global Instance iProto_pointsto_proper c : Proper ((≡) ==> (≡)) (iProto_pointsto c).
   Proof. apply (ne_proper _). Qed.
 
-  (* Lemma iProto_pointsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2. *)
-  (* Proof. *)
-  (*   rewrite iProto_pointsto_eq. iDestruct 1 as (γ s l r lk ->) "[Hlk H]". *)
-  (*   iIntros "Hle'". iExists γ, s, l, r, lk. iSplit; [done|]. iFrame "Hlk". *)
-  (*   by iApply (iProto_own_le with "H"). *)
-  (* Qed. *)
+  Lemma iProto_pointsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
+  Proof.
+    rewrite iProto_pointsto_eq.
+    iDestruct 1 as
+      (γ γE1 γE2 γt1 γt2 i l ls p ->) "(#IH & Hl & Hls & Hle & H● & H◯ & Hown)".
+    iIntros "Hle'". iExists γ, γE1, γE2, γt1, γt2, i, l, ls, p.
+    iSplit; [done|]. iFrame "#∗".
+    iApply (iProto_le_trans with "Hle Hle'").
+  Qed.
 
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec (n:nat) (ps:gmap nat (iProto Σ)) :
@@ -155,7 +159,9 @@ Section channel.
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p2))) -∗
     False.
-  Proof. Admitted.
+  Proof. 
+    iIntros "Hi Hj". by iDestruct (own_prot_idx with "Hi Hj") as %Hneq.
+  Qed.
 
   Lemma send_spec c j v p :
     {{{ c ↣ <(Send, j)> MSG v; p }}}
@@ -164,11 +170,11 @@ Section channel.
   Proof.
     rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+      (γ γE1 γE2 γt1 γt2 i l ls p' ->) "(#IH & Hl & Hls & Hle & H● & H◯ & Hown)".
     wp_pures.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
-      iLöb as "IH". wp_lam. iApply "IH". }
+      iLöb as "IH". wp_lam. iApply "IH". done. }
     assert (is_Some (ls !! j)) as [l' HSome].
     { apply lookup_lt_is_Some_2. lia. }
     wp_pures.
@@ -187,18 +193,24 @@ Section channel.
       - iDestruct "HIp" as (? m) "(>Hl' & Hown' & HIp)".
         wp_store.
         rewrite /iProto_own.
+        iDestruct "Hown" as (p'') "[Hle' Hown]".
+        iDestruct "Hown'" as (p''') "[Hle'' Hown']".
         iDestruct (own_prot_excl with "Hown Hown'") as "H". done.
-      - iDestruct "HIp" as (p') "(>Hl' & Hown' & HIp)".
+      - iDestruct "HIp" as (p'') "(>Hl' & Hown' & HIp)".
         wp_store.
         rewrite /iProto_own.
+        iDestruct "Hown" as (p''') "[Hle' Hown]".
+        iDestruct "Hown'" as (p'''') "[Hle'' Hown']".
         iDestruct (own_prot_excl with "Hown Hown'") as "H". done. }
     iDestruct "HIp" as "[>Hl' Htok]".
     wp_store.
     iMod (own_update_2 with "H● H◯") as "[H● H◯]".
     { apply excl_auth_update. }
     iModIntro.
-    iSplitL "Hl' H● Hown". 
+    iSplitL "Hl' H● Hown Hle". 
     { iRight. iLeft. iIntros "!>". iExists _, _. iFrame.
+      iSplitL "Hown Hle".
+      { iApply (iProto_own_le with "Hown Hle"). }
       iExists _. iFrame. rewrite iMsg_base_eq. simpl. done. }
     wp_pures.
     iLöb as "HL".
@@ -214,7 +226,7 @@ Section channel.
       iSplitL "Hl' Hown HIp".
       { iRight. iLeft. iExists _, _. iFrame. }
       wp_pures. iApply ("HL" with "HΦ Hl Hls Htok H◯").
-    - iDestruct "HIp" as (p') "(>Hl' & Hown & H●)".
+    - iDestruct "HIp" as (p'') "(>Hl' & Hown & H●)".
       wp_load.
       iModIntro.
       iSplitL "Hl' Htok".
@@ -226,90 +238,27 @@ Section channel.
       { apply excl_auth_update. }
       iModIntro.
       iApply "HΦ".
-      iExists _, _, _, _, _, _, _, _.
+      iExists _,_, _, _, _, _, _, _, _.
       iSplit; [done|]. iFrame "#∗".
-      iRewrite -"Hagree'". done.
+      iRewrite -"Hagree'". iApply iProto_le_refl.
   Qed.
   
-  Lemma send_spec_tele {TT} c j (tt : TT)
+  Lemma send_spec_tele {TT} c i (tt : TT)
         (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ (<(Send, j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
-      send c #j (v tt)
+    {{{ c ↣ (<(Send,i) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
+      send c #i (v tt)
     {{{ RET #(); c ↣ (p tt) }}}.
   Proof.
-    rewrite iProto_pointsto_eq. iIntros (Φ) "[Hc HP] HΦ". wp_lam; wp_pures.    
-    iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
-    wp_pures.
-    case_bool_decide; last first.
-    { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
-      iLöb as "IH". wp_lam. iApply "IH". iFrame. }
-    assert (is_Some (ls !! j)) as [l' HSome].
-    { apply lookup_lt_is_Some_2. lia. }
-    wp_pures.
-    wp_smart_apply (wp_load_offset with "Hl").
-    { done. } 
-    iIntros "Hl". wp_pures.
-    iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj Hls]"; [done|].
-    iDestruct "Hj" as (l1 l2 ->) "#[IHl1 IHl2]". 
-    iDestruct ("Hls" with "[]") as "Hls".
-    { iExists _, _. iFrame "#". done. }
-    wp_pures.
-    wp_bind (Store _ _).
-    iInv "IHl1" as "HIp".
-    iDestruct "HIp" as "[HIp|HIp]"; last first.
-    { iDestruct "HIp" as "[HIp|HIp]".
-      - iDestruct "HIp" as (? m) "(>Hl' & Hown' & HIp)".
-        wp_store.
-        rewrite /iProto_own.
-        iDestruct (own_prot_excl with "Hown Hown'") as "H". done.
-      - iDestruct "HIp" as (p') "(>Hl' & Hown' & HIp)".
-        wp_store.
-        rewrite /iProto_own.
-        iDestruct (own_prot_excl with "Hown Hown'") as "H". done. }
-    iDestruct "HIp" as "[>Hl' Htok]".
-    wp_store.
-    iMod (own_update_2 with "H● H◯") as "[H● H◯]".
-    { apply excl_auth_update. }
-    iModIntro.
-    iSplitL "Hl' H● Hown HP". 
-    { iRight. iLeft. iIntros "!>". iExists _, _. iFrame.
-      iExists _. iFrame. rewrite iMsg_base_eq. simpl.
-      iApply iMsg_texist_exist.
-      simpl. iExists tt.
-      iSplit; [done|]. 
-      iSplit; [done|]. 
-      done. }
-    wp_pures.
-    iLöb as "HL".
-    wp_lam.
-    wp_bind (Load _).
-    iInv "IHl1" as "HIp".
-    iDestruct "HIp" as "[HIp|HIp]".
-    { iDestruct "HIp" as ">[Hl' Htok']".
-      iDestruct (own_valid_2 with "Htok Htok'") as %[]. }
-    iDestruct "HIp" as "[HIp|HIp]".
-    - iDestruct "HIp" as (? m) "(>Hl' & Hown & HIp)".
-      wp_load. iModIntro.
-      iSplitL "Hl' Hown HIp".
-      { iRight. iLeft. iExists _, _. iFrame. }
-      wp_pures. iApply ("HL" with "HΦ Hl Hls Htok H◯").
-    - iDestruct "HIp" as (p') "(>Hl' & Hown & H●)".
-      wp_load.
-      iModIntro.
-      iSplitL "Hl' Htok".
-      { iLeft. iFrame. }
-      iDestruct (own_valid_2 with "H● H◯") as "#Hagree".
-      iDestruct (excl_auth_agreeI with "Hagree") as "Hagree'".
-      wp_pures.
-      iMod (own_update_2 with "H● H◯") as "[H● H◯]".
-      { apply excl_auth_update. }
-      iModIntro.
-      iApply "HΦ".
-      iExists _, _, _, _, _, _, _, _.
-      iSplit; [done|]. iFrame "#∗".
-      iRewrite -"Hagree'". done.
+    iIntros (Φ) "[Hc HP] HΦ".
+    iDestruct (iProto_pointsto_le _ _ (<(Send,i)> MSG v tt; p tt)%proto with "Hc [HP]")
+      as "Hc".
+    { iIntros "!>".
+      iApply iProto_le_trans.
+      iApply iProto_le_texist_intro_l.
+      by iApply iProto_le_payload_intro_l. }
+    by iApply (send_spec with "Hc").
   Qed.
+
 
   Lemma recv_spec {TT} c j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
     {{{ c ↣ <(Recv, j) @.. x> MSG v x {{ P x }}; p x }}}
@@ -319,11 +268,11 @@ Section channel.
     iIntros (Φ) "Hc HΦ". iLöb as "HL". wp_lam.
     rewrite iProto_pointsto_eq.
     iDestruct "Hc" as
-      (γ γE1 γE2 γt1 γt2 i l ls ->) "(#IH & Hl & Hls & H● & H◯ & Hown)".
+      (γ γE1 γE2 γt1 γt2 i l ls p' ->) "(#IH & Hl & Hls & Hle & H● & H◯ & Hown)".
     wp_pures.
     case_bool_decide; last first.
     { wp_pures. iClear "IH H● H◯ Hown HΦ Hls Hl".
-      iLöb as "IH". wp_lam. iApply "IH". }
+      iLöb as "IH". wp_lam. iApply "IH". done. }
     wp_pures.
     assert (is_Some (ls !! j)) as [l' HSome].
     { apply lookup_lt_is_Some_2. lia. }
@@ -343,22 +292,23 @@ Section channel.
       iModIntro.
       iSplitL "Hl' Htok".
       { iLeft. iFrame. }
-      wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl] HΦ").
-      iExists _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
+      wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl Hle] HΦ").
+      iExists _, _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
     iDestruct "HIp" as "[HIp|HIp]"; last first.
-    { iDestruct "HIp" as (p') "[>Hl' [Hown' H◯']]".
+    { iDestruct "HIp" as (p'') "[>Hl' [Hown' H◯']]".
       wp_xchg.
       iModIntro.
       iSplitL "Hl' Hown' H◯'".
       { iRight. iRight. iExists _. iFrame. }
-      wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl] HΦ").
-      iExists _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
+      wp_pures. iApply ("HL" with "[H● H◯ Hown Hls Hl Hle] HΦ").
+      iExists _, _, _, _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
     iDestruct "HIp" as (w m) "(>Hl' & Hown' & HIp)".
-    iDestruct "HIp" as (p') "[Hm Hp']".
+    iDestruct "HIp" as (p'') "[Hm Hp']".
     iInv "IH" as "Hctx".
     wp_xchg.
+    iDestruct (iProto_own_le with "Hown Hle") as "Hown".
     iMod (iProto_step with "Hctx Hown' Hown Hm") as
-      (p'') "(Hm & Hctx & Hown & Hown')".
+      (p''') "(Hm & Hctx & Hown & Hown')".
     iModIntro.
     iSplitL "Hctx"; [done|].
     iModIntro.
@@ -372,8 +322,8 @@ Section channel.
     { apply excl_auth_update. }
     iModIntro. iApply "HΦ".
     iFrame.
-    iExists _, _, _, _, _, _, _, _. iSplit; [done|].
-    iRewrite "Hp". iFrame "#∗".
+    iExists _, _, _, _, _, _, _, _, _. iSplit; [done|].
+    iRewrite "Hp". iFrame "#∗". iApply iProto_le_refl.
   Qed.
 
 End channel.

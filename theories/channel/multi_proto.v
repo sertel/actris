@@ -633,7 +633,7 @@ Definition iProto_ctx `{protoG Σ V}
 (** * The connective for ownership of channel ends *)
 Definition iProto_own `{!protoG Σ V}
     (γ : gname) (i : nat) (p : iProto Σ V) : iProp Σ :=
-  iProto_own_frag γ i p.
+  ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ i p'.
 Arguments iProto_own {_ _ _} _ _ _%proto.
 Global Instance: Params (@iProto_own) 3 := {}.
 
@@ -757,13 +757,15 @@ Section proto.
   Qed.
 
   Lemma iProto_consistent_le ps i p1 p2 :
-    ps !! i = Some p1 →
-    p1 ⊑ p2 -∗
     iProto_consistent ps -∗
+    ps !!! i ≡ p1 -∗
+    p1 ⊑ p2 -∗
     iProto_consistent (<[i := p2]>ps).
   Proof.
-    iIntros (HSome) "Hle Hprot".
-    iLöb as "IH" forall (p1 p2 ps HSome).
+    iIntros "Hprot #HSome Hle".
+    iRevert "HSome".
+    iLöb as "IH" forall (p1 p2 ps).
+    iIntros "#HSome".
     rewrite !iProto_consistent_unfold.
     iIntros (i' j' m1 m2) "#Hm1 #Hm2".
     destruct (decide (i = i')) as [<-|Hneq].
@@ -788,13 +790,13 @@ Section proto.
       { rewrite lookup_total_insert. rewrite iProto_message_equivI.
         iDestruct "Hm2" as "[%Heq _]". done. }
       iDestruct ("Hprot" $!i j' with "[] [] H") as "Hprot".
-      { iRewrite -"Heq". rewrite !lookup_total_alt. rewrite HSome. done. }
+      { iRewrite -"Heq". rewrite !lookup_total_alt. iRewrite "HSome". done. }
       { rewrite lookup_total_insert_ne; [|done]. done. }
       iDestruct "Hprot" as (p'') "[Hm Hprot]".
       iExists p''. iFrame. 
       iNext.
-      iDestruct ("IH" with "[] Hle Hprot") as "HI".
-      { iPureIntro. by rewrite lookup_insert. }
+      iDestruct ("IH" with "Hprot Hle [HSome]") as "HI".
+      { by rewrite lookup_total_insert. }
       iClear "IH Hm1 Hm2 Heq".
       rewrite insert_insert.
       rewrite (insert_commute _ j' i); [|done].
@@ -816,17 +818,16 @@ Section proto.
       iDestruct (iProto_le_recv_inv_r with "Hle") as "Hle". 
       (* iRewrite -"Hm2" in "Hm2'". *)
       iDestruct "Hle" as (m') "[#Heq Hle]".
-
       iDestruct ("Hprot" $!i' with "[] [] Hm1'") as "Hprot".
       { done. }
-      { rewrite !lookup_total_alt. rewrite HSome. done. }
+      { rewrite !lookup_total_alt. iRewrite "HSome". done. }
       iDestruct ("Hprot") as (p') "[Hm1' Hprot]".
       iDestruct ("Hle" with "Hm1'") as (p2') "[Hle Hm']". 
       iSpecialize ("Hm2" $! v (Next p2')).
       iExists p2'.
       iRewrite -"Hm2". iFrame.
-      iDestruct ("IH" with "[] Hle Hprot") as "HI".
-      { iPureIntro. rewrite lookup_insert_ne; [|done]. rewrite lookup_insert. done. }
+      iDestruct ("IH" with "Hprot Hle []") as "HI".
+      { iPureIntro. rewrite lookup_total_insert_ne; [|done]. rewrite lookup_total_insert. done. }
       rewrite insert_commute; [|done].
       rewrite !insert_insert. done. }
     rewrite lookup_total_insert_ne; [|done].
@@ -837,10 +838,9 @@ Section proto.
     iNext.
     rewrite (insert_commute _ j' i); [|done].
     rewrite (insert_commute _ i' i); [|done].
-    iApply ("IH" with "[] Hle Hprot").
-    iPureIntro.
-    rewrite lookup_insert_ne; [|done].
-    rewrite lookup_insert_ne; [|done].
+    iApply ("IH" with "Hprot Hle []").
+    rewrite lookup_total_insert_ne; [|done].
+    rewrite lookup_total_insert_ne; [|done].
     done.
   Qed.
 
@@ -1060,7 +1060,16 @@ Section proto.
       - done. }
     iFrame.
     iModIntro.
-    rewrite -fmap_insert. iFrame.
+    rewrite -fmap_insert.
+    iFrame.
+    iExists _. iFrame. iApply iProto_le_refl.
+  Qed.
+
+  Lemma iProto_own_le γ s p1 p2 :
+    iProto_own γ s p1 -∗ ▷ (p1 ⊑ p2) -∗ iProto_own γ s p2.
+  Proof.
+    iDestruct 1 as (p1') "[Hle H]". iIntros "Hle'".
+    iExists p1'. iFrame "H". by iApply (iProto_le_trans with "Hle").
   Qed.
 
   Lemma iProto_init ps :
@@ -1072,6 +1081,12 @@ Section proto.
     iExists γ. iFrame. iExists _. iFrame. done.
   Qed.
 
+  Lemma own_prot_idx γ i j (p1 p2 : iProto Σ V) :
+    own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
+    own γ (gmap_view_frag j (DfracOwn 1) (Excl' (Next p2))) -∗
+    ⌜i ≠ j⌝.
+  Proof. Admitted.
+
   Lemma iProto_step γ i j m1 m2 p1 v :
     iProto_ctx γ -∗
     iProto_own γ i (<(Send, j)> m1) -∗
@@ -1081,14 +1096,33 @@ Section proto.
             iProto_own γ i p1 ∗ iProto_own γ j p2.
   Proof.
     iIntros "Hctx Hi Hj Hm".
+    iDestruct "Hi" as (pi) "[Hile Hi]".
+    iDestruct "Hj" as (pj) "[Hjle Hj]".
     iDestruct "Hctx" as (ps) "[Hauth Hconsistent]".
     iDestruct (iProto_own_auth_agree with "Hauth Hi") as "#Hpi".
     iDestruct (iProto_own_auth_agree with "Hauth Hj") as "#Hpj".
-    iDestruct (iProto_consistent_step with "Hconsistent [//] [//] [Hm //]") as
+    iDestruct (own_prot_idx with "Hi Hj") as %Hneq. 
+    iAssert (▷ (<[i:=<(Send, j)> m1]>ps !!! j ≡ pj))%I as "Hpj'".
+    { rewrite lookup_total_insert_ne; done. }
+    iDestruct (iProto_consistent_le with "Hconsistent Hpi Hile") as "Hconsistent".
+    iDestruct (iProto_consistent_le with "Hconsistent Hpj' Hjle") as "Hconsistent".
+    iDestruct (iProto_consistent_step _ _ _ i j with "Hconsistent [] [] [Hm //]") as
       (p2) "[Hm2 Hconsistent]".
+    { rewrite lookup_total_insert_ne; [|done].
+      rewrite lookup_total_insert_ne; [|done].
+      iNext. rewrite lookup_total_insert. done. }
+    { rewrite lookup_total_insert_ne; [|done].
+      iNext. rewrite lookup_total_insert. done. } 
     iMod (iProto_own_auth_update _ _ _ _ p2 with "Hauth Hj") as "[Hauth Hj]".
     iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
-    iIntros "!>!>". iExists p2. iFrame. iExists _. iFrame.
+    iIntros "!>!>". iExists p2. iFrame.
+    iSplitL "Hconsistent Hauth".
+    { iExists _. iFrame. rewrite insert_insert.
+      rewrite insert_commute; [|done]. rewrite insert_insert.
+      rewrite insert_commute; [|done]. done. }
+    iSplitL "Hi".
+    - iExists _. iFrame. iApply iProto_le_refl.
+    - iExists _. iFrame. iApply iProto_le_refl.
   Qed.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)
@@ -1164,7 +1198,7 @@ Section proto.
 
 End proto.
 
-(* Typeclasses Opaque iProto_ctx iProto_own. *)
+Typeclasses Opaque iProto_ctx iProto_own.
 
-(* Global Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) => *)
-(*   first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core. *)
+Global Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
+  first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.
