@@ -2,7 +2,7 @@ From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
-From actris.channel Require Import multi_proto_model multi_proto multi_channel.
+From actris.channel Require Import multi_proto_model multi_proto multi_channel multi_proofmode.
 Set Default Proof Using "Type".
 Export action.
 
@@ -325,34 +325,18 @@ Section channel.
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
-      wp_smart_apply
-        (recv_spec (TT:=[tele Z]) c1 0
-                   (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
-          with "Hc1").
-      iIntros (x') "[Hc1 _]".
-      epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
-      wp_smart_apply (send_spec c1 2 with "Hc1").
-      by iIntros "_". }
+      (* TODO: Fix unification *)
+      wp_recv (x) as "_"; [done|].
+      wp_send with "[//]"; [done|].
+      done. }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>".
-      wp_smart_apply
-        (recv_spec (TT:=[tele Z]) c2 1
-                   (tele_app (λ (x:Z), #x)) (λ _, True)%I (tele_app (λ (x:Z), _))
-                   with "Hc2").
-      iIntros (x') "[Hc1 _]".
-      epose proof (tele_arg_S_inv x') as [x [[] ->]]. simpl.
-      wp_smart_apply (send_spec c2 0 with "Hc1").
-      by iIntros "_". }
-    wp_smart_apply
-      (send_spec_tele (TT:=[tele Z]) c0 1 ([tele_arg 42%Z])
-                      (tele_app (λ (x:Z), #x)) (λ _, True)%I
-                      (tele_app (λ (x:Z), _))
-                   with "[Hc0]").
-    { iSplitL; [|done]. simpl. iFrame "Hc0". }
-    iIntros "Hc0".
-    wp_smart_apply (recv_spec (TT:=[tele]) c0 2 (λ _, #42) (λ _, True)%I (λ _, _)
-                      with "Hc0").
-    iIntros (_) "Hc0". by iApply "HΦ".
+      wp_recv (x) as "_"; [done|].
+      wp_send with "[//]"; [done|].
+      done. }
+    wp_send with "[//]"; [done|].
+    wp_recv as "_"; [done|].
+    by iApply "HΦ".
   Qed.
 
 End channel.
@@ -591,52 +575,19 @@ Section proof.
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
-      wp_smart_apply
-        (recv_spec (TT:=[tele loc Z]) c1 0
-                   (tele_app (λ (l : loc) (x:Z), #l))
-                   (tele_app (λ (l : loc) (x:Z), l ↦ #x)%I)
-                   (tele_app (λ (l : loc) (x:Z), _))
-          with "Hc1").
-      iIntros (x') "[Hc1 Hl]".
-      epose proof (tele_arg_S_inv x') as [l [y' ->]]. simpl.
-      epose proof (tele_arg_S_inv y') as [x [[] ->]]. simpl.
+      wp_recv (l x) as "Hl"; [done|].
       wp_load. wp_store.
-      wp_smart_apply (send_spec_tele (TT:=[tele]) c1 2
-                                     ([tele_arg])
-                                     (λ _, #l)
-                                     (λ _, l ↦ #(x+1))%I
-                                     (λ _, _) with "[$Hc1 $Hl]").
-      by iIntros "_". }
+      wp_send with "[$Hl]"; [done|].
+      done. }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>".
-      wp_smart_apply
-        (recv_spec (TT:=[tele loc Z]) c2 1
-                   (tele_app (λ (l : loc) (x:Z), #l))
-                   (tele_app (λ (l : loc) (x:Z), l ↦ #x)%I)
-                   (tele_app (λ (l : loc) (x:Z), _))
-          with "Hc2").
-      iIntros (x') "[Hc2 Hl]".
-      epose proof (tele_arg_S_inv x') as [l [y' ->]]. simpl.
-      epose proof (tele_arg_S_inv y') as [x [[] ->]]. simpl.
+      wp_recv (l x) as "Hl"; [done|].
       wp_load. wp_store.
-      wp_smart_apply (send_spec_tele (TT:=[tele]) c2 0
-                                     ([tele_arg])
-                                     (λ _, #())
-                                     (λ _, l ↦ #(x+1))%I
-                                     (λ _, _) with "[$Hc2 $Hl]").
-      by iIntros "_". }
+      wp_send with "[$Hl]"; [done|].
+      done. }
     wp_alloc l as "Hl".
-    wp_smart_apply
-      (send_spec_tele (TT:=[tele l Z]) c0 1 ([tele_arg l ; 40%Z])
-                      (tele_app (λ (l:loc) (x:Z), #l))
-                      (tele_app (λ (l:loc) (x:Z), l ↦ #x)%I)
-                      (tele_app (λ (l:loc) (x:Z), _))
-                   with "[$Hc0 $Hl]").
-    iIntros "Hc0".
-    wp_smart_apply (recv_spec (TT:=[tele]) c0 2
-                              (λ _, #()) (λ _, l ↦ #(40 + 2))%I (λ _, _)
-                      with "Hc0").
-    iIntros (_) "[Hc0 Hl]". wp_load. by iApply "HΦ".
+    wp_send with "[$Hl]"; [done|].
+    wp_recv as "Hl"; [done|]. wp_load. by iApply "HΦ".
   Qed.
 
 End proof.

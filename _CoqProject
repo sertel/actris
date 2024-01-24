@@ -20,6 +20,7 @@ theories/channel/channel.v
 theories/channel/multi_proto_model.v
 theories/channel/multi_proto.v
 theories/channel/multi_channel.v
+theories/channel/multi_proofmode.v
 theories/channel/multi_proto_consistency_examples.v
 theories/channel/proofmode.v
 theories/examples/basics.v

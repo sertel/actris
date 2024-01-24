@@ -24,7 +24,8 @@ the subprotocol relation [⊑] *)
 From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export primitive_laws notation proofmode.
-From actris.channel Require Import multi_proto_model multi_proto.
+From actris.channel Require Import multi_proto_model.
+From actris.channel Require Export multi_proto.
 Set Default Proof Using "Type".
 
 (* TODO: Update new_chan definition to use pointers with offsets *)
@@ -303,7 +304,7 @@ Section channel.
 
 
   Lemma recv_spec {TT} c j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ <(Recv, j) @.. x> MSG v x {{ P x }}; p x }}}
+    {{{ c ↣ <(Recv, j) @.. x> MSG v x {{ ▷ P x }}; p x }}}
       recv c #j
     {{{ x, RET v x; c ↣ p x ∗ P x }}}.
   Proof.
