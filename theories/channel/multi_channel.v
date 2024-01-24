@@ -41,6 +41,9 @@ Definition new_chan : val :=
        ("xxs" +ₗ "i") <- "xs";;
        "go1" ("i"+#1)) #0;; "xxs".
 
+Definition get_chan : val :=
+  λ: "cs" "i", ! ("cs" +ₗ "i").
+
 Definition wait : val :=
   rec: "go" "c" :=
     match: !"c" with
@@ -125,6 +128,13 @@ Global Instance: Params (@iProto_pointsto) 5 := {}.
 Notation "c ↣ p" := (iProto_pointsto c p)
   (at level 20, format "c  ↣  p").
 
+Definition chan_pool `{!heapGS Σ, !chanG Σ}
+    (cs : val) (ps : gmap nat (iProto Σ)) : iProp Σ :=
+  ∃ (l:loc) (ls : list val),
+    ⌜cs = #l⌝ ∗ ⌜∀ i, is_Some (ps !! i) → is_Some (ls !! i)⌝ ∗
+    l ↦∗ ls ∗
+    [∗list] i ↦ c ∈ ls, (∀ p, ⌜ps !! i = Some p⌝ -∗ c ↣ p).
+
 Section channel.
   Context `{!heapGS Σ, !chanG Σ}.
   Implicit Types p : iProto Σ.
@@ -148,12 +158,44 @@ Section channel.
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec (n:nat) (ps:gmap nat (iProto Σ)) :
     (∀ i, i < n → is_Some (ps !! i)) →
+    n = (size (dom ps)) →
     {{{ iProto_consistent ps }}}
       new_chan #n
-    {{{ cs ls, RET #cs;
-        ⌜length ls = n⌝ ∗ cs ↦∗ ls ∗
-        [∗list] i ↦ l ∈ ls, l ↣ (ps !!! i) }}}.
+    {{{ cs, RET cs; chan_pool cs ps }}}.
   Proof. Admitted.
+
+  Lemma get_chan_spec cs (i:nat) ps p :
+    ps !! i = Some p →
+    {{{ chan_pool cs ps }}}
+      get_chan cs #i
+    {{{ c, RET c; c ↣ p ∗ chan_pool cs (delete i ps) }}}.
+  Proof.
+    iIntros (HSome Φ) "Hcs HΦ".
+    iDestruct "Hcs" as (l ls -> Hlen) "[Hl Hls]".
+    wp_lam.
+    assert (is_Some (ls !! i)) as [c HSome'].
+    { by apply Hlen. }
+    wp_smart_apply (wp_load_offset with "Hl"); [done|].
+    iIntros "Hcs".
+    iApply "HΦ".
+    iDestruct (big_sepL_delete' _ _ i with "Hls") as "[Hc Hls]"; [set_solver|].
+    iDestruct ("Hc" with "[//]") as "Hc".
+    iFrame.
+    iExists _, _. iSplit; [done|]. iFrame "Hcs".
+    iSplitR.
+    { iPureIntro. intros j HSome''.
+      destruct (decide (i=j)) as [<-|Hneq].
+      { rewrite lookup_delete in HSome''. done. }
+      rewrite lookup_delete_ne in HSome''; [|done].
+      by apply Hlen. }
+    iApply (big_sepL_impl with "Hls").
+    iIntros "!>" (j v Hin) "H".
+    iIntros (p' HSome'').
+    destruct (decide (i=j)) as [<-|Hneq].
+    { rewrite lookup_delete in HSome''. done. }
+    rewrite lookup_delete_ne in HSome''; [|done].
+    by iApply "H".
+  Qed.
 
   Lemma own_prot_excl γ i (p1 p2 : iProto Σ) :
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗

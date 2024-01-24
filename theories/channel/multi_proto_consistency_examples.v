@@ -2,7 +2,6 @@ From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
-From iris.program_logic Require Import language.
 From actris.channel Require Import multi_proto_model multi_proto multi_channel.
 Set Default Proof Using "Type".
 Export action.
@@ -295,9 +294,9 @@ Qed.
 Definition roundtrip_prog : val :=
   λ: <>,
      let: "cs" := new_chan #3 in
-     let: "c0" := ! ("cs" +ₗ #0) in 
-     let: "c1" := ! ("cs" +ₗ #1) in 
-     let: "c2" := ! ("cs" +ₗ #2) in 
+     let: "c0" := get_chan "cs" #0 in 
+     let: "c1" := get_chan "cs" #1 in 
+     let: "c2" := get_chan "cs" #2 in
      Fork (let: "x" := recv "c1" #0 in send "c1" #2 "x");;
      Fork (let: "x" := recv "c2" #1 in send "c2" #0 "x");;
      send "c0" #1 #42;; recv "c0" #2.
@@ -307,38 +306,23 @@ Section channel.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
 
+
+  (* TODO: Fix nat/Z coercion. *)
   Lemma roundtrip_prog_spec :
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 3 iProto_example3 with "[]").
+    wp_smart_apply (new_chan_spec 3 iProto_example3).
     { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
+    { set_solver. }
     { iApply iProto_example3_consistent. }
-    iIntros (cs ls) "[%Hlen [Hcs Hls]]".
-    assert (is_Some (ls !! 0)) as [c0 HSome0].
-    { apply lookup_lt_is_Some_2. lia. }
-    assert (is_Some (ls !! 1)) as [c1 HSome1].
-    { apply lookup_lt_is_Some_2. lia. }
-    assert (is_Some (ls !! 2)) as [c2 HSome2].
-    { apply lookup_lt_is_Some_2. lia. }
-    wp_smart_apply (wp_load_offset _ _ _ _ 0 with "Hcs"); [done|].
-    iIntros "Hcs".
-    wp_smart_apply (wp_load_offset _ _ _ _ 1 with "Hcs"); [done|].
-    iIntros "Hcs".
-    wp_smart_apply (wp_load_offset _ _ _ _ 2 with "Hcs"); [done|].
-    iIntros "Hcs".
-    iDestruct (big_sepL_delete' _ _ 0 with "Hls") as "[Hc0 Hls]"; [set_solver|].
-    iDestruct (big_sepL_delete' _ _ 1 with "Hls") as "[Hc1 Hls]"; [set_solver|].
-    iDestruct (big_sepL_delete' _ _ 2 with "Hls") as "[Hc2 _]"; [set_solver|].
-    iDestruct ("Hc1" with "[//]") as "Hc1".
-    iDestruct ("Hc2" with "[//] [//]") as "Hc2".
-    rewrite /iProto_example3.
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
+    iIntros (cs) "Hcs".
+    wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
+    iIntros (c0) "[Hc0 Hcs]".
+    wp_smart_apply (get_chan_spec _ 1 with "Hcs"); [set_solver|].
+    iIntros (c1) "[Hc1 Hcs]".
+    wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
+    iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
       wp_smart_apply
@@ -578,9 +562,9 @@ End example4.
 Definition roundtrip_ref_prog : val :=
   λ: <>,
      let: "cs" := new_chan #3 in
-     let: "c0" := ! ("cs" +ₗ #0) in 
-     let: "c1" := ! ("cs" +ₗ #1) in 
-     let: "c2" := ! ("cs" +ₗ #2) in 
+     let: "c0" := get_chan "cs" #0 in 
+     let: "c1" := get_chan "cs" #1 in 
+     let: "c2" := get_chan "cs" #2 in 
      Fork (let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l");;
      Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #());;
      let: "l" := ref #40 in send "c0" #1 "l";; recv "c0" #2;; !"l".
@@ -596,32 +580,15 @@ Section proof.
     iIntros (Φ) "_ HΦ". wp_lam.
     wp_smart_apply (new_chan_spec 3 iProto_example4 with "[]").
     { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
+    { set_solver. }
     { iApply iProto_example4_consistent. }
-    iIntros (cs ls) "[%Hlen [Hcs Hls]]".
-    assert (is_Some (ls !! 0)) as [c0 HSome0].
-    { apply lookup_lt_is_Some_2. lia. }
-    assert (is_Some (ls !! 1)) as [c1 HSome1].
-    { apply lookup_lt_is_Some_2. lia. }
-    assert (is_Some (ls !! 2)) as [c2 HSome2].
-    { apply lookup_lt_is_Some_2. lia. }
-    wp_smart_apply (wp_load_offset _ _ _ _ 0 with "Hcs"); [done|].
-    iIntros "Hcs".
-    wp_smart_apply (wp_load_offset _ _ _ _ 1 with "Hcs"); [done|].
-    iIntros "Hcs".
-    wp_smart_apply (wp_load_offset _ _ _ _ 2 with "Hcs"); [done|].
-    iIntros "Hcs".
-    iDestruct (big_sepL_delete' _ _ 0 with "Hls") as "[Hc0 Hls]"; [set_solver|].
-    iDestruct (big_sepL_delete' _ _ 1 with "Hls") as "[Hc1 Hls]"; [set_solver|].
-    iDestruct (big_sepL_delete' _ _ 2 with "Hls") as "[Hc2 _]"; [set_solver|].
-    iDestruct ("Hc1" with "[//]") as "Hc1".
-    iDestruct ("Hc2" with "[//] [//]") as "Hc2".
-    rewrite /iProto_example4.
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
+    iIntros (cs) "Hcs".
+    wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
+    iIntros (c0) "[Hc0 Hcs]".
+    wp_smart_apply (get_chan_spec _ 1 with "Hcs"); [set_solver|].
+    iIntros (c1) "[Hc1 Hcs]".
+    wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
+    iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
       wp_smart_apply
