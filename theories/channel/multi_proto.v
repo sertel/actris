@@ -1127,74 +1127,74 @@ Section proto.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)
   (* [iExist], [iSplitL]/[iSplitR], [iFrame] and [iModIntro] on [iProto_le] goals. *) *)
-  (* Global Instance iProto_le_from_forall_l {A} a (m1 : A → iMsg Σ V) m2 name : *)
-  (*   AsIdentName m1 name → *)
-  (*   FromForall (iProto_message Recv (iMsg_exist m1) ⊑ (<a> m2)) *)
-  (*              (λ x, (<?> m1 x) ⊑ (<a> m2))%I name | 10. *)
-  (* Proof. intros _. apply iProto_le_exist_elim_l. Qed. *)
-  (* Global Instance iProto_le_from_forall_r {A} a m1 (m2 : A → iMsg Σ V) name : *)
-  (*   AsIdentName m2 name → *)
-  (*   FromForall ((<a> m1) ⊑ iProto_message Send (iMsg_exist m2)) *)
-  (*              (λ x, (<a> m1) ⊑ (<!> m2 x))%I name | 11. *)
-  (* Proof. intros _. apply iProto_le_exist_elim_r. Qed. *)
+  Global Instance iProto_le_from_forall_l {A} i (m1 : A → iMsg Σ V) m2 name :
+    AsIdentName m1 name →
+    FromForall (iProto_message (Recv,i) (iMsg_exist m1) ⊑ (<(Recv,i)> m2))
+               (λ x, (<(Recv, i)> m1 x) ⊑ (<(Recv, i)> m2))%I name | 10.
+  Proof. intros _. apply iProto_le_exist_elim_l. Qed.
+  Global Instance iProto_le_from_forall_r {A} i m1 (m2 : A → iMsg Σ V) name :
+    AsIdentName m2 name →
+    FromForall ((<(Send,i)> m1) ⊑ iProto_message (Send,i) (iMsg_exist m2))
+               (λ x, (<(Send,i)> m1) ⊑ (<(Send,i)> m2 x))%I name | 11.
+  Proof. intros _. apply iProto_le_exist_elim_r. Qed.
 
-  (* Global Instance iProto_le_from_wand_l a m v P p : *)
-  (*   TCIf (TCEq P True%I) False TCTrue → *)
-  (*   FromWand ((<?> MSG v {{ P }}; p) ⊑ (<a> m)) P ((<?> MSG v; p) ⊑ (<a> m)) | 10. *)
-  (* Proof. intros _. apply iProto_le_payload_elim_l. Qed. *)
-  (* Global Instance iProto_le_from_wand_r a m v P p : *)
-  (*   FromWand ((<a> m) ⊑ (<!> MSG v {{ P }}; p)) P ((<a> m) ⊑ (<!> MSG v; p)) | 11. *)
-  (* Proof. apply iProto_le_payload_elim_r. Qed. *)
+  Global Instance iProto_le_from_wand_l i m v P p :
+    TCIf (TCEq P True%I) False TCTrue →
+    FromWand ((<(Recv,i)> MSG v {{ P }}; p) ⊑ (<(Recv,i)> m)) P ((<(Recv,i)> MSG v; p) ⊑ (<(Recv,i)> m)) | 10.
+  Proof. intros _. apply iProto_le_payload_elim_l. Qed.
+  Global Instance iProto_le_from_wand_r i m v P p :
+    FromWand ((<(Send,i)> m) ⊑ (<(Send,i)> MSG v {{ P }}; p)) P ((<(Send,i)> m) ⊑ (<(Send,i)> MSG v; p)) | 11.
+  Proof. apply iProto_le_payload_elim_r. Qed.
 
-  (* Global Instance iProto_le_from_exist_l {A} (m : A → iMsg Σ V) p : *)
-  (*   FromExist ((<! x> m x) ⊑ p) (λ a, (<!> m a) ⊑ p)%I | 10. *)
-  (* Proof. *)
-  (*   rewrite /FromExist. iDestruct 1 as (x) "H". *)
-  (*   iApply (iProto_le_trans with "[] H"). iApply iProto_le_exist_intro_l. *)
-  (* Qed. *)
-  (* Global Instance iProto_le_from_exist_r {A} (m : A → iMsg Σ V) p : *)
-  (*   FromExist (p ⊑ <? x> m x) (λ a, p ⊑ (<?> m a))%I | 11. *)
-  (* Proof. *)
-  (*   rewrite /FromExist. iDestruct 1 as (x) "H". *)
-  (*   iApply (iProto_le_trans with "H"). iApply iProto_le_exist_intro_r. *)
-  (* Qed. *)
+  Global Instance iProto_le_from_exist_l {A} i (m : A → iMsg Σ V) p :
+    FromExist ((<(Send,i) @ x> m x) ⊑ p) (λ a, (<(Send,i)> m a) ⊑ p)%I | 10.
+  Proof.
+    rewrite /FromExist. iDestruct 1 as (x) "H".
+    iApply (iProto_le_trans with "[] H"). iApply iProto_le_exist_intro_l.
+  Qed.
+  Global Instance iProto_le_from_exist_r {A} i (m : A → iMsg Σ V) p :
+    FromExist (p ⊑ <(Recv,i) @ x> m x) (λ a, p ⊑ (<(Recv,i)> m a))%I | 11.
+  Proof.
+    rewrite /FromExist. iDestruct 1 as (x) "H".
+    iApply (iProto_le_trans with "H"). iApply iProto_le_exist_intro_r.
+  Qed.
 
-  (* Global Instance iProto_le_from_sep_l m v P p : *)
-  (*   FromSep ((<!> MSG v {{ P }}; p) ⊑ (<!> m)) P ((<!> MSG v; p) ⊑ (<!> m)) | 10. *)
-  (* Proof. *)
-  (*   rewrite /FromSep. iIntros "[HP H]". *)
-  (*   iApply (iProto_le_trans with "[HP] H"). by iApply iProto_le_payload_intro_l. *)
-  (* Qed. *)
-  (* Global Instance iProto_le_from_sep_r m v P p : *)
-  (*   FromSep ((<?> m) ⊑ (<?> MSG v {{ P }}; p)) P ((<?> m) ⊑ (<?> MSG v; p)) | 11. *)
-  (* Proof. *)
-  (*   rewrite /FromSep. iIntros "[HP H]". *)
-  (*   iApply (iProto_le_trans with "H"). by iApply iProto_le_payload_intro_r. *)
-  (* Qed. *)
+  Global Instance iProto_le_from_sep_l i m v P p :
+    FromSep ((<(Send,i)> MSG v {{ P }}; p) ⊑ (<(Send,i)> m)) P ((<(Send,i)> MSG v; p) ⊑ (<(Send,i)> m)) | 10.
+  Proof.
+    rewrite /FromSep. iIntros "[HP H]".
+    iApply (iProto_le_trans with "[HP] H"). by iApply iProto_le_payload_intro_l.
+  Qed.
+  Global Instance iProto_le_from_sep_r i m v P p :
+    FromSep ((<(Recv,i)> m) ⊑ (<(Recv,i)> MSG v {{ P }}; p)) P ((<(Recv,i)> m) ⊑ (<(Recv,i)> MSG v; p)) | 11.
+  Proof.
+    rewrite /FromSep. iIntros "[HP H]".
+    iApply (iProto_le_trans with "H"). by iApply iProto_le_payload_intro_r.
+  Qed.
 
-  (* Global Instance iProto_le_frame_l q m v R P Q p : *)
-  (*   Frame q R P Q → *)
-  (*   Frame q R ((<!> MSG v {{ P }}; p) ⊑ (<!> m)) *)
-  (*             ((<!> MSG v {{ Q }}; p) ⊑ (<!> m)) | 10. *)
-  (* Proof. *)
-  (*   rewrite /Frame /=. iIntros (HP) "[HR H]". *)
-  (*   iApply (iProto_le_trans with "[HR] H"). iApply iProto_le_payload_elim_r. *)
-  (*   iIntros "HQ". iApply iProto_le_payload_intro_l. iApply HP; iFrame. *)
-  (* Qed. *)
-  (* Global Instance iProto_le_frame_r q m v R P Q p : *)
-  (*   Frame q R P Q → *)
-  (*   Frame q R ((<?> m) ⊑ (<?> MSG v {{ P }}; p)) *)
-  (*             ((<?> m) ⊑ (<?> MSG v {{ Q }}; p)) | 11. *)
-  (* Proof. *)
-  (*   rewrite /Frame /=. iIntros (HP) "[HR H]". *)
-  (*   iApply (iProto_le_trans with "H"). iApply iProto_le_payload_elim_l. *)
-  (*   iIntros "HQ". iApply iProto_le_payload_intro_r. iApply HP; iFrame. *)
-  (* Qed. *)
+  Global Instance iProto_le_frame_l i q m v R P Q p :
+    Frame q R P Q →
+    Frame q R ((<(Send,i)> MSG v {{ P }}; p) ⊑ (<(Send,i)> m))
+              ((<(Send,i)> MSG v {{ Q }}; p) ⊑ (<(Send,i)> m)) | 10.
+  Proof.
+    rewrite /Frame /=. iIntros (HP) "[HR H]".
+    iApply (iProto_le_trans with "[HR] H"). iApply iProto_le_payload_elim_r.
+    iIntros "HQ". iApply iProto_le_payload_intro_l. iApply HP; iFrame.
+  Qed.
+  Global Instance iProto_le_frame_r i q m v R P Q p :
+    Frame q R P Q →
+    Frame q R ((<(Recv,i)> m) ⊑ (<(Recv,i)> MSG v {{ P }}; p))
+              ((<(Recv,i)> m) ⊑ (<(Recv,i)> MSG v {{ Q }}; p)) | 11.
+  Proof.
+    rewrite /Frame /=. iIntros (HP) "[HR H]".
+    iApply (iProto_le_trans with "H"). iApply iProto_le_payload_elim_l.
+    iIntros "HQ". iApply iProto_le_payload_intro_r. iApply HP; iFrame.
+  Qed.
 
-  (* Global Instance iProto_le_from_modal a v p1 p2 : *)
-  (*   FromModal True (modality_instances.modality_laterN 1) (p1 ⊑ p2) *)
-  (*             ((<a> MSG v; p1) ⊑ (<a> MSG v; p2)) (p1 ⊑ p2). *)
-  (* Proof. intros _. apply iProto_le_base. Qed. *)
+  Global Instance iProto_le_from_modal a v p1 p2 :
+    FromModal True (modality_instances.modality_laterN 1) (p1 ⊑ p2)
+              ((<a> MSG v; p1) ⊑ (<a> MSG v; p2)) (p1 ⊑ p2).
+  Proof. intros _. iApply iProto_le_base. Qed.
 
 End proto.
 
