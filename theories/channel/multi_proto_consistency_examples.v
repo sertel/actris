@@ -20,8 +20,8 @@ Proof.
 Qed.
 
 Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
-  <[0 := (<(Send 1) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
-  (<[1 := (<(Recv 0) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
+  <[0 := (<(Send, 1) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
+  (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
    ∅).
 
 Lemma iProto_example2_consistent `{!invGS Σ} (P : iProp Σ) :
@@ -103,9 +103,9 @@ Proof.
 Qed.
 
 Definition iProto_example3 `{!invGS Σ} : gmap nat (iProto Σ) :=
-   <[0 := (<(Send 1) @ (x:Z)> MSG #x ; <(Recv 2)> MSG #x; END)%proto ]>
-  (<[1 := (<(Recv 0) @ (x:Z)> MSG #x ; <(Send 2)> MSG #x; END)%proto ]>
-  (<[2 := (<(Recv 1) @ (x:Z)> MSG #x ; <(Send 0)> MSG #x; END)%proto ]>
+   <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; <(Recv, 2)> MSG #x; END)%proto ]>
+  (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ; <(Send, 2)> MSG #x; END)%proto ]>
+  (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ; <(Send, 0)> MSG #x; END)%proto ]>
     ∅)).
 
 Lemma iProto_example3_consistent `{!invGS Σ} :
@@ -157,8 +157,8 @@ Proof.
   rewrite !iMsg_exist_eq.
   iRewrite -"Hm1" in "Hm1'".
   iDestruct "Hm1'" as (x Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<Send 2> iMsg_base_def #x True END)))%proto.
-  iExists (<Send 2> iMsg_base_def #x True END)%proto.
+  iSpecialize ("Hm2" $!v (Next (<(Send, 2)> iMsg_base_def #x True END)))%proto.
+  iExists (<(Send, 2)> iMsg_base_def #x True END)%proto.
   iRewrite -"Hm2".
   simpl.
   iSplitL.
@@ -210,8 +210,8 @@ Proof.
   iSpecialize ("Hm1" $!v (Next p1)).
   iRewrite -"Hm1" in "Hm1'".
   iDestruct "Hm1'" as (Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<Send 0> iMsg_base_def #x True END)))%proto.
-  iExists (<Send 0> iMsg_base_def #x True END)%proto.
+  iSpecialize ("Hm2" $!v (Next (<(Send, 0)> iMsg_base_def #x True END)))%proto.
+  iExists (<(Send, 0)> iMsg_base_def #x True END)%proto.
   iRewrite -"Hm2".
   simpl.
   iSplitL.
@@ -377,12 +377,12 @@ Section example4.
   Context `{!heapGS Σ}.
 
   Definition iProto_example4 : gmap nat (iProto Σ) :=
-    <[0 := (<(Send 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-            <(Recv 2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
-      (<[1 := (<(Recv 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-               <(Send 2)> MSG #l {{ l ↦ #(x+1) }}; END)%proto]>
-         (<[2 := (<(Recv 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-                  <(Send 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
+    <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+            <(Recv, 2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
+      (<[1 := (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+               <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; END)%proto]>
+         (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+                  <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
             ∅)).
 
   Lemma iProto_example4_consistent :
@@ -434,10 +434,10 @@ Section example4.
     rewrite !iMsg_exist_eq.
     iRewrite -"Hm1" in "Hm1'".
     iDestruct "Hm1'" as (l x <-) "[#Hm1' Hl]". simpl.
-    iSpecialize ("Hm2" $!#l (Next (<Send 2> iMsg_base_def #l
+    iSpecialize ("Hm2" $!#l (Next (<(Send, 2)> iMsg_base_def #l
                                                           (l ↦ #(x+1)) END)))%proto.
     Unshelve. 2-4: apply _.     (* Why is this needed? *)
-    iExists (<Send 2> iMsg_base_def #l (l ↦ #(x+1)) END)%proto.
+    iExists (<(Send, 2)> iMsg_base_def #l (l ↦ #(x+1)) END)%proto.
     simpl.
     iSplitL.
     { iRewrite -"Hm2". iExists l, x. iSplit; [done|]. iFrame. done. }
@@ -489,8 +489,8 @@ Section example4.
     iRewrite -"Hm1" in "Hm1'".
     iDestruct "Hm1'" as (<-) "[#Hm1' Hl]".
     simpl.
-    iSpecialize ("Hm2" $!#l (Next (<Send 0> iMsg_base_def #() (l ↦ #(x+1+1)) END)))%proto.
-    iExists (<Send 0> iMsg_base_def #() (l ↦ #(x+1+1)) END)%proto.
+    iSpecialize ("Hm2" $!#l (Next (<(Send, 0)> iMsg_base_def #() (l ↦ #(x+1+1)) END)))%proto.
+    iExists (<(Send, 0)> iMsg_base_def #() (l ↦ #(x+1+1)) END)%proto.
     Unshelve. 2-4: apply _.    
     iRewrite -"Hm2".
     simpl.

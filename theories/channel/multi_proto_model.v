@@ -39,12 +39,13 @@ From actris.utils Require Import cofe_solver_2.
 Set Default Proof Using "Type".
 
 Module Export action.
-  Inductive action := Send (n:nat) | Recv (n:nat).
-  Global Instance action_inhabited : Inhabited action := populate (Send 0).
+  Inductive tag := Send | Recv.
+  Definition action : Set := tag * nat.
+  Global Instance action_inhabited : Inhabited action := populate (Send,0).
   Definition action_dual (a : action) : action :=
-    match a with Send n => Recv n | Recv n => Send n end.
+    match a with (Send, n) => (Recv, n) | (Recv, n) => (Send, n) end.
   Global Instance action_dual_involutive : Involutive (=) action_dual.
-  Proof. by intros []. Qed.
+  Proof. by intros [[]]. Qed.
   Canonical Structure actionO := leibnizO action.
 End action.
 

@@ -97,7 +97,7 @@ Definition tok `{!chanG Σ} (γ : gname) : iProp Σ := own γ (Excl ()).
 Definition chan_inv `{!heapGS Σ, !chanG Σ} γ γE γt i j (l:loc) : iProp Σ :=
   (l ↦ NONEV ∗ tok γt) ∨
   (∃ v m, l ↦ SOMEV v ∗
-            iProto_own γ i (<Send j> m)%proto ∗
+            iProto_own γ i (<(Send, j)> m)%proto ∗
             (∃ p, iMsg_car m v (Next p) ∗ own γE (●E (Next p)))) ∨
   (∃ p, l ↦ NONEV ∗
           iProto_own γ i p ∗ own γE (●E (Next p))).
@@ -158,7 +158,7 @@ Section channel.
   Proof. Admitted.
 
   Lemma send_spec c j v p :
-    {{{ c ↣ <Send j> MSG v; p }}}
+    {{{ c ↣ <(Send, j)> MSG v; p }}}
       send c #j v
     {{{ RET #(); c ↣ p }}}.
   Proof.
@@ -233,7 +233,7 @@ Section channel.
   
   Lemma send_spec_tele {TT} c j (tt : TT)
         (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ (<(Send j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
+    {{{ c ↣ (<(Send, j) @.. x > MSG v x {{ P x }}; p x) ∗ P tt }}}
       send c #j (v tt)
     {{{ RET #(); c ↣ (p tt) }}}.
   Proof.
@@ -312,7 +312,7 @@ Section channel.
   Qed.
 
   Lemma recv_spec {TT} c j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ <(Recv j) @.. x> MSG v x {{ P x }}; p x }}}
+    {{{ c ↣ <(Recv, j) @.. x> MSG v x {{ P x }}; p x }}}
       recv c #j
     {{{ x, RET v x; c ↣ p x ∗ P x }}}.
   Proof.
