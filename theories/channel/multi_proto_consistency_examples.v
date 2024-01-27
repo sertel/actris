@@ -302,29 +302,89 @@ Section example5.
         clean_map 4. clean_map 0.
         iProto_consistent_take_step.
     - iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
-      clean_map 1. clean_map 3.      
+      clean_map 1. clean_map 3.
       iProto_consistent_take_step.
       iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
-      clean_map 0. clean_map 2.      
+      clean_map 0. clean_map 2.
       iProto_consistent_take_step.
       + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 2. clean_map 4.      
+        clean_map 2. clean_map 4.
         iProto_consistent_take_step.
         iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 3. clean_map 0.      
+        clean_map 3. clean_map 0.
         iProto_consistent_take_step.
         iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 4. clean_map 0.      
+        clean_map 4. clean_map 0.
         iProto_consistent_take_step.
       + iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 3. clean_map 0.              
+        clean_map 3. clean_map 0.
         iProto_consistent_take_step.
         iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 2. clean_map 4.              
+        clean_map 2. clean_map 4.
         iProto_consistent_take_step.
         iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
-        clean_map 4. clean_map 0.              
+        clean_map 4. clean_map 0.
         iProto_consistent_take_step.
   Qed.
 
 End example5.
+
+Section two_buyer.
+  Context `{!heapGS Σ}.
+
+  Definition two_buyer_prot : gmap nat (iProto Σ) :=
+    <[0 := (<(Send, 1) @ (title:Z)> MSG #title ;
+            <(Recv, 1) @ (quote:Z)> MSG #quote ;
+            <(Send, 2) @ (contrib:Z)> MSG #contrib ; END)%proto]>
+   (<[1 := (<(Recv, 0) @ (title:Z)> MSG #title ;
+            <(Send, 0) @ (quote:Z)> MSG #quote ;
+            <(Send, 2)> MSG #quote ;
+            <(Recv, 2) @ (b:bool)> MSG #b ;
+            if b then
+              <(Recv, 2) @ (address:Z)> MSG #address ;
+              <(Send, 2) @ (date:Z)> MSG #date ; END
+            else END)%proto]>
+   (<[2 := (<(Recv, 1) @ (quote:Z)> MSG #quote ;
+            <(Recv, 0) @ (contrib:Z)> MSG #contrib ;
+            if bool_decide (contrib >= quote/2)%Z then
+              <(Send, 1)> MSG #true ;
+              <(Send, 1) @ (address:Z)> MSG #address ;
+              <(Recv, 1) @ (date:Z)> MSG #date ; END
+            else
+              <(Send, 1)> MSG #false ; END)%proto]>
+      ∅)).
+
+  Lemma two_buyer_prot_consistent :
+    ⊢ iProto_consistent two_buyer_prot.
+  Proof.
+    rewrite /two_buyer_prot.
+    iProto_consistent_take_step.
+    iIntros (title) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    clean_map 0. clean_map 1.
+    iProto_consistent_take_step.
+    iIntros (quote) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    clean_map 0. clean_map 1.
+    iProto_consistent_take_step.
+    iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    clean_map 1. clean_map 2.
+    iProto_consistent_take_step.
+    iIntros (contrib) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    clean_map 0. clean_map 2.
+    case_bool_decide.
+    - iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      clean_map 2. clean_map 1.
+      iProto_consistent_take_step.
+      iIntros (address) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      clean_map 2. clean_map 1.
+      iProto_consistent_take_step.
+      iIntros (date) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      clean_map 2. clean_map 1.
+      iProto_consistent_take_step.
+    - iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      clean_map 2. clean_map 1.
+      iProto_consistent_take_step.
+  Qed.
+
+End two_buyer.
