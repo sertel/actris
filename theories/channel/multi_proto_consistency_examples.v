@@ -6,17 +6,83 @@ From actris.channel Require Import multi_proto_model multi_proto multi_channel m
 Set Default Proof Using "Type".
 Export action.
 
+Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
+  (∀ i j m1 m2,
+     (ps !!! i ≡ (<(Send, j)> m1)%proto) -∗
+     (ps !!! j ≡ (<(Recv, i)> m2)%proto) -∗
+     ∃ m1' m2' (TT1:tele) (TT2:tele) tv1 tP1 tp1 tv2 tP2 tp2,
+       (<(Send, j)> m1')%proto ≡ (<(Send, j)> m1)%proto ∗
+       (<(Recv, i)> m2')%proto ≡ (<(Recv, i)> m2)%proto ∗
+       ⌜MsgTele (TT:=TT1) m1' tv1 tP1 tp1⌝ ∗
+       ⌜MsgTele (TT:=TT2) m2' tv2 tP2 tp2⌝ ∗
+   ∀.. (x : TT1), tele_app tP1 x -∗
+   ∃.. (y : TT2), ⌜tele_app tv1 x = tele_app tv2 y⌝ ∗
+                  tele_app tP2 y ∗
+                  ▷ (iProto_consistent
+                       (<[i:=tele_app tp1 x]>(<[j:=tele_app tp2 y]>ps)))) -∗
+  iProto_consistent ps.
+Proof.
+  iIntros "H".
+  rewrite iProto_consistent_unfold.
+  iIntros (i j m1 m2) "Hm1 Hm2".
+  iDestruct ("H" with "Hm1 Hm2")
+    as (m1' m2' TT1 TT2 tv1 tP1 tp1 tv2 tP2 tp2)
+         "(Heq1 & Heq2& %Hm1' & %Hm2' & H)".
+  rewrite !iProto_message_equivI.
+  iDestruct "Heq1" as "[_ Heq1]".
+  iDestruct "Heq2" as "[_ Heq2]".
+  iIntros (v p1) "Hm1".
+  iSpecialize ("Heq1" $! v (Next p1)).
+  iRewrite -"Heq1" in "Hm1".
+  rewrite Hm1'.
+  rewrite iMsg_base_eq. rewrite iMsg_texist_exist.
+  iDestruct "Hm1" as (x Htv1) "[Hp1 HP1]".
+  iDestruct ("H" with "HP1") as (y Htv2) "[HP2 H]".
+  iExists (tele_app tp2 y).
+  iSpecialize ("Heq2" $! v (Next (tele_app tp2 y))).
+  iRewrite -"Heq2".
+  rewrite Hm2'. rewrite iMsg_base_eq. rewrite iMsg_texist_exist.
+  iSplitL "HP2".
+  { iExists y. iFrame.
+    iSplit; [|done].
+    iPureIntro. subst. done. }
+  iNext. iRewrite -"Hp1". done.
+Qed.
+
+Tactic Notation "iProto_consistent_take_step" :=
+  let i := fresh in
+  let j := fresh in
+  let m1 := fresh in
+  let m2 := fresh in
+  iApply iProto_consistent_equiv_proof;
+  iIntros (i j m1 m2) "#Hm1 #Hm2";
+  repeat (destruct i as [|i];
+          [repeat (rewrite lookup_total_insert_ne; [|lia]);
+           try (by rewrite lookup_total_empty iProto_end_message_equivI);
+           try (rewrite lookup_total_insert;
+                try (by rewrite iProto_end_message_equivI);
+                iDestruct (iProto_message_equivI with "Hm1")
+                  as "[%Heq1 Hm1']";simplify_eq)|
+            repeat (rewrite lookup_total_insert_ne; [|lia]);
+            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
+  repeat (rewrite lookup_total_insert_ne; [|lia]);
+  rewrite lookup_total_insert;
+  iDestruct (iProto_message_equivI with "Hm2")
+    as "[%Heq2 Hm2']";simplify_eq;
+  try (iClear "Hm1' Hm2'";
+       iExists _,_,_,_,_,_,_,_,_,_;
+       iSplitL; [iFrame "#"|];
+       iSplitL; [iFrame "#"|];
+       iSplitL; [iPureIntro; tc_solve|];
+       iSplitL; [iPureIntro; tc_solve|];
+       simpl; iClear "#"; clear m1 m2).
+
 Definition iProto_example1 {Σ} : gmap nat (iProto Σ) :=
   ∅.
 
 Lemma iProto_example1_consistent {Σ} :
   ⊢ iProto_consistent (@iProto_example1 Σ).
-Proof.
-  rewrite iProto_consistent_unfold.
-  iIntros (i j m1 m2) "Hi Hj".
-  rewrite lookup_total_empty.
-  by rewrite iProto_end_message_equivI.
-Qed.
+Proof. iProto_consistent_take_step. Qed.
 
 Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
   <[0 := (<(Send, 1) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
@@ -26,79 +92,10 @@ Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
 Lemma iProto_example2_consistent `{!invGS Σ} (P : iProp Σ) :
   ⊢ iProto_consistent (@iProto_example2 Σ invGS0 P).
 Proof.
-  rewrite iProto_consistent_unfold.
   rewrite /iProto_example2.
-  iIntros (i j m1 m2) "Hm1 Hm2".
-  destruct i, j.
-  - rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1".
-    iDestruct "Hm2" as (Hjeq) "#Hm2".
-    done.
-  - destruct j; last first.
-    { rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      iDestruct "Hm1" as (Hieq) "#Hm1". done. }
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1".
-    iDestruct "Hm2" as (Hjeq) "#Hm2".
-    iIntros (v p1) "Hm1'".
-    iSpecialize ("Hm1" $!v (Next p1)).
-    rewrite iMsg_base_eq. simpl.
-    rewrite iMsg_exist_eq. simpl.
-    iRewrite -"Hm1" in "Hm1'".
-    iExists END%proto.
-    iSpecialize ("Hm2" $!v (Next END%proto)).
-    iRewrite -"Hm2".
-    simpl.
-    iDestruct "Hm1'" as (x Heq) "[#Heq HP]".
-    iSplitL.
-    { iExists x. iSplit; [done|]. iFrame. done. }
-    iNext. iRewrite -"Heq".
-    rewrite insert_commute; [|done].
-    rewrite insert_insert.
-    rewrite insert_commute; [|done].
-    rewrite insert_insert.
-    rewrite iProto_consistent_unfold.
-    iIntros (i' j' m1' m2') "Hm1' Hm2'".
-    destruct i'.
-    { rewrite lookup_total_insert.
-      iDestruct (iProto_end_message_equivI with "Hm1'") as "H".
-      done. }
-    destruct i'.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert.
-      iDestruct (iProto_end_message_equivI with "Hm1'") as "H".
-      done. }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_alt. simpl.
-    iDestruct (iProto_end_message_equivI with "Hm1'") as "H".
-    done.
-  - destruct i; last first.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_alt. simpl.
-      iDestruct (iProto_end_message_equivI with "Hm1") as "H".
-      done. }
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1". done.
-  - destruct i.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      iDestruct "Hm1" as (Hieq) "#Hm1". done. }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_alt. simpl.
-    iDestruct (iProto_end_message_equivI with "Hm1") as "H".
-    done.
+  iProto_consistent_take_step.
+  iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame. iNext.
+  iProto_consistent_take_step.
 Qed.
 
 Definition iProto_example3 `{!invGS Σ} : gmap nat (iProto Σ) :=
@@ -110,192 +107,21 @@ Definition iProto_example3 `{!invGS Σ} : gmap nat (iProto Σ) :=
 Lemma iProto_example3_consistent `{!invGS Σ} :
   ⊢ iProto_consistent (@iProto_example3 Σ invGS0).
 Proof.
-  rewrite iProto_consistent_unfold.
   rewrite /iProto_example3.
-  iIntros (i j m1 m2) "Hm1 Hm2".
-  destruct i; last first.
-  { destruct i.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm1" as (Hieq) "#Hm1". }
-    destruct i.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm1" as (Hieq) "#Hm1". }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty=> /=.
-    by rewrite iProto_end_message_equivI. }
-  destruct j.
-  { rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-  destruct j; last first.
-  { rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    destruct j.
-    { rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty=> /=.
-    by rewrite iProto_end_message_equivI. }
-  rewrite !lookup_total_insert.
-  rewrite lookup_total_insert_ne; [|done].
-  rewrite !lookup_total_insert.
-  rewrite !iProto_message_equivI.
-  iDestruct "Hm1" as (Hieq) "#Hm1".
-  iDestruct "Hm2" as (Hjeq) "#Hm2".
-  iIntros (v p1) "Hm1'".
-  iSpecialize ("Hm1" $!v (Next p1)).
-  rewrite !iMsg_base_eq.
-  rewrite !iMsg_exist_eq.
-  iRewrite -"Hm1" in "Hm1'".
-  iDestruct "Hm1'" as (x Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<(Send, 2)> iMsg_base_def #x True END)))%proto.
-  iExists (<(Send, 2)> iMsg_base_def #x True END)%proto.
-  iRewrite -"Hm2".
-  simpl.
-  iSplitL.
-  { iExists x. iSplit; [done|]. iFrame. done. }
-  iNext.
-  rewrite iProto_consistent_unfold.
-  rewrite insert_commute; [|done].
-  rewrite insert_insert.
-  rewrite insert_commute; [|done].
-  rewrite insert_insert.
-  iRewrite -"Hm1'".
-  iClear (m1 m2 Hieq Hjeq p1 v Heq) "Hm1 Hm2 Hm1'".
-  iIntros (i j m1 m2) "Hm1 Hm2".
-  destruct i.
-  { rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    by iDestruct "Hm1" as (Hieq) "#Hm1". }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct i; last first.
-  { destruct i.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm1" as (Hieq) "#Hm1". }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty=> /=.
-    by rewrite iProto_end_message_equivI. }
-  rewrite lookup_total_insert.
-  destruct j.
-  { rewrite lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct j.
-  { rewrite lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct j; last first.
-  { rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty.
-    by rewrite iProto_end_message_equivI. }
-  rewrite lookup_total_insert.
-  rewrite !iProto_message_equivI.
-  iDestruct "Hm1" as (Hieq) "#Hm1".
-  iDestruct "Hm2" as (Hjeq) "#Hm2".
-  iIntros (v p1) "Hm1'".
-  iSpecialize ("Hm1" $!v (Next p1)).
-  iRewrite -"Hm1" in "Hm1'".
-  iDestruct "Hm1'" as (Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next (<(Send, 0)> iMsg_base_def #x True END)))%proto.
-  iExists (<(Send, 0)> iMsg_base_def #x True END)%proto.
-  iRewrite -"Hm2".
-  simpl.
-  iSplitL.
-  { iExists x. iSplit; [done|]. iFrame. done. }
-  iNext.
-  rewrite iProto_consistent_unfold.
-  rewrite (insert_commute _ 1 2); [|done].
-  rewrite (insert_commute _ 1 0); [|done].
-  rewrite insert_insert.
-  rewrite (insert_commute _ 2 0); [|done].
-  rewrite (insert_commute _ 2 1); [|done].
-  rewrite insert_insert.
-  iRewrite -"Hm1'".
-  iClear (m1 m2 Hieq Hjeq p1 v Heq) "Hm1 Hm2 Hm1'".
-  iIntros (i j m1 m2) "Hm1 Hm2".
-  destruct i.
-  { rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    by iDestruct "Hm1" as (Hieq) "#Hm1". }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct i.
-  { rewrite lookup_total_insert.
-    by rewrite iProto_end_message_equivI. }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct i; last first.
-  { rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty.
-    by rewrite iProto_end_message_equivI. }
-  rewrite lookup_total_insert.
-  destruct j; last first.
-  { rewrite lookup_total_insert_ne; [|done].
-    destruct j.
-    { rewrite lookup_total_insert.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct j.
-    { rewrite lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty.
-    by rewrite iProto_end_message_equivI. }
-  rewrite lookup_total_insert.
-  rewrite !iProto_message_equivI.
-  iDestruct "Hm1" as (Hieq) "#Hm1".
-  iDestruct "Hm2" as (Hjeq) "#Hm2".
-  iIntros (v p1) "Hm1'".
-  iSpecialize ("Hm1" $!v (Next p1)).
-  iRewrite -"Hm1" in "Hm1'".
-  iDestruct "Hm1'" as (Heq) "[#Hm1' _]".
-  iSpecialize ("Hm2" $!v (Next END))%proto.
-  iExists END%proto.
-  iRewrite -"Hm2".
-  simpl.
-  iSplitL; [done|].
-  rewrite insert_insert.
-  rewrite insert_commute; [|done].
-  rewrite (insert_commute _ 2 1); [|done].
-  rewrite insert_insert.
-  iNext.
-  iRewrite -"Hm1'".
-  rewrite iProto_consistent_unfold.
-  iClear (m1 m2 Hieq Hjeq p1 v Heq) "Hm1 Hm2 Hm1'".
-  iIntros (i j m1 m2) "Hm1 Hm2".
-  destruct i.
-  { rewrite lookup_total_insert.
-    by rewrite !iProto_end_message_equivI. }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct i.
-  { rewrite lookup_total_insert.
-    by rewrite !iProto_end_message_equivI. }
-  rewrite lookup_total_insert_ne; [|done].
-  destruct i.
-  { rewrite lookup_total_insert.
-    by rewrite !iProto_end_message_equivI. }
-  rewrite lookup_total_insert_ne; [|done].
-  rewrite lookup_total_empty.
-  by rewrite iProto_end_message_equivI.
+  iProto_consistent_take_step.
+  iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|]. iNext.
+  iProto_consistent_take_step.
+  iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|]. iNext.
+  iProto_consistent_take_step.
+  iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+  iProto_consistent_take_step.
 Qed.
 
 Definition roundtrip_prog : val :=
   λ: <>,
      let: "cs" := new_chan #3 in
-     let: "c0" := get_chan "cs" #0 in 
-     let: "c1" := get_chan "cs" #1 in 
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
      let: "c2" := get_chan "cs" #2 in
      Fork (let: "x" := recv "c1" #0 in send "c1" #2 "x");;
      Fork (let: "x" := recv "c2" #1 in send "c2" #0 "x");;
@@ -305,7 +131,6 @@ Section channel.
   Context `{!heapGS Σ, !chanG Σ}.
   Implicit Types p : iProto Σ.
   Implicit Types TT : tele.
-
 
   (* TODO: Fix nat/Z coercion. *)
   Lemma roundtrip_prog_spec :
@@ -324,15 +149,9 @@ Section channel.
     wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
-    { iIntros "!>".
-      wp_recv (x) as "_".
-      wp_send with "[//]".
-      done. }
+    { iIntros "!>". wp_recv (x) as "_". wp_send with "[//]". done. }
     wp_smart_apply (wp_fork with "[Hc2]").
-    { iIntros "!>".
-      wp_recv (x) as "_".
-      wp_send with "[//]".
-      done. }
+    { iIntros "!>". wp_recv (x) as "_". wp_send with "[//]". done. }
     wp_send with "[//]".
     wp_recv as "_".
     by iApply "HΦ".
@@ -355,189 +174,15 @@ Section example4.
   Lemma iProto_example4_consistent :
     ⊢ iProto_consistent (iProto_example4).
   Proof.
-    rewrite iProto_consistent_unfold.
     rewrite /iProto_example4.
-    iIntros (i j m1 m2) "Hm1 Hm2".
-    destruct i; last first.
-    { destruct i.
-      { rewrite lookup_total_insert_ne; [|done].
-        rewrite !lookup_total_insert.
-        rewrite !iProto_message_equivI.
-        by iDestruct "Hm1" as (Hieq) "#Hm1". }
-      destruct i.
-      { rewrite lookup_total_insert_ne; [|done].
-        rewrite lookup_total_insert_ne; [|done].
-        rewrite !iProto_message_equivI.
-        by iDestruct "Hm1" as (Hieq) "#Hm1". }
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty=> /=.
-      by rewrite iProto_end_message_equivI. }
-    destruct j.
-    { rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-    destruct j; last first.
-    { rewrite !lookup_total_insert.
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      destruct j.
-      { rewrite !lookup_total_insert.
-        rewrite !iProto_message_equivI.
-        by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty=> /=.
-      by rewrite iProto_end_message_equivI. }
-    rewrite !lookup_total_insert.
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite !lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1".
-    iDestruct "Hm2" as (Hjeq) "#Hm2".
-    iIntros (v p1) "Hm1'".
-    iSpecialize ("Hm1" $!v (Next p1)).
-    rewrite !iMsg_base_eq.
-    rewrite !iMsg_exist_eq.
-    iRewrite -"Hm1" in "Hm1'".
-    iDestruct "Hm1'" as (l x <-) "[#Hm1' Hl]". simpl.
-    iSpecialize ("Hm2" $!#l (Next (<(Send, 2)> iMsg_base_def #l
-                                                          (l ↦ #(x+1)) END)))%proto.
-    Unshelve. 2-4: apply _.     (* Why is this needed? *)
-    iExists (<(Send, 2)> iMsg_base_def #l (l ↦ #(x+1)) END)%proto.
-    simpl.
-    iSplitL.
-    { iRewrite -"Hm2". iExists l, x. iSplit; [done|]. iFrame. done. }
-    iNext.
-    rewrite iProto_consistent_unfold.
-    rewrite insert_commute; [|done].
-    rewrite insert_insert.
-    rewrite insert_commute; [|done].
-    rewrite insert_insert.
-    iRewrite -"Hm1'".
-    iClear (m1 m2 Hieq Hjeq p1) "Hm1 Hm2 Hm1'".
-    iIntros (i j m1 m2) "Hm1 Hm2".
-    destruct i.
-    { rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm1" as (Hieq) "#Hm1". }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct i; last first.
-    { destruct i.
-      { rewrite lookup_total_insert_ne; [|done].
-        rewrite lookup_total_insert.
-        rewrite !iProto_message_equivI.
-        by iDestruct "Hm1" as (Hieq) "#Hm1". }
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty=> /=.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert.
-    destruct j.
-    { rewrite lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct j.
-    { rewrite lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct j; last first.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1".
-    iDestruct "Hm2" as (Hjeq) "#Hm2".
-    iIntros (v p1) "Hm1'".
-    iSpecialize ("Hm1" $!v (Next p1)).
-    iRewrite -"Hm1" in "Hm1'".
-    iDestruct "Hm1'" as (<-) "[#Hm1' Hl]".
-    simpl.
-    iSpecialize ("Hm2" $!#l (Next (<(Send, 0)> iMsg_base_def #() (l ↦ #(x+1+1)) END)))%proto.
-    iExists (<(Send, 0)> iMsg_base_def #() (l ↦ #(x+1+1)) END)%proto.
-    Unshelve. 2-4: apply _.    
-    iRewrite -"Hm2".
-    simpl.
-    iSplitL.
-    { iExists l, (x+1)%Z. iSplit; [done|]. iFrame. done. }
-    iNext.
-    rewrite iProto_consistent_unfold.
-    rewrite (insert_commute _ 1 2); [|done].
-    rewrite (insert_commute _ 1 0); [|done].
-    rewrite insert_insert.
-    rewrite (insert_commute _ 2 0); [|done].
-    rewrite (insert_commute _ 2 1); [|done].
-    rewrite insert_insert.
-    iRewrite -"Hm1'".
-    iClear (m1 m2 Hieq Hjeq p1) "Hm1 Hm2 Hm1'".
-    iIntros (i j m1 m2) "Hm1 Hm2".
-    destruct i.
-    { rewrite !lookup_total_insert.
-      rewrite !iProto_message_equivI.
-      by iDestruct "Hm1" as (Hieq) "#Hm1". }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct i.
-    { rewrite lookup_total_insert.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct i; last first.
-    { rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert.
-    destruct j; last first.
-    { rewrite lookup_total_insert_ne; [|done].
-      destruct j.
-      { rewrite lookup_total_insert.
-        by rewrite iProto_end_message_equivI. }
-      rewrite lookup_total_insert_ne; [|done].
-      destruct j.
-      { rewrite lookup_total_insert.
-        rewrite !iProto_message_equivI.
-        by iDestruct "Hm2" as (Hjeq) "#Hm2". }
-      rewrite lookup_total_insert_ne; [|done].
-      rewrite lookup_total_empty.
-      by rewrite iProto_end_message_equivI. }
-    rewrite lookup_total_insert.
-    rewrite !iProto_message_equivI.
-    iDestruct "Hm1" as (Hieq) "#Hm1".
-    iDestruct "Hm2" as (Hjeq) "#Hm2".
-    iIntros (v p1) "Hm1'".
-    iSpecialize ("Hm1" $!v (Next p1)).
-    iRewrite -"Hm1" in "Hm1'".
-    iDestruct "Hm1'" as (<-) "[#Hm1' Hl]".
-    iSpecialize ("Hm2" $!#() (Next END))%proto.
-    iExists END%proto.
-    iRewrite -"Hm2".
-    simpl.
-    replace (x + 1 + 1)%Z with (x+2)%Z by lia.
-    iSplitL; [iFrame;done|].
-    rewrite insert_insert.
-    rewrite insert_commute; [|done].
-    rewrite (insert_commute _ 2 1); [|done].
-    rewrite insert_insert.
-    iNext.
-    iRewrite -"Hm1'".
-    rewrite iProto_consistent_unfold.
-    iClear (m1 m2 Hieq Hjeq p1) "Hm1 Hm2 Hm1'".
-    iIntros (i j m1 m2) "Hm1 Hm2".
-    destruct i.
-    { rewrite lookup_total_insert.
-      by rewrite !iProto_end_message_equivI. }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct i.
-    { rewrite lookup_total_insert.
-      by rewrite !iProto_end_message_equivI. }
-    rewrite lookup_total_insert_ne; [|done].
-    destruct i.
-    { rewrite lookup_total_insert.
-      by rewrite !iProto_end_message_equivI. }
-    rewrite lookup_total_insert_ne; [|done].
-    rewrite lookup_total_empty.
-    by rewrite iProto_end_message_equivI.
+    iProto_consistent_take_step.
+    iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame. iNext.
+    iProto_consistent_take_step.
+    iIntros "Hloc". iExists _, _. iSplit; [done|]. iFrame. iNext.
+    iProto_consistent_take_step.
+    iIntros "Hloc". iSplit; [done|].
+    replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame. iNext.
+    iProto_consistent_take_step.
   Qed.
 
 End example4.
@@ -545,9 +190,9 @@ End example4.
 Definition roundtrip_ref_prog : val :=
   λ: <>,
      let: "cs" := new_chan #3 in
-     let: "c0" := get_chan "cs" #0 in 
-     let: "c1" := get_chan "cs" #1 in 
-     let: "c2" := get_chan "cs" #2 in 
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
      Fork (let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l");;
      Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #());;
      let: "l" := ref #40 in send "c0" #1 "l";; recv "c0" #2;; !"l".

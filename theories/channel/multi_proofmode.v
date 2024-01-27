@@ -240,19 +240,6 @@ Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_i
     simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
     simple_intropattern(x8) ")" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat).
-
-(* Section channel. *)
-(*   Context `{!heapGS Σ, !chanG Σ}. *)
-(*   Implicit Types p : iProto Σ. *)
-(*   Implicit Types TT : tele. *)
-
-(*   Lemma recv_test c p : *)
-(*     {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}} *)
-(*       recv c #0 *)
-(*     {{{ x, RET #x; c ↣ p }}}. *)
-(*   Proof. *)
-(*     iIntros (Φ) "Hc HΦ". *)
-(*     wp_recv (x) as "_". *)
     
 Lemma tac_wp_send `{!chanG Σ, !heapGS Σ} {TT : tele} Δ neg i js K (n:nat) w c v p m tv tP tp Φ :
   w = #n →
@@ -356,28 +343,28 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-Section channel.
-  Context `{!heapGS Σ, !chanG Σ}.
-  Implicit Types p : iProto Σ.
-  Implicit Types TT : tele.
+(* Section channel. *)
+(*   Context `{!heapGS Σ, !chanG Σ}. *)
+(*   Implicit Types p : iProto Σ. *)
+(*   Implicit Types TT : tele. *)
 
-  (* TODO: Why do the tactics not strip laters? *)
-  Lemma recv_test c p :
-    {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}}
-      recv c #0
-    {{{ x, RET #x; c ↣ p }}}.
-  Proof.
-    iIntros (Φ) "Hc HΦ".
-    wp_recv (x) as "_".
-  Admitted.
+(*   (* TODO: Why do the tactics not strip laters? *) *)
+(*   Lemma recv_test c p : *)
+(*     {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}} *)
+(*       recv c #0 *)
+(*     {{{ x, RET #x; c ↣ p }}}. *)
+(*   Proof. *)
+(*     iIntros (Φ) "Hc HΦ". *)
+(*     wp_recv (x) as "_". *)
+(*   Admitted. *)
 
-  Lemma send_test c p :
-    {{{ c ↣ (<(Send,0) @(x:Z)> MSG #x ; p) }}}
-      send c #0 #42
-    {{{ x, RET #x; c ↣ p }}}.
-  Proof.
-    iIntros (Φ) "Hc HΦ".
-    wp_send (42%Z) with "[//]".
-  Admitted.
+(*   Lemma send_test c p : *)
+(*     {{{ c ↣ (<(Send,0) @(x:Z)> MSG #x ; p) }}} *)
+(*       send c #0 #42 *)
+(*     {{{ x, RET #x; c ↣ p }}}. *)
+(*   Proof. *)
+(*     iIntros (Φ) "Hc HΦ". *)
+(*     wp_send (42%Z) with "[//]". *)
+(*   Admitted. *)
 
-End channel.
+(* End channel. *)
