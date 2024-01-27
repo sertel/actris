@@ -51,12 +51,12 @@ Qed.
 
 (* TODO: Improve automation *)
 (* Could clean up repeated inserts to save traverses *)
-(* Need bug fixin (see example 5) *)
 Tactic Notation "iProto_consistent_take_step" :=
   let i := fresh in
   let j := fresh in
   let m1 := fresh in
   let m2 := fresh in
+  try iNext;
   iApply iProto_consistent_equiv_proof;
   iIntros (i j m1 m2) "#Hm1 #Hm2";
   repeat (destruct i as [|i];
@@ -107,7 +107,7 @@ Lemma iProto_example2_consistent `{!invGS Σ} (P : iProp Σ) :
 Proof.
   rewrite /iProto_example2.
   iProto_consistent_take_step.
-  iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame. iNext.
+  iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame.
   iProto_consistent_take_step.
 Qed.
 
@@ -122,11 +122,11 @@ Lemma iProto_example3_consistent `{!invGS Σ} :
 Proof.
   rewrite /iProto_example3.
   iProto_consistent_take_step.
-  iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|]. iNext.
+  iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|].
   iProto_consistent_take_step.
-  iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|]. iNext.
+  iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|].
   iProto_consistent_take_step.
-  iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+  iIntros "_". iSplit; [done|]. iSplit; [done|].
   iProto_consistent_take_step.
 Qed.
 
@@ -189,12 +189,12 @@ Section example4.
   Proof.
     rewrite /iProto_example4.
     iProto_consistent_take_step.
-    iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame. iNext.
+    iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame.
     iProto_consistent_take_step.
-    iIntros "Hloc". iExists _, _. iSplit; [done|]. iFrame. iNext.
+    iIntros "Hloc". iExists _, _. iSplit; [done|]. iFrame.
     iProto_consistent_take_step.
     iIntros "Hloc". iSplit; [done|].
-    replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame. iNext.
+    replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame.
     iProto_consistent_take_step.
   Qed.
 
@@ -263,66 +263,66 @@ Section example5.
   Proof.
     rewrite /iProto_example5.
     iProto_consistent_take_step.
-    iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 0. clean_map 1.
     iProto_consistent_take_step.
-    - iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    - iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 0. clean_map 2.
       iProto_consistent_take_step.
-      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
         clean_map 1. clean_map 3.
         iProto_consistent_take_step.
-        * iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+        * iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
           clean_map 2. clean_map 4.
           iProto_consistent_take_step.
-          iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+          iIntros "_". iSplit; [done|]. iSplit; [done|].
           clean_map 0. clean_map 3.
           iProto_consistent_take_step.
-          iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+          iIntros "_". iSplit; [done|]. iSplit; [done|].
           iProto_consistent_take_step.
-        * iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        * iIntros "_". iSplit; [done|]. iSplit; [done|].
           clean_map 3. clean_map 0.
           iProto_consistent_take_step.
-          iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+          iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
           clean_map 2. clean_map 4.
           iProto_consistent_take_step.
-          iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+          iIntros "_". iSplit; [done|]. iSplit; [done|].
           clean_map 4. clean_map 0.
           iProto_consistent_take_step.
-      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
         clean_map 2. clean_map 4.
         iProto_consistent_take_step.
-        iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
         clean_map 1. clean_map 3.
         iProto_consistent_take_step.
-        iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 3. clean_map 0.
         iProto_consistent_take_step.
-        iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 4. clean_map 0.
         iProto_consistent_take_step.
-    - iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    - iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 1. clean_map 3.
       iProto_consistent_take_step.
-      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 0. clean_map 2.
       iProto_consistent_take_step.
-      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      + iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
         clean_map 2. clean_map 4.
         iProto_consistent_take_step.
-        iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 3. clean_map 0.
         iProto_consistent_take_step.
-        iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 4. clean_map 0.
         iProto_consistent_take_step.
-      + iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+      + iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 3. clean_map 0.
         iProto_consistent_take_step.
-        iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
         clean_map 2. clean_map 4.
         iProto_consistent_take_step.
-        iIntros "_". iSplit; [done|]. iSplit; [done|]. iNext.
+        iIntros "_". iSplit; [done|]. iSplit; [done|].
         clean_map 4. clean_map 0.
         iProto_consistent_take_step.
   Qed.
@@ -359,32 +359,109 @@ Section two_buyer.
   Proof.
     rewrite /two_buyer_prot.
     iProto_consistent_take_step.
-    iIntros (title) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    iIntros (title) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 0. clean_map 1.
     iProto_consistent_take_step.
-    iIntros (quote) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    iIntros (quote) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 0. clean_map 1.
     iProto_consistent_take_step.
-    iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 1. clean_map 2.
     iProto_consistent_take_step.
-    iIntros (contrib) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+    iIntros (contrib) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 0. clean_map 2.
     case_bool_decide.
     - iProto_consistent_take_step.
-      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 2. clean_map 1.
       iProto_consistent_take_step.
-      iIntros (address) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      iIntros (address) "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 2. clean_map 1.
       iProto_consistent_take_step.
-      iIntros (date) "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      iIntros (date) "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 2. clean_map 1.
       iProto_consistent_take_step.
     - iProto_consistent_take_step.
-      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|]. iNext.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
       clean_map 2. clean_map 1.
       iProto_consistent_take_step.
   Qed.
 
 End two_buyer.
+
+Section two_buyer_ref.
+  Context `{!heapGS Σ}.
+
+  Definition two_buyer_ref_b1_prot : iProto Σ :=
+    (<(Send, 1) @ (title:Z)> MSG #title ;
+     <(Recv, 1) @ (quote:Z)> MSG #quote ;
+     <(Send, 2) @ (l : loc) (amount:Z) (contrib:Z)>
+       MSG (#l,#contrib) {{ l ↦ #amount }} ;
+     <(Recv, 2) @ (b : bool)>
+       MSG #b {{ l ↦ #(if b then amount - contrib else amount) }};
+     END)%proto.
+
+  Definition two_buyer_ref_s_prot : iProto Σ :=
+    (<(Recv, 0) @ (title:Z)> MSG #title ;
+     <(Send, 0) @ (quote:Z)> MSG #quote ;
+     <(Send, 2)> MSG #quote ;
+     <(Recv, 2) @ (b:bool)> MSG #b ;
+     if b then
+       <(Recv, 2) @ (l2 : loc) (amount2:Z) (address:Z)> 
+         MSG (#l2,#address) {{ l2 ↦ #amount2 }} ;
+       <(Send, 2) @ (date : Z)> MSG #date {{ l2 ↦ #(amount2-quote) }}; END
+     else END)%proto.
+  
+  Definition two_buyer_ref_b2_prot : iProto Σ :=
+    (<(Recv, 1) @ (quote:Z)> MSG #quote ;
+     <(Recv, 0) @ (l1 : loc) (amount1:Z) (contrib:Z)>
+       MSG (#l1,#contrib) {{ l1 ↦ #amount1 }};
+     <(Send, 0) @ (b : bool)>
+       MSG #b {{ l1 ↦ #(if b then amount1 - contrib else amount1) }};
+     <(Send, 1)> MSG #b;
+     if b then
+       <(Send, 1) @ (l2 : loc) (amount2:Z) (address:Z)>
+         MSG (#l2,#address) {{ l2 ↦ #amount2 }} ;
+       <(Recv, 1) @ (date : Z)> MSG #date {{ l2 ↦ #(amount2-quote) }};
+       END
+     else END)%proto.
+
+  Definition two_buyer_ref_prot : gmap nat (iProto Σ) :=
+    <[0 := two_buyer_ref_b1_prot]>
+   (<[1 := two_buyer_ref_s_prot]>
+   (<[2 := two_buyer_ref_b2_prot]>
+      ∅)).
+
+  Lemma two_buyer_ref_prot_consistent :
+    ⊢ iProto_consistent two_buyer_ref_prot.
+  Proof.
+    rewrite /two_buyer_prot.
+    iProto_consistent_take_step.
+    iIntros (title) "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    clean_map 0. clean_map 1.
+    iProto_consistent_take_step.
+    iIntros (quote) "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    clean_map 0. clean_map 1.
+    iProto_consistent_take_step.
+    iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    clean_map 1. clean_map 2.
+    iProto_consistent_take_step.
+    iIntros (l1 amount1 contrib) "Hl1". iExists _,_,_. iSplit; [done|]. iFrame.
+    clean_map 0. clean_map 2.
+    iProto_consistent_take_step.
+    iIntros (b) "Hl1". iExists _. iSplit; [done|]. iFrame.
+    clean_map 0. clean_map 2.
+    iProto_consistent_take_step.
+    iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    clean_map 1. clean_map 2.
+    destruct b.
+    - iProto_consistent_take_step.
+      iIntros (l2 amount2 address) "Hl2". iExists _,_,_. iSplit; [done|]. iFrame.
+      clean_map 2. clean_map 1.
+      iProto_consistent_take_step.
+      iIntros (date) "Hl2". iExists _. iSplit; [done|]. iFrame.
+      iProto_consistent_take_step.
+    - iProto_consistent_take_step.
+  Qed.
+
+End two_buyer_ref.
