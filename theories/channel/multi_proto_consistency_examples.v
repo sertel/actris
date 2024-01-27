@@ -80,47 +80,46 @@ Tactic Notation "iProto_consistent_take_step" :=
        iSplitL; [iFrame "#"|];
        iSplitL; [iPureIntro; tc_solve|];
        iSplitL; [iPureIntro; tc_solve|];
-       simpl; iClear "#"; clear m1 m2);
+       simpl; iClear "Hm1 Hm2"; clear m1 m2);
   try (repeat (rewrite (insert_commute _ _ i); [|done]);
   rewrite insert_insert;
   repeat (rewrite (insert_commute _ _ j); [|done]);
   rewrite insert_insert).
 
 Tactic Notation "clean_map" constr(i) :=
-  repeat (rewrite (insert_commute _ _ i); [|done]);
+  iEval (repeat (rewrite (insert_commute _ _ i); [|done]));
   rewrite (insert_insert _ i).
 
-Definition iProto_example1 {Σ} : gmap nat (iProto Σ) :=
-  ∅.
+Definition iProto_empty {Σ} : gmap nat (iProto Σ) := ∅.
 
-Lemma iProto_example1_consistent {Σ} :
-  ⊢ iProto_consistent (@iProto_example1 Σ).
+Lemma iProto_consistent_empty {Σ} :
+  ⊢ iProto_consistent (@iProto_empty Σ).
 Proof. iProto_consistent_take_step. Qed.
 
-Definition iProto_example2 `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
+Definition iProto_binary `{!invGS Σ} (P : iProp Σ) : gmap nat (iProto Σ) :=
   <[0 := (<(Send, 1) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
   (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x {{ P }} ; END)%proto ]>
    ∅).
 
-Lemma iProto_example2_consistent `{!invGS Σ} (P : iProp Σ) :
-  ⊢ iProto_consistent (@iProto_example2 Σ invGS0 P).
+Lemma iProto_binary_consistent `{!invGS Σ} (P : iProp Σ) :
+  ⊢ iProto_consistent (@iProto_binary Σ invGS0 P).
 Proof.
-  rewrite /iProto_example2.
+  rewrite /iProto_binary.
   iProto_consistent_take_step.
   iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame.
   iProto_consistent_take_step.
 Qed.
 
-Definition iProto_example3 `{!invGS Σ} : gmap nat (iProto Σ) :=
+Definition iProto_roundtrip `{!invGS Σ} : gmap nat (iProto Σ) :=
    <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; <(Recv, 2)> MSG #x; END)%proto ]>
   (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ; <(Send, 2)> MSG #x; END)%proto ]>
   (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ; <(Send, 0)> MSG #x; END)%proto ]>
     ∅)).
 
-Lemma iProto_example3_consistent `{!invGS Σ} :
-  ⊢ iProto_consistent (@iProto_example3 Σ invGS0).
+Lemma iProto_roundtrip_consistent `{!invGS Σ} :
+  ⊢ iProto_consistent (@iProto_roundtrip Σ invGS0).
 Proof.
-  rewrite /iProto_example3.
+  rewrite /iProto_roundtrip.
   iProto_consistent_take_step.
   iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|].
   iProto_consistent_take_step.
@@ -150,10 +149,10 @@ Section channel.
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 3 iProto_example3).
+    wp_smart_apply (new_chan_spec 3 iProto_roundtrip).
     { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
     { set_solver. }
-    { iApply iProto_example3_consistent. }
+    { iApply iProto_roundtrip_consistent. }
     iIntros (cs) "Hcs".
     wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
     iIntros (c0) "[Hc0 Hcs]".
@@ -172,10 +171,10 @@ Section channel.
 
 End channel.
 
-Section example4.
+Section roundtrip_ref.
   Context `{!heapGS Σ}.
 
-  Definition iProto_example4 : gmap nat (iProto Σ) :=
+  Definition iProto_roundtrip_ref : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
             <(Recv, 2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
    (<[1 := (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
@@ -184,10 +183,10 @@ Section example4.
             <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
             ∅)).
 
-  Lemma iProto_example4_consistent :
-    ⊢ iProto_consistent (iProto_example4).
+  Lemma iProto_roundtrip_ref_consistent :
+    ⊢ iProto_consistent iProto_roundtrip_ref.
   Proof.
-    rewrite /iProto_example4.
+    rewrite /iProto_roundtrip_ref.
     iProto_consistent_take_step.
     iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame.
     iProto_consistent_take_step.
@@ -198,7 +197,7 @@ Section example4.
     iProto_consistent_take_step.
   Qed.
 
-End example4.
+End roundtrip_ref.
 
 Definition roundtrip_ref_prog : val :=
   λ: <>,
@@ -219,10 +218,10 @@ Section proof.
     {{{ True }}} roundtrip_ref_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 3 iProto_example4 with "[]").
+    wp_smart_apply (new_chan_spec 3 iProto_roundtrip_ref with "[]").
     { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
     { set_solver. }
-    { iApply iProto_example4_consistent. }
+    { iApply iProto_roundtrip_ref_consistent. }
     iIntros (cs) "Hcs".
     wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
     iIntros (c0) "[Hc0 Hcs]".
@@ -242,10 +241,99 @@ Section proof.
 
 End proof.
 
-Section example5.
+Section roundtrip_ref_rec.
   Context `{!heapGS Σ}.
 
-  Definition iProto_example5 : gmap nat (iProto Σ) :=
+  Definition iProto_roundtrip_ref_rec1_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+     <(Recv, 2)> MSG #() {{ l ↦ #(x+2) }} ; rec)%proto.
+
+  Instance iProto_roundtrip_ref_rec1_contractive :
+    Contractive iProto_roundtrip_ref_rec1_aux.
+  Proof. solve_proto_contractive. Qed.
+
+  Definition iProto_roundtrip_ref_rec1 :=
+    fixpoint iProto_roundtrip_ref_rec1_aux.
+
+  Lemma iProto_roundtrip_ref_rec1_unfold :
+    iProto_roundtrip_ref_rec1 ≡
+                (iProto_roundtrip_ref_rec1_aux iProto_roundtrip_ref_rec1).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_roundtrip_ref_rec2_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+     <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; rec)%proto.
+
+  Instance iProto_roundtrip_ref_rec2_contractive :
+    Contractive iProto_roundtrip_ref_rec2_aux.
+  Proof. solve_proto_contractive. Qed.
+
+  Definition iProto_roundtrip_ref_rec2 :=
+    fixpoint iProto_roundtrip_ref_rec2_aux.
+
+  Lemma iProto_roundtrip_ref_rec2_unfold :
+    iProto_roundtrip_ref_rec2 ≡
+                (iProto_roundtrip_ref_rec2_aux iProto_roundtrip_ref_rec2).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_roundtrip_ref_rec3_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
+     <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; rec)%proto.
+
+  Instance iProto_roundtrip_ref_rec3_contractive :
+    Contractive iProto_roundtrip_ref_rec3_aux.
+  Proof. solve_proto_contractive. Qed.
+
+  Definition iProto_roundtrip_ref_rec3 :=
+    fixpoint iProto_roundtrip_ref_rec3_aux.
+
+  Lemma iProto_roundtrip_ref_rec3_unfold :
+    iProto_roundtrip_ref_rec3 ≡
+                (iProto_roundtrip_ref_rec3_aux iProto_roundtrip_ref_rec3).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_roundtrip_ref_rec : gmap nat (iProto Σ) :=
+    <[0 := iProto_roundtrip_ref_rec1]>
+   (<[1 := iProto_roundtrip_ref_rec2]>
+   (<[2 := iProto_roundtrip_ref_rec3]> ∅)).
+
+  Lemma iProto_roundtrip_ref_rec_consistent :
+    ⊢ iProto_consistent iProto_roundtrip_ref_rec.
+  Proof.
+    iLöb as "IH".
+    rewrite /iProto_roundtrip_ref_rec.
+    iEval (rewrite iProto_roundtrip_ref_rec1_unfold).
+    iEval (rewrite iProto_roundtrip_ref_rec2_unfold).
+    iEval (rewrite iProto_roundtrip_ref_rec3_unfold).
+    iProto_consistent_take_step.
+    iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame.
+    iProto_consistent_take_step.
+    iIntros "Hloc". iExists _, _. iSplit; [done|]. iFrame. iNext.
+    rewrite iProto_roundtrip_ref_rec2_unfold.
+    iProto_consistent_take_step.
+    iIntros "Hloc". iSplit; [done|].
+    replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame.
+    rewrite -iProto_roundtrip_ref_rec2_unfold.
+    do 2 clean_map 0. do 2 clean_map 1. do 2 clean_map 2.
+    done.
+  Qed.
+
+End roundtrip_ref_rec.
+
+Section parallel.
+  Context `{!heapGS Σ}.
+
+  (**
+         0 
+       /   \
+      1     2
+      |     |
+      3     4
+       \   /
+         0
+   *)
+
+  Definition iProto_parallel : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; <(Send, 2)> MSG #x ;
             <(Recv, 3)> MSG #x; <(Recv, 4)> MSG #x; END)%proto]>
    (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ;
@@ -258,10 +346,10 @@ Section example5.
             <(Send, 0)> MSG #x ; END)%proto]>
             ∅)))).
 
-  Lemma iProto_example5_consistent :
-    ⊢ iProto_consistent iProto_example5.
+  Lemma iProto_parallel_consistent :
+    ⊢ iProto_consistent iProto_parallel.
   Proof.
-    rewrite /iProto_example5.
+    rewrite /iProto_parallel.
     iProto_consistent_take_step.
     iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     clean_map 0. clean_map 1.
@@ -327,7 +415,7 @@ Section example5.
         iProto_consistent_take_step.
   Qed.
 
-End example5.
+End parallel.
 
 Section two_buyer.
   Context `{!heapGS Σ}.
