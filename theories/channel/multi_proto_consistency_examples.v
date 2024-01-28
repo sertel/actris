@@ -260,6 +260,11 @@ Section roundtrip_ref_rec.
                 (iProto_roundtrip_ref_rec1_aux iProto_roundtrip_ref_rec1).
   Proof. apply (fixpoint_unfold _). Qed.
 
+  Global Instance iProto_roundtrip_ref_rec1_proto_unfold :
+    ProtoUnfold iProto_roundtrip_ref_rec1
+                (iProto_roundtrip_ref_rec1_aux iProto_roundtrip_ref_rec1).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
+
   Definition iProto_roundtrip_ref_rec2_aux (rec : iProto Σ) : iProto Σ :=
     (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
      <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; rec)%proto.
@@ -276,6 +281,11 @@ Section roundtrip_ref_rec.
                 (iProto_roundtrip_ref_rec2_aux iProto_roundtrip_ref_rec2).
   Proof. apply (fixpoint_unfold _). Qed.
 
+  Global Instance iProto_roundtrip_ref_rec2_proto_unfold :
+    ProtoUnfold iProto_roundtrip_ref_rec2
+                (iProto_roundtrip_ref_rec2_aux iProto_roundtrip_ref_rec2).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
+
   Definition iProto_roundtrip_ref_rec3_aux (rec : iProto Σ) : iProto Σ :=
     (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
      <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; rec)%proto.
@@ -291,6 +301,11 @@ Section roundtrip_ref_rec.
     iProto_roundtrip_ref_rec3 ≡
                 (iProto_roundtrip_ref_rec3_aux iProto_roundtrip_ref_rec3).
   Proof. apply (fixpoint_unfold _). Qed.
+
+  Global Instance iProto_roundtrip_ref_rec3_proto_unfold :
+    ProtoUnfold iProto_roundtrip_ref_rec3
+                (iProto_roundtrip_ref_rec3_aux iProto_roundtrip_ref_rec3).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
 
   Definition iProto_roundtrip_ref_rec : gmap nat (iProto Σ) :=
     <[0 := iProto_roundtrip_ref_rec1]>
@@ -319,6 +334,57 @@ Section roundtrip_ref_rec.
   Qed.
 
 End roundtrip_ref_rec.
+
+Definition roundtrip_ref_rec_prog : val :=
+  λ: <>,
+     let: "cs" := new_chan #3 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     Fork ((rec: "go" "c1" :=
+             let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l";;
+             "go" "c1") "c1");;
+     Fork ((rec: "go" "c2" :=
+           let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #();;
+           "go" "c2") "c2");;
+     let: "l" := ref #38 in
+     send "c0" #1 "l";; recv "c0" #2;;
+     send "c0" #1 "l";; recv "c0" #2;; !"l".
+
+Section proof.
+  Context `{!heapGS Σ, !chanG Σ}.
+  Implicit Types p : iProto Σ.
+  Implicit Types TT : tele.
+
+  Lemma roundtrip_ref_rec_prog_spec :
+    {{{ True }}} roundtrip_ref_rec_prog #() {{{ RET #42 ; True }}}.
+  Proof using chanG0.
+    iIntros (Φ) "_ HΦ". wp_lam.
+    wp_smart_apply (new_chan_spec 3 iProto_roundtrip_ref_rec with "[]").
+    { intros i Hle. destruct i as [|[|[]]]; try set_solver. lia. }
+    { set_solver. }
+    { iApply iProto_roundtrip_ref_rec_consistent. }
+    iIntros (cs) "Hcs".
+    wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
+    iIntros (c0) "[Hc0 Hcs]".
+    wp_smart_apply (get_chan_spec _ 1 with "Hcs"); [set_solver|].
+    iIntros (c1) "[Hc1 Hcs]".
+    wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
+    iIntros (c2) "[Hc2 Hcs]".
+    wp_smart_apply (wp_fork with "[Hc1]").
+    { iIntros "!>". wp_pure _. iLöb as "IH".
+      wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
+      do 2 wp_pure _. by iApply "IH". }
+    wp_smart_apply (wp_fork with "[Hc2]").
+    { iIntros "!>". wp_pure _. iLöb as "IH".
+      wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
+      do 2 wp_pure _. by iApply "IH". }
+    wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl".
+    wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
+    by iApply "HΦ".
+  Qed.
+
+End proof.
 
 Section parallel.
   Context `{!heapGS Σ}.
