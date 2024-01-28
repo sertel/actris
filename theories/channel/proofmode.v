@@ -484,3 +484,8 @@ Tactic Notation "wp_select" "with" constr(pat) :=
   end.
 
 Tactic Notation "wp_select" := wp_select with "[//]".
+
+Tactic Notation "wp_new_chan" constr(prot) "as"
+       "(" simple_intropattern(c1) simple_intropattern(c2) ")" constr(pat) :=
+  wp_smart_apply (new_chan_spec prot); [done|];
+  iIntros (c1); iIntros (c2); iIntros pat.
