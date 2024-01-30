@@ -24,8 +24,8 @@ Definition sort_service : val :=
     let: "xs" := recv "c" in
     if: llength "xs" ≤ #1 then send "c" #() else
     let: "zs" := lsplit "xs" in
-    let: "cy" := start_chan (λ: "c", "go" "cmp" "c") in
-    let: "cz" := start_chan (λ: "c", "go" "cmp" "c") in
+    let: "cy" := fork_chan (λ: "c", "go" "cmp" "c") in
+    let: "cz" := fork_chan (λ: "c", "go" "cmp" "c") in
     send "cy" "xs";;
     send "cz" "zs";;
     recv "cy";; recv "cz";;
@@ -37,7 +37,7 @@ Definition sort_service_func : val := λ: "c",
   sort_service "cmp" "c".
 
 Definition sort_client_func : val := λ: "cmp" "xs",
-  let: "c" := start_chan sort_service_func in
+  let: "c" := fork_chan sort_service_func in
   send "c" "cmp";; send "c" "xs";;
   recv "c".
 
@@ -105,10 +105,10 @@ Section sort.
       wp_send with "[$Hl]"; first by auto. by iApply "HΨ". }
     wp_smart_apply (lsplit_spec with "Hl"); iIntros (l2 vs1 vs2);
       iDestruct 1 as (->) "[Hl1 Hl2]".
-    wp_smart_apply (start_chan_spec (sort_protocol I R)); iIntros (cy) "Hcy".
+    wp_smart_apply (fork_chan_spec (sort_protocol I R)); iIntros (cy) "Hcy".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_smart_apply ("IH" with "Hcy"); auto. }
-    wp_smart_apply (start_chan_spec (sort_protocol I R)); iIntros (cz) "Hcz".
+    wp_smart_apply (fork_chan_spec (sort_protocol I R)); iIntros (cz) "Hcz".
     { rewrite -{2}(right_id END%proto _ (iProto_dual _)).
       wp_smart_apply ("IH" with "Hcz"); auto. }
     wp_send with "[$Hl1]".
@@ -141,7 +141,7 @@ Section sort.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_smart_apply (start_chan_spec sort_protocol_func); iIntros (c) "Hc".
+    wp_smart_apply (fork_chan_spec sort_protocol_func); iIntros (c) "Hc".
     { rewrite -(right_id END%proto _ (iProto_dual _)).
       wp_smart_apply (sort_service_func_spec with "Hc"); auto. }
     wp_send with "[$Hcmp]".

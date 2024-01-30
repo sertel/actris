@@ -9,7 +9,7 @@ Definition list_rev_service : val :=
 
 Definition list_rev_client : val :=
   λ: "l",
-    let: "c" := start_chan list_rev_service in
+    let: "c" := fork_chan list_rev_service in
     send "c" "l";; recv "c".
 
 Section list_rev_example.
@@ -75,7 +75,7 @@ Section list_rev_example.
     {{{ RET #(); llist IT l (reverse xs) }}}.
   Proof.
     iIntros (Φ) "Hl HΦ". wp_lam.
-    wp_smart_apply (start_chan_spec (list_rev_prot)%proto); iIntros (c) "Hc".
+    wp_smart_apply (fork_chan_spec (list_rev_prot)%proto); iIntros (c) "Hc".
     - rewrite -(iProto_app_end_r list_rev_prot).
       iApply (list_rev_service_spec with "Hc"). eauto.
     - iDestruct (iProto_pointsto_le _ _ (list_rev_protI IT) with "Hc []") as "Hc".

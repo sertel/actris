@@ -20,7 +20,7 @@ Definition sort_service_br : val :=
 Definition sort_service_del : val :=
   rec: "go" "cmp" "c" :=
     if: ~recv "c" then #() else
-    send "c" (start_chan (λ: "c", sort_service "cmp" "c"));;
+    send "c" (fork_chan (λ: "c", sort_service "cmp" "c"));;
     "go" "cmp" "c".
 
 Definition sort_service_br_del : val :=
@@ -29,7 +29,7 @@ Definition sort_service_br_del : val :=
       sort_service "cmp" "c";;
       "go" "cmp" "c"
     else if: recv "c" then
-      send "c" (start_chan (λ: "c", "go" "cmp" "c"));;
+      send "c" (fork_chan (λ: "c", "go" "cmp" "c"));;
       "go" "cmp" "c"
     else #().
 
@@ -76,7 +76,7 @@ Section sort_service_br_del.
   Proof.
     iIntros "#Hcmp !>" (Ψ) "Hc HΨ". iLöb as "IH" forall (Ψ).
     wp_rec. wp_branch; wp_pures.
-    { wp_smart_apply (start_chan_spec (sort_protocol I R <++> END)%proto); iIntros (c') "Hc'".
+    { wp_smart_apply (fork_chan_spec (sort_protocol I R <++> END)%proto); iIntros (c') "Hc'".
       { wp_pures. wp_smart_apply (sort_service_spec with "Hcmp Hc'"); auto. }
       wp_send with "[$Hc']". by wp_smart_apply ("IH" with "Hc"). }
     by iApply "HΨ".
@@ -102,7 +102,7 @@ Section sort_service_br_del.
     { wp_smart_apply (sort_service_spec with "Hcmp Hc"); iIntros "Hc".
       by wp_smart_apply ("IH" with "Hc"). }
     wp_branch; wp_pures.
-    { wp_smart_apply (start_chan_spec sort_protocol_br_del); iIntros (c') "Hc'".
+    { wp_smart_apply (fork_chan_spec sort_protocol_br_del); iIntros (c') "Hc'".
       { wp_smart_apply ("IH" with "Hc'"); auto. }
       wp_send with "[$Hc']".
       by wp_smart_apply ("IH" with "Hc"). }

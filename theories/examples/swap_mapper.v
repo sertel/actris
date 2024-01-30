@@ -25,7 +25,7 @@ Definition recv_all : val :=
 
 Definition swap_mapper_client : val :=
   λ: "f" "xs",
-    let: "c" := start_chan (λ: "c", swap_mapper_service "f" "c") in
+    let: "c" := fork_chan (λ: "c", swap_mapper_service "f" "c") in
     let: "n" := llength "xs" in
     send_all "c" "xs";; recv_all "c" "xs" "n";; send "c" #false.
 
@@ -373,7 +373,7 @@ Section with_Σ.
   Proof.
     iIntros "#Hfspec !>" (Φ) "HIT HΦ".
     wp_lam.
-    wp_smart_apply (start_chan_spec mapper_prot); iIntros (c) "// Hc".
+    wp_smart_apply (fork_chan_spec mapper_prot); iIntros (c) "// Hc".
     { wp_lam. rewrite -(iProto_app_end_r (iProto_dual mapper_prot)).
       iApply (swap_mapper_service_spec _ _ END%proto with "Hfspec Hc").
       auto. }

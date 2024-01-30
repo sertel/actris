@@ -49,7 +49,7 @@ Definition par_map_client_loop : val :=
       "go" "n" "c" "xs" "ys".
 
 Definition par_map_client : val := λ: "n" "map" "xs",
-  let: "c" := start_chan (λ: "c", par_map_service "n" "map" "c") in
+  let: "c" := fork_chan (λ: "c", par_map_service "n" "map" "c") in
   let: "ys" := lnil #() in
   par_map_client_loop "n" "c" "xs" "ys";;
   lapp "xs" "ys".
@@ -203,7 +203,7 @@ Section map.
     {{{ ys, RET #(); ⌜ys ≡ₚ xs ≫= map⌝ ∗ llist IB l ys }}}.
   Proof.
     iIntros (?) "#Hmap !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_smart_apply (start_chan_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
+    wp_smart_apply (fork_chan_spec (par_map_protocol n ∅)); iIntros (c) "// Hc".
     { wp_smart_apply (par_map_service_spec with "Hmap Hc"); auto. }
     wp_pures. wp_smart_apply (lnil_spec with "[//]"); iIntros (k) "Hk".
     wp_smart_apply (par_map_client_loop_spec with "[$Hl $Hk $Hc //]"); first lia.

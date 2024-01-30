@@ -8,17 +8,17 @@ Local Existing Instance spin_lock.
 
 (** Basic *)
 Definition prog : val := λ: <>,
-  let: "c" := start_chan (λ: "c'", send "c'" #42) in
+  let: "c" := fork_chan (λ: "c'", send "c'" #42) in
   recv "c".
 
 (** Tranfering References *)
 Definition prog_ref : val := λ: <>,
-  let: "c" := start_chan (λ: "c'", send "c'" (ref #42)) in
+  let: "c" := fork_chan (λ: "c'", send "c'" (ref #42)) in
   ! (recv "c").
 
 (** Delegation, i.e. transfering channels *)
 Definition prog_del : val := λ: <>,
-  let: "c1" := start_chan (λ: "c1'",
+  let: "c1" := fork_chan (λ: "c1'",
     let: "cc2" := new_chan #() in
     send "c1'" (Fst "cc2");;
     send (Snd "cc2") #42) in
@@ -26,42 +26,42 @@ Definition prog_del : val := λ: <>,
 
 (** Dependent protocols *)
 Definition prog_dep : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     let: "x" := recv "c'" in send "c'" ("x" + #2)) in
   send "c" #40;;
   recv "c".
 
 Definition prog_dep_ref : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     let: "l" := recv "c'" in "l" <- !"l" + #2;; send "c'" #()) in
   let: "l" := ref #40 in send "c" "l";; recv "c";; !"l".
 
 Definition prog_dep_del : val := λ: <>,
-  let: "c1" := start_chan (λ: "c1'",
+  let: "c1" := fork_chan (λ: "c1'",
     let: "cc2" := new_chan #() in
     send "c1'" (Fst "cc2");;
     let: "x" := recv (Snd "cc2") in send (Snd "cc2") ("x" + #2)) in
   let: "c2'" := recv "c1" in send "c2'" #40;; recv "c2'".
 
 Definition prog_dep_del_2 : val := λ: <>,
-  let: "c1" := start_chan (λ: "c1'",
+  let: "c1" := fork_chan (λ: "c1'",
     send (recv "c1'") #40;;
     send "c1'" #()) in
-  let: "c2" := start_chan (λ: "c2'",
+  let: "c2" := fork_chan (λ: "c2'",
     let: "x" := recv "c2'" in send "c2'" ("x" + #2)) in
   send "c1" "c2";; recv "c1";; recv "c2".
 
 Definition prog_dep_del_3 : val := λ: <>,
-  let: "c1" := start_chan (λ: "c1'",
+  let: "c1" := fork_chan (λ: "c1'",
     let: "c" := recv "c1'" in let: "y" := recv "c1'" in
     send "c" "y";; send "c1'" #()) in
-  let: "c2" := start_chan (λ: "c2'",
+  let: "c2" := fork_chan (λ: "c2'",
     let: "x" := recv "c2'" in send "c2'" ("x" + #2)) in
   send "c1" "c2";; send "c1" #40;; recv "c1";; recv "c2".
 
 (** Loops *)
 Definition prog_loop : val := λ: <>,
-  let: "c" := start_chan (rec: "go" "c'" :=
+  let: "c" := fork_chan (rec: "go" "c'" :=
     let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" "c'") in
   send "c" #18;;
   let: "x1" := recv "c" in
@@ -71,7 +71,7 @@ Definition prog_loop : val := λ: <>,
 
 (** Transfering higher-order functions *)
 Definition prog_fun : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     let: "f" := recv "c'" in send "c'" (λ: <>, "f" #() + #2)) in
   let: "r" := ref #40 in
   send "c" (λ: <>, !"r");;
@@ -79,7 +79,7 @@ Definition prog_fun : val := λ: <>,
 
 (** Lock protected channel endpoints *)
 Definition prog_lock : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     let: "l" := newlock #() in
     Fork (acquire "l";; send "c'" #21;; release "l");;
     acquire "l";; send "c'" #21;; release "l") in
@@ -87,7 +87,7 @@ Definition prog_lock : val := λ: <>,
 
 (** Swapping of sends *)
 Definition prog_swap : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     send "c'" #20;;
     let: "y" := recv "c'" in
     send "c'" ("y" + #2)) in
@@ -95,7 +95,7 @@ Definition prog_swap : val := λ: <>,
   recv "c" + recv "c".
 
 Definition prog_swap_twice : val := λ: <>,
-  let: "c" := start_chan (λ: "c'",
+  let: "c" := fork_chan (λ: "c'",
     send "c'" #20;;
     let: "y1" := recv "c'" in
     let: "y2" := recv "c'" in
@@ -104,7 +104,7 @@ Definition prog_swap_twice : val := λ: <>,
   recv "c" + recv "c".
 
 Definition prog_swap_loop : val := λ: <>,
-  let: "c" := start_chan (rec: "go" "c'" :=
+  let: "c" := fork_chan (rec: "go" "c'" :=
     let: "x" := recv "c'" in send "c'" ("x" + #2);; "go" "c'") in
   send "c" #18;;
   send "c" #20;;
@@ -113,7 +113,7 @@ Definition prog_swap_loop : val := λ: <>,
   "x1" + "x2".
 
 Definition prog_ref_swap_loop : val := λ: <>,
-  let: "c" := start_chan (rec: "go" "c'" :=
+  let: "c" := fork_chan (rec: "go" "c'" :=
      let: "l" := recv "c'" in
      "l" <- !"l" + #2;; send "c'" #();; "go" "c'") in
   let: "l1" := ref #18 in
@@ -209,7 +209,7 @@ Definition prot_swap_loop : iProto Σ :=
 Lemma prog_spec : {{{ True }}} prog #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot); iIntros (c) "Hc".
   - by wp_send with "[]".
   - wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -217,7 +217,7 @@ Qed.
 Lemma prog_ref_spec : {{{ True }}} prog_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_ref); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_ref); iIntros (c) "Hc".
   - wp_alloc l as "Hl". by wp_send with "[$Hl]".
   - wp_recv (l) as "Hl". wp_load. by iApply "HΦ".
 Qed.
@@ -225,7 +225,7 @@ Qed.
 Lemma prog_del_spec : {{{ True }}} prog_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_del); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_del); iIntros (c) "Hc".
   - wp_smart_apply (new_chan_spec prot with "[//]").
     iIntros (c2 c2') "[Hc2 Hc2']". wp_send with "[$Hc2]". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_recv as "_". by iApply "HΦ".
@@ -234,7 +234,7 @@ Qed.
 Lemma prog_dep_spec : {{{ True }}} prog_dep #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_dep); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_dep); iIntros (c) "Hc".
   - wp_recv (x) as "_". by wp_send with "[]".
   - wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -242,7 +242,7 @@ Qed.
 Lemma prog2_ref_spec : {{{ True }}} prog_dep_ref #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_dep_ref); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_dep_ref); iIntros (c) "Hc".
   - wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[Hl]".
   - wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
     by iApply "HΦ".
@@ -251,7 +251,7 @@ Qed.
 Lemma prog_dep_del_spec : {{{ True }}} prog_dep_del #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_dep_del); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_dep_del); iIntros (c) "Hc".
   - wp_smart_apply (new_chan_spec prot_dep with "[//]"); iIntros (c2 c2') "[Hc2 Hc2']".
     wp_send with "[$Hc2]". wp_recv (x) as "_". by wp_send with "[]".
   - wp_recv (c2) as "Hc2". wp_send with "[//]". wp_recv as "_".
@@ -261,9 +261,9 @@ Qed.
 Lemma prog_dep_del_2_spec : {{{ True }}} prog_dep_del_2 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_dep_del_2); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_dep_del_2); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_smart_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
+  wp_smart_apply (fork_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
 Qed.
@@ -271,10 +271,10 @@ Qed.
 Lemma prog_dep_del_3_spec : {{{ True }}} prog_dep_del_3 #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_dep_del_3); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_dep_del_3); iIntros (c) "Hc".
   { wp_recv (c2) as "Hc2". wp_recv (y) as "_".
     wp_send with "[//]". by wp_send with "[$Hc2]". }
-  wp_smart_apply (start_chan_spec prot_dep); iIntros (c2) "Hc2".
+  wp_smart_apply (fork_chan_spec prot_dep); iIntros (c2) "Hc2".
   { wp_recv (x) as "_". by wp_send with "[//]". }
   wp_send with "[$Hc2]". wp_send with "[//]".
   wp_recv as "Hc2". wp_recv as "_". by iApply "HΦ".
@@ -283,7 +283,7 @@ Qed.
 Lemma prog_loop_spec : {{{ True }}} prog_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
     by wp_smart_apply "IH".
@@ -294,7 +294,7 @@ Qed.
 Lemma prog_fun_spec : {{{ True }}} prog_fun #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_fun); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_fun); iIntros (c) "Hc".
   - wp_recv (P Ψ vf) as "#Hf". wp_send with "[]"; last done.
     iIntros "!>" (Ψ') "HP HΨ'". wp_smart_apply ("Hf" with "HP"); iIntros (x) "HΨ".
     wp_pures. by iApply "HΨ'".
@@ -309,7 +309,7 @@ Lemma prog_lock_spec `{!lockG Σ, contributionG Σ unitUR} :
   {{{ True }}} prog_lock #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec (prot_lock 2)); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec (prot_lock 2)); iIntros (c) "Hc".
   - iMod contribution_init as (γ) "Hs".
     iMod (alloc_client with "Hs") as "[Hs Hcl1]".
     iMod (alloc_client with "Hs") as "[Hs Hcl2]".
@@ -335,7 +335,7 @@ Qed.
 Lemma prog_swap_spec : {{{ True }}} prog_swap #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_swap); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_swap); iIntros (c) "Hc".
   - wp_send with "[//]". wp_recv (x) as "_". by wp_send with "[//]".
   - wp_send with "[//]". wp_recv as "_". wp_recv as "_".
     wp_pures. by iApply "HΦ".
@@ -344,7 +344,7 @@ Qed.
 Lemma prog_swap_twice_spec : {{{ True }}} prog_swap_twice #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_swap_twice); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_swap_twice); iIntros (c) "Hc".
   - wp_send with "[//]". wp_recv (x1) as "_". wp_recv (x2) as "_".
     by wp_send with "[//]".
   - wp_send with "[//]". wp_send with "[//]". wp_recv as "_". wp_recv as "_".
@@ -354,7 +354,7 @@ Qed.
 Lemma prog_swap_loop_spec : {{{ True }}} prog_swap_loop #() {{{ RET #42; True }}}.
 Proof.
   iIntros (Φ) "_ HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_loop); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_loop); iIntros (c) "Hc".
   - iLöb as "IH".
     wp_recv (x) as "_". wp_send with "[//]".
     by wp_smart_apply "IH".
@@ -368,7 +368,7 @@ Actris journal paper *)
 Lemma prog_ref_swap_loop_spec : ∀ Φ, Φ #42 -∗ WP prog_ref_swap_loop #() {{ Φ }}.
 Proof.
   iIntros (Φ) "HΦ". wp_lam.
-  wp_smart_apply (start_chan_spec prot_ref_loop); iIntros (c) "Hc".
+  wp_smart_apply (fork_chan_spec prot_ref_loop); iIntros (c) "Hc".
   - iLöb as "IH". wp_lam.
     wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
     by wp_smart_apply "IH".

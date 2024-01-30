@@ -60,11 +60,11 @@ Definition par_map_reduce_reduce : val :=
 Definition cmpZfst : val := λ: "x" "y", Fst "x" ≤ Fst "y".
 
 Definition par_map_reduce : val := λ: "n" "m" "map" "red" "xs",
-  let: "cmap" := start_chan (λ: "c", par_map_service "n" "map" "c") in
-  let: "csort" := start_chan (λ: "c", sort_service_fg cmpZfst "c") in
+  let: "cmap" := fork_chan (λ: "c", par_map_service "n" "map" "c") in
+  let: "csort" := fork_chan (λ: "c", sort_service_fg cmpZfst "c") in
   par_map_reduce_map "n" "cmap" "csort" "xs";;
   send "csort" #stop;;
-  let: "cred" := start_chan (λ: "c", par_map_service "m" "red" "c") in
+  let: "cred" := fork_chan (λ: "c", par_map_service "m" "red" "c") in
   (* We need the first sorted element in the loop to compare subsequent elements *)
   if: ~recv "csort" then #() else (* Handle the empty case *)
   let: "jy" := recv "csort" in
@@ -281,10 +281,10 @@ Section mapper.
     {{{ zs, RET #(); ⌜zs ≡ₚ map_reduce map red xs⌝ ∗ llist IC l zs }}}.
   Proof.
     iIntros (??) "#Hmap #Hred !>"; iIntros (Φ) "Hl HΦ". wp_lam; wp_pures.
-    wp_smart_apply (start_chan_spec (par_map_protocol IA IZB map n ∅));
+    wp_smart_apply (fork_chan_spec (par_map_protocol IA IZB map n ∅));
       iIntros (cmap) "// Hcmap".
     { wp_pures. wp_smart_apply (par_map_service_spec with "Hmap Hcmap"); auto. }
-    wp_smart_apply (start_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
+    wp_smart_apply (fork_chan_spec (sort_fg_protocol IZB RZB <++> END)%proto);
       iIntros (csort) "Hcsort".
     { wp_smart_apply (sort_service_fg_spec with "[] Hcsort"); last by auto.
       iApply RZB_cmp_spec. }
@@ -292,7 +292,7 @@ Section mapper.
     wp_smart_apply (par_map_reduce_map_spec with "[$Hl $Hcmap $Hcsort]"); first lia.
     iIntros (iys). rewrite gmultiset_elements_empty right_id_L.
     iDestruct 1 as (Hiys) "[Hl Hcsort] /=". wp_select; wp_pures; simpl.
-    wp_smart_apply (start_chan_spec (par_map_protocol IZBs IC (uncurry red) m ∅));
+    wp_smart_apply (fork_chan_spec (par_map_protocol IZBs IC (uncurry red) m ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_smart_apply (par_map_service_spec with "Hred Hcred"); auto. }
     wp_branch as %_|%Hnil; last first.

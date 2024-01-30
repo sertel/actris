@@ -38,7 +38,7 @@ Definition new_chan : val :=
      let: "lk" := newlock #() in
      ((("l","r"),"lk"), (("r","l"),"lk")).
 
-Definition start_chan : val := λ: "f",
+Definition fork_chan : val := λ: "f",
   let: "cc" := new_chan #() in
   Fork ("f" (Snd "cc"));; Fst "cc".
 
@@ -221,10 +221,10 @@ Section channel.
     - rewrite iProto_pointsto_eq. iExists γ, Right, l, r, lk. by iFrame "Hcr #".
   Qed.
 
-  Lemma start_chan_spec p Φ (f : val) :
+  Lemma fork_chan_spec p Φ (f : val) :
     ▷ (∀ c, c ↣ iProto_dual p -∗ WP f c {{ _, True }}) -∗
     ▷ (∀ c, c ↣ p -∗ Φ c) -∗
-    WP start_chan f {{ Φ }}.
+    WP fork_chan f {{ Φ }}.
   Proof.
     iIntros "Hfork HΦ". wp_lam.
     wp_smart_apply (new_chan_spec p with "[//]"); iIntros (c1 c2) "[Hc1 Hc2]".

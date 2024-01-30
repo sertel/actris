@@ -42,8 +42,8 @@ Definition sort_service_fg : val :=
     let: "x" := recv "c" in
     if: ~(recv "c") then send "c" #cont;; send "c" "x";; send "c" #stop else
     let: "y" := recv "c" in
-    let: "c1" := start_chan (λ: "c", "go" "cmp" "c") in
-    let: "c2" := start_chan (λ: "c", "go" "cmp" "c") in
+    let: "c1" := fork_chan (λ: "c", "go" "cmp" "c") in
+    let: "c2" := fork_chan (λ: "c", "go" "cmp" "c") in
     send "c1" #cont;; send "c1" "x";;
     send "c2" #cont;; send "c2" "y";;
     sort_service_fg_split "c" "c1" "c2";;
@@ -66,7 +66,7 @@ Definition recv_all : val :=
     "go" "c" "ys";; lcons "x" "ys".
 
 Definition sort_client_fg : val := λ: "cmp" "xs",
-  let: "c" := start_chan (λ: "c", sort_service_fg "cmp" "c") in
+  let: "c" := fork_chan (λ: "c", sort_service_fg "cmp" "c") in
   send_all "c" "xs";;
   send "c" #stop;;
   recv_all "c" "xs".
@@ -221,10 +221,10 @@ Section sort_fg.
     wp_rec; wp_pures. wp_branch; wp_pures.
     - wp_recv (x1 v1) as "HIx1". wp_branch; wp_pures.
       + wp_recv (x2 v2) as "HIx2".
-        wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
+        wp_smart_apply (fork_chan_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cy) "Hcy". wp_smart_apply ("IH" with "Hcy"). auto. }
         iIntros (cy) "Hcy".
-        wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto).
+        wp_smart_apply (fork_chan_spec (sort_fg_protocol <++> END)%proto).
         { iIntros (cz) "Hcz". wp_smart_apply ("IH" with "Hcz"); auto. }
         iIntros (cz) "Hcz". rewrite !right_id.
         wp_select. wp_send with "[$HIx1]".
@@ -281,7 +281,7 @@ Section sort_fg.
     {{{ ys, RET #(); ⌜Sorted R ys⌝ ∗ ⌜ys ≡ₚ xs⌝ ∗ llist I l ys }}}.
   Proof.
     iIntros "#Hcmp !>" (Φ) "Hl HΦ". wp_lam.
-    wp_smart_apply (start_chan_spec (sort_fg_protocol <++> END)%proto); iIntros (c) "Hc".
+    wp_smart_apply (fork_chan_spec (sort_fg_protocol <++> END)%proto); iIntros (c) "Hc".
     { wp_smart_apply (sort_service_fg_spec with "Hcmp Hc"); auto. }
     wp_smart_apply (send_all_spec with "[$Hl $Hc]"); iIntros "[Hl Hc]".
     wp_select.
