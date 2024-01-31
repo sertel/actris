@@ -491,10 +491,15 @@ Tactic Notation "wp_new_chan" constr(prot) "as"
   iIntros (c1); iIntros (c2); iIntros pat.
 
 Tactic Notation "wp_fork_chan" constr(prot) "as"
-       simple_intropattern(c1) constr(pat1) "and" simple_intropattern(c2) constr(pat2) :=
+       simple_intropattern(c1) constr(pat1) "and"
+       simple_intropattern(c2) constr(pat2) :=
   wp_smart_apply (fork_chan_spec prot); [iIntros (c2); iIntros pat2|
                                          iIntros (c1); iIntros pat1].
 
-Tactic Notation "wp_fork_chan" constr(prot) :=
-  wp_smart_apply (fork_chan_spec prot).
+Tactic Notation "wp_fork_chan" constr(prot) "as"
+       simple_intropattern(c) constr(pat) :=
+  wp_fork_chan prot as c pat and c pat.
 
+Tactic Notation "wp_fork_chan" constr(prot) :=
+  let iNew := iFresh in
+  wp_fork_chan prot as ? iNew.
