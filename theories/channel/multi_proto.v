@@ -1140,7 +1140,12 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
     own γ (gmap_view_frag j (DfracOwn 1) (Excl' (Next p2))) -∗
     ⌜i ≠ j⌝.
-  Proof. Admitted.
+  Proof.
+    iIntros "Hown Hown'" (->).
+    iDestruct (own_valid_2 with "Hown Hown'") as "H".
+    rewrite uPred.cmra_valid_elim.
+    iDestruct "H" as %H%gmap_view_frag_op_validN. by destruct H.
+  Qed.
 
   Lemma iProto_step γ i j m1 m2 p1 v :
     iProto_ctx γ -∗
