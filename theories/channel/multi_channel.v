@@ -224,7 +224,7 @@ Section channel.
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec (n:nat) (ps:gmap nat (iProto Σ)) :
     0 < n →
-    dom ps = list_to_set $ seq 0 n → (* TODO: Consider using [set_eq] instead *)
+    dom ps = set_seq 0 n →
     {{{ iProto_consistent ps }}}
       new_chan #n
     {{{ cs, RET cs; chan_pool cs ps }}}.
@@ -248,7 +248,6 @@ Section channel.
       assert (is_Some (ps !! n)) as [p ?].
       { apply elem_of_dom.
         rewrite Hdom.
-        rewrite list_to_set_seq.
         apply elem_of_set_seq.
         lia. }
       iDestruct (big_sepM_delete _ _ n with "Hps'") as "[Hp Hps']".
@@ -259,13 +258,13 @@ Section channel.
       { iPureIntro.
         rewrite dom_delete_L. rewrite Hdom.
         replace (S n) with (n + 1) by lia.
-        rewrite seq_app.
-        simpl. rewrite list_to_set_app_L. simpl.
+        rewrite set_seq_add_L.
+        simpl. 
         rewrite right_id_L.
         rewrite difference_union_distr_l_L.
         rewrite difference_diag_L. rewrite right_id_L.
-        assert (n ∉ seq 0 n); [|set_solver].
-        intros Hin%elem_of_seq. lia. }
+        assert (n ∉ (set_seq 0 n:gset _)); [|set_solver].
+        intros Hin%elem_of_set_seq. lia. }
       iModIntro. iExists (γEs++[γE]).
       replace (S n) with (n + 1) by lia.
       rewrite replicate_add.
@@ -310,11 +309,10 @@ Section channel.
     iExists _,_,_,_.
     iModIntro. iSplit; [done|].
     iSplit.
-    { iPureIntro. intros.
-      apply elem_of_dom in H.
-      rewrite Hdom in H.
-      rewrite list_to_set_seq in H.
-      apply elem_of_set_seq in H. lia. }
+    { iPureIntro. intros i HSome.
+      apply elem_of_dom in HSome.
+      rewrite Hdom in HSome.
+      apply elem_of_set_seq in HSome. lia. }
     iFrame "IHp".
     iApply (big_sepL_impl with "H").
     iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)".
