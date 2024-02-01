@@ -628,3 +628,41 @@ Section two_buyer_ref.
   Qed.
 
 End two_buyer_ref.
+
+
+Section fwd.
+  Context `{!heapGS Σ}.
+
+  Definition iProto_fwd : gmap nat (iProto Σ) :=
+    <[0 := (<(Send, 1) @ (x:Z)> MSG #x ;
+            <(Send, 1) @ (b:bool)> MSG #b ;
+            <(Send, if b then 2 else 3) > MSG #x ; END)%proto]>
+   (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ;
+            <(Recv, 0) @ (b:bool)> MSG #b;
+            if b
+            then <(Send,2)> MSG #x ; END
+            else <(Send,3)> MSG #x ; END)%proto]>
+   (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ;
+            <(Send, 0)> MSG #x ; END)%proto]>
+   (<[3 := (<(Recv, 1) @ (x:Z)> MSG #x ;
+            <(Send, 0)> MSG #x ; END)%proto]> ∅))).
+
+  Lemma iProto_fwd_consistent :
+    ⊢ iProto_consistent iProto_fwd.
+  Proof.
+    rewrite /iProto_fwd.
+    iProto_consistent_take_step.
+    iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    iProto_consistent_take_step.
+    iIntros ([]) "_".
+    - iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+    - iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+  Qed.
+
+End fwd.
