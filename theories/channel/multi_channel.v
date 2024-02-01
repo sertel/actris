@@ -111,7 +111,7 @@ Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
   ∃ γ γE1 (l:loc) (i:nat) (n:nat) p',
     ⌜ c = (#l,#n,#i)%V ⌝ ∗
     inv (nroot.@"ctx") (iProto_ctx γ) ∗
-    ([∗list] j ↦ _ ∈ replicate n (), 
+    ([∗list] j ↦ _ ∈ replicate n (),
        ∃ γE2 γt1 γt2,
          inv (nroot.@"p") (chan_inv γ γE1 γt1 i j (l +ₗ (pos n i j))) ∗
          inv (nroot.@"p") (chan_inv γ γE2 γt2 j i (l +ₗ (pos n j i)))) ∗
@@ -136,7 +136,7 @@ Definition chan_pool `{!heapGS Σ, !chanG Σ}
       (∀ p, ⌜ps !! i = Some p⌝ -∗
             own (γEs !!! i) (●E (Next p)) ∗
             own (γEs !!! i) (◯E (Next p)) ∗
-            iProto_own γ i p) ∗    
+            iProto_own γ i p) ∗
       [∗ list] j ↦ _ ∈ replicate n (),
         ∃ γt1 γt2,
         inv (nroot.@"p") (chan_inv γ (γEs !!! i) γt1 i j (l +ₗ (pos n i j))) ∗
@@ -170,13 +170,13 @@ Section channel.
     iInduction n as [|n] "IHn".
     { done. }
     replace (S n) with (n + 1) by lia.
-    rewrite !replicate_add. 
+    rewrite !replicate_add.
     simpl. iDestruct "H" as "[H1 H2]".
     iSplitL "H1".
     { by iApply "IHn". }
     simpl. rewrite !replicate_length. iFrame.
   Qed.
-    
+
   Lemma array_to_matrix_pre l n m v :
     l ↦∗ replicate (n * m) v -∗
     [∗ list] i ↦ _ ∈ replicate n (),
@@ -192,7 +192,7 @@ Section channel.
     iDestruct "Hl" as "[H1 H2]".
     iDestruct ("IHn" with "H1") as "H1".
     iFrame.
-    simpl. 
+    simpl.
     rewrite Nat.add_0_r.
     rewrite !replicate_length.
     replace (Z.of_nat (n * m)) with (Z.of_nat n * Z.of_nat m)%Z by lia.
@@ -215,7 +215,7 @@ Section channel.
     iApply (big_sepL_impl with "H").
     iIntros "!>" (j ? HSome) "Hl".
     rewrite /pos.
-    rewrite Loc.add_assoc. 
+    rewrite Loc.add_assoc.
     replace (Z.of_nat i * Z.of_nat n + Z.of_nat j)%Z with
       (Z.of_nat (i * n + j))%Z by lia.
     apply lookup_replicate in HSome as [-> _]. done.
@@ -224,46 +224,48 @@ Section channel.
   (** ** Specifications of [send] and [recv] *)
   Lemma new_chan_spec (n:nat) (ps:gmap nat (iProto Σ)) :
     0 < n →
-    (∀ i, i < n ↔ is_Some (ps !! i)) →     (* TODO: Weaken this! *)
-    (* n = (size (dom ps)) → *)
+    dom ps = list_to_set $ seq 0 n → (* TODO: Consider using [set_eq] instead *)
     {{{ iProto_consistent ps }}}
       new_chan #n
     {{{ cs, RET cs; chan_pool cs ps }}}.
   Proof.
-    iIntros (Hle HSome Φ) "Hps HΦ". wp_lam.
+    iIntros (Hle Hdom Φ) "Hps HΦ". wp_lam.
     wp_smart_apply wp_allocN; [lia|done|].
     iIntros (l) "[Hl _]".
     iMod (iProto_init with "Hps") as (γ) "[Hps Hps']".
     wp_pures. iApply "HΦ".
     iAssert (|==> ∃ (γEs : list gname),
-                ⌜length γEs = n⌝ ∗ 
+                ⌜length γEs = n⌝ ∗
                 [∗ list] i ↦ _ ∈ replicate n (),
                   own (γEs !!! i) (●E (Next (ps !!! i))) ∗
                   own (γEs !!! i) (◯E (Next (ps !!! i))) ∗
                   iProto_own γ i (ps !!! i))%I with "[Hps']" as "H".
     { clear Hle.
       (* iInduction n as [|n] "IHn" forall (ps HSome Heq). *)
-      iInduction n as [|n] "IHn" forall (ps HSome).
+      iInduction n as [|n] "IHn" forall (ps Hdom).
       { iExists []. iModIntro. simpl. done. }
-      assert (n < S n) by lia.
-      apply HSome in H. destruct H as [p ?]. 
+      (* assert (n < S n) by lia. *)
+      assert (is_Some (ps !! n)) as [p ?].
+      { apply elem_of_dom.
+        rewrite Hdom.
+        rewrite list_to_set_seq.
+        apply elem_of_set_seq.
+        lia. }
       iDestruct (big_sepM_delete _ _ n with "Hps'") as "[Hp Hps']".
       { done. }
       iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (γE) "[Hauth Hfrag]".
       { apply excl_auth_valid. }
       iMod ("IHn" with "[] Hps'") as (γEs Hlen) "H".
       { iPureIntro.
-        intros i.
-        split.
-        - intros Hle. 
-          rewrite lookup_delete_ne; [|lia].
-          apply HSome. lia.
-        - intros HSome'. 
-          destruct (decide (i=n)).
-          + simplify_eq. rewrite lookup_delete in HSome'. by inversion HSome'.
-          + rewrite lookup_delete_ne in HSome'; [|lia]. apply HSome in HSome'.
-            lia.
-      }        
+        rewrite dom_delete_L. rewrite Hdom.
+        replace (S n) with (n + 1) by lia.
+        rewrite seq_app.
+        simpl. rewrite list_to_set_app_L. simpl.
+        rewrite right_id_L.
+        rewrite difference_union_distr_l_L.
+        rewrite difference_diag_L. rewrite right_id_L.
+        assert (n ∉ seq 0 n); [|set_solver].
+        intros Hin%elem_of_seq. lia. }
       iModIntro. iExists (γEs++[γE]).
       replace (S n) with (n + 1) by lia.
       rewrite replicate_add.
@@ -277,7 +279,7 @@ Section channel.
         assert (i < n).
         { by apply lookup_replicate_1 in HSome' as [? ?]. }
         assert (delete n ps !!! i = ps !!! i) as Heq'.
-        { apply lookup_total_delete_ne. lia. }          
+        { apply lookup_total_delete_ne. lia. }
         rewrite Heq'. iFrame.
         rewrite lookup_total_app_l; [|lia]. iFrame. }
       simpl. rewrite replicate_length. rewrite Nat.add_0_r.
@@ -308,7 +310,11 @@ Section channel.
     iExists _,_,_,_.
     iModIntro. iSplit; [done|].
     iSplit.
-    { iPureIntro. intros. apply HSome in H. done. } 
+    { iPureIntro. intros.
+      apply elem_of_dom in H.
+      rewrite Hdom in H.
+      rewrite list_to_set_seq in H.
+      apply elem_of_set_seq in H. lia. }
     iFrame "IHp".
     iApply (big_sepL_impl with "H").
     iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)".
@@ -349,7 +355,7 @@ Section channel.
     { apply Hle. eexists _. done. }
     iDestruct (big_sepL_delete _ _ i () with "Hl") as "[[Hi #IHs] H]".
     { by apply lookup_replicate. }
-    iDestruct ("Hi" with "[//]") as "(Hauth & Hown & Hp)". 
+    iDestruct ("Hi" with "[//]") as "(Hauth & Hown & Hp)".
     iModIntro.
     iApply "HΦ".
     iSplitR "H".
@@ -365,7 +371,7 @@ Section channel.
     iSplit.
     { iPureIntro. intros i' HSome'. apply Hle.
       assert (i ≠ i').
-      { intros ->. rewrite lookup_delete in HSome'. by inversion HSome'. } 
+      { intros ->. rewrite lookup_delete in HSome'. by inversion HSome'. }
       rewrite lookup_delete_ne in HSome'; done. }
     iFrame "#∗".
     iApply (big_sepL_impl with "H").
@@ -380,29 +386,29 @@ Section channel.
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
     own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p2))) -∗
     False.
-  Proof. 
+  Proof.
     iIntros "Hi Hj". by iDestruct (own_prot_idx with "Hi Hj") as %Hneq.
   Qed.
 
-  Lemma diverge_spec P : 
+  Lemma diverge_spec P :
     {{{ True }}} diverge #() {{{ RET #(); P }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". 
+    iIntros (Φ) "_ HΦ".
     wp_lam. iLöb as "IH".
     wp_pures. by iApply "IH".
   Qed.
 
-  Lemma guard_spec (i n : nat) : 
+  Lemma guard_spec (i n : nat) :
     {{{ True }}} guard #i #n {{{ RET #(); ⌜i < n⌝ }}}.
   Proof.
-    iIntros (Φ) "_ HΦ". 
-    wp_lam. wp_pures. 
+    iIntros (Φ) "_ HΦ".
+    wp_lam. wp_pures.
     case_bool_decide.
-    - wp_pures. iApply "HΦ". iPureIntro. lia. 
-    - by wp_smart_apply diverge_spec. 
+    - wp_pures. iApply "HΦ". iPureIntro. lia.
+    - by wp_smart_apply diverge_spec.
   Qed.
 
-  Lemma vpos_spec (n i j : nat) : 
+  Lemma vpos_spec (n i j : nat) :
     {{{ True }}} vpos #n #i #j {{{ RET #(pos n i j); True }}}.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam. wp_pures. rewrite /pos.
@@ -426,13 +432,13 @@ Section channel.
     wp_smart_apply (vpos_spec); [done|]. iIntros "_".
     iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj _]".
     { by apply lookup_replicate_2. }
-    iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]". 
+    iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]".
     wp_pures.
     wp_bind (Store _ _).
     iInv "IHl1" as "HIp".
     iDestruct "HIp" as "[HIp|HIp]"; last first.
     { iDestruct "HIp" as "[HIp|HIp]".
-      - iDestruct "HIp" as (? m) "(>Hl & Hown' & HIp)".       
+      - iDestruct "HIp" as (? m) "(>Hl & Hown' & HIp)".
         wp_store.
         rewrite /iProto_own.
         iDestruct "Hown" as (p'') "[Hle' Hown]".
@@ -449,7 +455,7 @@ Section channel.
     iMod (own_update_2 with "H● H◯") as "[H● H◯]".
     { apply excl_auth_update. }
     iModIntro.
-    iSplitL "Hl' H● Hown Hle". 
+    iSplitL "Hl' H● Hown Hle".
     { iRight. iLeft. iIntros "!>". iExists _, _. iFrame.
       iSplitL "Hown Hle".
       { iApply (iProto_own_le with "Hown Hle"). }
@@ -518,7 +524,7 @@ Section channel.
     wp_smart_apply (vpos_spec); [done|]. iIntros "_".
     iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj _]".
     { by apply lookup_replicate_2. }
-    iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]". 
+    iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]".
     wp_pures.
     wp_bind (Xchg _ _).
     iInv "IHl2" as "HIp".
