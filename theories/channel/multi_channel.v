@@ -35,13 +35,6 @@ Definition new_chan : val :=
 Definition get_chan : val :=
   λ: "cs" "i", ("cs","i").
 
-Definition diverge : val :=
-  λ: <>, (rec: "go" <> := "go" #())%V #().
-
-Definition guard : val :=
-  λ: "i" "n",
-    if: "i" < "n" then #() else diverge #().
-
 Definition wait : val :=
   rec: "go" "c" :=
     match: !"c" with
@@ -55,7 +48,7 @@ Definition vpos : val := λ: "n" "i" "j", "i"*"n" + "j".
 
 Definition send : val :=
   λ: "c" "j" "v",
-    let: "n" := Snd (Fst "c") in guard "j" "n";;
+    let: "n" := Snd (Fst "c") in
     let: "ls" := Fst (Fst "c") in
     let: "i" := Snd "c" in
     let: "l" := "ls" +ₗ vpos "n" "i" "j" in
@@ -64,7 +57,7 @@ Definition send : val :=
 (* TODO: Move recursion further in *)
 Definition recv : val :=
   rec: "go" "c" "j" :=
-    let: "n" := Snd (Fst "c") in guard "j" "n";;
+    let: "n" := Snd (Fst "c") in
     let: "ls" := Fst (Fst "c") in
     let: "i" := Snd "c" in
     let: "l" := "ls" +ₗ vpos "n" "j" "i" in
@@ -110,7 +103,7 @@ Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
     (c : val) (p : iProto Σ) : iProp Σ :=
   ∃ γ γE1 (l:loc) (i:nat) (n:nat) p',
     ⌜ c = (#l,#n,#i)%V ⌝ ∗
-    inv (nroot.@"ctx") (iProto_ctx γ) ∗
+    inv (nroot.@"ctx") (iProto_ctx γ (set_seq 0 n)) ∗
     ([∗list] j ↦ _ ∈ replicate n (),
        ∃ γE2 γt1 γt2,
          inv (nroot.@"p") (chan_inv γ γE1 γt1 i j (l +ₗ (pos n i j))) ∗
@@ -131,7 +124,7 @@ Definition chan_pool `{!heapGS Σ, !chanG Σ}
     (cs : val) (ps : gmap nat (iProto Σ)) : iProp Σ :=
   ∃ γ (γEs : list gname) (l:loc) (n:nat),
     ⌜cs = (#l,#n)%V⌝ ∗ ⌜∀ i, is_Some (ps !! i) → i < n⌝ ∗
-    inv (nroot.@"ctx") (iProto_ctx γ) ∗
+    inv (nroot.@"ctx") (iProto_ctx γ (set_seq 0 n)) ∗
     [∗ list] i ↦ _ ∈ replicate n (),
       (∀ p, ⌜ps !! i = Some p⌝ -∗
             own (γEs !!! i) (●E (Next p)) ∗
@@ -313,7 +306,7 @@ Section channel.
       apply elem_of_dom in HSome.
       rewrite Hdom in HSome.
       apply elem_of_set_seq in HSome. lia. }
-    iFrame "IHp".
+    rewrite Hdom. iFrame "IHp".
     iApply (big_sepL_impl with "H").
     iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)".
     iSplitL.
@@ -388,24 +381,6 @@ Section channel.
     iIntros "Hi Hj". by iDestruct (own_prot_idx with "Hi Hj") as %Hneq.
   Qed.
 
-  Lemma diverge_spec P :
-    {{{ True }}} diverge #() {{{ RET #(); P }}}.
-  Proof.
-    iIntros (Φ) "_ HΦ".
-    wp_lam. iLöb as "IH".
-    wp_pures. by iApply "IH".
-  Qed.
-
-  Lemma guard_spec (i n : nat) :
-    {{{ True }}} guard #i #n {{{ RET #(); ⌜i < n⌝ }}}.
-  Proof.
-    iIntros (Φ) "_ HΦ".
-    wp_lam. wp_pures.
-    case_bool_decide.
-    - wp_pures. iApply "HΦ". iPureIntro. lia.
-    - by wp_smart_apply diverge_spec.
-  Qed.
-
   Lemma vpos_spec (n i j : nat) :
     {{{ True }}} vpos #n #i #j {{{ RET #(pos n i j); True }}}.
   Proof.
@@ -423,11 +398,24 @@ Section channel.
     rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as
       (γ γE l i n p' ->) "(#IH & #Hls & Hle & H● & H◯ & Hown)".
-    wp_pures.
-    wp_smart_apply guard_spec; [done|].
-    iDestruct 1 as %Hle.
+    wp_bind (Fst _).
+    iInv "IH" as "HI".
+    iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
+    iRewrite "Heq" in "Hown".
+    iAssert (▷ (▷ ⌜j < n⌝ ∗ iProto_own γ i (<(Send, j)> m') ∗
+                iProto_ctx γ (set_seq 0 n)))%I with "[HI Hown]" as "[HI [Hown Hctx]]".
+    { iNext.
+      iDestruct (iProto_target with "HI Hown") as "[H1 [H2 H3]]".
+      iFrame.
+      iNext.
+      iDestruct "H1" as %Hin. iPureIntro.
+      set_solver. }
+    iRewrite -"Heq" in "Hown".
+    wp_pures. iModIntro.
+    iFrame.
     wp_pures.
     wp_smart_apply (vpos_spec); [done|]. iIntros "_".
+    iDestruct "HI" as %Hle.
     iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj _]".
     { by apply lookup_replicate_2. }
     iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]".
@@ -514,12 +502,23 @@ Section channel.
     rewrite iProto_pointsto_eq.
     iDestruct "Hc" as
       (γ γE l i n p' ->) "(#IH & #Hls & Hle & H● & H◯ & Hown)".
+    do 6 wp_pure _. wp_bind (Fst _). wp_pure _.
+    iInv "IH" as "HI".
+    iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
+    iRewrite "Heq" in "Hown".
+    iAssert (▷ (▷ ⌜j < n⌝ ∗ iProto_own γ i (<(Recv, j)> m') ∗
+                iProto_ctx γ (set_seq 0 n)))%I with "[HI Hown]" as "[HI [Hown Hctx]]".
+    { iNext.
+      iDestruct (iProto_target with "HI Hown") as "[H1 [H2 H3]]".
+      iFrame.
+      iNext.
+      iDestruct "H1" as %Hin. iPureIntro.
+      set_solver. }
+    iRewrite -"Heq" in "Hown".
     wp_pures.
-    wp_pures.
-    wp_smart_apply guard_spec; [done|].
-    iDestruct 1 as %Hle.
-    wp_pures.
+    iModIntro. iFrame.
     wp_smart_apply (vpos_spec); [done|]. iIntros "_".
+    iDestruct "HI" as %Hle.
     iDestruct (big_sepL_lookup_acc with "Hls") as "[Hj _]".
     { by apply lookup_replicate_2. }
     iDestruct "Hj" as (γE' γt γt') "#[IHl1 IHl2]".

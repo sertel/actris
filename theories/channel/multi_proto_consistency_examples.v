@@ -7,6 +7,7 @@ Set Default Proof Using "Type".
 Export action.
 
 Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
+  (∀ i j, valid_target ps i j) ∗
   (∀ i j m1 m2,
      (ps !!! i ≡ (<(Send, j)> m1)%proto) -∗
      (ps !!! j ≡ (<(Recv, i)> m2)%proto) -∗
@@ -22,8 +23,9 @@ Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
                        (<[i:=tele_app tp1 x]>(<[j:=tele_app tp2 y]>ps)))) -∗
   iProto_consistent ps.
 Proof.
-  iIntros "H".
+  iIntros "[H' H]".
   rewrite iProto_consistent_unfold.
+  iFrame.
   iIntros (i j m1 m2) "Hm1 Hm2".
   iDestruct ("H" with "Hm1 Hm2")
     as (m1' m2' TT1 TT2 tv1 tP1 tp1 tv2 tP2 tp2)
@@ -51,13 +53,11 @@ Qed.
 
 (* TODO: Improve automation *)
 (* Could clean up repeated inserts to save traverses *)
-Tactic Notation "iProto_consistent_take_step" :=
+Tactic Notation "iProto_consistent_take_step_step" :=
   let i := fresh in
   let j := fresh in
   let m1 := fresh in
   let m2 := fresh in
-  try iNext;
-  iApply iProto_consistent_equiv_proof;
   iIntros (i j m1 m2) "#Hm1 #Hm2";
   repeat (destruct i as [|i];
           [repeat (rewrite lookup_total_insert_ne; [|lia]);
@@ -85,6 +85,36 @@ Tactic Notation "iProto_consistent_take_step" :=
   rewrite insert_insert;
   repeat (rewrite (insert_commute _ _ j); [|done]);
   rewrite insert_insert).
+
+Tactic Notation "iProto_consistent_take_step_target" :=
+  let i := fresh in
+  iIntros (i j a m); rewrite /valid_target;
+            iIntros "#Hm";
+  repeat (destruct i as [|i];
+          [repeat (rewrite lookup_total_insert_ne; [|lia]);
+           try (by rewrite lookup_total_empty iProto_end_message_equivI);
+           try (rewrite lookup_total_insert;
+                try (by rewrite iProto_end_message_equivI);
+                iDestruct (iProto_message_equivI with "Hm1")
+                  as "[%Heq1 Hm1']";simplify_eq)|
+            repeat (rewrite lookup_total_insert_ne; [|lia]);
+            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
+  repeat (rewrite lookup_total_insert_ne; [|lia]);
+  try rewrite lookup_total_empty;
+  try (by iProto_end_message_equivI);
+  rewrite lookup_total_insert;
+  iDestruct (iProto_message_equivI with "Hm")
+    as "[%Heq Hm']";simplify_eq;
+  repeat (try rewrite lookup_empty;
+          try rewrite lookup_insert;
+          rewrite lookup_insert_ne; [|lia]);
+    try rewrite lookup_insert; try done.
+
+Tactic Notation "iProto_consistent_take_step" :=
+  try iNext;
+  iApply iProto_consistent_equiv_proof;
+  iSplitR; [iProto_consistent_take_step_target|
+             iProto_consistent_take_step_step].
 
 Tactic Notation "clean_map" constr(i) :=
   iEval (repeat (rewrite (insert_commute _ _ i); [|done]));
