@@ -510,23 +510,23 @@ Section proto.
 
 End proto.
 
-Instance iProto_inhabited {Σ V} : Inhabited (iProto Σ V) := populate (END).
+Global Instance iProto_inhabited {Σ V} : Inhabited (iProto Σ V) := populate END.
 
 Definition can_step {Σ V} (rec : gmap nat (iProto Σ V) → iProp Σ)
            (ps : gmap nat (iProto Σ V)) (i j : nat) : iProp Σ :=
   ∀ m1 m2,
-  ((ps !!! i ≡ <(Send, j)> m1) -∗ (ps !!! j ≡ <(Recv, i)> m2) -∗
-  ∀ v p1, iMsg_car m1 v (Next p1) -∗
-          ∃ p2, iMsg_car m2 v (Next p2) ∗
-                ▷ (rec (<[i:=p1]>(<[j:=p2]>ps)))).
+    (ps !!! i ≡ <(Send, j)> m1) -∗
+    (ps !!! j ≡ <(Recv, i)> m2) -∗
+    ∀ v p1, iMsg_car m1 v (Next p1) -∗
+            ∃ p2, iMsg_car m2 v (Next p2) ∗
+                  ▷ (rec (<[i:=p1]>(<[j:=p2]>ps))).
 
 Definition valid_target {Σ V} (ps : gmap nat (iProto Σ V)) (i j : nat) : iProp Σ :=
-  ∀ a m, ((ps !!! i ≡ <(a, j)> m) -∗ ⌜is_Some (ps !! j)⌝).
+  ∀ a m, (ps !!! i ≡ <(a, j)> m) -∗ ⌜is_Some (ps !! j)⌝.
 
 Definition iProto_consistent_pre {Σ V} (rec : gmap nat (iProto Σ V) → iProp Σ)
   (ps : gmap nat (iProto Σ V)) : iProp Σ :=
-  (∀ i j, valid_target ps i j) ∗
-  (∀ i j, can_step rec ps i j).
+  (∀ i j, valid_target ps i j) ∗ (∀ i j, can_step rec ps i j).
 
 Global Instance iProto_consistent_pre_ne {Σ V}
        (rec : gmapO natO (iProto Σ V) -n> iPropO Σ) :
@@ -616,7 +616,6 @@ Definition iProto_own_frag `{!protoG Σ V} (γ : gname)
 
 Definition iProto_own_auth `{!protoG Σ V} (γ : gname)
     (ps : gmap nat (iProto Σ V)) : iProp Σ :=
-  (* own γ (● ∅). *)
   own γ (gmap_view_auth (DfracOwn 1) (((λ p, Excl' (Next p)) <$> ps) : gmap _ _)).
 
 Definition iProto_ctx `{protoG Σ V}
@@ -669,21 +668,18 @@ Section proto.
   Lemma iProto_le_send_inv i p1 m2 :
     p1 ⊑ (<(Send,i)> m2) -∗ ∃ m1,
       (p1 ≡ <(Send,i)> m1) ∗
-      ∀ v p2', iMsg_car m2 v (Next p2') -∗ ∃ p1',
-      ▷ (p1' ⊑ p2') ∗ iMsg_car m1 v (Next p1').
+      ∀ v p2', iMsg_car m2 v (Next p2') -∗
+               ∃ p1', ▷ (p1' ⊑ p2') ∗ iMsg_car m1 v (Next p1').
   Proof.
     rewrite iProto_le_unfold.
     iIntros "[[_ Heq]|H]".
-    { iDestruct (iProto_message_end_equivI with "Heq") as %[]. }
+    { by iDestruct (iProto_message_end_equivI with "Heq") as %[]. }
     iDestruct "H" as (a1 a2 m1 m2') "(Hp1 & Hp2 & H)".
     rewrite iProto_message_equivI. iDestruct "Hp2" as "[%Heq Hm2]".
     simplify_eq.
     destruct a1 as [[]]; [|done].
-    iDestruct "H" as (->) "H".
-    iExists m1. iFrame.
-    iIntros (v p2).
-    iSpecialize ("Hm2" $! v (Next p2)).
-    iRewrite "Hm2". iApply "H".
+    iDestruct "H" as (->) "H". iExists m1. iFrame "Hp1".
+    iIntros (v p2). iSpecialize ("Hm2" $! v (Next p2)). by iRewrite "Hm2".
   Qed.
 
   Lemma iProto_le_send_send_inv i m1 m2 v p2' :
@@ -699,8 +695,8 @@ Section proto.
   Lemma iProto_le_recv_inv_l i m1 p2 :
     (<(Recv,i)> m1) ⊑ p2 -∗ ∃ m2,
       (p2 ≡ <(Recv,i)> m2) ∗
-      ∀ v p1', iMsg_car m1 v (Next p1') -∗ ∃ p2',
-      ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2').
+      ∀ v p1', iMsg_car m1 v (Next p1') -∗
+               ∃ p2', ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2').
   Proof.
     rewrite iProto_le_unfold.
     iIntros "[[Heq _]|H]".
@@ -709,18 +705,15 @@ Section proto.
     rewrite iProto_message_equivI. iDestruct "Hp1" as "[%Heq Hm1]".
     simplify_eq.
     destruct a2 as [[]]; [done|].
-    iDestruct "H" as (->) "H".
-    iExists m2. iFrame.
-    iIntros (v p1).
-    iSpecialize ("Hm1" $! v (Next p1)).
-    iRewrite "Hm1". iApply "H".
+    iDestruct "H" as (->) "H". iExists m2. iFrame "Hp2".
+    iIntros (v p1). iSpecialize ("Hm1" $! v (Next p1)). by iRewrite "Hm1".
   Qed.
 
   Lemma iProto_le_recv_inv_r i p1 m2 :
     (p1 ⊑ <(Recv,i)> m2) -∗ ∃ m1,
       (p1 ≡ <(Recv,i)> m1) ∗
-      ∀ v p1', iMsg_car m1 v (Next p1') -∗ ∃ p2',
-      ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2').
+      ∀ v p1', iMsg_car m1 v (Next p1') -∗
+               ∃ p2', ▷ (p1' ⊑ p2') ∗ iMsg_car m2 v (Next p2').
   Proof.
     rewrite iProto_le_unfold.
     iIntros "[[_ Heq]|H]".
@@ -759,12 +752,10 @@ Section proto.
     destruct t1,t2; [|done|done|].
     - rewrite iProto_message_equivI.
       iDestruct "Hp1" as (Heq) "Hp1". simplify_eq.
-      iDestruct "H" as (->) "H".
-      iExists _. done.
+      iDestruct "H" as (->) "H". by iExists _.
     - rewrite iProto_message_equivI.
       iDestruct "Hp1" as (Heq) "Hp1". simplify_eq.
-      iDestruct "H" as (->) "H".
-      iExists _. done.
+      iDestruct "H" as (->) "H". by iExists _.
   Qed.
 
   Lemma iProto_le_msg_inv_r j a p1 m2 :
@@ -778,12 +769,10 @@ Section proto.
     destruct t1,t2; [|done|done|].
     - rewrite iProto_message_equivI.
       iDestruct "Hp2" as (Heq) "Hp2". simplify_eq.
-      iDestruct "H" as (->) "H".
-      iExists _. done.
+      iDestruct "H" as (->) "H". by iExists _.
     - rewrite iProto_message_equivI.
       iDestruct "Hp2" as (Heq) "Hp2". simplify_eq.
-      iDestruct "H" as (->) "H".
-      iExists _. done.
+      iDestruct "H" as (->) "H". by iExists _.
   Qed.
 
   Lemma valid_target_le ps i p1 p2 :
@@ -798,7 +787,7 @@ Section proto.
       iFrame "Hle".
       iIntros (i' j' a m) "Hm".
       destruct (decide (i = j')) as [->|Hneqj].
-      { rewrite lookup_insert. done. }
+      { by rewrite lookup_insert. }
       rewrite lookup_insert_ne; [|done].
       destruct (decide (i = i')) as [->|Hneqi].
       { rewrite lookup_total_insert. iRewrite "H" in "Hm".
@@ -807,8 +796,7 @@ Section proto.
       by iApply "Hprot". }
     destruct Hmsg as (t & n & m & Hmsg).
     setoid_rewrite Hmsg.
-    iDestruct (iProto_le_msg_inv_l with "Hle") as (m2) "#Heq".
-    iFrame.
+    iDestruct (iProto_le_msg_inv_l with "Hle") as (m2) "#Heq". iFrame "Hle".
     iIntros (i' j' a m') "Hm".
     destruct (decide (i = j')) as [->|Hneqj].
     { rewrite lookup_insert. done. }
@@ -1020,7 +1008,8 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
       iExists (p1' <++> p3). iSplitR "Hm1"; [|by simpl; eauto].
       iIntros "!>". iRewrite "Hp24". by iApply ("IH" with "H1").
     - iDestruct (iProto_le_recv_inv_r with "H1") as (m1) "[Hp1 H1]".
-      iRewrite "Hp1"; clear p1. rewrite !iProto_app_message. iApply iProto_le_recv.
+      iRewrite "Hp1"; clear p1. rewrite !iProto_app_message.
+      iApply iProto_le_recv.
       iIntros (v p13). iDestruct 1 as (p1') "[Hm1 #Hp13]".
       iDestruct ("H1" with "Hm1") as (p2'') "[H1 Hm2]".
       iExists (p2'' <++> p4). iSplitR "Hm2"; [|by simpl; eauto].
@@ -1123,9 +1112,7 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     ps !!! i ≡ (<(a, j)> m) -∗
     ⌜is_Some (ps !! j)⌝.
   Proof.
-    rewrite iProto_consistent_unfold.
-    iDestruct 1 as "[Htar _]".
-    iApply "Htar".
+    rewrite iProto_consistent_unfold. iDestruct 1 as "[Htar _]". iApply "Htar".
   Qed.
 
   Lemma iProto_consistent_step ps m1 m2 i j v p1 :
@@ -1153,13 +1140,10 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     iDestruct (own_valid_2 with "H● H◯") as "H✓".
     rewrite gmap_view_both_validI.
     iDestruct "H✓" as "[_ [H1 H2]]".
-    rewrite lookup_total_alt.
-    rewrite lookup_fmap.
+    rewrite lookup_total_alt lookup_fmap.
     destruct (ps !! i); last first.
-    { simpl. rewrite !option_equivI. done. }
-    simpl.
-    rewrite !option_equivI excl_equivI.
-    by iNext.
+    { by rewrite !option_equivI. }
+    simpl. rewrite !option_equivI excl_equivI. by iNext.
   Qed.
 
   Lemma iProto_own_auth_update γ ps i p p' :
@@ -1184,19 +1168,13 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     { apply gmap_view_auth_valid. }
     iExists γ.
     iInduction ps as [|i p ps Hin] "IH" using map_ind.
-    { iModIntro. iFrame.
-      by iApply big_sepM_empty. }
+    { iModIntro. iFrame. by iApply big_sepM_empty. }
     iMod ("IH" with "Hauth") as "[Hauth Hfrags]".
     rewrite big_sepM_insert; [|done]. iFrame "Hfrags".
     iMod (own_update with "Hauth") as "[Hauth Hfrag]".
-    { apply (gmap_view_alloc _ i (DfracOwn 1) (Excl' (Next p))).
-      - rewrite lookup_fmap. rewrite Hin. done.
-      - done.
-      - done. }
-    iFrame.
-    iModIntro.
-    rewrite -fmap_insert.
-    iFrame.
+    { apply (gmap_view_alloc _ i (DfracOwn 1) (Excl' (Next p))); [|done|done].
+      by rewrite lookup_fmap Hin. }
+    iModIntro. rewrite -fmap_insert. iFrame.
     iExists _. iFrame. iApply iProto_le_refl.
   Qed.
 
@@ -1211,9 +1189,9 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     ▷ iProto_consistent ps -∗
     |==> ∃ γ, iProto_ctx γ (dom ps) ∗ [∗ map] i ↦p ∈ ps, iProto_own γ i p.
   Proof.
-    iIntros "Hconsistnet".
+    iIntros "Hconsistent".
     iMod iProto_own_auth_alloc as (γ) "[Hauth Hfrags]".
-    iExists γ. iFrame. iExists _. iFrame. done.
+    iExists γ. iFrame. iExists _. by iFrame.
   Qed.
 
   Lemma own_prot_idx γ i j (p1 p2 : iProto Σ V) :
@@ -1224,7 +1202,7 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     iIntros "Hown Hown'" (->).
     iDestruct (own_valid_2 with "Hown Hown'") as "H".
     rewrite uPred.cmra_valid_elim.
-    iDestruct "H" as %H%gmap_view_frag_op_validN. by destruct H.
+    by iDestruct "H" as %[]%gmap_view_frag_op_validN.
   Qed.
 
   Lemma iProto_step γ ps_dom i j m1 m2 p1 v :
@@ -1243,52 +1221,40 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     iDestruct (iProto_own_auth_agree with "Hauth Hj") as "#Hpj".
     iDestruct (own_prot_idx with "Hi Hj") as %Hneq.
     iAssert (▷ (<[i:=<(Send, j)> m1]>ps !!! j ≡ pj))%I as "Hpj'".
-    { rewrite lookup_total_insert_ne; done. }
-
+    { by rewrite lookup_total_insert_ne. }
     iAssert (▷ (⌜is_Some (ps !! i)⌝ ∗ (pi ⊑ (<(Send, j)> m1))))%I with "[Hile]"
       as "[Hi' Hile]".
-    { iNext.
-      iDestruct (iProto_le_msg_inv_r with "Hile") as (m) "#H".
-      iFrame.
-      iRewrite "H" in "Hpi".
-      rewrite lookup_total_alt. simpl.
+    { iNext. iDestruct (iProto_le_msg_inv_r with "Hile") as (m) "#Heq".
+      iFrame. iRewrite "Heq" in "Hpi". rewrite lookup_total_alt.
       destruct (ps !! i); [done|].
-      simpl. iDestruct (iProto_end_message_equivI with "Hpi") as "[]". }
+      iDestruct (iProto_end_message_equivI with "Hpi") as "[]". }
     iAssert (▷ (⌜is_Some (ps !! j)⌝ ∗ (pj ⊑ (<(Recv, i)> m2))))%I with "[Hjle]"
       as "[Hj' Hjle]".
-    { iNext.
-      iDestruct (iProto_le_msg_inv_r with "Hjle") as (m) "#H".
-      iFrame.
-      iRewrite "H" in "Hpj".
-      rewrite !lookup_total_alt. simpl.
+    { iNext. iDestruct (iProto_le_msg_inv_r with "Hjle") as (m) "#Heq".
+      iFrame. iRewrite "Heq" in "Hpj". rewrite !lookup_total_alt.
       destruct (ps !! j); [done|].
-      simpl. iDestruct (iProto_end_message_equivI with "Hpj") as "[]". }
+      iDestruct (iProto_end_message_equivI with "Hpj") as "[]". }
     iDestruct (iProto_consistent_le with "Hconsistent Hpi Hile") as "Hconsistent".
     iDestruct (iProto_consistent_le with "Hconsistent Hpj' Hjle") as "Hconsistent".
     iDestruct (iProto_consistent_step _ _ _ i j with "Hconsistent [] [] [Hm //]") as
       (p2) "[Hm2 Hconsistent]".
     { rewrite lookup_total_insert_ne; [|done].
       rewrite lookup_total_insert_ne; [|done].
-      iNext. rewrite lookup_total_insert. done. }
+      by rewrite lookup_total_insert. }
     { rewrite lookup_total_insert_ne; [|done].
-      iNext. rewrite lookup_total_insert. done. }
+      by rewrite lookup_total_insert. }
     iMod (iProto_own_auth_update _ _ _ _ p2 with "Hauth Hj") as "[Hauth Hj]".
     iMod (iProto_own_auth_update _ _ _ _ p1 with "Hauth Hi") as "[Hauth Hi]".
-    iIntros "!>!>". iExists p2. iFrame.
-    iDestruct "Hi'" as %Hi.
-    iDestruct "Hj'" as %Hj.
+    iIntros "!>!>". iExists p2. iFrame "Hm2".
+    iDestruct "Hi'" as %Hi. iDestruct "Hj'" as %Hj.
     iSplitL "Hconsistent Hauth".
     { iExists (<[i:=p1]> (<[j:=p2]> ps)).
       iSplit.
-      { rewrite !dom_insert_lookup_L; [done|..].
-        - done.
-        - by rewrite lookup_insert_ne. }
+      { rewrite !dom_insert_lookup_L; [done..|by rewrite lookup_insert_ne]. }
       iFrame. rewrite insert_insert.
       rewrite insert_commute; [|done]. rewrite insert_insert.
-      rewrite insert_commute; [|done]. done. }
-    iSplitL "Hi".
-    - iExists _. iFrame. iApply iProto_le_refl.
-    - iExists _. iFrame. iApply iProto_le_refl.
+      by rewrite insert_commute; [|done]. }
+    iSplitL "Hi"; iExists _; iFrame; iApply iProto_le_refl.
   Qed.
 
   Lemma iProto_target γ ps_dom i a j m :
@@ -1300,20 +1266,16 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     rewrite /iProto_ctx /iProto_own.
     iDestruct "Hctx" as (ps Hdom) "[Hauth Hps]".
     iDestruct "Hown" as (p') "[Hle Hown]".
-    iDestruct (iProto_own_auth_agree with "Hauth Hown") as "#H".
+    iDestruct (iProto_own_auth_agree with "Hauth Hown") as "#Hi".
     iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
     iAssert (▷ (⌜is_Some (ps !! j)⌝ ∗ iProto_consistent ps))%I
-      with "[Hps]" as "[H1 H2]".
-    { iNext.
-      iRewrite "Heq" in "H".
-      iDestruct (iProto_consistent_target with "Hps H") as "#H'".
-      iFrame. done. }
-    iSplitL "H1".
-    { iNext. iDestruct "H1" as %Heq.
-      iPureIntro. simplify_eq. apply elem_of_dom. done. }
-    iSplitL "Hauth H2".
-    { iExists _. iFrame. done. }
-    iExists _. iFrame.
+      with "[Hps]" as "[HSome Hps]".
+    { iNext. iRewrite "Heq" in "Hi".
+      iDestruct (iProto_consistent_target with "Hps Hi") as "#$". by iFrame. }
+    iSplitL "HSome".
+    { iNext. iDestruct "HSome" as %Heq.
+      iPureIntro. simplify_eq. by apply elem_of_dom. }
+    iSplitL "Hauth Hps"; iExists _; by iFrame.
   Qed.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)

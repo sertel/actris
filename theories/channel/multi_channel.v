@@ -148,9 +148,8 @@ Section channel.
   Lemma iProto_pointsto_le c p1 p2 : c ↣ p1 ⊢ ▷ (p1 ⊑ p2) -∗ c ↣ p2.
   Proof.
     rewrite iProto_pointsto_eq.
-    iDestruct 1 as
-      (γ γE l n i p ->) "(#IH & Hls & Hle & H● & H◯ & Hown)".
-    iIntros "Hle'". iExists γ, γE, l, n, i, p.
+    iDestruct 1 as (?????? ->) "(#IH & Hls & Hle & H● & H◯ & Hown)".
+    iIntros "Hle'". iExists _,_,_,_,_,p'.
     iSplit; [done|]. iFrame "#∗".
     iApply (iProto_le_trans with "Hle Hle'").
   Qed.
@@ -160,36 +159,28 @@ Section channel.
     ([∗ list] i ↦ _ ∈ replicate n x2, P i).
   Proof.
     iIntros "H".
-    iInduction n as [|n] "IHn".
-    { done. }
+    iInduction n as [|n] "IHn"; [done|].
     replace (S n) with (n + 1) by lia.
-    rewrite !replicate_add.
-    simpl. iDestruct "H" as "[H1 H2]".
-    iSplitL "H1".
-    { by iApply "IHn". }
-    simpl. rewrite !replicate_length. iFrame.
+    rewrite !replicate_add /=. iDestruct "H" as "[H1 H2]".
+    iSplitL "H1"; [by iApply "IHn"|]=> /=.
+    by rewrite !replicate_length.
   Qed.
 
   Lemma array_to_matrix_pre l n m v :
     l ↦∗ replicate (n * m) v -∗
-    [∗ list] i ↦ _ ∈ replicate n (),
-      (l +ₗ i*m) ↦∗ replicate m v.
+    [∗ list] i ↦ _ ∈ replicate n (), (l +ₗ i*m) ↦∗ replicate m v.
   Proof.
     iIntros "Hl".
-    iInduction n as [|n] "IHn".
-    { done. }
+    iInduction n as [|n] "IHn"; [done|].
     replace (S n) with (n + 1) by lia.
     replace ((n + 1) * m) with (n * m + m) by lia.
-    rewrite !replicate_add. simpl.
-    rewrite array_app.
-    iDestruct "Hl" as "[H1 H2]".
-    iDestruct ("IHn" with "H1") as "H1".
-    iFrame.
-    simpl.
-    rewrite Nat.add_0_r.
-    rewrite !replicate_length.
+    rewrite !replicate_add /= array_app=> /=.
+    iDestruct "Hl" as "[Hl Hls]".
+    iDestruct ("IHn" with "Hl") as "Hl".
+    iFrame=> /=.
+    rewrite Nat.add_0_r !replicate_length.
     replace (Z.of_nat (n * m)) with (Z.of_nat n * Z.of_nat m)%Z by lia.
-    iFrame.
+    by iFrame.
   Qed.
 
   Lemma array_to_matrix l n v :
@@ -198,20 +189,17 @@ Section channel.
       [∗ list] j ↦ _ ∈ replicate n (),
         (l +ₗ pos n i j) ↦ v.
   Proof.
-    iIntros "H".
-    iDestruct (array_to_matrix_pre with "H") as "H".
-    iApply (big_sepL_impl with "H").
-    iIntros "!>" (i ? HSome) "H".
-    clear HSome.
-    rewrite /array.
+    iIntros "Hl".
+    iDestruct (array_to_matrix_pre with "Hl") as "Hl".
+    iApply (big_sepL_impl with "Hl").
+    iIntros "!>" (i ? _) "Hl".
     iApply big_sepL_replicate.
-    iApply (big_sepL_impl with "H").
+    iApply (big_sepL_impl with "Hl").
     iIntros "!>" (j ? HSome) "Hl".
-    rewrite /pos.
     rewrite Loc.add_assoc.
     replace (Z.of_nat i * Z.of_nat n + Z.of_nat j)%Z with
       (Z.of_nat (i * n + j))%Z by lia.
-    apply lookup_replicate in HSome as [-> _]. done.
+    by apply lookup_replicate in HSome as [-> _].
   Qed.
 
   (** ** Specifications of [send] and [recv] *)
@@ -234,49 +222,37 @@ Section channel.
                   own (γEs !!! i) (◯E (Next (ps !!! i))) ∗
                   iProto_own γ i (ps !!! i))%I with "[Hps']" as "H".
     { clear Hle.
-      (* iInduction n as [|n] "IHn" forall (ps HSome Heq). *)
       iInduction n as [|n] "IHn" forall (ps Hdom).
       { iExists []. iModIntro. simpl. done. }
-      (* assert (n < S n) by lia. *)
-      assert (is_Some (ps !! n)) as [p ?].
-      { apply elem_of_dom.
-        rewrite Hdom.
-        apply elem_of_set_seq.
-        lia. }
-      iDestruct (big_sepM_delete _ _ n with "Hps'") as "[Hp Hps']".
-      { done. }
+      assert (is_Some (ps !! n)) as [p HSome].
+      { apply elem_of_dom. rewrite Hdom. apply elem_of_set_seq. lia. }
+      iDestruct (big_sepM_delete _ _ n with "Hps'") as "[Hp Hps']"; [done|].
       iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (γE) "[Hauth Hfrag]".
       { apply excl_auth_valid. }
       iMod ("IHn" with "[] Hps'") as (γEs Hlen) "H".
       { iPureIntro.
-        rewrite dom_delete_L. rewrite Hdom.
+        rewrite dom_delete_L Hdom.
         replace (S n) with (n + 1) by lia.
-        rewrite set_seq_add_L.
-        simpl. 
-        rewrite right_id_L.
-        rewrite difference_union_distr_l_L.
-        rewrite difference_diag_L. rewrite right_id_L.
+        rewrite set_seq_add_L /= right_id_L difference_union_distr_l_L
+          difference_diag_L right_id_L.
         assert (n ∉ (set_seq 0 n:gset _)); [|set_solver].
         intros Hin%elem_of_set_seq. lia. }
       iModIntro. iExists (γEs++[γE]).
       replace (S n) with (n + 1) by lia.
-      rewrite replicate_add.
-      rewrite big_sepL_app.
-      rewrite app_length.
-      rewrite Hlen. iSplit; [done|].
-      simpl.
+      rewrite replicate_add big_sepL_app app_length Hlen.
+      iSplit; [done|]=> /=.
       iSplitL "H".
       { iApply (big_sepL_impl with "H").
         iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)".
-        assert (i < n).
-        { by apply lookup_replicate_1 in HSome' as [? ?]. }
+        assert (i < n) as Hle.
+        { by apply lookup_replicate_1 in HSome' as [??]. }
         assert (delete n ps !!! i = ps !!! i) as Heq'.
         { apply lookup_total_delete_ne. lia. }
         rewrite Heq'. iFrame.
         rewrite lookup_total_app_l; [|lia]. iFrame. }
-      simpl. rewrite replicate_length. rewrite Nat.add_0_r.
+      rewrite replicate_length Nat.add_0_r.
       rewrite list_lookup_total_middle; [|done].
-      rewrite lookup_total_alt. rewrite H. simpl. iFrame. }
+      rewrite lookup_total_alt HSome. by iFrame. }
     iMod "H" as (γEs Hlen) "H".
     iAssert (|={⊤}=>
         [∗ list] i ↦ _ ∈ replicate n (),
@@ -292,11 +268,8 @@ Section channel.
       iApply big_sepL_fupd.
       iApply (big_sepL_impl with "H1").
       iIntros "!>" (j ? HSome'') "H1".
-      iMod (own_alloc (Excl ())) as (γ') "Hγ'".
-      { done. }
-      iExists γ'.
-      iApply inv_alloc.
-      iLeft. iFrame. }
+      iMod (own_alloc (Excl ())) as (γ') "Hγ'"; [done|].
+      iExists γ'. iApply inv_alloc. iLeft. iFrame. }
     iMod "IH" as "#IH".
     iMod (inv_alloc with "Hps") as "#IHp".
     iExists _,_,_,_.
@@ -319,16 +292,15 @@ Section channel.
     { apply lookup_replicate in HSome' as [_ Hle']. done. }
     assert (j < n) as Hle''.
     { apply lookup_replicate in HSome'' as [_ Hle'']. done. }
-    iDestruct (big_sepL_lookup _ _ i () with "IH") as "IH''".
-    { rewrite lookup_replicate. done. }
-    iDestruct (big_sepL_lookup _ _ j () with "IH''") as "IH'''".
-    { rewrite lookup_replicate. done. }
-    iFrame "#".
-    iDestruct (big_sepL_lookup _ _ j () with "IH") as "H".
-    { rewrite lookup_replicate. done. }
-    iDestruct (big_sepL_lookup _ _ i () with "H") as "H'".
-    { rewrite lookup_replicate. done. }
-    iDestruct "IH'''" as (γ1) "?".
+    iDestruct (big_sepL_lookup _ _ i () with "IH") as "IH'";
+      [by rewrite lookup_replicate|].
+    iDestruct (big_sepL_lookup _ _ j () with "IH'") as "IH''";
+      [by rewrite lookup_replicate|].
+    iDestruct (big_sepL_lookup _ _ j () with "IH") as "H";
+      [by rewrite lookup_replicate|].
+    iDestruct (big_sepL_lookup _ _ i () with "H") as "H'";
+      [by rewrite lookup_replicate|].
+    iDestruct "IH''" as (γ1) "?".
     iDestruct "H'" as (γ2) "?".
     iExists _, _. iFrame "#".
   Qed.
