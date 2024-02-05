@@ -644,6 +644,23 @@ Section proto.
   Implicit Types p pl pr : iProto Σ V.
   Implicit Types m : iMsg Σ V.
 
+  Lemma own_prot_idx γ i j (p1 p2 : iProto Σ V) :
+    own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
+    own γ (gmap_view_frag j (DfracOwn 1) (Excl' (Next p2))) -∗
+    ⌜i ≠ j⌝.
+  Proof.
+    iIntros "Hown Hown'" (->).
+    iDestruct (own_valid_2 with "Hown Hown'") as "H".
+    rewrite uPred.cmra_valid_elim.
+    by iDestruct "H" as %[]%gmap_view_frag_op_validN.
+  Qed.
+
+  Lemma own_prot_excl γ i (p1 p2 : iProto Σ V) :
+    own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
+    own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p2))) -∗
+    False.
+  Proof. iIntros "Hi Hj". by iDestruct (own_prot_idx with "Hi Hj") as %?. Qed.
+
   (** ** Protocol entailment **)
   Lemma iProto_le_unfold p1 p2 : iProto_le p1 p2 ≡ iProto_le_pre iProto_le p1 p2.
   Proof. apply: (fixpoint_unfold iProto_le_pre'). Qed.
@@ -1194,16 +1211,6 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     iExists γ. iFrame. iExists _. by iFrame.
   Qed.
 
-  Lemma own_prot_idx γ i j (p1 p2 : iProto Σ V) :
-    own γ (gmap_view_frag i (DfracOwn 1) (Excl' (Next p1))) -∗
-    own γ (gmap_view_frag j (DfracOwn 1) (Excl' (Next p2))) -∗
-    ⌜i ≠ j⌝.
-  Proof.
-    iIntros "Hown Hown'" (->).
-    iDestruct (own_valid_2 with "Hown Hown'") as "H".
-    rewrite uPred.cmra_valid_elim.
-    by iDestruct "H" as %[]%gmap_view_frag_op_validN.
-  Qed.
 
   Lemma iProto_step γ ps_dom i j m1 m2 p1 v :
     iProto_ctx γ ps_dom -∗
