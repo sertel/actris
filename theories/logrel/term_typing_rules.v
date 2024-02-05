@@ -441,7 +441,7 @@ Section term_typing_rules.
     iDestruct "Hn" as %[k ->].
     iDestruct "Hv" as %[n ->].
     wp_faa.
-    iMod ("Hclose" with "[Hl]") as %_.
+    iMod ("Hclose" with "[Hl]") as % _.
     { iExists #(k + n). iFrame "Hl". by iExists (k + n)%Z. }
     by iExists k.
   Qed.

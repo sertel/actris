@@ -173,7 +173,7 @@ Section map.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []); simpl; auto with iFrame. }
-    destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
+    destruct n as [|n]=> //=. wp_branch as %?|% _; wp_pures.
     - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct xs as [|x xs]; csimpl; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.

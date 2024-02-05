@@ -142,7 +142,7 @@ Section mapper.
     case_bool_decide; wp_pures; simplify_eq/=.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! []). rewrite right_id_L. auto with iFrame. }
-    destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
+    destruct n as [|n]=> //=. wp_branch as %?|% _; wp_pures.
     - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct xs as [|x xs]; csimpl; wp_pures.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
@@ -188,7 +188,7 @@ Section mapper.
   Proof.
     iIntros (acc accv Hys Hsort Hi Φ) "[Hl Hcsort] HΦ".
     iLöb as "IH" forall (ys Hys Hsort Hi Φ); wp_rec; wp_pures; simpl.
-    wp_branch as %_|%Hperm; last first; wp_pures.
+    wp_branch as % _|%Hperm; last first; wp_pures.
     { iApply ("HΦ" $! [] None with "[Hl $Hcsort]"); simpl.
      iEval (rewrite !right_id_L); auto with iFrame. }
     wp_recv ([j y] ?) as (Htl w ->) "HIy /=". wp_pures. rewrite -assoc_L.
@@ -239,7 +239,7 @@ Section mapper.
     { destruct Hn as [-> ->]; first lia.
       iApply ("HΦ" $! [] with "[$Hl]"); iPureIntro; simpl.
       by rewrite gmultiset_elements_empty !right_id_L Hmiy. }
-    destruct n as [|n]=> //=. wp_branch as %?|%_; wp_pures.
+    destruct n as [|n]=> //=. wp_branch as %?|% _; wp_pures.
     - destruct miy as [[[i y] w]|]; simplify_eq/=; wp_pures; last first.
       + wp_select. wp_pures. rewrite Nat2Z.inj_succ Z.sub_1_r Z.pred_succ.
         iApply ("IH" $! _ _ None
@@ -295,7 +295,7 @@ Section mapper.
     wp_smart_apply (fork_chan_spec (par_map_protocol IZBs IC (uncurry red) m ∅));
       iIntros (cred) "// Hcred".
     { wp_pures. wp_smart_apply (par_map_service_spec with "Hred Hcred"); auto. }
-    wp_branch as %_|%Hnil; last first.
+    wp_branch as % _|%Hnil; last first.
     { wp_pures. iApply ("HΦ" $! [] with "[$Hl]"); simpl.
       by rewrite /map_reduce /= -Hiys -Hnil. }
     wp_recv ([i y] ?) as (_ w ->) "HIB /="; wp_pures.

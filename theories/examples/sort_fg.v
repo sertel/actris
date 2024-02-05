@@ -148,7 +148,7 @@ Section sort_fg.
   Proof.
     iIntros (Hxs Hys Hsorted Hrel Ψ) "[Hc Hcin] HΨ".
     iLöb as "IH" forall (c cin xs ys xs' ys' Hxs Hys Hsorted Hrel).
-    wp_rec. wp_branch as %_ | %Hys'.
+    wp_rec. wp_branch as % _ | %Hys'.
     - wp_recv (x v) as (Htl) "HI".
       wp_select. wp_send with "[$HI]"; first by auto.
       wp_smart_apply ("IH" with "[%] [%] [%] [%] Hc Hcin HΨ").
@@ -181,7 +181,7 @@ Section sort_fg.
     iIntros (Hxs Hys Hsort Htl Htl_le) "#Hcmp !>".
     iIntros (Ψ) "(Hc & Hc1 & Hc2 & HIy1) HΨ".
     iLöb as "IH" forall (c1 c2 xs1 xs2 ys y1 w1 ys1 ys2 Hxs Hys Hsort Htl Htl_le).
-    wp_rec. wp_branch as %_ | %Hys2.
+    wp_rec. wp_branch as % _ | %Hys2.
     - wp_recv (x v) as (Htl2) "HIx".
       wp_pures. wp_smart_apply ("Hcmp" with "[$HIy1 $HIx]"); iIntros "[HIy1 HIx]".
       case_bool_decide.
@@ -231,7 +231,7 @@ Section sort_fg.
         wp_select. wp_send with "[$HIx2]".
         wp_smart_apply (sort_service_fg_split_spec with "[$Hc $Hcy $Hcz]").
         iIntros (xs' xs1' xs2'); iDestruct 1 as (Hxs') "(Hc & Hcy & Hcz) /=".
-        wp_branch as %_ | %[]%Permutation_nil_cons.
+        wp_branch as % _ | %[]%Permutation_nil_cons.
         wp_recv (x v) as "[_ HIx]".
         wp_smart_apply (sort_service_fg_merge_spec _ _ _ _ _ _ [] _ _ _ _ [] []
           with "Hcmp [$Hc $Hcy $Hcz $HIx]"); simpl; auto using TlRel_nil, Sorted_nil.
@@ -265,7 +265,7 @@ Section sort_fg.
   Proof.
     iIntros (Hsort Φ) "[Hl Hc] HΦ".
     iLöb as "IH" forall (xs ys' Φ Hsort).
-    wp_lam. wp_branch as %_ | %Hperm; wp_pures.
+    wp_lam. wp_branch as % _ | %Hperm; wp_pures.
     - wp_recv (y v) as (Htl) "HIx".
       wp_smart_apply ("IH" with "[] Hl Hc"); first by auto using Sorted_snoc.
       iIntros (ys). rewrite -!assoc_L. iDestruct 1 as (??) "[Hl Hc]".

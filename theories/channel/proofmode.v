@@ -420,7 +420,7 @@ Tactic Notation "wp_branch" "as" constr(pat1) "|" "%" simple_intropattern(pat2) 
   wp_branch_core as (fun H => iDestructHyp H as pat1) (fun H => iPure H as pat2).
 Tactic Notation "wp_branch" "as" "%" simple_intropattern(pat1) "|" "%" simple_intropattern(pat2) :=
   wp_branch_core as (fun H => iPure H as pat1) (fun H => iPure H as pat2). 
-Tactic Notation "wp_branch" := wp_branch as %_ | %_.
+Tactic Notation "wp_branch" := wp_branch as % _ | % _.
 
 Lemma tac_wp_select `{!chanG Σ, !heapGS Σ} Δ neg i js K
     c (b : bool) p P1 P2 (p1 p2 : iProto Σ) Φ :
