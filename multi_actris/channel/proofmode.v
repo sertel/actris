@@ -7,11 +7,12 @@ standard pattern using type classes to perform the normalization.
 In addition to the tactics for symbolic execution, this file defines the tactic
 [solve_proto_contractive], which can be used to automatically prove that
 recursive protocols are contractive. *)
+From iris.algebra Require Import gmap.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 From iris.heap_lang Require Export proofmode notation.
 From multi_actris.channel Require Import proto_model.
 From multi_actris Require Export channel.
-Export action.
+Set Default Proof Using "Type".
 
 (** * Tactics for proving contractiveness of protocols *)
 Ltac f_dist_le :=
@@ -343,28 +344,115 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-(* Section channel. *)
-(*   Context `{!heapGS Σ, !chanG Σ}. *)
-(*   Implicit Types p : iProto Σ. *)
-(*   Implicit Types TT : tele. *)
+Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
+  (∀ i j, valid_target ps i j) ∗
+  (∀ i j m1 m2,
+     (ps !!! i ≡ (<(Send, j)> m1)%proto) -∗
+     (ps !!! j ≡ (<(Recv, i)> m2)%proto) -∗
+     ∃ m1' m2' (TT1:tele) (TT2:tele) tv1 tP1 tp1 tv2 tP2 tp2,
+       (<(Send, j)> m1')%proto ≡ (<(Send, j)> m1)%proto ∗
+       (<(Recv, i)> m2')%proto ≡ (<(Recv, i)> m2)%proto ∗
+       ⌜MsgTele (TT:=TT1) m1' tv1 tP1 tp1⌝ ∗
+       ⌜MsgTele (TT:=TT2) m2' tv2 tP2 tp2⌝ ∗
+   ∀.. (x : TT1), tele_app tP1 x -∗
+   ∃.. (y : TT2), ⌜tele_app tv1 x = tele_app tv2 y⌝ ∗
+                  tele_app tP2 y ∗
+                  ▷ (iProto_consistent
+                       (<[i:=tele_app tp1 x]>(<[j:=tele_app tp2 y]>ps)))) -∗
+  iProto_consistent ps.
+Proof.
+  iIntros "[H' H]".
+  rewrite iProto_consistent_unfold.
+  iFrame.
+  iIntros (i j m1 m2) "Hm1 Hm2".
+  iDestruct ("H" with "Hm1 Hm2")
+    as (m1' m2' TT1 TT2 tv1 tP1 tp1 tv2 tP2 tp2)
+         "(Heq1 & Heq2& %Hm1' & %Hm2' & H)".
+  rewrite !iProto_message_equivI.
+  iDestruct "Heq1" as "[_ Heq1]".
+  iDestruct "Heq2" as "[_ Heq2]".
+  iIntros (v p1) "Hm1".
+  iSpecialize ("Heq1" $! v (Next p1)).
+  iRewrite -"Heq1" in "Hm1".
+  rewrite Hm1'.
+  rewrite iMsg_base_eq. rewrite iMsg_texist_exist.
+  iDestruct "Hm1" as (x Htv1) "[Hp1 HP1]".
+  iDestruct ("H" with "HP1") as (y Htv2) "[HP2 H]".
+  iExists (tele_app tp2 y).
+  iSpecialize ("Heq2" $! v (Next (tele_app tp2 y))).
+  iRewrite -"Heq2".
+  rewrite Hm2'. rewrite iMsg_base_eq. rewrite iMsg_texist_exist.
+  iSplitL "HP2".
+  { iExists y. iFrame.
+    iSplit; [|done].
+    iPureIntro. subst. done. }
+  iNext. iRewrite -"Hp1". done.
+Qed.
 
-(*   (* TODO: Why do the tactics not strip laters? *) *)
-(*   Lemma recv_test c p : *)
-(*     {{{ c ↣ (<(Recv,0) @(x:Z)> MSG #x ; p) }}} *)
-(*       recv c #0 *)
-(*     {{{ x, RET #x; c ↣ p }}}. *)
-(*   Proof. *)
-(*     iIntros (Φ) "Hc HΦ". *)
-(*     wp_recv (x) as "_". *)
-(*   Admitted. *)
+(* TODO: Improve automation *)
+Tactic Notation "iProto_consistent_take_step_step" :=
+  let i := fresh in
+  let j := fresh in
+  let m1 := fresh in
+  let m2 := fresh in
+  iIntros (i j m1 m2) "#Hm1 #Hm2";
+  repeat (destruct i as [|i];
+          [repeat (rewrite lookup_total_insert_ne; [|lia]);
+           try (by rewrite lookup_total_empty iProto_end_message_equivI);
+           try (rewrite lookup_total_insert;
+                try (by rewrite iProto_end_message_equivI);
+                iDestruct (iProto_message_equivI with "Hm1")
+                  as "[%Heq1 Hm1']";simplify_eq)|
+            repeat (rewrite lookup_total_insert_ne; [|lia]);
+            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
+  repeat (rewrite lookup_total_insert_ne; [|lia]);
+  try rewrite lookup_total_empty;
+  try (by iProto_end_message_equivI);
+  rewrite lookup_total_insert;
+  iDestruct (iProto_message_equivI with "Hm2")
+    as "[%Heq2 Hm2']";simplify_eq;
+  try (iClear "Hm1' Hm2'";
+       iExists _,_,_,_,_,_,_,_,_,_;
+       iSplitL "Hm1"; [iFrame "#"|];
+       iSplitL "Hm2"; [iFrame "#"|];
+       iSplit; [iPureIntro; tc_solve|];
+       iSplit; [iPureIntro; tc_solve|];
+       simpl; iClear "Hm1 Hm2"; clear m1 m2);
+  try (repeat (rewrite (insert_commute _ _ i); [|done]);
+  rewrite insert_insert;
+  repeat (rewrite (insert_commute _ _ j); [|done]);
+  rewrite insert_insert).
 
-(*   Lemma send_test c p : *)
-(*     {{{ c ↣ (<(Send,0) @(x:Z)> MSG #x ; p) }}} *)
-(*       send c #0 #42 *)
-(*     {{{ x, RET #x; c ↣ p }}}. *)
-(*   Proof. *)
-(*     iIntros (Φ) "Hc HΦ". *)
-(*     wp_send (42%Z) with "[//]". *)
-(*   Admitted. *)
+Tactic Notation "iProto_consistent_take_step_target" :=
+  let i := fresh in
+  iIntros (i j a m); rewrite /valid_target;
+            iIntros "#Hm";
+  repeat (destruct i as [|i];
+          [repeat (rewrite lookup_total_insert_ne; [|lia]);
+           try (by rewrite lookup_total_empty iProto_end_message_equivI);
+           try (rewrite lookup_total_insert;
+                try (by rewrite iProto_end_message_equivI);
+                iDestruct (iProto_message_equivI with "Hm1")
+                  as "[%Heq1 Hm1']";simplify_eq)|
+            repeat (rewrite lookup_total_insert_ne; [|lia]);
+            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
+  repeat (rewrite lookup_total_insert_ne; [|lia]);
+  try rewrite lookup_total_empty;
+  try (by iProto_end_message_equivI);
+  rewrite lookup_total_insert;
+  iDestruct (iProto_message_equivI with "Hm")
+    as "[%Heq Hm']";simplify_eq;
+  repeat (try rewrite lookup_empty;
+          try rewrite lookup_insert;
+          rewrite lookup_insert_ne; [|lia]);
+    try rewrite lookup_insert; try done.
 
-(* End channel. *)
+Tactic Notation "iProto_consistent_take_step" :=
+  try iNext;
+  iApply iProto_consistent_equiv_proof;
+  iSplitR; [iProto_consistent_take_step_target|
+             iProto_consistent_take_step_step].
+
+Tactic Notation "clean_map" constr(i) :=
+  iEval (repeat (rewrite (insert_commute _ _ i); [|done]));
+  rewrite (insert_insert _ i).
