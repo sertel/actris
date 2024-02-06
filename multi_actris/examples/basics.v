@@ -7,35 +7,17 @@ Lemma iProto_consistent_empty {Σ} :
   ⊢ iProto_consistent (@iProto_empty Σ).
 Proof. iProto_consistent_take_step. Qed.
 
-Definition iProto_binary `{!invGS Σ} : gmap nat (iProto Σ) :=
+Definition iProto_binary `{!heapGS Σ} : gmap nat (iProto Σ) :=
   <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; END)%proto ]>
   (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ; END)%proto ]>
    ∅).
 
-Lemma iProto_binary_consistent `{!invGS Σ} :
-  ⊢ iProto_consistent (@iProto_binary Σ invGS0).
+Lemma iProto_binary_consistent `{!heapGS Σ} :
+  ⊢ iProto_consistent iProto_binary.
 Proof.
   rewrite /iProto_binary.
   iProto_consistent_take_step.
   iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame.
-  iProto_consistent_take_step.
-Qed.
-
-Definition iProto_roundtrip `{!invGS Σ} : gmap nat (iProto Σ) :=
-   <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; <(Recv, 2)> MSG #x; END)%proto ]>
-  (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ; <(Send, 2)> MSG #x; END)%proto ]>
-  (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ; <(Send, 0)> MSG #x; END)%proto ]> ∅)).
-
-Lemma iProto_roundtrip_consistent `{!invGS Σ} :
-  ⊢ iProto_consistent (@iProto_roundtrip Σ invGS0).
-Proof.
-  rewrite /iProto_roundtrip.
-  iProto_consistent_take_step.
-  iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|].
-  iProto_consistent_take_step.
-  iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|].
-  iProto_consistent_take_step.
-  iIntros "_". iSplit; [done|]. iSplit; [done|].
   iProto_consistent_take_step.
 Qed.
 
@@ -51,18 +33,32 @@ Definition roundtrip_prog : val :=
 
 Section channel.
   Context `{!heapGS Σ, !chanG Σ}.
-  Implicit Types p : iProto Σ.
-  Implicit Types TT : tele.
+
+  Definition iProto_roundtrip : gmap nat (iProto Σ) :=
+     <[0 := (<(Send, 1) @ (x:Z)> MSG #x ; <(Recv, 2)> MSG #x; END)%proto ]>
+    (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ; <(Send, 2)> MSG #x; END)%proto ]>
+    (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ; <(Send, 0)> MSG #x; END)%proto ]> ∅)).
+
+  Lemma iProto_roundtrip_consistent :
+    ⊢ iProto_consistent iProto_roundtrip.
+  Proof.
+    rewrite /iProto_roundtrip.
+    iProto_consistent_take_step.
+    iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|].
+    iProto_consistent_take_step.
+    iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|].
+    iProto_consistent_take_step.
+    iIntros "_". iSplit; [done|]. iSplit; [done|].
+    iProto_consistent_take_step.
+  Qed.
 
   (* TODO: Fix nat/Z coercion. *)
   Lemma roundtrip_prog_spec :
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 3 iProto_roundtrip).
-    { lia. }
-    { set_solver. }
-    { iApply iProto_roundtrip_consistent. }
+    wp_smart_apply (new_chan_spec 3 iProto_roundtrip);
+      [lia|set_solver|iApply iProto_roundtrip_consistent|].
     iIntros (cs) "Hcs".
     wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
     iIntros (c0) "[Hc0 Hcs]".
@@ -74,15 +70,23 @@ Section channel.
     { iIntros "!>". wp_recv (x) as "_". wp_send with "[//]". done. }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". wp_recv (x) as "_". wp_send with "[//]". done. }
-    wp_send with "[//]".
-    wp_recv as "_".
-    by iApply "HΦ".
+    wp_send with "[//]". wp_recv as "_". by iApply "HΦ".
   Qed.
 
 End channel.
 
+Definition roundtrip_ref_prog : val :=
+  λ: <>,
+     let: "cs" := new_chan #3 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     Fork (let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l");;
+     Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #());;
+     let: "l" := ref #40 in send "c0" #1 "l";; recv "c0" #2;; !"l".
+
 Section roundtrip_ref.
-  Context `{!heapGS Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
 
   Definition iProto_roundtrip_ref : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
@@ -106,23 +110,6 @@ Section roundtrip_ref.
     replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame.
     iProto_consistent_take_step.
   Qed.
-
-End roundtrip_ref.
-
-Definition roundtrip_ref_prog : val :=
-  λ: <>,
-     let: "cs" := new_chan #3 in
-     let: "c0" := get_chan "cs" #0 in
-     let: "c1" := get_chan "cs" #1 in
-     let: "c2" := get_chan "cs" #2 in
-     Fork (let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l");;
-     Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #());;
-     let: "l" := ref #40 in send "c0" #1 "l";; recv "c0" #2;; !"l".
-
-Section proof.
-  Context `{!heapGS Σ, !chanG Σ}.
-  Implicit Types p : iProto Σ.
-  Implicit Types TT : tele.
 
   Lemma roundtrip_ref_prog_spec :
     {{{ True }}} roundtrip_ref_prog #() {{{ RET #42 ; True }}}.
@@ -149,27 +136,39 @@ Section proof.
     by iApply "HΦ".
   Qed.
 
-End proof.
+End roundtrip_ref.
+
+Definition roundtrip_ref_rec_prog : val :=
+  λ: <>,
+     let: "cs" := new_chan #3 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     Fork ((rec: "go" "c1" :=
+             let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l";;
+             "go" "c1") "c1");;
+     Fork ((rec: "go" "c2" :=
+           let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #();;
+           "go" "c2") "c2");;
+     let: "l" := ref #38 in
+     send "c0" #1 "l";; recv "c0" #2;;
+     send "c0" #1 "l";; recv "c0" #2;; !"l".
 
 Section roundtrip_ref_rec.
-  Context `{!heapGS Σ}.
+  Context `{!heapGS Σ, !chanG Σ}.
 
   Definition iProto_roundtrip_ref_rec1_aux (rec : iProto Σ) : iProto Σ :=
     (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
      <(Recv, 2)> MSG #() {{ l ↦ #(x+2) }} ; rec)%proto.
-
   Instance iProto_roundtrip_ref_rec1_contractive :
     Contractive iProto_roundtrip_ref_rec1_aux.
   Proof. solve_proto_contractive. Qed.
-
   Definition iProto_roundtrip_ref_rec1 :=
     fixpoint iProto_roundtrip_ref_rec1_aux.
-
   Lemma iProto_roundtrip_ref_rec1_unfold :
     iProto_roundtrip_ref_rec1 ≡
                 (iProto_roundtrip_ref_rec1_aux iProto_roundtrip_ref_rec1).
   Proof. apply (fixpoint_unfold _). Qed.
-
   Global Instance iProto_roundtrip_ref_rec1_proto_unfold :
     ProtoUnfold iProto_roundtrip_ref_rec1
                 (iProto_roundtrip_ref_rec1_aux iProto_roundtrip_ref_rec1).
@@ -178,14 +177,11 @@ Section roundtrip_ref_rec.
   Definition iProto_roundtrip_ref_rec2_aux (rec : iProto Σ) : iProto Σ :=
     (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
      <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; rec)%proto.
-
   Instance iProto_roundtrip_ref_rec2_contractive :
     Contractive iProto_roundtrip_ref_rec2_aux.
   Proof. solve_proto_contractive. Qed.
-
   Definition iProto_roundtrip_ref_rec2 :=
     fixpoint iProto_roundtrip_ref_rec2_aux.
-
   Lemma iProto_roundtrip_ref_rec2_unfold :
     iProto_roundtrip_ref_rec2 ≡
                 (iProto_roundtrip_ref_rec2_aux iProto_roundtrip_ref_rec2).
@@ -195,23 +191,18 @@ Section roundtrip_ref_rec.
     ProtoUnfold iProto_roundtrip_ref_rec2
                 (iProto_roundtrip_ref_rec2_aux iProto_roundtrip_ref_rec2).
   Proof. apply proto_unfold_eq, (fixpoint_unfold _). Qed.
-
   Definition iProto_roundtrip_ref_rec3_aux (rec : iProto Σ) : iProto Σ :=
     (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
      <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; rec)%proto.
-
   Instance iProto_roundtrip_ref_rec3_contractive :
     Contractive iProto_roundtrip_ref_rec3_aux.
   Proof. solve_proto_contractive. Qed.
-
   Definition iProto_roundtrip_ref_rec3 :=
     fixpoint iProto_roundtrip_ref_rec3_aux.
-
   Lemma iProto_roundtrip_ref_rec3_unfold :
     iProto_roundtrip_ref_rec3 ≡
                 (iProto_roundtrip_ref_rec3_aux iProto_roundtrip_ref_rec3).
   Proof. apply (fixpoint_unfold _). Qed.
-
   Global Instance iProto_roundtrip_ref_rec3_proto_unfold :
     ProtoUnfold iProto_roundtrip_ref_rec3
                 (iProto_roundtrip_ref_rec3_aux iProto_roundtrip_ref_rec3).
@@ -243,29 +234,6 @@ Section roundtrip_ref_rec.
     done.
   Qed.
 
-End roundtrip_ref_rec.
-
-Definition roundtrip_ref_rec_prog : val :=
-  λ: <>,
-     let: "cs" := new_chan #3 in
-     let: "c0" := get_chan "cs" #0 in
-     let: "c1" := get_chan "cs" #1 in
-     let: "c2" := get_chan "cs" #2 in
-     Fork ((rec: "go" "c1" :=
-             let: "l" := recv "c1" #0 in "l" <- !"l" + #1;; send "c1" #2 "l";;
-             "go" "c1") "c1");;
-     Fork ((rec: "go" "c2" :=
-           let: "l" := recv "c2" #1 in "l" <- !"l" + #1;; send "c2" #0 #();;
-           "go" "c2") "c2");;
-     let: "l" := ref #38 in
-     send "c0" #1 "l";; recv "c0" #2;;
-     send "c0" #1 "l";; recv "c0" #2;; !"l".
-
-Section proof.
-  Context `{!heapGS Σ, !chanG Σ}.
-  Implicit Types p : iProto Σ.
-  Implicit Types TT : tele.
-
   Lemma roundtrip_ref_rec_prog_spec :
     {{{ True }}} roundtrip_ref_rec_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0.
@@ -294,21 +262,12 @@ Section proof.
     by iApply "HΦ".
   Qed.
 
-End proof.
+End roundtrip_ref_rec.
 
 Section parallel.
   Context `{!heapGS Σ}.
 
   (** 
-
-    0 -> 1 : (x1:Z) < x1 > .
-    0 -> 2 : (x2:Z) < x2 > .
-    2 -> 3 : (y1:Z) < x1+y1 > ;
-    3 -> 4 : (y2:Z) < x2+y2 > ;
-    3 -> 0 : < x1+y1 > ;
-    4 -> 0 : < x2+y2 > ;
-    end
-
          0 
        /   \
       1     2
@@ -541,10 +500,21 @@ Section two_buyer_ref.
 End two_buyer_ref.
 
 
-Section fwd.
+Section forwarder.
   Context `{!heapGS Σ}.
 
-  Definition iProto_fwd : gmap nat (iProto Σ) :=
+  (** 
+
+          0
+        / | \
+      /   |   \
+     |    1    |
+      \ /   \ /
+       2     3
+
+   *)
+
+  Definition iProto_forwarder : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (x:Z)> MSG #x ;
             <(Send, 1) @ (b:bool)> MSG #b ;
             <(Send, if b then 2 else 3) > MSG #x ; END)%proto]>
@@ -558,10 +528,10 @@ Section fwd.
    (<[3 := (<(Recv, 1) @ (x:Z)> MSG #x ;
             <(Send, 0)> MSG #x ; END)%proto]> ∅))).
 
-  Lemma iProto_fwd_consistent :
-    ⊢ iProto_consistent iProto_fwd.
+  Lemma iProto_forwarder_consistent :
+    ⊢ iProto_consistent iProto_forwarder.
   Proof.
-    rewrite /iProto_fwd.
+    rewrite /iProto_forwarder.
     iProto_consistent_take_step.
     iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|].
     iProto_consistent_take_step.
@@ -576,4 +546,4 @@ Section fwd.
       iProto_consistent_take_step.
   Qed.
 
-End fwd.
+End forwarder.
