@@ -50,7 +50,7 @@ From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
 From iris.program_logic Require Import language.
-From actris.channel Require Import multi_proto_model.
+From multi_actris.channel Require Import proto_model.
 Set Default Proof Using "Type".
 Export action.
 

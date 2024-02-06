@@ -24,8 +24,8 @@ the subprotocol relation [⊑] *)
 From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.base_logic.lib Require Import invariants.
 From iris.heap_lang Require Export primitive_laws notation proofmode.
-From actris.channel Require Import multi_proto_model.
-From actris.channel Require Export multi_proto.
+From multi_actris.channel Require Import proto_model.
+From multi_actris.channel Require Export proto.
 Set Default Proof Using "Type".
 
 (** * The definition of the message-passing connectives *)

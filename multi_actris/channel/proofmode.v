@@ -9,8 +9,8 @@ In addition to the tactics for symbolic execution, this file defines the tactic
 recursive protocols are contractive. *)
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 From iris.heap_lang Require Export proofmode notation.
-From actris.channel Require Import multi_proto_model.
-From actris Require Export multi_channel.
+From multi_actris.channel Require Import proto_model.
+From multi_actris Require Export channel.
 Export action.
 
 (** * Tactics for proving contractiveness of protocols *)

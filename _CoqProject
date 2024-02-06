@@ -1,4 +1,5 @@
 -Q theories actris
+-Q multi_actris multi_actris
 # We sometimes want to locally override notation, and there is no good way to do that with scopes.
 -arg -w -arg -notation-overridden
 # Cannot use non-canonical projections as it causes massive unification failures
@@ -17,11 +18,6 @@ theories/utils/switch.v
 theories/channel/proto_model.v
 theories/channel/proto.v
 theories/channel/channel.v
-theories/channel/multi_proto_model.v
-theories/channel/multi_proto.v
-theories/channel/multi_channel.v
-theories/channel/multi_proofmode.v
-theories/channel/multi_proto_consistency_examples.v
 theories/channel/proofmode.v
 theories/examples/basics.v
 theories/examples/equivalence.v
@@ -58,3 +54,10 @@ theories/logrel/examples/mapper.v
 theories/logrel/examples/mapper_list.v
 theories/logrel/examples/compute_service.v
 theories/logrel/examples/compute_client_list.v
+
+multi_actris/utils/cofe_solver_2.v
+multi_actris/channel/proto_model.v
+multi_actris/channel/proto.v
+multi_actris/channel/channel.v
+multi_actris/channel/proofmode.v
+multi_actris/channel/proto_consistency_examples.v

@@ -2,9 +2,8 @@ From iris.algebra Require Import gmap excl_auth gmap_view.
 From iris.proofmode Require Import proofmode.
 From iris.base_logic Require Export lib.iprop.
 From iris.base_logic Require Import lib.own.
-From actris.channel Require Import multi_proto_model multi_proto multi_channel multi_proofmode.
+From multi_actris.channel Require Import proofmode.
 Set Default Proof Using "Type".
-Export action.
 
 Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
   (∀ i j, valid_target ps i j) ∗
