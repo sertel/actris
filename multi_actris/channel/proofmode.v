@@ -11,7 +11,7 @@ From iris.algebra Require Import gmap.
 From iris.proofmode Require Import coq_tactics reduction spec_patterns.
 From iris.heap_lang Require Export proofmode notation.
 From multi_actris.channel Require Import proto_model.
-From multi_actris Require Export channel.
+From multi_actris.channel Require Export channel.
 Set Default Proof Using "Type".
 
 (** * Tactics for proving contractiveness of protocols *)

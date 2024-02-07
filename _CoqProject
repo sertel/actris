@@ -60,4 +60,4 @@ multi_actris/channel/proto_model.v
 multi_actris/channel/proto.v
 multi_actris/channel/channel.v
 multi_actris/channel/proofmode.v
-multi_actris/channel/proto_consistency_examples.v
+multi_actris/examples/basics.v
