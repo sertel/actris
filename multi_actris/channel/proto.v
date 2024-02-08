@@ -636,6 +636,11 @@ Proof. solve_contractive. Qed.
 Global Instance iProto_own_contractive `{protoG Σ V} γ i :
   Contractive (iProto_own γ i).
 Proof. solve_contractive. Qed.
+Global Instance iProto_own_ne `{protoG Σ V} γ s : NonExpansive (iProto_own γ s).
+Proof. solve_proper. Qed.
+Global Instance iProto_own_proper `{protoG Σ V} γ s :
+  Proper ((≡) ==> (≡)) (iProto_own γ s).
+Proof. apply (ne_proper _). Qed.
 
 (** * Proofs *)
 Section proto.
@@ -889,7 +894,6 @@ Section proto.
       inversion Htag. simplify_eq.
       iIntros (v p) "Hm1'".
       iDestruct (iProto_le_recv_inv_r with "Hle") as "Hle".
-      (* iRewrite -"Hm2" in "Hm2'". *)
       iDestruct "Hle" as (m') "[#Heq Hle]".
       iDestruct ("Hprot" $!i' with "[] [] Hm1'") as "Hprot".
       { done. }
@@ -977,7 +981,7 @@ Section proto.
     - iApply iProto_le_recv. auto 10 with iFrame.
   Qed.
 
-Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
+  Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
   Proof.
     iIntros "H". iLöb as "IH" forall (p1 p2).
     destruct (iProto_case p1) as [->|([]&i&m1&->)].
@@ -1172,11 +1176,6 @@ Lemma iProto_le_dual p1 p2 : p2 ⊑ p1 -∗ iProto_dual p1 ⊑ iProto_dual p2.
     { eapply (gmap_view_replace _ _ _ (Excl' (Next p'))). done. }
     iFrame. rewrite -fmap_insert. done.
   Qed.
-
-  Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
-  Proof. solve_proper. Qed.
-  Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s).
-  Proof. apply (ne_proper _). Qed.
 
   Lemma iProto_own_auth_alloc ps :
     ⊢ |==> ∃ γ, iProto_own_auth γ ps ∗ [∗ map] i ↦p ∈ ps, iProto_own γ i p.
