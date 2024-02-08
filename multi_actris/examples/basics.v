@@ -14,12 +14,7 @@ Definition iProto_binary `{!heapGS Σ} : gmap nat (iProto Σ) :=
 
 Lemma iProto_binary_consistent `{!heapGS Σ} :
   ⊢ iProto_consistent iProto_binary.
-Proof.
-  rewrite /iProto_binary.
-  iProto_consistent_take_step.
-  iIntros (x) "HP". iExists x. iSplit; [done|]. iFrame.
-  iProto_consistent_take_step.
-Qed.
+Proof. rewrite /iProto_binary. iProto_consistent_take_steps. Qed.
 
 Definition roundtrip_prog : val :=
   λ: <>,
@@ -41,16 +36,7 @@ Section channel.
 
   Lemma iProto_roundtrip_consistent :
     ⊢ iProto_consistent iProto_roundtrip.
-  Proof.
-    rewrite /iProto_roundtrip.
-    iProto_consistent_take_step.
-    iIntros (x) "_". iExists x. iSplit; [done|]. iSplit; [done|].
-    iProto_consistent_take_step.
-    iIntros "_". iExists x. iSplit; [done|]. iSplit; [done|].
-    iProto_consistent_take_step.
-    iIntros "_". iSplit; [done|]. iSplit; [done|].
-    iProto_consistent_take_step.
-  Qed.
+  Proof. rewrite /iProto_roundtrip. iProto_consistent_take_steps. Qed.
 
   (* TODO: Fix nat/Z coercion. *)
   Lemma roundtrip_prog_spec :
@@ -101,13 +87,8 @@ Section roundtrip_ref.
     ⊢ iProto_consistent iProto_roundtrip_ref.
   Proof.
     rewrite /iProto_roundtrip_ref.
-    iProto_consistent_take_step.
-    iIntros (l x) "Hloc". iExists _, _. iSplit; [done|]. iFrame.
-    iProto_consistent_take_step.
-    iIntros "Hloc". iExists _, _. iSplit; [done|]. iFrame.
-    iProto_consistent_take_step.
-    iIntros "Hloc". iSplit; [done|].
-    replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame.
+    iProto_consistent_take_steps.
+    replace (x0 + 1 + 1)%Z with (x0+2)%Z by lia. iFrame.
     iProto_consistent_take_step.
   Qed.
 
@@ -231,7 +212,7 @@ Section roundtrip_ref_rec.
     replace (x + 1 + 1)%Z with (x+2)%Z by lia. iFrame.
     rewrite -iProto_roundtrip_ref_rec2_unfold.
     do 2 clean_map 0. do 2 clean_map 1. do 2 clean_map 2.
-    done.
+    iApply "IH".
   Qed.
 
   Lemma roundtrip_ref_rec_prog_spec :
@@ -517,7 +498,7 @@ Section forwarder.
   Definition iProto_forwarder : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (x:Z)> MSG #x ;
             <(Send, 1) @ (b:bool)> MSG #b ;
-            <(Send, if b then 2 else 3) > MSG #x ; END)%proto]>
+            <(Recv, if b then 2 else 3) > MSG #x ; END)%proto]>
    (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ;
             <(Recv, 0) @ (b:bool)> MSG #b;
             if b
@@ -539,11 +520,122 @@ Section forwarder.
     - iExists _. iSplit; [done|]. iSplit; [done|].
       iProto_consistent_take_step.
       iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
-      iProto_consistent_take_step.
+      repeat clean_map 0. repeat clean_map 1.
+      iProto_consistent_take_steps.
     - iExists _. iSplit; [done|]. iSplit; [done|].
       iProto_consistent_take_step.
       iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
-      iProto_consistent_take_step.
+      repeat clean_map 0. repeat clean_map 1.
+      iProto_consistent_take_steps.
   Qed.
 
 End forwarder.
+
+Section forwarder_rec.
+  Context `{!heapGS Σ}.
+
+  (** 
+
+          0
+        / | \
+      /   |   \
+     |    1    |
+      \ /   \ /
+       2     3
+
+   *)
+
+  Definition iProto_forwarder_rec_0_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Send, 1) @ (x:Z)> MSG #x ;
+     <(Send, 1) @ (b:bool)> MSG #b ;
+     <(Recv, if b then 2 else 3) > MSG #x ; rec)%proto.
+  Instance iProto_forwarder_rec_0_contractive :
+    Contractive iProto_forwarder_rec_0_aux.
+  Proof. solve_proto_contractive. Qed.
+  Definition iProto_forwarder_rec_0 :=
+    fixpoint iProto_forwarder_rec_0_aux.
+  Lemma iProto_forwarder_rec_0_unfold :
+    iProto_forwarder_rec_0 ≡
+                (iProto_forwarder_rec_0_aux iProto_forwarder_rec_0).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_forwarder_rec_1_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Recv, 0) @ (x:Z)> MSG #x ;
+     <(Recv, 0) @ (b:bool)> MSG #b;
+     if b
+     then <(Send,2)> MSG #x ; rec
+     else <(Send,3)> MSG #x ; rec)%proto.
+  Instance iProto_forwarder_rec_1_contractive :
+    Contractive iProto_forwarder_rec_1_aux.
+  Proof. solve_proto_contractive. Qed.
+  Definition iProto_forwarder_rec_1 :=
+    fixpoint iProto_forwarder_rec_1_aux.
+  Lemma iProto_forwarder_rec_1_unfold :
+    iProto_forwarder_rec_1 ≡
+                (iProto_forwarder_rec_1_aux iProto_forwarder_rec_1).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_forwarder_rec_n_aux (rec : iProto Σ) : iProto Σ :=
+    (<(Recv, 1) @ (x:Z)> MSG #x ;
+     <(Send, 0)> MSG #x ; rec)%proto.
+  Instance iProto_forwarder_rec_n_contractive :
+    Contractive iProto_forwarder_rec_n_aux.
+  Proof. solve_proto_contractive. Qed.
+  Definition iProto_forwarder_rec_n :=
+    fixpoint iProto_forwarder_rec_n_aux.
+  Lemma iProto_forwarder_rec_n_unfold :
+    iProto_forwarder_rec_n ≡
+                (iProto_forwarder_rec_n_aux iProto_forwarder_rec_n).
+  Proof. apply (fixpoint_unfold _). Qed.
+
+  Definition iProto_forwarder_rec : gmap nat (iProto Σ) :=
+    <[0 := iProto_forwarder_rec_0]>
+   (<[1 := iProto_forwarder_rec_1]>
+   (<[2 := iProto_forwarder_rec_n]>
+   (<[3 := iProto_forwarder_rec_n]>∅))).
+
+  Lemma iProto_forwarder_rec_consistent :
+    ⊢ iProto_consistent iProto_forwarder_rec.
+  Proof.
+    iLöb as "IH".
+    rewrite /iProto_forwarder_rec.
+    iEval (rewrite iProto_forwarder_rec_0_unfold).
+    iEval (rewrite iProto_forwarder_rec_1_unfold).
+    iEval (rewrite iProto_forwarder_rec_n_unfold).
+    iProto_consistent_take_step.
+    iIntros (x) "_". iExists _. iSplit; [done|]. iSplit; [done|].
+    iProto_consistent_take_step.
+    iIntros ([]) "_".
+    - iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
+      iNext.
+      iEval (rewrite iProto_forwarder_rec_1_unfold).
+      iEval (rewrite iProto_forwarder_rec_n_unfold).
+      iProto_consistent_take_step.
+      iIntros "_". iSplit; [done|]. iSplit; [done|].
+      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
+      rewrite (insert_commute _ 2 1); [|done].
+      iEval (rewrite -iProto_forwarder_rec_1_unfold).
+      iEval (rewrite -iProto_forwarder_rec_n_unfold).
+      iEval (rewrite -iProto_forwarder_rec_n_unfold).
+      iApply "IH".
+    - iExists _. iSplit; [done|]. iSplit; [done|].
+      iProto_consistent_take_step.
+      iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
+      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
+      iNext.
+      iEval (rewrite iProto_forwarder_rec_1_unfold).
+      iEval (rewrite iProto_forwarder_rec_n_unfold).
+      iProto_consistent_take_step.
+      iIntros "_". iSplit; [done|]. iSplit; [done|].
+      repeat clean_map 1. repeat clean_map 3. repeat clean_map 0. 
+      rewrite (insert_commute _ 3 1); [|done].
+      iEval (rewrite -iProto_forwarder_rec_1_unfold).
+      iEval (rewrite -iProto_forwarder_rec_n_unfold).
+      iEval (rewrite -iProto_forwarder_rec_n_unfold).
+      iApply "IH".
+  Qed.
+
+End forwarder_rec.

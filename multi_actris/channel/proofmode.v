@@ -456,3 +456,10 @@ Tactic Notation "iProto_consistent_take_step" :=
 Tactic Notation "clean_map" constr(i) :=
   iEval (repeat (rewrite (insert_commute _ _ i); [|done]));
   rewrite (insert_insert _ i).
+
+Tactic Notation "iProto_consistent_resolve_step" :=
+  repeat iIntros (?); repeat iIntros "?";
+  repeat iExists _; repeat (iSplit; [done|]); try iFrame.
+
+Tactic Notation "iProto_consistent_take_steps" :=
+  repeat (iProto_consistent_take_step; iProto_consistent_resolve_step).
