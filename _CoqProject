@@ -8,7 +8,6 @@
 # Fixing this one requires Coq 8.19
 -arg -w -arg -argument-scope-delimiter
 
-theories/utils/skip.v
 theories/utils/llist.v
 theories/utils/compare.v
 theories/utils/contribution.v

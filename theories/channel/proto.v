@@ -54,23 +54,23 @@ From actris.channel Require Import proto_model.
 Set Default Proof Using "Type".
 Export action.
 
-(** * Setup of Iris's cameras *)
-Class protoG Σ V :=
-  protoG_authG ::
-    inG Σ (excl_authR (laterO (proto (leibnizO V) (iPropO Σ) (iPropO Σ)))).
-
-Definition protoΣ V := #[
-  GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))
-].
-Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
-Proof. solve_inG. Qed.
-
 (** * Types *)
 Definition iProto Σ V := proto V (iPropO Σ) (iPropO Σ).
 Declare Scope proto_scope.
 Delimit Scope proto_scope with proto.
 Bind Scope proto_scope with iProto.
 Open Scope proto.
+
+(** * Setup of Iris's cameras *)
+Class protoG Σ V :=
+  protoG_authG ::
+    inG Σ (excl_authR (laterO (iProto Σ V))).
+
+Definition protoΣ V := #[
+  GFunctor (authRF (optionURF (exclRF (laterOF (protoOF (leibnizO V) idOF idOF)))))
+].
+Global Instance subG_chanΣ {Σ V} : subG (protoΣ V) Σ → protoG Σ V.
+Proof. solve_inG. Qed.
 
 (** * Messages *)
 Section iMsg.

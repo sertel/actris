@@ -25,7 +25,7 @@ From iris.heap_lang Require Export primitive_laws notation.
 From iris.heap_lang Require Export proofmode.
 From iris.heap_lang.lib Require Import spin_lock.
 From actris.channel Require Export proto.
-From actris.utils Require Import llist skip.
+From actris.utils Require Import llist.
 Set Default Proof Using "Type".
 
 Local Existing Instance spin_lock.
