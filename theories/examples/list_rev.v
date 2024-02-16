@@ -39,8 +39,7 @@ Section list_rev_example.
       + iExists []. eauto.
       + iDestruct "Hl" as (v lcons) "[HIT [Hlcons Hrec]]".
         iDestruct ("IH" with "Hrec") as (vs) "[Hvs H]".
-        iExists (v::vs). iFrame.
-        iExists v, lcons. eauto with iFrame.
+        iExists (v::vs). by iFrame.
     - iDestruct 1 as (vs) "[Hvs HIT]".
       iInduction xs as [|x xs] "IH" forall (l vs).
       + by iDestruct (big_sepL2_nil_inv_l with "HIT") as %->.
