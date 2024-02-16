@@ -66,6 +66,13 @@ Definition recv : val :=
     | NONE => "go" "c"
     end.
 
+Definition close : val :=
+  λ: "c",
+    let: "lk" := Snd "c" in
+    let: "l" := Fst (Fst "c") in
+    let: "r" := Snd (Fst "c") in
+    acquire "lk";; lfree "r";; release "lk".
+
 (** * Setup of Iris's cameras *)
 Class chanG Σ := {
   chanG_lockG :: lockG Σ;
@@ -98,8 +105,8 @@ Definition iProto_pointsto_def `{!heapGS Σ, !chanG Σ}
   ∃ γ s (l r : loc) (lk : val),
     ⌜ c = ((#(side_elim s l r), #(side_elim s r l)), lk)%V ⌝ ∗
     is_lock (chan_lock_name γ) lk (∃ vsl vsr,
-      llist internal_eq l vsl ∗
-      llist internal_eq r vsr ∗
+      (llist internal_eq l vsl ∨ iProto_own (chan_proto_name γ) Right END) ∗
+      (llist internal_eq r vsr ∨ iProto_own (chan_proto_name γ) Left END) ∗
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx (chan_proto_name γ) vsl vsr) ∗
     iProto_own (chan_proto_name γ) s p.
@@ -211,7 +218,8 @@ Section channel.
     wp_smart_apply (lnil_spec internal_eq with "[//]"); iIntros (r) "Hr".
     iMod (iProto_init p) as (γp) "(Hctx & Hcl & Hcr)".
     wp_smart_apply (newlock_spec (∃ vsl vsr,
-      llist internal_eq l vsl ∗ llist internal_eq r vsr ∗
+      (llist internal_eq l vsl ∨ iProto_own γp Right END) ∗
+      (llist internal_eq r vsr ∨ iProto_own γp Left END) ∗
       steps_lb (length vsl) ∗ steps_lb (length vsr) ∗
       iProto_ctx γp vsl vsr) with "[Hl Hr Hctx]").
     { iExists [], []. iFrame "#∗". }
@@ -243,7 +251,16 @@ Section channel.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
     iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
     destruct s; simpl.
-    - wp_pures. wp_bind (lsnoc _ _).
+    - iDestruct "Hl" as "[Hl | Hl]"; last first.
+      { iDestruct (iProto_send_end_inv_l with "Hctx H Hl") as "#HF".
+        wp_bind (Rec _ _ _).
+        iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
+        { iApply fupd_mask_intro; [set_solver|]. simpl.
+          iIntros "Hclose !> !> !>".
+          iApply step_fupdN_intro; [done|]. iNext.
+          iMod "Hclose". iModIntro. iExact "HF". }
+        wp_pures. iIntros "!>[]". }
+      wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbr [Hctx H]"); [done| |].
       { iApply fupd_mask_intro; [set_solver|]. simpl.
         iIntros "Hclose !>!>".
@@ -263,7 +280,16 @@ Section channel.
         replace (length vsl + 1) with (S (length vsl)) by lia.
         iFrame "#∗". }
       iIntros "_". iApply "HΦ". iExists γ, Left, l, r, lk. eauto 10 with iFrame.
-    - wp_pures. wp_bind (lsnoc _ _).
+    - iDestruct "Hr" as "[Hr | Hr]"; last first.
+      { iDestruct (iProto_send_end_inv_r with "Hctx Hr H") as "#HF".
+        wp_bind (Rec _ _ _).
+        iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
+        { iApply fupd_mask_intro; [set_solver|]. simpl.
+          iIntros "Hclose !> !> !>".
+          iApply step_fupdN_intro; [done|]. iNext.
+          iMod "Hclose". iModIntro. iExact "HF". }
+        wp_pures. iIntros "!>[]". }
+      wp_pures. wp_bind (lsnoc _ _).
       iApply (wp_step_fupdN_lb with "Hlbl [Hctx H]"); [done| |].
       { iApply fupd_mask_intro; [set_solver|]. simpl.
         iIntros "Hclose !>!>".
@@ -310,8 +336,11 @@ Section channel.
     rewrite iProto_pointsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
     iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
     wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
-    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)". destruct s; simpl.
-    - wp_smart_apply (lisnil_spec with "Hr"); iIntros "Hr".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
+    destruct s; simpl.
+    - iDestruct "Hr" as "[Hr | Hr]"; last first.
+      { iDestruct (iProto_own_exclusive with "H Hr") as "[]". }
+      wp_smart_apply (lisnil_spec with "Hr"); iIntros "Hr".
       destruct vsr as [|vr vsr]; wp_pures.
       { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
         iIntros "_". wp_pures. iModIntro. iApply "HΦ". iLeft. iSplit; [done|].
@@ -325,7 +354,9 @@ Section channel.
       iIntros "_". wp_pures. iModIntro. iApply "HΦ". iRight. iExists x. iSplit; [done|].
       iFrame "HP". iExists γ, Left, l, r, lk. iSplit; [done|]. iFrame "Hlk".
       by iRewrite "Hp".
-    - wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
+    - iDestruct "Hl" as "[Hl | Hl]"; last first.
+      { iDestruct (iProto_own_exclusive with "H Hl") as "[]". }
+      wp_smart_apply (lisnil_spec with "Hl"); iIntros "Hl".
       destruct vsl as [|vl vsl]; wp_pures.
       { wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]"); [by eauto with iFrame|].
         iIntros "_". wp_pures. iModIntro. iApply "HΦ". iLeft. iSplit; [done|].
@@ -350,6 +381,36 @@ Section channel.
     wp_smart_apply (try_recv_spec with "Hc"); iIntros (w) "[[-> H]|H]".
     { wp_pures. by iApply ("IH" with "[$]"). }
     iDestruct "H" as (x ->) "[Hc HP]". wp_pures. iApply "HΦ". by iFrame.
+  Qed.
+
+  Lemma close_spec c :
+    {{{ c ↣ END%proto }}}
+      close c
+    {{{ RET #(); True }}}.
+  Proof.
+    rewrite iProto_mapsto_eq. iIntros (Φ) "Hc HΦ". wp_lam; wp_pures.
+    iDestruct "Hc" as (γ s l r lk ->) "[#Hlk H]"; wp_pures.
+    wp_smart_apply (acquire_spec with "Hlk"); iIntros "[Hlkd Hinv]".
+    iDestruct "Hinv" as (vsl vsr) "(Hl & Hr & #Hlbl & #Hlbr & Hctx)".
+    destruct s; simpl.
+    - iDestruct "Hr" as "[Hr | Hr]"; last first.
+      { iDestruct (iProto_own_exclusive with "H Hr") as "[]". }
+      iDestruct (iProto_end_inv_l with "Hctx H") as "#Heq".
+      wp_pures. iDestruct "Heq" as %->.
+      wp_smart_apply (lfree_spec with "Hr").
+      iIntros "_".
+      wp_smart_apply (release_spec with "[Hl H Hctx $Hlk $Hlkd]").
+      { eauto with iFrame. }
+      done.
+    - iDestruct "Hl" as "[Hl | Hl]"; last first.
+      { iDestruct (iProto_own_exclusive with "H Hl") as "[]". }
+      iDestruct (iProto_end_inv_r with "Hctx H") as "#Heq".
+      wp_pures. iDestruct "Heq" as %->.
+      wp_smart_apply (lfree_spec with "Hl").
+      iIntros "_".
+      wp_smart_apply (release_spec with "[Hr H Hctx $Hlk $Hlkd]").
+      { eauto with iFrame. }
+      done.
   Qed.
 
   (** ** Specifications for choice *)

@@ -86,6 +86,9 @@ Definition lreverse : val :=
   λ: "l", let: "l'" := ref (!"l") in
           "l" <- !(lreverse_at "l'" (lnil #())).
 
+Definition lfree : val :=
+  λ: "l", Free "l".
+
 Section lists.
 Context `{heapGS Σ} {A} (I : A → val → iProp Σ).
 Implicit Types i : nat.
@@ -298,6 +301,15 @@ Proof.
     + simpl. iDestruct "Hl''" as (v' lcons') "[HI [Hcons Hrec]]".
       wp_load. wp_store.
       iApply "HΦ". eauto with iFrame.
+Qed.
+
+Lemma lfree_spec l :
+  {{{ llist I l [] }}}
+    lfree #l
+  {{{ RET #(); True }}}.
+Proof.
+  iIntros (Φ) "Hl HΦ". wp_lam.
+  wp_free. iModIntro. by iApply "HΦ".
 Qed.
 
 End lists.
