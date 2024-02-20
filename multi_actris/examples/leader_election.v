@@ -14,7 +14,7 @@ Definition process : val :=
          then send "c" "idl" #false;; send "c" "idl" "id_max";;
               "go" "c" "idl" "idr" "id" "id_max" #false
          else if: "is_participant" (** Case 3 *)
-         then "go" "c" "idl" "idr" "id" "id_max" "is_participant" (** Case 4 *)
+         then "go" "c" "idl" "idr" "id" "id_max" "is_participant" (** Case 2 *)
          else send "c" "idl" #true;; send "c" "idl" "id_max";;
               "go" "c" "idl" "idr" "id" "id_max" #true
     else let: "id'" := recv "c" "idr" in
