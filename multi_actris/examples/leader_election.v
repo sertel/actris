@@ -4,29 +4,29 @@ From iris.heap_lang.lib Require Import assert.
 (** Inspired by https://en.wikipedia.org/wiki/Chang_and_Roberts_algorithm *)
 
 Definition process : val :=
-  rec: "go" "c" "idl" "idr" "id" "id_max" "is_participant" :=
+  rec: "go" "c" "idl" "id" "idr" "isp" "id_max" :=
     if: recv "c" "idr"
     then let: "id'" := recv "c" "idr" in
          if: "id_max" < "id'"          (** Case 1 *)
          then send "c" "idl" #true;; send "c" "idl" "id'";;
-              "go" "c" "idl" "idr" "id" "id'" "is_participant"
+              "go" "c" "idl" "id" "idr" "isp" "id'"
          else if: "id_max" = "id'"     (** Case 4 *)
          then send "c" "idl" #false;; send "c" "idl" "id_max";;
-              "go" "c" "idl" "idr" "id" "id_max" #false
-         else if: "is_participant" (** Case 3 *)
-         then "go" "c" "idl" "idr" "id" "id_max" "is_participant" (** Case 2 *)
+              "go" "c" "idl" "id" "idr" #false "id_max"
+         else if: "isp" (** Case 3 *)
+         then "go" "c" "idl" "id" "idr" "isp" "id_max" (** Case 2 *)
          else send "c" "idl" #true;; send "c" "idl" "id_max";;
-              "go" "c" "idl" "idr" "id" "id_max" #true
+              "go" "c" "idl" "id" "idr" #true "id_max"
     else let: "id'" := recv "c" "idr" in
          assert: ("id_max" = "id'");;
          if: "id" = "id'" then "id'"
          else send "c" "idl" #false;; send "c" "idl" "id_max";; "id_max".
 
 Definition init : val :=
-  λ: "c" "idl" "idr" "id",
+  λ: "c" "idl" "id" "idr",
     (* Notice missing leader *)
     send "c" "idl" #true;; send "c" "idl" "id";;
-    process "c" "idl" "idr" "id" "id" #true.
+    process "c" "idl" "id" "idr" #true "id".
 
 Definition program : val :=
   λ: <>,
@@ -35,10 +35,10 @@ Definition program : val :=
      let: "c1" := get_chan "cs" #1 in
      let: "c2" := get_chan "cs" #2 in
      let: "c3" := get_chan "cs" #3 in
-     Fork (let: "id_max" := init "c1" #3 #2 #1 in send "c1" #0 "id_max");;
-     Fork (let: "id_max" := process "c2" #1 #3 #2 #2 #false in
+     Fork (let: "id_max" := init "c1" #3 #1 #2 in send "c1" #0 "id_max");;
+     Fork (let: "id_max" := process "c2" #1 #2 #3 #false #2 in
            send "c2" #0 "id_max");;
-     Fork (let: "id_max" := init "c3" #2 #1 #3 in send "c3" #0 "id_max");;
+     Fork (let: "id_max" := init "c3" #2 #3 #1 in send "c3" #0 "id_max");;
      let: "res1" := recv "c0" #1 in
      let: "res2" := recv "c0" #2 in
      let: "res3" := recv "c0" #3 in
@@ -51,7 +51,7 @@ Notation iProto_choice a p1 p2 :=
 Section ring_leader_election_example.
   Context `{!heapGS Σ, chanG Σ, spawnG Σ, mono_natG Σ}.
 
-  Definition my_recv_prot (il ir i : nat) (p : nat → iProto Σ)
+  Definition my_recv_prot (il i ir : nat) (p : nat → iProto Σ)
              (rec : bool -d> nat -d> iProto Σ) : bool -d> nat -d> iProto Σ :=
     λ (isp:bool) (i_max:nat),
       iProto_choice (Recv,ir)
@@ -68,25 +68,25 @@ Section ring_leader_election_example.
          if (bool_decide (i = i_max)) then p i_max
          else <(Send,il)> MSG #false; <(Send,il)> MSG #i_max; p i_max)%proto.
 
-  Instance rle_prot_aux_contractive il ir i p : Contractive (my_recv_prot il ir i p).
+  Instance rle_prot_aux_contractive il i ir p : Contractive (my_recv_prot il i ir p).
   Proof. rewrite /my_recv_prot. solve_proto_contractive. Qed.
-  Definition rle_prot il ir i p := fixpoint (my_recv_prot il ir i p).
-  Instance rle_prot_unfold il ir i isp max_id p :
-    ProtoUnfold (rle_prot il ir i p isp max_id) (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
-  Proof. apply proto_unfold_eq, (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
-  Lemma rle_prot_unfold' il ir i isp max_id p :
-    (rle_prot il ir i p isp max_id) ≡
-    (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
-  Proof. apply (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
+  Definition rle_prot il i ir p := fixpoint (my_recv_prot il i ir p).
+  Instance rle_prot_unfold il i ir isp max_id p :
+    ProtoUnfold (rle_prot il i ir p isp max_id) (my_recv_prot il i ir p (rle_prot il i ir p) isp max_id).
+  Proof. apply proto_unfold_eq, (fixpoint_unfold (my_recv_prot il i ir p)). Qed.
+  Lemma rle_prot_unfold' il i ir isp max_id p :
+    (rle_prot il i ir p isp max_id) ≡
+    (my_recv_prot il i ir p (rle_prot il i ir p) isp max_id).
+  Proof. apply (fixpoint_unfold (my_recv_prot il i ir p)). Qed.
 
-  Definition rle_preprot (il ir i : nat) p : iProto Σ :=
+  Definition rle_preprot (il i ir : nat) p : iProto Σ :=
     (<(Send, il)> MSG #true; <(Send, il)> MSG #i ;
-    rle_prot il ir i p true i)%proto.
+    rle_prot il i ir p true i)%proto.
 
-  Lemma process_spec il ir i p i_max c (isp:bool) :
+  Lemma process_spec il i ir p i_max c (isp:bool) :
     i <= i_max →
-    {{{ c ↣ (rle_prot il ir i p isp i_max) }}}
-      process c #il #ir #i #i_max #isp
+    {{{ c ↣ (rle_prot il i ir p isp i_max) }}}
+      process c #il #i #ir #isp #i_max
     {{{ i', RET #i'; c ↣ p i' }}}.
   Proof.
     iIntros (Hle Φ) "Hc HΦ".
@@ -135,9 +135,9 @@ Section ring_leader_election_example.
       wp_send with "[//]". wp_send with "[//]". wp_pures. by iApply "HΦ".
   Qed.
 
-  Lemma init_spec c il ir i p :
-    {{{ c ↣ rle_preprot il ir i p }}}
-      init c #il #ir #i
+  Lemma init_spec c il i ir p :
+    {{{ c ↣ rle_preprot il i ir p }}}
+      init c #il #i #ir
     {{{ res, RET #res; c ↣ p res }}}.
   Proof.
     iIntros (Φ) "Hc HΦ". wp_lam. wp_send with "[//]". wp_send with "[//]".
@@ -165,9 +165,9 @@ Section ring_leader_election_example.
              <(Recv,2)> MSG #id_max ;
              <(Recv,3)> MSG #id_max ;
              END)%proto ]>
-    (<[1 := rle_preprot 3 2 1 prot_tail ]>
-    (<[2 := rle_prot 1 3 2 prot_tail false 2 ]>
-    (<[3 := rle_preprot 2 1 3 prot_tail ]> ∅))).
+    (<[1 := rle_preprot 3 1 2 prot_tail ]>
+    (<[2 := rle_prot 1 2 3 prot_tail false 2 ]>
+    (<[3 := rle_preprot 2 3 1 prot_tail ]> ∅))).
 
   Lemma prot_pool_consistent : ⊢ iProto_consistent prot_pool.
   Proof.
