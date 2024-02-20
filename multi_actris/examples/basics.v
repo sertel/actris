@@ -80,8 +80,7 @@ Section roundtrip_ref.
    (<[1 := (<(Recv, 0) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
             <(Send, 2)> MSG #l {{ l ↦ #(x+1) }}; END)%proto]>
    (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ (l ↦ #x)%I }} ;
-            <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]>
-            ∅)).
+            <(Send, 0)> MSG #() {{ l ↦ #(x+1) }}; END)%proto]> ∅)).
 
   Lemma iProto_roundtrip_ref_consistent :
     ⊢ iProto_consistent iProto_roundtrip_ref.
@@ -244,6 +243,58 @@ Section roundtrip_ref_rec.
   Qed.
 
 End roundtrip_ref_rec.
+
+Definition smuggle_ref_prog : val :=
+  λ: <>,
+     let: "cs" := new_chan #3 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     Fork (send "c1" #2 (recv "c1" #0));;
+     Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #2;; send "c2" #0 #());;
+     let: "l" := ref #40 in
+     send "c0" #1 "l";; recv "c0" #2;; !"l".
+
+Section smuggle_ref.
+  Context `{!heapGS Σ, !chanG Σ}.
+
+  Definition iProto_smuggle_ref : gmap nat (iProto Σ) :=
+    <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ l ↦ #x }} ;
+            <(Recv,2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
+   (<[1 := (<(Recv, 0) @ (v:val)> MSG v ; <(Send,2)> MSG v ; END)%proto]>
+   (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ l ↦ #x }} ;
+            <(Send,0)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]> ∅)).
+
+  Lemma iProto_smuggle_ref_consistent :
+    ⊢ iProto_consistent iProto_smuggle_ref.
+  Proof. rewrite /iProto_smuggle_ref. iProto_consistent_take_steps. Qed.
+
+  Lemma smuggle_ref_spec :
+    {{{ True }}} smuggle_ref_prog #() {{{ RET #42 ; True }}}.
+  Proof using chanG0 heapGS0 Σ.
+    iIntros (Φ) "_ HΦ". wp_lam.
+    wp_smart_apply (new_chan_spec 3 iProto_smuggle_ref with "[]").
+    { lia. }
+    { set_solver. }
+    { iApply iProto_smuggle_ref_consistent. }
+    iIntros (cs) "Hcs".
+    wp_pures.
+    wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [set_solver|].
+    iIntros (c0) "[Hc0 Hcs]".
+    wp_smart_apply (get_chan_spec _ 1 with "Hcs"); [set_solver|].
+    iIntros (c1) "[Hc1 Hcs]".
+    wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
+    iIntros (c2) "[Hc2 Hcs]".
+    wp_smart_apply (wp_fork with "[Hc1]").
+    { iIntros "!>". wp_recv (v) as "_". by wp_send with "[//]". }
+    wp_smart_apply (wp_fork with "[Hc2]").
+    { iIntros "!>". wp_recv (l x) as "Hl". wp_load. wp_store.
+      by wp_send with "[$Hl]". }
+    wp_alloc l as "Hl". wp_send with "[$Hl]". wp_recv as "Hl". wp_load.
+    by iApply "HΦ".
+  Qed.
+
+End smuggle_ref.
 
 Section parallel.
   Context `{!heapGS Σ}.
@@ -501,9 +552,7 @@ Section forwarder.
             <(Recv, if b then 2 else 3) > MSG #x ; END)%proto]>
    (<[1 := (<(Recv, 0) @ (x:Z)> MSG #x ;
             <(Recv, 0) @ (b:bool)> MSG #b;
-            if b
-            then <(Send,2)> MSG #x ; END
-            else <(Send,3)> MSG #x ; END)%proto]>
+            <(Send, if b then 2 else 3)> MSG #x ; END)%proto]>
    (<[2 := (<(Recv, 1) @ (x:Z)> MSG #x ;
             <(Send, 0)> MSG #x ; END)%proto]>
    (<[3 := (<(Recv, 1) @ (x:Z)> MSG #x ;
@@ -535,14 +584,12 @@ Section forwarder_rec.
   Context `{!heapGS Σ}.
 
   (** 
-
           0
         / | \
       /   |   \
      |    1    |
       \ /   \ /
        2     3
-
    *)
 
   Definition iProto_forwarder_rec_0_aux (rec : iProto Σ) : iProto Σ :=
