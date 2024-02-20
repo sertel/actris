@@ -143,6 +143,20 @@ Section ring_leader_election_example.
     wp_pures. by iApply (process_spec with "Hc HΦ").
   Qed.
 
+  Definition leader_election_prot (ps : gmap nat (nat → iProto Σ)) :
+    gmap nat (iProto Σ) :=
+     <[0 := (ps !!! 0) 0 ]>
+    (<[1 := rle_preprot 3 1 2 (ps !!! 1) ]>
+    (<[2 := rle_prot 1 2 3 (ps !!! 2) false 2 ]>
+    (<[3 := rle_preprot 2 3 1 (ps !!! 3) ]> ∅))).
+
+  (* TODO: iProto_consistent tactics not strong enough *)
+  (* It does not work with abstract protocols *)
+  Lemma leader_election_prot_consistent ps :
+    (∀ id_max, iProto_consistent ((λ p, p id_max) <$> ps)) -∗
+    iProto_consistent (leader_election_prot ps).
+  Proof. Admitted.
+
   Definition prot_tail (i_max : nat) : iProto Σ :=
     (<(Send,0)> MSG #i_max; END)%proto.
 
@@ -162,20 +176,6 @@ Section ring_leader_election_example.
     rewrite !fmap_insert fmap_empty.
     iProto_consistent_take_steps.
   Qed.
-
-  Definition leader_election_prot (ps : gmap nat (nat → iProto Σ)) :
-    gmap nat (iProto Σ) :=
-     <[0 := (ps !!! 0) 0 ]>
-    (<[1 := rle_preprot 3 1 2 (ps !!! 1) ]>
-    (<[2 := rle_prot 1 2 3 (ps !!! 2) false 2 ]>
-    (<[3 := rle_preprot 2 3 1 (ps !!! 3) ]> ∅))).
-
-  (* TODO: iProto_consistent tactics not strong enough *)
-  (* It does not work with abstract protocols *)
-  Lemma leader_election_prot_consistent ps :
-    (∀ id_max, iProto_consistent ((λ p, p id_max) <$> ps)) -∗
-    iProto_consistent (leader_election_prot ps).
-  Proof. Admitted.
 
   Lemma leader_election_safety_prot_consistent :
     ⊢ iProto_consistent (leader_election_prot safety_prot).
