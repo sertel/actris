@@ -51,30 +51,25 @@ Notation iProto_choice a p1 p2 :=
 Section ring_leader_election_example.
   Context `{!heapGS Σ, chanG Σ, spawnG Σ, mono_natG Σ}.
 
-  Definition my_send_prot (il ir i : nat) i'
-    (rec : bool -d> nat -d> iProto Σ) : bool -d> nat -d> iProto Σ :=
-    λ (isp:bool) (i_max:nat),
-      iProto_choice (Send,il)
-        (<(Send,il)> MSG #(max i' i_max) ; rec isp (max i' i_max))%proto
-        (<(Send,il)> MSG #i_max ; rec isp i_max)%proto.
-
   Definition my_recv_prot (il ir i : nat) (p : nat → iProto Σ)
              (rec : bool -d> nat -d> iProto Σ) : bool -d> nat -d> iProto Σ :=
     λ (isp:bool) (i_max:nat),
       iProto_choice (Recv,ir)
         (<(Recv,ir) @ (i':nat)> MSG #i' ;
          if bool_decide (i_max < i')
-         then my_send_prot il ir i i' rec isp i_max
+         then <(Send,il)> MSG #true ; <(Send,il)> MSG #(max i' i_max) ;
+              rec isp (max i' i_max)
          else if bool_decide (i_max = i')
-         then my_send_prot il ir i i' rec false i_max
+         then <(Send,il)> MSG #false ; <(Send, il)> MSG #i_max ; rec false i_max
          else if isp then rec isp i_max
-         else my_send_prot il ir i i' rec true i_max)%proto
+         else <(Send,il)> MSG #true ; <(Send,il)> MSG #(max i' i_max) ;
+              rec true (max i' i_max))%proto
         (<(Recv,ir)> MSG #i_max ;
          if (bool_decide (i = i_max)) then p i_max
          else <(Send,il)> MSG #false; <(Send,il)> MSG #i_max; p i_max)%proto.
 
   Instance rle_prot_aux_contractive il ir i p : Contractive (my_recv_prot il ir i p).
-  Proof. rewrite /my_recv_prot /my_send_prot. solve_proto_contractive. Qed.
+  Proof. rewrite /my_recv_prot. solve_proto_contractive. Qed.
   Definition rle_prot il ir i p := fixpoint (my_recv_prot il ir i p).
   Instance rle_prot_unfold il ir i isp max_id p :
     ProtoUnfold (rle_prot il ir i p isp max_id) (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
@@ -100,7 +95,7 @@ Section ring_leader_election_example.
       { case_bool_decide; [|lia].
         wp_pures. wp_send with "[//]".
         iEval (replace i' with (max i' i_max) by lia).
-        wp_send with "[//]". wp_pures.
+        wp_send with "[//]". wp_pures.        
         iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia. }
       case_bool_decide as Hlt2.
       { case_bool_decide; [lia|].
@@ -116,7 +111,6 @@ Section ring_leader_election_example.
       destruct isp.
       { wp_pures. iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia. }
       wp_pures.
-      rewrite /my_send_prot.
       wp_send with "[//]".
       iEval (replace i_max with (max i' i_max) by lia).
       wp_send with "[//]".
@@ -166,8 +160,64 @@ Section ring_leader_election_example.
   Proof. apply (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
 
   Lemma prot_pool_consistent : ⊢ iProto_consistent prot_pool.
-  Proof. Admitted.
-    
+  Proof.    
+    rewrite /prot_pool /rle_preprot.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    repeat clean_map 0. repeat clean_map 1.
+    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_step.
+    iProto_consistent_resolve_step.
+    iProto_consistent_take_step.
+  Qed.
+
   Lemma program_spec :
     {{{ True }}} 
       program #()
