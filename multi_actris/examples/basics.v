@@ -250,20 +250,21 @@ Definition smuggle_ref_prog : val :=
      let: "c0" := get_chan "cs" #0 in
      let: "c1" := get_chan "cs" #1 in
      let: "c2" := get_chan "cs" #2 in
-     Fork (send "c1" #2 (recv "c1" #0));;
-     Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #2;; send "c2" #0 #());;
+     Fork (send "c1" #2 (recv "c1" #0);; send "c1" #0 (recv "c1" #2));;
+     Fork (let: "l" := recv "c2" #1 in "l" <- !"l" + #2;; send "c2" #1 #());;
      let: "l" := ref #40 in
-     send "c0" #1 "l";; recv "c0" #2;; !"l".
+     send "c0" #1 "l";; recv "c0" #1;; !"l".
 
 Section smuggle_ref.
   Context `{!heapGS Σ, !chanG Σ}.
 
   Definition iProto_smuggle_ref : gmap nat (iProto Σ) :=
     <[0 := (<(Send, 1) @ (l:loc) (x:Z)> MSG #l {{ l ↦ #x }} ;
-            <(Recv,2)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
-   (<[1 := (<(Recv, 0) @ (v:val)> MSG v ; <(Send,2)> MSG v ; END)%proto]>
+            <(Recv,1)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]>
+   (<[1 := (<(Recv, 0) @ (v:val)> MSG v ; <(Send,2)> MSG v ;
+            <(Recv, 2)> MSG #(); <(Send,0)> MSG #() ; END)%proto]>
    (<[2 := (<(Recv, 1) @ (l:loc) (x:Z)> MSG #l {{ l ↦ #x }} ;
-            <(Send,0)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]> ∅)).
+            <(Send,1)> MSG #() {{ l ↦ #(x+2) }} ; END)%proto]> ∅)).
 
   Lemma iProto_smuggle_ref_consistent :
     ⊢ iProto_consistent iProto_smuggle_ref.
@@ -286,7 +287,8 @@ Section smuggle_ref.
     wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [set_solver|].
     iIntros (c2) "[Hc2 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
-    { iIntros "!>". wp_recv (v) as "_". by wp_send with "[//]". }
+    { iIntros "!>". wp_recv (v) as "_". wp_send with "[//]".
+      wp_recv as "_". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". wp_recv (l x) as "Hl". wp_load. wp_store.
       by wp_send with "[$Hl]". }
