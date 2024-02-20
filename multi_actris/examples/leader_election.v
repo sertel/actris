@@ -84,13 +84,12 @@ Section ring_leader_election_example.
     rle_prot il i ir p true i)%proto.
 
   Lemma process_spec il i ir p i_max c (isp:bool) :
-    i <= i_max →
     {{{ c ↣ (rle_prot il i ir p isp i_max) }}}
       process c #il #i #ir #isp #i_max
     {{{ i', RET #i'; c ↣ p i' }}}.
   Proof.
-    iIntros (Hle Φ) "Hc HΦ".
-    iLöb as "IH" forall (Φ isp i_max Hle).    
+    iIntros (Φ) "Hc HΦ".
+    iLöb as "IH" forall (Φ isp i_max).    
     wp_lam. wp_recv (b) as "_".
     destruct b.
     - wp_pures. wp_recv (i') as "_".
@@ -100,25 +99,25 @@ Section ring_leader_election_example.
         wp_pures. wp_send with "[//]".
         iEval (replace i' with (max i' i_max) by lia).
         wp_send with "[//]". wp_pures.        
-        iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia. }
+        iApply ("IH" with "Hc HΦ"). }
       case_bool_decide as Hlt2.
       { case_bool_decide; [lia|].
         wp_pures. case_bool_decide; [|simplify_eq;lia].
         wp_send with "[//]".
         iEval (replace i' with (max i' i_max) by lia).
         wp_send with "[//]". wp_pures.
-        iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia. }
+        iApply ("IH" with "Hc HΦ"). }
       case_bool_decide; [lia|].
       wp_pures.
       case_bool_decide; [simplify_eq;lia|].
       wp_pures. 
       destruct isp.
-      { wp_pures. iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia. }
+      { wp_pures. iApply ("IH" with "Hc HΦ"). }
       wp_pures.
       wp_send with "[//]".
       iEval (replace i_max with (max i' i_max) by lia).
       wp_send with "[//]".
-      wp_pures. iApply ("IH" with "[] Hc HΦ"). iPureIntro. lia.
+      wp_pures. iApply ("IH" with "Hc HΦ").
     - wp_pures.
       wp_recv as "_".
       wp_smart_apply wp_assert.
@@ -243,7 +242,7 @@ Section ring_leader_election_example.
     { iIntros "!>". wp_smart_apply (init_spec with "Hc1").
       iIntros (i') "Hc1". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc2]").
-    { iIntros "!>". wp_smart_apply (process_spec with "Hc2"); [lia|].
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
       iIntros (i') "Hc2". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc3]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc3").
