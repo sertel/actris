@@ -146,89 +146,50 @@ Section ring_leader_election_example.
   Definition prot_tail (i_max : nat) : iProto Σ :=
     (<(Send,0)> MSG #i_max; END)%proto.
 
-  Definition pre_prot_pool id_max : gmap nat (iProto Σ) :=
-     <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
+  Definition safety_prot : gmap nat (nat → iProto Σ) :=
+     <[0 := λ _, (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
              <(Recv,2)> MSG #id_max ;
              <(Recv,3)> MSG #id_max ;
              END)%proto ]>
-    (<[1 := prot_tail id_max ]>
-    (<[2 := prot_tail id_max ]>
-    (<[3 := prot_tail id_max ]> ∅))).
+    (<[1 := prot_tail ]>
+    (<[2 := prot_tail ]>
+    (<[3 := prot_tail ]> ∅))).
 
-  Lemma pre_prot_pool_consistent id_max :
-    ⊢ iProto_consistent (pre_prot_pool id_max).
-  Proof. rewrite /pre_prot_pool. iProto_consistent_take_steps. Qed.
-
-  Definition prot_pool : gmap nat (iProto Σ) :=
-     <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
-             <(Recv,2)> MSG #id_max ;
-             <(Recv,3)> MSG #id_max ;
-             END)%proto ]>
-    (<[1 := rle_preprot 3 1 2 prot_tail ]>
-    (<[2 := rle_prot 1 2 3 prot_tail false 2 ]>
-    (<[3 := rle_preprot 2 3 1 prot_tail ]> ∅))).
-
-  Lemma prot_pool_consistent : ⊢ iProto_consistent prot_pool.
+  Lemma safety_prot_consistent id_max :
+    ⊢ iProto_consistent ((λ p, p id_max) <$> safety_prot).
   Proof.
-    rewrite /prot_pool /rle_preprot.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    repeat (rewrite (insert_commute _ _ 3); [|lia]).
-    repeat (rewrite (insert_commute _ _ 2); [|lia]).
-    repeat (rewrite (insert_commute _ _ 1); [|lia]).
-    repeat (rewrite (insert_commute _ _ 0); [|lia]).
-    iApply pre_prot_pool_consistent.
+    rewrite /safety_prot.
+    rewrite !fmap_insert fmap_empty.
+    iProto_consistent_take_steps.
+  Qed.
+
+  Definition leader_election_prot (ps : gmap nat (nat → iProto Σ)) :
+    gmap nat (iProto Σ) :=
+     <[0 := (ps !!! 0) 0 ]>
+    (<[1 := rle_preprot 3 1 2 (ps !!! 1) ]>
+    (<[2 := rle_prot 1 2 3 (ps !!! 2) false 2 ]>
+    (<[3 := rle_preprot 2 3 1 (ps !!! 3) ]> ∅))).
+
+  (* TODO: iProto_consistent tactics not strong enough *)
+  (* It does not work with abstract protocols *)
+  Lemma leader_election_prot_consistent ps :
+    (∀ id_max, iProto_consistent ((λ p, p id_max) <$> ps)) -∗
+    iProto_consistent (leader_election_prot ps).
+  Proof. Admitted.
+
+  Lemma leader_election_safety_prot_consistent :
+    ⊢ iProto_consistent (leader_election_prot safety_prot).
+  Proof.
+    iApply leader_election_prot_consistent.
+    iIntros (id_max). iApply safety_prot_consistent.
   Qed.
 
   Lemma program_spec :
     {{{ True }}} program #() {{{ RET #(); True }}}.
   Proof. 
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 4 prot_pool);
-      [lia|set_solver|iApply prot_pool_consistent|].
+    wp_smart_apply (new_chan_spec 4 (leader_election_prot safety_prot));
+      [lia|set_solver|iApply leader_election_safety_prot_consistent|].
     iIntros (cs) "Hcs".
     wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [done|].
     iIntros (c0) "[Hc0 Hcs]".
@@ -240,13 +201,29 @@ Section ring_leader_election_example.
     iIntros (c3) "[Hc3 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc1").
-      iIntros (i') "Hc1". by wp_send with "[//]". }
+      iIntros (i') "Hc1".
+      rewrite /safety_prot.
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert.
+      by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
+      rewrite /safety_prot.
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert.
       iIntros (i') "Hc2". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc3]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc3").
-      iIntros (i') "Hc3". by wp_send with "[//]". }
+      iIntros (i') "Hc3".
+      rewrite /safety_prot.
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert_ne; [|lia]. 
+      rewrite lookup_total_insert.
+      by wp_send with "[//]". }
+    rewrite /safety_prot.
+    rewrite lookup_total_insert.
     wp_recv (id_max) as "_". wp_recv as "_". wp_recv as "_".
     wp_smart_apply wp_assert. wp_pures. iModIntro. iSplitR; [iPureIntro|].
     { do 2 f_equiv. by apply bool_decide_eq_true_2. }
