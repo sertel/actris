@@ -74,6 +74,10 @@ Section ring_leader_election_example.
   Instance rle_prot_unfold il ir i isp max_id p :
     ProtoUnfold (rle_prot il ir i p isp max_id) (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
   Proof. apply proto_unfold_eq, (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
+  Lemma rle_prot_unfold' il ir i isp max_id p :
+    (rle_prot il ir i p isp max_id) ≡
+    (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
+  Proof. apply (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
 
   Definition rle_preprot (il ir i : nat) p : iProto Σ :=
     (<(Send, il)> MSG #true; <(Send, il)> MSG #i ;
@@ -127,11 +131,8 @@ Section ring_leader_election_example.
       { wp_pures. simplify_eq.
         case_bool_decide; [|simplify_eq;lia]. wp_pures.
         iModIntro. by iApply "HΦ". }
-      wp_pures.
-      case_bool_decide; [simplify_eq;lia|]. wp_pures.
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_pures. by iApply "HΦ".
+      wp_pures. case_bool_decide; [simplify_eq;lia|]. wp_pures.
+      wp_send with "[//]". wp_send with "[//]". wp_pures. by iApply "HΦ".
   Qed.
 
   Lemma init_spec c il ir i p :
@@ -146,6 +147,19 @@ Section ring_leader_election_example.
   Definition prot_tail (i_max : nat) : iProto Σ :=
     (<(Send,0)> MSG #i_max; END)%proto.
 
+  Definition pre_prot_pool id_max : gmap nat (iProto Σ) :=
+     <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
+             <(Recv,2)> MSG #id_max ;
+             <(Recv,3)> MSG #id_max ;
+             END)%proto ]>
+    (<[1 := prot_tail id_max ]>
+    (<[2 := prot_tail id_max ]>
+    (<[3 := prot_tail id_max ]> ∅))).
+
+  Lemma pre_prot_pool_consistent id_max :
+    ⊢ iProto_consistent (pre_prot_pool id_max).
+  Proof. rewrite /pre_prot_pool. iProto_consistent_take_steps. Qed.
+
   Definition prot_pool : gmap nat (iProto Σ) :=
      <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
              <(Recv,2)> MSG #id_max ;
@@ -155,12 +169,8 @@ Section ring_leader_election_example.
     (<[2 := rle_prot 1 3 2 prot_tail false 2 ]>
     (<[3 := rle_preprot 2 1 3 prot_tail ]> ∅))).
 
-  Lemma rle_prot_unfold' il ir i isp max_id p :
-    (rle_prot il ir i p isp max_id) ≡ (my_recv_prot il ir i p (rle_prot il ir i p) isp max_id).
-  Proof. apply (fixpoint_unfold (my_recv_prot il ir i p)). Qed.
-
   Lemma prot_pool_consistent : ⊢ iProto_consistent prot_pool.
-  Proof.    
+  Proof.
     rewrite /prot_pool /rle_preprot.
     rewrite !rle_prot_unfold'.
     iProto_consistent_take_step.
@@ -207,24 +217,17 @@ Section ring_leader_election_example.
     iProto_consistent_resolve_step.
     repeat clean_map 0. repeat clean_map 1.
     repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
+    repeat (rewrite (insert_commute _ _ 3); [|lia]).
+    repeat (rewrite (insert_commute _ _ 2); [|lia]).
+    repeat (rewrite (insert_commute _ _ 1); [|lia]).
+    repeat (rewrite (insert_commute _ _ 0); [|lia]).
+    iApply pre_prot_pool_consistent.
   Qed.
 
   Lemma program_spec :
-    {{{ True }}} 
-      program #()
-    {{{ RET #(); True }}}.
+    {{{ True }}} program #() {{{ RET #(); True }}}.
   Proof. 
-    iIntros (Φ) "_ HΦ".
-    wp_lam.
+    iIntros (Φ) "_ HΦ". wp_lam.
     wp_smart_apply (new_chan_spec 4 prot_pool);
       [lia|set_solver|iApply prot_pool_consistent|].
     iIntros (cs) "Hcs".
@@ -238,23 +241,20 @@ Section ring_leader_election_example.
     iIntros (c3) "[Hc3 Hcs]".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc1").
-      iIntros (i') "Hc1". wp_send with "[//]". done. }
+      iIntros (i') "Hc1". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc2"); [lia|].
-      iIntros (i') "Hc2". wp_pures. wp_send with "[//]". done. }
+      iIntros (i') "Hc2". by wp_send with "[//]". }
     wp_smart_apply (wp_fork with "[Hc3]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc3").
-      iIntros (i') "Hc3". wp_send with "[//]". done. }
-    wp_recv (id_max) as "_".
-    wp_recv as "_".
-    wp_recv as "_".
+      iIntros (i') "Hc3". by wp_send with "[//]". }
+    wp_recv (id_max) as "_". wp_recv as "_". wp_recv as "_".
     wp_smart_apply wp_assert. wp_pures. iModIntro. iSplitR; [iPureIntro|].
-    { do 2 f_equiv. apply bool_decide_eq_true_2. done. }
+    { do 2 f_equiv. by apply bool_decide_eq_true_2. }
     iIntros "!>".
     wp_smart_apply wp_assert. wp_pures. iModIntro. iSplitR; [iPureIntro|].
-    { do 2 f_equiv. apply bool_decide_eq_true_2. done. }
-    iIntros "!>".
-    by iApply "HΦ".
+    { do 2 f_equiv. by apply bool_decide_eq_true_2. }
+    iIntros "!>". by iApply "HΦ".
   Qed.
 
 End ring_leader_election_example.
