@@ -294,52 +294,33 @@ Fixpoint iProto_app_recvs {Σ V} (vs : list V) (p : iProto Σ V) : iProto Σ V :
 Definition iProto_interp {Σ V} (vsl vsr : list V) (pl pr : iProto Σ V) : iProp Σ :=
   ∃ p, iProto_app_recvs vsr p ⊑ pl ∗ iProto_app_recvs vsl (iProto_dual p) ⊑ pr.
 
-Record proto_name := ProtName { proto_l_name : gname; proto_r_name : gname }.
-Global Instance proto_name_inhabited : Inhabited proto_name :=
-  populate (ProtName inhabitant inhabitant).
-Global Instance proto_name_eq_dec : EqDecision proto_name.
-Proof. solve_decision. Qed.
-Global Instance proto_name_countable : Countable proto_name.
-Proof.
- refine (inj_countable (λ '(ProtName γl γr), (γl,γr))
-   (λ '(γl, γr), Some (ProtName γl γr)) _); by intros [].
-Qed.
-
-Inductive side := Left | Right.
-Global Instance side_inhabited : Inhabited side := populate Left.
-Global Instance side_eq_dec : EqDecision side.
-Proof. solve_decision. Qed.
-Global Instance side_countable : Countable side.
-Proof.
- refine (inj_countable (λ s, if s is Left then true else false)
-   (λ b, Some (if b then Left else Right)) _); by intros [].
-Qed.
-Definition side_elim {A} (s : side) (l r : A) : A :=
-  match s with Left => l | Right => r end.
-
-Definition iProto_own_frag `{!protoG Σ V} (γ : proto_name) (s : side)
+Definition iProto_own_frag `{!protoG Σ V} (γ : gname)
     (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (◯E (Next p)).
-Definition iProto_own_auth `{!protoG Σ V} (γ : proto_name) (s : side)
+  own γ (◯E (Next p)).
+Definition iProto_own_auth `{!protoG Σ V} (γ : gname)
     (p : iProto Σ V) : iProp Σ :=
-  own (side_elim s proto_l_name proto_r_name γ) (●E (Next p)).
+  own γ (●E (Next p)).
 
+(** In the original Actris papers we a single ghost name for [iProto_ctx] and
+[iProto_own]. To distinguish the two [iProto_own]s for both sides, we used
+an enum [Left]/[Right]. This turned out to be cumbersome because at various
+places we need to case at this enum. The current version of [iProto_ctx] has two
+ghost names, one for each [iProto_own], enabling more uniform definitions. *)
 Definition iProto_ctx `{protoG Σ V}
-    (γ : proto_name) (vsl vsr : list V) : iProp Σ :=
+    (γl γr : gname) (vsl vsr : list V) : iProp Σ :=
   ∃ pl pr,
-    iProto_own_auth γ Left pl ∗
-    iProto_own_auth γ Right pr ∗
+    iProto_own_auth γl pl ∗
+    iProto_own_auth γr pr ∗
     ▷ iProto_interp vsl vsr pl pr.
 
 (** * The connective for ownership of channel ends *)
-Definition iProto_own `{!protoG Σ V}
-    (γ : proto_name) (s : side) (p : iProto Σ V) : iProp Σ :=
-  ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ s p'.
+Definition iProto_own `{!protoG Σ V} (γ : gname) (p : iProto Σ V) : iProp Σ :=
+  ∃ p', ▷ (p' ⊑ p) ∗ iProto_own_frag γ p'.
 Arguments iProto_own {_ _ _} _ _%proto.
-Global Instance: Params (@iProto_own) 3 := {}.
+Global Instance: Params (@iProto_own) 4 := {}.
 
-Global Instance iProto_own_contractive `{protoG Σ V} γ s :
-  Contractive (iProto_own γ s).
+Global Instance iProto_own_contractive `{protoG Σ V} γ :
+  Contractive (iProto_own γ).
 Proof. solve_contractive. Qed.
 
 (** * Proofs *)
@@ -1026,20 +1007,20 @@ Section proto.
     Proper ((≡) ==> (≡) ==> (≡)) (iProto_interp (Σ:=Σ) (V:=V) vsl vsr).
   Proof. apply (ne_proper_2 _). Qed.
 
-  Global Instance iProto_own_frag_ne γ s : NonExpansive (iProto_own_frag γ s).
+  Global Instance iProto_own_frag_ne γ : NonExpansive (iProto_own_frag γ).
   Proof. solve_proper. Qed.
 
-  Lemma iProto_own_auth_agree γ s p p' :
-    iProto_own_auth γ s p -∗ iProto_own_frag γ s p' -∗ ▷ (p ≡ p').
+  Lemma iProto_own_auth_agree γ p p' :
+    iProto_own_auth γ p -∗ iProto_own_frag γ p' -∗ ▷ (p ≡ p').
   Proof.
     iIntros "H● H◯". iCombine "H● H◯" gives "H✓".
     iDestruct (excl_auth_agreeI with "H✓") as "{H✓} H✓".
     iApply (later_equivI_1 with "H✓").
   Qed.
 
-  Lemma iProto_own_auth_update γ s p p' p'' :
-    iProto_own_auth γ s p -∗ iProto_own_frag γ s p' ==∗
-    iProto_own_auth γ s p'' ∗ iProto_own_frag γ s p''.
+  Lemma iProto_own_auth_update γ p p' p'' :
+    iProto_own_auth γ p -∗ iProto_own_frag γ p' ==∗
+    iProto_own_auth γ p'' ∗ iProto_own_frag γ p''.
   Proof.
     iIntros "H● H◯". iDestruct (own_update_2 with "H● H◯") as "H".
     { eapply (excl_auth_update _ _ (Next p'')). }
@@ -1049,8 +1030,8 @@ Section proto.
   Lemma iProto_interp_nil p : ⊢ iProto_interp [] [] p (iProto_dual p).
   Proof. iExists p; simpl. iSplitL; iApply iProto_le_refl. Qed.
 
-  Lemma iProto_interp_flip vsl vsr pl pr :
-    iProto_interp vsl vsr pl pr -∗ iProto_interp vsr vsl pr pl.
+  Lemma iProto_interp_sym vsl vsr pl pr :
+    iProto_interp vsl vsr pl pr ⊢ iProto_interp vsr vsl pr pl.
   Proof.
     iDestruct 1 as (p) "[Hp Hdp]". iExists (iProto_dual p).
     rewrite (involutive iProto_dual). iFrame.
@@ -1065,8 +1046,8 @@ Section proto.
   Lemma iProto_interp_le_r vsl vsr pl pr pr' :
     iProto_interp vsl vsr pl pr -∗ pr ⊑ pr' -∗ iProto_interp vsl vsr pl pr'.
   Proof.
-    iIntros "H Hle". iApply iProto_interp_flip.
-    iApply (iProto_interp_le_l with "[H] Hle"). by iApply iProto_interp_flip.
+    iIntros "H Hle". iApply iProto_interp_sym.
+    iApply (iProto_interp_le_l with "[H] Hle"). by iApply iProto_interp_sym.
   Qed.
 
   Lemma iProto_interp_send vl ml vsl vsr pr pl' :
@@ -1107,39 +1088,47 @@ Section proto.
     iExists pr''. iIntros "{$Hpr} !>". iExists p. iFrame.
   Qed.
 
-  Global Instance iProto_own_ne γ s : NonExpansive (iProto_own γ s).
+  Lemma iProto_ctx_sym γl γr vsl vsr :
+    iProto_ctx γl γr vsl vsr ⊢ iProto_ctx γr γl vsr vsl.
+  Proof.
+    iIntros "(%pl & %pr & Hauthl & Hauthr & Hinterp)".
+    iDestruct (iProto_interp_sym with "Hinterp") as "Hinterp".
+    iExists pr, pl; iFrame.
+  Qed.
+
+  Global Instance iProto_own_ne γ : NonExpansive (iProto_own γ).
   Proof. solve_proper. Qed.
-  Global Instance iProto_own_proper γ s : Proper ((≡) ==> (≡)) (iProto_own γ s).
+  Global Instance iProto_own_proper γ : Proper ((≡) ==> (≡)) (iProto_own γ).
   Proof. apply (ne_proper _). Qed.
 
-  Lemma iProto_own_le γ s p1 p2 :
-    iProto_own γ s p1 -∗ ▷ (p1 ⊑ p2) -∗ iProto_own γ s p2.
+  Lemma iProto_own_le γ p1 p2 :
+    iProto_own γ p1 -∗ ▷ (p1 ⊑ p2) -∗ iProto_own γ p2.
   Proof.
     iDestruct 1 as (p1') "[Hle H]". iIntros "Hle'".
     iExists p1'. iFrame "H". by iApply (iProto_le_trans with "Hle").
   Qed.
 
   Lemma iProto_init p :
-    ⊢ |==> ∃ γ,
-      iProto_ctx γ [] [] ∗
-      iProto_own γ Left p ∗ iProto_own γ Right (iProto_dual p).
+    ⊢ |==> ∃ γl γr,
+      iProto_ctx γl γr [] [] ∗
+      iProto_own γl p ∗ iProto_own γr (iProto_dual p).
   Proof.
-    iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (lγ) "[H●l H◯l]".
+    iMod (own_alloc (●E (Next p) ⋅ ◯E (Next p))) as (γl) "[H●l H◯l]".
     { by apply excl_auth_valid. }
     iMod (own_alloc (●E (Next (iProto_dual p)) ⋅
-      ◯E (Next (iProto_dual p)))) as (rγ) "[H●r H◯r]".
+      ◯E (Next (iProto_dual p)))) as (γr) "[H●r H◯r]".
     { by apply excl_auth_valid. }
-    pose (ProtName lγ rγ) as γ. iModIntro. iExists γ. iSplitL "H●l H●r".
+    iModIntro. iExists γl, γr. iSplitL "H●l H●r".
     { iExists p, (iProto_dual p). iFrame. iApply iProto_interp_nil. }
     iSplitL "H◯l"; iExists _; iFrame; iApply iProto_le_refl.
   Qed.
 
-  Lemma iProto_send_l γ m vsr vsl vl p :
-    iProto_ctx γ vsl vsr -∗
-    iProto_own γ Left (<!> m) -∗
+  Lemma iProto_send γl γr m vsr vsl vl p :
+    iProto_ctx γl γr vsl vsr -∗
+    iProto_own γl (<!> m) -∗
     iMsg_car m vl (Next p) ==∗
-      ▷^(length vsr) iProto_ctx γ (vsl ++ [vl]) vsr ∗
-      iProto_own γ Left p.
+      ▷^(length vsr) iProto_ctx γl γr (vsl ++ [vl]) vsr ∗
+      iProto_own γl p.
   Proof.
     iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
     iDestruct 1 as (pl') "[Hle H◯]". iIntros "Hm".
@@ -1148,39 +1137,18 @@ Section proto.
       with "[Hle]" as "{Hp} Hle"; first (iNext; by iRewrite "Hp").
     iDestruct (iProto_interp_le_l with "Hinterp Hle") as "Hinterp".
     iDestruct (iProto_interp_send with "Hinterp [Hm //]") as "Hinterp".
-    iMod (iProto_own_auth_update _ _ _ _ p with "H●l H◯") as "[H●l H◯]".
+    iMod (iProto_own_auth_update _ _ _ p with "H●l H◯") as "[H●l H◯]".
     iIntros "!>". iSplitR "H◯".
     - iIntros "!>". iExists p, pr. iFrame.
     - iExists p. iFrame. iApply iProto_le_refl.
   Qed.
 
-  Lemma iProto_send_r γ m vsr vsl vr p :
-    iProto_ctx γ vsl vsr -∗
-    iProto_own γ Right (<!> m) -∗
-    iMsg_car m vr (Next p) ==∗
-      ▷^(length vsl) iProto_ctx γ vsl (vsr ++ [vr]) ∗
-      iProto_own γ Right p.
-  Proof.
-    iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
-    iDestruct 1 as (pr') "[Hle H◯]". iIntros "Hm".
-    iDestruct (iProto_own_auth_agree with "H●r H◯") as "#Hp".
-    iAssert (▷ (pr ⊑ <!> m))%I
-      with "[Hle]" as "{Hp} Hle"; first (iNext; by iRewrite "Hp").
-    iDestruct (iProto_interp_flip with "Hinterp") as "Hinterp".
-    iDestruct (iProto_interp_le_l with "Hinterp Hle") as "Hinterp".
-    iDestruct (iProto_interp_send with "Hinterp [Hm //]") as "Hinterp".
-    iMod (iProto_own_auth_update _ _ _ _ p with "H●r H◯") as "[H●r H◯]".
-    iIntros "!>". iSplitR "H◯".
-    - iIntros "!>". iExists pl, p. iFrame. by iApply iProto_interp_flip.
-    - iExists p. iFrame. iApply iProto_le_refl.
-  Qed.
-
-  Lemma iProto_recv_l γ m vr vsr vsl :
-    iProto_ctx γ vsl (vr :: vsr) -∗
-    iProto_own γ Left (<?> m) ==∗
+  Lemma iProto_recv γl γr m vr vsr vsl :
+    iProto_ctx γl γr vsl (vr :: vsr) -∗
+    iProto_own γl (<?> m) ==∗
     ▷ ∃ p,
-      iProto_ctx γ vsl vsr ∗
-      iProto_own γ Left p ∗
+      iProto_ctx γl γr vsl vsr ∗
+      iProto_own γl p ∗
       iMsg_car m vr (Next p).
   Proof.
     iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
@@ -1188,31 +1156,11 @@ Section proto.
     iDestruct (iProto_own_auth_agree with "H●l H◯") as "#Hp".
     iDestruct (iProto_interp_le_l with "Hinterp [Hle]") as "Hinterp".
     { iIntros "!>". by iRewrite "Hp". }
-    iDestruct (iProto_interp_flip with "Hinterp") as "Hinterp".
+    iDestruct (iProto_interp_sym with "Hinterp") as "Hinterp".
     iDestruct (iProto_interp_recv with "Hinterp") as (q) "[Hm Hinterp]".
-    iMod (iProto_own_auth_update _ _ _ _ q with "H●l H◯") as "[H●l H◯]".
+    iMod (iProto_own_auth_update _ _ _ q with "H●l H◯") as "[H●l H◯]".
     iIntros "!> !> /=". iExists q. iFrame "Hm". iSplitR "H◯".
-    - iExists q, pr. iFrame. by iApply iProto_interp_flip.
-    - iExists q. iIntros "{$H◯} !>". iApply iProto_le_refl.
-  Qed.
-
-  Lemma iProto_recv_r γ m vl vsr vsl :
-    iProto_ctx γ (vl :: vsl) vsr -∗
-    iProto_own γ Right (<?> m) ==∗
-    ▷ ∃ p,
-      iProto_ctx γ vsl vsr ∗
-      iProto_own γ Right p ∗
-      iMsg_car m vl (Next p).
-  Proof.
-    iDestruct 1 as (pl pr) "(H●l & H●r & Hinterp)".
-    iDestruct 1 as (p) "[Hle H◯]".
-    iDestruct (iProto_own_auth_agree with "H●r H◯") as "#Hp".
-    iDestruct (iProto_interp_le_r with "Hinterp [Hle]") as "Hinterp".
-    { iIntros "!>". by iRewrite "Hp". }
-    iDestruct (iProto_interp_recv with "Hinterp") as (q) "[Hm Hinterp]".
-    iMod (iProto_own_auth_update _ _ _ _ q with "H●r H◯") as "[H●r H◯]".
-    iIntros "!> !> /=". iExists q. iFrame "Hm". iSplitR "H◯".
-    - iExists pl, q. iFrame.
+    - iExists q, pr. iFrame. by iApply iProto_interp_sym.
     - iExists q. iIntros "{$H◯} !>". iApply iProto_le_refl.
   Qed.
 
