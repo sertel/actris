@@ -123,8 +123,6 @@ Lemma proto_end_message_equivI `{!BiInternalEq SPROP} {V} `{!Cofe PROPn, !Cofe P
   proto_end ≡ proto_message (V:=V) (PROPn:=PROPn) (PROP:=PROP) a m ⊢@{SPROP} False.
 Proof. by rewrite internal_eq_sym proto_message_end_equivI. Qed.
 
-(** The eliminator [proto_elim x f p] is only well-behaved if the function [f]
-is contractive *)
 Definition proto_elim {V} `{!Cofe PROPn, !Cofe PROP} {A}
     (x : A) (f : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A)
     (p : proto V PROPn PROP) : A :=
@@ -151,11 +149,11 @@ Proof.
   by destruct (proto_unfold (proto_fold None)) as [[??]|] eqn:E; inversion Hfold.
 Qed.
 Lemma proto_elim_message {V} `{!Cofe PROPn, !Cofe PROP} {A : ofe}
-    (x : A) (f : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A)
-    `{Hf : ∀ a, Proper (pointwise_relation _ (≡) ==> (≡)) (f a)} a m :
+    (x : A) (f : action → (V → laterO (proto V PROP PROPn) -n> PROP) → A) a m :
+  (∀ a, Proper (pointwise_relation _ (≡) ==> (≡)) (f a)) →
   proto_elim x f (proto_message a m) ≡ f a m.
 Proof.
-  rewrite /proto_elim /proto_message /=.
+  intros. rewrite /proto_elim /proto_message /=.
   pose proof (proto_unfold_fold (V:=V) (PROPn:=PROPn)
     (PROP:=PROP) (Some (a, m))) as Hfold.
   destruct (proto_unfold (proto_fold (Some (a, m))))
