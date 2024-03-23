@@ -397,11 +397,10 @@ Tactic Notation "iProto_consistent_take_step_step" :=
   let m2 := fresh in
   iIntros (i j m1 m2) "#Hm1 #Hm2";
   repeat (destruct i as [|i]=> /=;
-          [try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI);
+          [try (by rewrite iProto_end_message_equivI);
            iDestruct (iProto_message_equivI with "Hm1")
                   as "[%Heq1 Hm1']";simplify_eq=> /=|
-            try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI)]);
-  try (rewrite lookup_total_nil);
+            try (by rewrite iProto_end_message_equivI)]);
   try (by rewrite iProto_end_message_equivI);
   iDestruct (iProto_message_equivI with "Hm2")
     as "[%Heq2 Hm2']";simplify_eq=> /=;
@@ -418,10 +417,10 @@ Tactic Notation "iProto_consistent_take_step_target" :=
   iIntros (i j a m); rewrite /valid_target;
             iIntros "#Hm1";
   repeat (destruct i as [|i]=> /=;
-          [try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI);
+          [try (by rewrite iProto_end_message_equivI);
            by iDestruct (iProto_message_equivI with "Hm1")
-                    as "[%Heq1 Hm1']" ; simplify_eq=> /=|
-           try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI)]).
+                    as "[%Heq1 _]" ; simplify_eq=> /=|
+           try (by rewrite iProto_end_message_equivI)]).
 
 Tactic Notation "iProto_consistent_take_step" :=
   try iNext;
