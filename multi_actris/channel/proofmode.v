@@ -344,7 +344,7 @@ Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")
   wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
                 eexists x6; eexists x7; eexists x8) with pat.
 
-Lemma iProto_consistent_equiv_proof {Σ} (ps : gmap nat (iProto Σ)) :
+Lemma iProto_consistent_equiv_proof {Σ} (ps : list (iProto Σ)) :
   (∀ i j, valid_target ps i j) ∗
   (∀ i j m1 m2,
      (ps !!! i ≡ (<(Send, j)> m1)%proto) -∗
@@ -396,56 +396,32 @@ Tactic Notation "iProto_consistent_take_step_step" :=
   let m1 := fresh in
   let m2 := fresh in
   iIntros (i j m1 m2) "#Hm1 #Hm2";
-  repeat (destruct i as [|i];
-          [repeat (rewrite lookup_total_insert_ne; [|lia]);
-           try (by rewrite lookup_total_empty iProto_end_message_equivI);
-           try (rewrite lookup_total_insert;
-                try (by rewrite iProto_end_message_equivI);
-                iDestruct (iProto_message_equivI with "Hm1")
-                  as "[%Heq1 Hm1']";simplify_eq)|
-            repeat (rewrite lookup_total_insert_ne; [|lia]);
-            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
-  repeat (rewrite lookup_total_insert_ne; [|lia]);
-  try rewrite lookup_total_empty;
-  try (by iProto_end_message_equivI);
-  rewrite lookup_total_insert;
+  repeat (destruct i as [|i]=> /=;
+          [try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI);
+           iDestruct (iProto_message_equivI with "Hm1")
+                  as "[%Heq1 Hm1']";simplify_eq=> /=|
+            try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI)]);
+  try (rewrite lookup_total_nil);
+  try (by rewrite iProto_end_message_equivI);
   iDestruct (iProto_message_equivI with "Hm2")
-    as "[%Heq2 Hm2']";simplify_eq;
+    as "[%Heq2 Hm2']";simplify_eq=> /=;
   try (iClear "Hm1' Hm2'";
        iExists _,_,_,_,_,_,_,_,_,_;
        iSplitL "Hm1"; [iFrame "#"|];
        iSplitL "Hm2"; [iFrame "#"|];
        iSplit; [iPureIntro; tc_solve|];
        iSplit; [iPureIntro; tc_solve|];
-       simpl; iClear "Hm1 Hm2"; clear m1 m2);
-  try (repeat (rewrite (insert_commute _ _ i); [|done]);
-  rewrite insert_insert;
-  repeat (rewrite (insert_commute _ _ j); [|done]);
-  rewrite insert_insert).
+       simpl; iClear "Hm1 Hm2"; clear m1 m2).
 
 Tactic Notation "iProto_consistent_take_step_target" :=
   let i := fresh in
   iIntros (i j a m); rewrite /valid_target;
-            iIntros "#Hm";
-  repeat (destruct i as [|i];
-          [repeat (rewrite lookup_total_insert_ne; [|lia]);
-           try (by rewrite lookup_total_empty iProto_end_message_equivI);
-           try (rewrite lookup_total_insert;
-                try (by rewrite iProto_end_message_equivI);
-                iDestruct (iProto_message_equivI with "Hm1")
-                  as "[%Heq1 Hm1']";simplify_eq)|
-            repeat (rewrite lookup_total_insert_ne; [|lia]);
-            try (by rewrite lookup_total_empty iProto_end_message_equivI)]);
-  repeat (rewrite lookup_total_insert_ne; [|lia]);
-  try rewrite lookup_total_empty;
-  try (by iProto_end_message_equivI);
-  rewrite lookup_total_insert;
-  iDestruct (iProto_message_equivI with "Hm")
-    as "[%Heq Hm']";simplify_eq;
-  repeat (try rewrite lookup_empty;
-          try rewrite lookup_insert;
-          rewrite lookup_insert_ne; [|lia]);
-    try rewrite lookup_insert; try done.
+            iIntros "#Hm1";
+  repeat (destruct i as [|i]=> /=;
+          [try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI);
+           by iDestruct (iProto_message_equivI with "Hm1")
+                    as "[%Heq1 Hm1']" ; simplify_eq=> /=|
+           try (rewrite lookup_total_nil); try (by rewrite iProto_end_message_equivI)]).
 
 Tactic Notation "iProto_consistent_take_step" :=
   try iNext;
@@ -463,3 +439,6 @@ Tactic Notation "iProto_consistent_resolve_step" :=
 
 Tactic Notation "iProto_consistent_take_steps" :=
   repeat (iProto_consistent_take_step; iProto_consistent_resolve_step).
+
+Tactic Notation "wp_get_chan" "(" simple_intropattern(c) ")" constr(pat) :=
+  wp_smart_apply (get_chan_spec with "[$]"); iIntros (c); iIntros pat.
