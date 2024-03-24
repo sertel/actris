@@ -133,98 +133,49 @@ Section ring_leader_election_example.
   Definition prot_tail (i_max : nat) : iProto Σ :=
     (<(Send,0)> MSG #i_max; END)%proto.
 
-  Definition pre_prot_pool id_max : gmap nat (iProto Σ) :=
-     <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
+  Definition pre_prot_pool id_max : list (iProto Σ) :=
+     [(<(Recv,1) @ (id_max : nat)> MSG #id_max ;
              <(Recv,2)> MSG #id_max ;
              <(Recv,3)> MSG #id_max ;
-             END)%proto ]>
-    (<[1 := prot_tail id_max ]>
-    (<[2 := prot_tail id_max ]>
-    (<[3 := prot_tail id_max ]> ∅))).
+             END)%proto;
+      prot_tail id_max;
+      prot_tail id_max;
+      prot_tail id_max].
 
   Lemma pre_prot_pool_consistent id_max :
     ⊢ iProto_consistent (pre_prot_pool id_max).
   Proof. rewrite /pre_prot_pool. iProto_consistent_take_steps. Qed.
 
-  Definition prot_pool : gmap nat (iProto Σ) :=
-     <[0 := (<(Recv,1) @ (id_max : nat)> MSG #id_max ;
+  Definition prot_pool : list (iProto Σ) :=
+     [(<(Recv,1) @ (id_max : nat)> MSG #id_max ;
              <(Recv,2)> MSG #id_max ;
              <(Recv,3)> MSG #id_max ;
-             END)%proto ]>
-    (<[1 := rle_preprot 3 1 2 prot_tail ]>
-    (<[2 := rle_prot 1 2 3 prot_tail false ]>
-    (<[3 := rle_preprot 2 3 1 prot_tail ]> ∅))).
+             END)%proto;
+      rle_preprot 3 1 2 prot_tail;
+      rle_prot 1 2 3 prot_tail false;
+      rle_preprot 2 3 1 prot_tail].
 
   Lemma prot_pool_consistent : ⊢ iProto_consistent prot_pool.
   Proof.
     rewrite /prot_pool /rle_preprot.
     rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    case_bool_decide; try lia.
     rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    case_bool_decide; try lia.
     rewrite !rle_prot_unfold'.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    iProto_consistent_take_step.
-    iProto_consistent_resolve_step.
-    repeat clean_map 0. repeat clean_map 1.
-    repeat clean_map 2. repeat clean_map 3.
-    repeat (rewrite (insert_commute _ _ 3); [|lia]).
-    repeat (rewrite (insert_commute _ _ 2); [|lia]).
-    repeat (rewrite (insert_commute _ _ 1); [|lia]).
-    repeat (rewrite (insert_commute _ _ 0); [|lia]).
-    iApply pre_prot_pool_consistent.
+    iProto_consistent_take_steps.
   Qed.
 
   Lemma program_spec :
     {{{ True }}} program #() {{{ RET #(); True }}}.
   Proof. 
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec 4 prot_pool);
-      [lia|set_solver|iApply prot_pool_consistent|].
-    iIntros (cs) "Hcs".
-    wp_smart_apply (get_chan_spec _ 0 with "Hcs"); [done|].
-    iIntros (c0) "[Hc0 Hcs]".
-    wp_smart_apply (get_chan_spec _ 1 with "Hcs"); [done|].
-    iIntros (c1) "[Hc1 Hcs]".
-    wp_smart_apply (get_chan_spec _ 2 with "Hcs"); [done|].
-    iIntros (c2) "[Hc2 Hcs]".
-    wp_smart_apply (get_chan_spec _ 3 with "Hcs"); [done|].
-    iIntros (c3) "[Hc3 Hcs]".
+    wp_new_chan prot_pool with prot_pool_consistent
+      as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc1").
       iIntros (i') "Hc1". by wp_send with "[//]". }
