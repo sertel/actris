@@ -492,13 +492,11 @@ Section forwarder_rec.
     - iExists _. iSplit; [done|]. iSplit; [done|].
       iProto_consistent_take_step.
       iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
-      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
       iNext.
       iEval (rewrite iProto_forwarder_rec_1_unfold).
       iEval (rewrite iProto_forwarder_rec_n_unfold).
       iProto_consistent_take_step.
       iIntros "_". iSplit; [done|]. iSplit; [done|].
-      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
       iEval (rewrite -iProto_forwarder_rec_1_unfold).
       iEval (rewrite -iProto_forwarder_rec_n_unfold).
       iEval (rewrite -iProto_forwarder_rec_n_unfold).
@@ -506,13 +504,11 @@ Section forwarder_rec.
     - iExists _. iSplit; [done|]. iSplit; [done|].
       iProto_consistent_take_step.
       iIntros "_". iExists _. iSplit; [done|]. iSplit; [done|].
-      repeat clean_map 1. repeat clean_map 2. repeat clean_map 0. 
       iNext.
       iEval (rewrite iProto_forwarder_rec_1_unfold).
       iEval (rewrite iProto_forwarder_rec_n_unfold).
       iProto_consistent_take_step.
       iIntros "_". iSplit; [done|]. iSplit; [done|].
-      repeat clean_map 1. repeat clean_map 3. repeat clean_map 0. 
       iEval (rewrite -iProto_forwarder_rec_1_unfold).
       iEval (rewrite -iProto_forwarder_rec_n_unfold).
       iEval (rewrite -iProto_forwarder_rec_n_unfold).
