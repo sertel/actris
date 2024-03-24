@@ -1329,7 +1329,7 @@ Section proto.
   Lemma iProto_target γ ps_dom i a j m :
     iProto_ctx γ ps_dom -∗
     iProto_own γ i (<(a, j)> m) -∗
-    ▷ (⌜j < ps_dom⌝) ∗ iProto_ctx γ ps_dom ∗ iProto_own γ i (<(a, j)> m).
+    ▷ (⌜j < ps_dom⌝).
   Proof.
     iIntros "Hctx Hown".
     rewrite /iProto_ctx /iProto_own.
@@ -1337,14 +1337,10 @@ Section proto.
     iDestruct "Hown" as (p') "[Hle Hown]".
     iDestruct (iProto_own_auth_agree with "Hauth Hown") as "#Hi".
     iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
-    iAssert (▷ (⌜is_Some (ps !! j)⌝ ∗ iProto_consistent ps))%I
-      with "[Hps]" as "[HSome Hps]".
-    { iNext. iRewrite "Heq" in "Hi".
-      iDestruct (iProto_consistent_target with "Hps Hi") as "#$". by iFrame. }
-    iSplitL "HSome".
-    { iNext. iDestruct "HSome" as %Heq.
-      iPureIntro. simplify_eq. by apply lookup_lt_is_Some_1. }
-    iSplitL "Hauth Hps"; iExists _; by iFrame.
+    iDestruct (iProto_consistent_target with "Hps []") as "#H".
+    { iNext. iRewrite "Heq" in "Hi". done. }
+    iNext. iDestruct "H" as %HSome.
+    iPureIntro. subst. by apply lookup_lt_is_Some_1.
   Qed.
 
   (* (** The instances below make it possible to use the tactics [iIntros], *)

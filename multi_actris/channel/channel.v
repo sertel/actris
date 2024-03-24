@@ -353,16 +353,8 @@ Section channel.
     iInv "IH" as "Hctx".
     iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
     iRewrite "Heq" in "Hown".
-    iAssert (▷ (⌜i < n⌝ ∗ iProto_own γ i (<(Send, j)> m') ∗
-                iProto_ctx γ n))%I with "[Hctx Hown]"
-      as "[Hi [Hown Hctx]]".
-    { iNext. iDestruct (iProto_ctx_agree with "Hctx Hown") as %Hi.
-      iFrame. done. }
-    iAssert (▷ (▷ ⌜j < n⌝ ∗ iProto_own γ i (<(Send, j)> m') ∗
-                iProto_ctx γ n))%I with "[Hctx Hown]"
-      as "[Hj [Hown Hctx]]".
-    { iNext. iDestruct (iProto_target with "Hctx Hown") as "[Hin [$ $]]".
-      iFrame. }
+    iDestruct (iProto_ctx_agree with "Hctx [Hown//]") as "#Hi".
+    iDestruct (iProto_target with "Hctx [Hown//]") as "#Hj".
     iRewrite -"Heq" in "Hown". wp_pures. iModIntro. iFrame.
     wp_smart_apply (vpos_spec); [done|]; iIntros "_".
     iDestruct "Hi" as %Hi.
@@ -444,15 +436,8 @@ Section channel.
     iInv "IH" as "Hctx".
     iDestruct (iProto_le_msg_inv_r with "Hle") as (m') "#Heq".
     iRewrite "Heq" in "Hown".
-    iAssert (▷ (⌜i < n⌝ ∗ iProto_own γ i (<(Recv, j)> m') ∗
-                iProto_ctx γ n))%I with "[Hctx Hown]"
-      as "[Hi [Hown Hctx]]".
-    { iNext. iDestruct (iProto_ctx_agree with "Hctx Hown") as %Hi.
-      iFrame. done. }
-    iAssert (▷ (▷ ⌜j < n⌝ ∗ iProto_own γ i (<(Recv, j)> m') ∗
-                iProto_ctx γ n))%I with "[Hctx Hown]" as "[Hj [Hown Hctx]]".
-    { iNext. iDestruct (iProto_target with "Hctx Hown") as "[Hin [$$]]".
-      iFrame. }
+    iDestruct (iProto_ctx_agree with "Hctx [Hown//]") as "#Hi".
+    iDestruct (iProto_target with "Hctx [Hown//]") as "#Hj".
     iRewrite -"Heq" in "Hown". wp_pures. iModIntro. iFrame.
     wp_smart_apply (vpos_spec); [done|]; iIntros "_".
     iDestruct "Hi" as %Hi.
