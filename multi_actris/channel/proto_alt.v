@@ -502,19 +502,28 @@ Program Definition iProto_elim {Σ V A}
 Next Obligation. solve_proper. Qed.
 
 Lemma iProto_elim_message {Σ V} {A:ofe}
+     (x : A) (f : action → iMsg Σ V -> A) a m
+    `{Hf : ∀ a, Proper ((≡) ==> (≡)) (f a)} :
+  iProto_elim x f (iProto_message a m) ≡ f a m.
+ Proof.
+  rewrite /iProto_elim iProto_message_eq /iProto_message_def /=.
+   setoid_rewrite proto_elim_message.
+  { apply Hf. done. }
+  intros a' f1 f2 Hf'. apply Hf=> v p /=. apply Hf'.
+Qed.
+
+Lemma iProto_elim_message' {Σ V} {A:ofe}
     (x : A) (f : action → iMsg Σ V -> A) a m 
-   (* `{Hf : ∀ a, Proper ((≡) ==> (≡)) (f a)} : *)
-    :
+   `{Hf : ∀ a, Proper ((≡) ==> (≡)) (f a)} :
    iProto_elim x f (iProto_message a m) ≡ f a m.
 Proof.
   rewrite /iProto_elim.
   rewrite iProto_message_eq /iProto_message_def. simpl.
   setoid_rewrite proto_elim_message.
-  { f_equiv. destruct m. f_equiv. simpl. 
-    admit. }
+  { f_equiv. done. }
   intros a'.
-  intros f1 f2 Hf'. f_equiv. f_equiv.  
-Admitted.
+  intros f1 f2 Hf'. f_equiv. done.
+Qed.
  
 Definition nat_beq := Eval compute in Nat.eqb.
 
