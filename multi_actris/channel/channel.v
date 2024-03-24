@@ -93,9 +93,8 @@ Definition tok `{!chanG Σ} (γ : gname) : iProp Σ := own γ (Excl ()).
 
 Definition chan_inv `{!heapGS Σ, !chanG Σ} γ γE γt i j (l:loc) : iProp Σ :=
   (l ↦ NONEV ∗ tok γt)%I ∨
-  (∃ v m p, l ↦ SOMEV v ∗
-            iProto_own γ i (<(Send, j)> m)%proto ∗
-            iMsg_car m v (Next p) ∗ own γE (●E (Next p))) ∨
+  (∃ v p, l ↦ SOMEV v ∗
+          iProto_own γ i (<(Send, j)> MSG v ; p)%proto ∗ own γE (●E (Next p))) ∨
   (∃ p, l ↦ NONEV ∗
           iProto_own γ i p ∗ own γE (●E (Next p))).
 
@@ -372,7 +371,7 @@ Section channel.
     iInv "IHl1" as "HIp".
     iDestruct "HIp" as "[HIp|HIp]"; last first.
     { iDestruct "HIp" as "[HIp|HIp]".
-      - iDestruct "HIp" as (? m p'') "(>Hl & Hown' & HIp)".
+      - iDestruct "HIp" as (? p'') "(>Hl & Hown' & HIp)".
         wp_store.
         iDestruct (iProto_own_excl with "Hown Hown'") as %[].
       - iDestruct "HIp" as (p'') "(>Hl' & Hown' & HIp)".
@@ -383,8 +382,8 @@ Section channel.
     iMod (own_update_2 with "H● H◯") as "[H● H◯]"; [by apply excl_auth_update|].
     iModIntro.
     iSplitL "Hl' H● Hown Hle".
-    { iRight. iLeft. iIntros "!>". iExists _, _, _. iFrame.
-      iSplitL "Hown Hle"; [by iApply (iProto_own_le with "Hown Hle")|].
+    { iRight. iLeft. iIntros "!>". iExists _, _. iFrame.
+      iDestruct (iProto_own_le with "Hown Hle") as "Hown".
       by rewrite iMsg_base_eq. }
     wp_pures.
     iLöb as "HL".
@@ -395,10 +394,10 @@ Section channel.
     { iDestruct "HIp" as ">[Hl' Htok']".
       iDestruct (own_valid_2 with "Htok Htok'") as %[]. }
     iDestruct "HIp" as "[HIp|HIp]".
-    - iDestruct "HIp" as (? m p'') "(>Hl' & Hown & HIp)".
+    - iDestruct "HIp" as (? p'') "(>Hl' & Hown & HIp)".
       wp_load. iModIntro.
       iSplitL "Hl' Hown HIp".
-      { iRight. iLeft. iExists _, _,_. iFrame. }
+      { iRight. iLeft. iExists _,_. iFrame. }
       wp_pures. iApply ("HL" with "HΦ Htok H◯").
     - iDestruct "HIp" as (p'') "(>Hl' & Hown & H●)".
       wp_load.
@@ -476,12 +475,13 @@ Section channel.
       { iRight. iRight. iExists _. iFrame. }
       wp_pures. iApply ("HL" with "[H● H◯ Hown Hle] HΦ").
       iExists _, _, _, _, _, _. iSplit; [done|]. iFrame "#∗". }
-    iDestruct "HIp" as (w m p'') "(>Hl' & Hown' & Hm & Hp')".
+    iDestruct "HIp" as (w p'') "(>Hl' & Hown' & Hp')".
     iInv "IH" as "Hctx".
     wp_xchg.
     iDestruct (iProto_own_le with "Hown Hle") as "Hown".
-    iMod (iProto_step with "Hctx Hown' Hown Hm") as
+    iMod (iProto_step with "Hctx Hown' Hown []") as
       (p''') "(Hm & Hctx & Hown & Hown')".
+    { by rewrite iMsg_base_eq. }
     iModIntro.
     iSplitL "Hctx"; [done|].
     iModIntro.
