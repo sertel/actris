@@ -205,42 +205,14 @@ Tactic Notation "wp_recv_core" tactic3(tac_intros) "as" tactic3(tac) :=
   | _ => fail "wp_recv: not a 'wp'"
   end.
 
+
 Tactic Notation "wp_recv" "as" constr(pat) :=
   wp_recv_core (idtac) as (fun H => iDestructHyp H as pat).
-
 Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" constr(pat) :=
   wp_recv_core (intros xs) as (fun H => iDestructHyp H as pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1) ")"
-    constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) ")" constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) ")" constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4) ")"
-    constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
-    simple_intropattern(x5) ")" constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
-    simple_intropattern(x5) simple_intropattern(x6) ")" constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
-    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7) ")"
-    constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 ) pat).
-Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as" "(" simple_intropattern(x1)
-    simple_intropattern(x2) simple_intropattern(x3) simple_intropattern(x4)
-    simple_intropattern(x5) simple_intropattern(x6) simple_intropattern(x7)
-    simple_intropattern(x8) ")" constr(pat) :=
-  wp_recv_core (intros xs) as (fun H => iDestructHyp H as ( x1 x2 x3 x4 x5 x6 x7 x8 ) pat).
+Tactic Notation "wp_recv" "(" simple_intropattern_list(xs) ")" "as"
+    "(" ne_simple_intropattern_list(ys) ")" constr(pat) :=
+  wp_recv_core (intros xs) as (fun H => _iDestructHyp H ys pat).
     
 Lemma tac_wp_send `{!chanG Σ, !heapGS Σ} {TT : tele} Δ neg i js K (n:nat) w c v p m tv tP tp Φ :
   w = #n →
@@ -318,31 +290,8 @@ Tactic Notation "wp_send_core" tactic3(tac_exist) "with" constr(pat) :=
 
 Tactic Notation "wp_send" "with" constr(pat) :=
   wp_send_core (idtac) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) ")"
-    "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")"
-    "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4)
-    uconstr(x5) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")"
-    uconstr(x5) uconstr(x6) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
-                eexists x6) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")"
-    uconstr(x5) uconstr(x6) uconstr(x7) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
-                eexists x6; eexists x7) with pat.
-Tactic Notation "wp_send" "(" uconstr(x1) uconstr(x2) uconstr(x3) uconstr(x4) ")"
-    uconstr(x5) uconstr(x6) uconstr(x7) uconstr(x8) ")" "with" constr(pat) :=
-  wp_send_core (eexists x1; eexists x2; eexists x3; eexists x4; eexists x5;
-                eexists x6; eexists x7; eexists x8) with pat.
+Tactic Notation "wp_send" "(" ne_uconstr_list(xs) ")" "with" constr(pat) :=
+  wp_send_core (ltac1_list_iter ltac:(fun x => eexists x) xs) with pat.
 
 Lemma iProto_consistent_equiv_proof {Σ} (ps : list (iProto Σ)) :
   (∀ i j, valid_target ps i j) ∗
@@ -428,10 +377,6 @@ Tactic Notation "iProto_consistent_take_step" :=
   iSplitR; [iProto_consistent_take_step_target|
              iProto_consistent_take_step_step].
 
-Tactic Notation "clean_map" constr(i) :=
-  iEval (repeat (rewrite (insert_commute _ _ i); [|done]));
-  rewrite (insert_insert _ i).
-
 Tactic Notation "iProto_consistent_resolve_step" :=
   repeat iIntros (?); repeat iIntros "?";
   repeat iExists _; repeat (iSplit; [done|]); try iFrame.
@@ -440,4 +385,22 @@ Tactic Notation "iProto_consistent_take_steps" :=
   repeat (iProto_consistent_take_step; iProto_consistent_resolve_step).
 
 Tactic Notation "wp_get_chan" "(" simple_intropattern(c) ")" constr(pat) :=
-  wp_smart_apply (get_chan_spec with "[$]"); iIntros (c); iIntros pat.
+  wp_smart_apply (get_chan_spec with "[$]"); iIntros (c) "[_TMP ?]";
+  iRevert "_TMP"; iIntros pat.
+
+Ltac ltac1_list_iter2 tac l1 l2 :=
+  let go := ltac2:(tac l1 l2 |- List.iter2 (ltac1:(tac x y |- tac x y) tac)
+                                          (of_ltac1_list l1) (of_ltac1_list l2)) in
+  go tac l1 l2.
+
+Tactic Notation "wp_new_chan" constr(prot) "as"
+       "(" simple_intropattern_list(xs) ")" constr_list(pats) :=
+  wp_smart_apply (new_chan_spec prot);
+    [set_solver| |iIntros (?) "?"];
+    [|ltac1_list_iter2 ltac:(fun x y => wp_get_chan (x) y) xs pats].
+
+Tactic Notation "wp_new_chan" constr(prot) "with" constr(lem) "as"
+       "(" simple_intropattern_list(xs) ")" constr_list(pats) :=
+  wp_smart_apply (new_chan_spec prot);
+    [set_solver|by iApply lem|iIntros (?) "?"];
+    ltac1_list_iter2 ltac:(fun x y => wp_get_chan (x) y) xs pats.

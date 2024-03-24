@@ -42,12 +42,8 @@ Section channel.
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec iProto_roundtrip);
-      [set_solver|iApply iProto_roundtrip_consistent|].
-    iIntros (cs) "Hcs".
-    wp_get_chan (c0) "[Hc0 Hcs]".
-    wp_get_chan  (c1) "[Hc1 Hcs]".
-    wp_get_chan  (c2) "[Hc2 Hcs]".
+    wp_new_chan iProto_roundtrip with iProto_roundtrip_consistent
+      as (c0 c1 c2) "Hc0" "Hc1" "Hc2".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_recv (x) as "_". wp_send with "[//]". done. }
     wp_smart_apply (wp_fork with "[Hc2]").
@@ -91,12 +87,8 @@ Section roundtrip_ref.
     {{{ True }}} roundtrip_ref_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec iProto_roundtrip_ref);
-      [set_solver|iApply iProto_roundtrip_ref_consistent|].
-    iIntros (cs) "Hcs".
-    wp_get_chan (c0) "[Hc0 Hcs]".
-    wp_get_chan (c1) "[Hc1 Hcs]".
-    wp_get_chan (c2) "[Hc2 Hcs]".
+    wp_new_chan iProto_roundtrip_ref with iProto_roundtrip_ref_consistent
+      as (c0 c1 c2) "Hc0" "Hc1" "Hc2".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>".
       wp_recv (l x) as "Hl". wp_load. wp_store. by wp_send with "[$Hl]". }
@@ -208,12 +200,8 @@ Section roundtrip_ref_rec.
     {{{ True }}} roundtrip_ref_rec_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec iProto_roundtrip_ref_rec);
-      [set_solver|iApply iProto_roundtrip_ref_rec_consistent|].
-    iIntros (cs) "Hcs".
-    wp_get_chan (c0) "[Hc0 Hcs]". 
-    wp_get_chan (c1) "[Hc1 Hcs]".
-    wp_get_chan (c2) "[Hc2 Hcs]".
+    wp_new_chan iProto_roundtrip_ref_rec with iProto_roundtrip_ref_rec_consistent
+      as (c0 c1 c2) "Hc0" "Hc1" "Hc2".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_pure _. iLöb as "IH".
       wp_recv (l x) as "Hl". wp_load. wp_store. wp_send with "[$Hl]".
@@ -259,13 +247,8 @@ Section smuggle_ref.
     {{{ True }}} smuggle_ref_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec iProto_smuggle_ref);
-      [set_solver|iApply iProto_smuggle_ref_consistent|].
-    iIntros (cs) "Hcs".
-    wp_pures.
-    wp_get_chan (c0) "[Hc0 Hcs]".
-    wp_get_chan (c1) "[Hc1 Hcs]".
-    wp_get_chan (c2) "[Hc2 Hcs]".
+    wp_new_chan iProto_smuggle_ref with iProto_smuggle_ref_consistent
+      as (c0 c1 c2) "Hc0" "Hc1" "Hc2".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_recv (v) as "_". wp_send with "[//]".
       wp_recv as "_". by wp_send with "[//]". }

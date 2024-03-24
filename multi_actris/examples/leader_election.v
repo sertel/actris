@@ -174,13 +174,8 @@ Section ring_leader_election_example.
     {{{ True }}} program #() {{{ RET #(); True }}}.
   Proof. 
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_smart_apply (new_chan_spec prot_pool);
-      [set_solver|iApply prot_pool_consistent|].
-    iIntros (cs) "Hcs".
-    wp_get_chan (c0) "[Hc0 Hcs]".
-    wp_get_chan (c1) "[Hc1 Hcs]".
-    wp_get_chan (c2) "[Hc2 Hcs]".
-    wp_get_chan (c3) "[Hc3 Hcs]".
+    wp_new_chan prot_pool with prot_pool_consistent
+      as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (init_spec with "Hc1").
       iIntros (i') "Hc1". by wp_send with "[//]". }
