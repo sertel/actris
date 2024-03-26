@@ -422,8 +422,8 @@ Section channel.
     by iApply (send_spec with "Hc").
   Qed.
 
-  Lemma recv_spec {TT} c j (v : TT → val) (P : TT → iProp Σ) (p : TT → iProto Σ) :
-    {{{ c ↣ <(Recv, j) @.. x> MSG v x {{ ▷ P x }}; p x }}}
+  Lemma recv_spec {A} c j (v : A → val) (P : A → iProp Σ) (p : A → iProto Σ) :
+    {{{ c ↣ <(Recv, j) @ x> MSG v x {{ ▷ P x }}; p x }}}
       recv c #j
     {{{ x, RET v x; c ↣ p x ∗ P x }}}.
   Proof.
@@ -473,8 +473,8 @@ Section channel.
     iSplitL "Hl' Hown Hp'".
     { iRight. iRight. iExists _. iFrame. }
     wp_pure _.
-    rewrite iMsg_base_eq.
-    iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
+    rewrite iMsg_base_eq iMsg_exist_eq.
+    iDestruct "Hm" as (x <-) "[Hp HP]".
     wp_pures.
     iMod (own_update_2 with "H● H◯") as "[H● H◯]";[apply excl_auth_update|].
     iModIntro. iApply "HΦ".
