@@ -250,8 +250,8 @@ Section channel.
     wp_pures.
     iDestruct "Hi" as %Hi.
     iDestruct "Hj" as %Hj.
-    wp_smart_apply (matrix_get_spec_pers with "Hls"); [done..|].
-    iIntros (l') "Hl'".
+    wp_smart_apply (matrix_get_spec with "Hls"); [done..|].
+    iIntros (l') "[Hl' _]".
     iDestruct "Hl'" as (γt) "#IHl1".
     wp_pures. wp_bind (Store _ _).
     iInv "IHl1" as "HIp".
@@ -336,8 +336,8 @@ Section channel.
     wp_pure _.
     iDestruct "Hi" as %Hi.
     iDestruct "Hj" as %Hj.
-    wp_smart_apply (matrix_get_spec_pers with "Hls"); [done..|].
-    iIntros (l') "Hl'".
+    wp_smart_apply (matrix_get_spec with "Hls"); [done..|].
+    iIntros (l') "[Hl' _]".
     iDestruct "Hl'" as (γt) "#IHl2".
     wp_pures.
     wp_bind (Xchg _ _).
