@@ -1,5 +1,6 @@
-From multi_actris.channel Require Import proofmode.
+From iris.heap_lang Require Import adequacy.
 From iris.heap_lang.lib Require Import assert.
+From multi_actris.channel Require Import proofmode.
 
 (** Inspired by https://en.wikipedia.org/wiki/Chang_and_Roberts_algorithm *)
 
@@ -195,3 +196,11 @@ Section ring_leader_election_example.
   Qed.
 
 End ring_leader_election_example.
+
+Lemma program_spec_adequate :
+  adequate NotStuck (program #()) ({|heap := ∅; used_proph_id := ∅|})
+           (λ _ _, True).
+Proof.
+  apply (heap_adequacy #[heapΣ; chanΣ]).
+  iIntros (Σ) "H". by iApply program_spec.
+Qed.
