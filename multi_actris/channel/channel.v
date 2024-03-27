@@ -136,12 +136,12 @@ Definition sum_reduce {A B C} (f1 : A → C) (f2 : B → C) (ab : A + B) : C :=
   | inr b => f2 b
   end.
 
-Definition iProto_choice {Σ} {TT1 TT2 : tele}
+Definition iProto_choice {Σ} {A B : Type}
            (a:action)
-           (v1 : TT1 → val) (v2 : TT2 → val)
-           (P1 : TT1 → iProp Σ) (P2 : TT2 → iProp Σ)
-           (p1 : TT1 → iProto Σ) (p2 : TT2 → iProto Σ) : iProto Σ :=
-  (<a @ (tt: TT1 + TT2)> MSG (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt)
+           (v1 : A → val) (v2 : B → val)
+           (P1 : A → iProp Σ) (P2 : B → iProp Σ)
+           (p1 : A → iProto Σ) (p2 : B → iProto Σ) : iProto Σ :=
+  (<a @ (tt: A + B)> MSG (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt)
     {{ sum_reduce P1 P2 tt }} ; sum_reduce p1 p2 tt)%proto.
 Global Typeclasses Opaque iProto_choice.
 Arguments iProto_choice {_ _ _} _ _ _ _%I _%I _%proto _%proto.
@@ -499,34 +499,33 @@ Section channel.
     iRewrite "Hp". iFrame "#∗". iApply iProto_le_refl.
   Qed.
 
-  Lemma iProto_le_select_l {TT1 TT2:tele} j
-        (v1 : TT1 → val) (v2 : TT2 → val) P1 P2 (p1 : TT1 → iProto Σ) (p2 : TT2 → iProto Σ) :
+  Lemma iProto_le_select_l {A B:Type} j
+        (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) :
     ⊢ (iProto_choice (Send, j) v1 v2 P1 P2 p1 p2) ⊑
-      (<(Send,j) @.. (tt:TT1)> MSG (InjLV (v1 tt)) {{ P1 tt }} ; p1 tt).
+      (<(Send,j) @ (tt:A)> MSG (InjLV (v1 tt)) {{ P1 tt }} ; p1 tt).
   Proof.
     rewrite /iProto_choice.
     iApply iProto_le_trans; last first.
-    { iApply iProto_le_texist_elim_r. iIntros (x). iExists x.
+    { iIntros (x). iExists x.
       iApply iProto_le_refl. }
     iIntros (tt). by iExists (inl tt).
   Qed.
 
-  Lemma iProto_le_select_r {TT1 TT2:tele} j
-        (v1 : TT1 → val) (v2 : TT2 → val) P1 P2 (p1 : TT1 → iProto Σ) (p2 : TT2 → iProto Σ) :
+  Lemma iProto_le_select_r {A B:Type} j
+        (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) :
     ⊢ (iProto_choice (Send, j) v1 v2 P1 P2 p1 p2) ⊑
-      (<(Send,j) @.. (tt:TT2)> MSG (InjRV (v2 tt)) {{ P2 tt }} ; p2 tt).
+      (<(Send,j) @ (tt:B)> MSG (InjRV (v2 tt)) {{ P2 tt }} ; p2 tt).
   Proof.
     rewrite /iProto_choice.
     iApply iProto_le_trans; last first.
-    { iApply iProto_le_texist_elim_r. iIntros (x). iExists x.
+    { iIntros (x). iExists x.
       iApply iProto_le_refl. }
     iIntros (tt). by iExists (inr tt).
   Qed.
 
-  Lemma select_spec_tele {TT1 TT2:tele} (tt:TT1 + TT2) c j
-        (v1 : TT1 → val) (v2 : TT2 → val) P1 P2 (p1 : TT1 → iProto Σ) (p2 : TT2 → iProto Σ) :
-    {{{ c ↣ (iProto_choice (Send, j) v1 v2 P1 P2 p1 p2) ∗
-      sum_reduce P1 P2 tt }}}
+  Lemma select_spec {A B:Type} (tt:A + B) c j
+        (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) :
+    {{{ c ↣ (iProto_choice (Send, j) v1 v2 P1 P2 p1 p2) ∗ sum_reduce P1 P2 tt }}}
        send c #j (Val (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt))
     {{{ RET #(); c ↣ (sum_reduce p1 p2 tt) }}}.
   Proof.
@@ -534,21 +533,57 @@ Section channel.
     destruct tt.
     - iDestruct (iProto_pointsto_le with "Hc []") as "Hc".
       { iApply iProto_le_select_l. }
-      simpl.
-      replace (InjLV (v1 t)) with ((InjLV ∘ v1) t) by done.
-      by iApply (send_spec_tele with "[$Hc $HP]").
+      iDestruct (iProto_pointsto_le _ _ (<(Send,j)> MSG InjLV (v1 a); p1 a)%proto
+                  with "Hc [HP]") as "Hc".
+      { iIntros "!>". iExists a. by iFrame "HP". }
+      simpl. by iApply (send_spec with "Hc").
     - iDestruct (iProto_pointsto_le with "Hc []") as "Hc".
       { iApply iProto_le_select_r. }
-      simpl.
-      replace (InjRV (v2 t)) with ((InjRV ∘ v2) t) by done.
-      by iApply (send_spec_tele with "[$Hc $HP]").
+      iDestruct (iProto_pointsto_le _ _ (<(Send,j)> MSG InjRV (v2 b); p2 b)%proto
+                  with "Hc [HP]") as "Hc".
+      { iIntros "!>". iExists b. by iFrame "HP". }
+      simpl. by iApply (send_spec with "Hc").
   Qed.
 
-  Lemma branch_spec_tele {TT1 TT2:tele} c j
-        (v1 : TT1 → val) (v2 : TT2 → val) P1 P2 (p1 : TT1 → iProto Σ) (p2 : TT2 → iProto Σ) :
+  (* Lemma select_spec_tele {A B:tele} (tt:A + B) c j *)
+  (*       (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) : *)
+  (*   {{{ c ↣ (iProto_choice (Send, j) v1 v2 P1 P2 p1 p2) ∗ sum_reduce P1 P2 tt }}} *)
+  (*      send c #j (Val (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt)) *)
+  (*   {{{ RET #(); c ↣ (sum_reduce p1 p2 tt) }}}. *)
+  (* Proof. *)
+  (*   iIntros (Φ) "[Hc HP] HΦ". *)
+  (*   destruct tt. *)
+  (*   - iDestruct (iProto_pointsto_le with "Hc []") as "Hc". *)
+  (*     { iApply iProto_le_select_l. } *)
+  (*     simpl. *)
+  (*     replace (InjLV (v1 t)) with ((InjLV ∘ v1) t) by done. *)
+  (*     by iApply (send_spec_tele with "[$Hc $HP]"). *)
+  (*   - iDestruct (iProto_pointsto_le with "Hc []") as "Hc". *)
+  (*     { iApply iProto_le_select_r. } *)
+  (*     simpl. *)
+  (*     replace (InjRV (v2 t)) with ((InjRV ∘ v2) t) by done. *)
+  (*     by iApply (send_spec_tele with "[$Hc $HP]"). *)
+  (* Qed. *)
+
+  Lemma branch_spec {A B:Type} c j
+        (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) :
     {{{ c ↣ (iProto_choice (Recv, j) v1 v2 (λ tt, ▷ P1 tt) (λ tt, ▷ P2 tt) p1 p2) }}}
        recv c #j
-    {{{ (tt:TT1 + TT2), RET (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt);
+    {{{ (tt:A + B), RET (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt);
+            c ↣ (sum_reduce p1 p2 tt) ∗ sum_reduce P1 P2 tt }}}.
+  Proof.
+    iIntros (Φ) "Hc HΦ".
+    iApply (recv_spec with "[Hc]"); [|iApply "HΦ"].
+    iApply (iProto_pointsto_le with "Hc").
+    iIntros "!>". rewrite /iProto_choice.
+    iIntros (x). iExists x. by destruct x.
+  Qed.
+
+  Lemma branch_spec_tele {A B:tele} c j
+        (v1 : A → val) (v2 : B → val) P1 P2 (p1 : A → iProto Σ) (p2 : B → iProto Σ) :
+    {{{ c ↣ (iProto_choice (Recv, j) v1 v2 (λ tt, ▷ P1 tt) (λ tt, ▷ P2 tt) p1 p2) }}}
+       recv c #j
+    {{{ (tt:A + B), RET (sum_reduce (InjLV ∘ v1) (InjRV ∘ v2) tt);
             c ↣ (sum_reduce p1 p2 tt) ∗ sum_reduce P1 P2 tt }}}.
   Proof.
     iIntros (Φ) "Hc HΦ". 
