@@ -912,8 +912,7 @@ Section proto.
     iSplitL "Hauth".
     - rewrite /iProto_own_auth.
       rewrite map_seq_snoc. simpl. done.
-    - iSplit; [|done].
-      iExists _. iFrame. by iApply iProto_le_refl.
+    - by iApply iProto_le_refl.
   Qed.
 
   Lemma list_lookup_Some_le (ps : list $ iProto Σ V) (i : nat) (p1 : iProto Σ V) :
@@ -1271,7 +1270,7 @@ Section proto.
   Proof.
     iIntros "Hconsistent".
     iMod iProto_own_auth_alloc as (γ) "[Hauth Hfrags]".
-    iExists γ. iFrame. iExists _. by iFrame.
+    iExists γ. by iFrame.
   Qed.
 
   Lemma iProto_step γ ps_dom i j m1 m2 p1 v :
@@ -1416,7 +1415,7 @@ Section proto.
 
 End proto.
 
-Typeclasses Opaque iProto_ctx iProto_own.
+Global Typeclasses Opaque iProto_ctx iProto_own.
 
 Global Hint Extern 0 (environments.envs_entails _ (?x ⊑ ?y)) =>
   first [is_evar x; fail 1 | is_evar y; fail 1|iApply iProto_le_refl] : core.

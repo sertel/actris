@@ -373,10 +373,10 @@ Section channel.
     rewrite iMsg_base_eq.
     iDestruct (iMsg_texist_exist with "Hm") as (x <-) "[Hp HP]".
     wp_pures.
-    iMod (own_update_2 with "H● H◯") as "[H● H◯]";[apply excl_auth_update|].
-    iModIntro. iApply "HΦ".
-    iFrame. iExists _, _, _, _, _, _. iSplit; [done|].
-    iRewrite "Hp". iFrame "#∗". iApply iProto_le_refl.
+    iMod (own_update_2 with "H● H◯") as "[H● H◯]";
+      [apply (excl_auth_update _ _ (Next p'''))|].
+    iModIntro. iApply "HΦ". rewrite /iProto_pointsto_def. iFrame "IH Hls ∗".
+    iSplit; [done|]. iRewrite "Hp". iApply iProto_le_refl.
   Qed.
 
 End channel.
