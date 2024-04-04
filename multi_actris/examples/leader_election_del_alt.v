@@ -27,44 +27,10 @@ Definition init : val :=
     send "c" "idl" #true;; send "c" "idl" "id";;
     process "c" "idl" "id" "idr" #true.
 
-Definition forward : val :=
-  λ: "c" "c'" "idl" "id" "idr" "id_max",
-    if: "id" = "id_max" then
-      send "c'" #0 "id_max";;
-      send "c" "idl" #();;
-      recv "c" "idr"
-    else
-      recv "c" "idr";;
-      send "c'" #0 "id_max";;
-      send "c" "idl" #().
-
-Definition program : val :=
-  λ: <>,
-     let: "cs'" := new_chan #2 in
-     let: "c0'" := get_chan "cs'" #0 in
-     let: "c1'" := get_chan "cs'" #1 in
-     Fork (let: "id_max" := recv "c0'" #1 in
-           (rec: "f" <> :=
-              let: "id'" := recv "c0'" #1 in
-              assert: ("id'" = "id_max");; "f" #()) #());;
-     let: "cs" := new_chan #4 in
-     let: "c0" := get_chan "cs" #0 in
-     let: "c1" := get_chan "cs" #1 in
-     let: "c2" := get_chan "cs" #2 in
-     let: "c3" := get_chan "cs" #3 in
-     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
-           forward "c1" "c1'" #0 #1 #2 "id_max");;
-     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
-           forward "c2" "c1'" #1 #2 #3 "id_max");;
-     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
-           forward "c3" "c1'" #2 #3 #0 "id_max");;
-     let: "id_max" := init "c0" #3 #0 #1 in
-     forward "c0" "c1'" #3 #0 #1 "id_max".
-
 Notation iProto_choice a p1 p2 :=
   (<a @ (b : bool)> MSG #b; if b then p1 else p2)%proto.
 
-Section ring_leader_election_example.
+Section ring_leader_election_protocols.
   Context `{!heapGS Σ, chanG Σ}.
 
   Definition my_recv_prot (il i ir : nat) (P : iProp Σ) (p : nat → iProto Σ)
@@ -141,7 +107,124 @@ Section ring_leader_election_example.
     wp_smart_apply (process_spec with "Hc HΦ").
   Qed.
 
-  Definition forward_prot (P:iProp Σ) (il i ir i_max : nat) : iProto Σ :=
+End ring_leader_election_protocols.
+
+Definition rle_ref_prog : val :=
+  λ: <>,
+     let: "l" := ref #42 in
+     let: "cs" := new_chan #4 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     let: "c3" := get_chan "cs" #3 in
+     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
+           if: "id_max" = #1 then Free "l" else #());;
+     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
+           if: "id_max" = #2 then Free "l" else #());;
+     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
+           if: "id_max" = #3 then Free "l" else #());;
+     let: "id_max" := init "c0" #3 #0 #1 in
+     if: "id_max" = #0 then Free "l" else #().
+
+Section rle_ref_prog_proof.
+  Context `{!heapGS Σ, chanG Σ}.
+
+  Definition rle_ref_prog_prot_pool P : list (iProto Σ) :=
+     [rle_preprot 3 0 1 P (λ id_max, END)%proto;
+      rle_prot 0 1 2 P (λ id_max, END)%proto false;
+      rle_prot 1 2 3 P (λ id_max, END)%proto false;
+      rle_prot 2 3 0 P (λ id_max, END)%proto false].
+
+  Lemma rle_ref_prog_prot_pool_consistent P :
+    ⊢ iProto_consistent (rle_ref_prog_prot_pool P).
+  Proof.
+    rewrite /rle_ref_prog_prot_pool /rle_preprot.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+  Qed.
+
+  Lemma rle_ref_prog_spec :
+    {{{ True }}} rle_ref_prog #() {{{ RET #(); True }}}.
+  Proof.
+    iIntros (Φ) "_ HΦ". wp_lam.
+    wp_alloc l as "Hl".
+    wp_new_chan (rle_ref_prog_prot_pool (l ↦ #42))
+      with rle_ref_prog_prot_pool_consistent
+      as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
+    wp_smart_apply (wp_fork with "[Hc1]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (wp_fork with "[Hc2]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (wp_fork with "[Hc3]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc3").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (init_spec with "[$Hc0 $Hl]").
+    iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+    - case_bool_decide; [|simplify_eq; lia]. wp_free. by iApply "HΦ".
+    - case_bool_decide; [simplify_eq; lia|]. wp_pures. by iApply "HΦ". 
+  Qed.
+
+End rle_ref_prog_proof.
+
+Lemma rle_ref_prog_adequate :
+  adequate NotStuck (rle_ref_prog #()) ({|heap := ∅; used_proph_id := ∅|})
+           (λ _ _, True).
+Proof.
+  apply (heap_adequacy #[heapΣ; chanΣ]).
+  iIntros (Σ) "H". by iApply rle_ref_prog_spec.
+Qed.
+
+Definition relay : val :=
+  λ: "c" "c'" "idl" "id" "idr" "id_max",
+    if: "id" = "id_max" then
+      send "c'" #0 "id_max";; send "c" "idl" #();; recv "c" "idr"
+    else
+      recv "c" "idr";; send "c'" #0 "id_max";; send "c" "idl" #().
+
+Definition rle_del_prog : val :=
+  λ: <>,
+     let: "cs'" := new_chan #2 in
+     let: "c0'" := get_chan "cs'" #0 in
+     let: "c1'" := get_chan "cs'" #1 in
+     Fork (let: "id_max" := recv "c0'" #1 in
+           (rec: "f" <> :=
+              let: "id'" := recv "c0'" #1 in
+              assert: ("id'" = "id_max");; "f" #()) #());;
+     let: "cs" := new_chan #4 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     let: "c3" := get_chan "cs" #3 in
+     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
+           relay "c1" "c1'" #0 #1 #2 "id_max");;
+     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
+           relay "c2" "c1'" #1 #2 #3 "id_max");;
+     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
+           relay "c3" "c1'" #2 #3 #0 "id_max");;
+     let: "id_max" := init "c0" #3 #0 #1 in
+     relay "c0" "c1'" #3 #0 #1 "id_max".
+
+Section rle_del_prog_proof.
+  Context `{!heapGS Σ, chanG Σ}.
+
+  Definition relay_del_prot (P:iProp Σ) (il i ir i_max : nat) : iProto Σ :=
     if bool_decide (i = i_max) then
       (<(Send,il)> MSG #() {{ P }} ; <(Recv,ir)> MSG #() {{ P }}; END)%proto
     else
@@ -178,15 +261,16 @@ Section ring_leader_election_example.
   Definition relay_recv_preprot : iProto Σ :=
     (<(Recv,1) @ (i_max:nat)> MSG #i_max ; relay_recv_prot i_max)%proto.
 
-  Definition prot_pool P Φ : list (iProto Σ) :=
-     [rle_preprot 3 0 1 P (λ id_max, forward_prot (Φ id_max) 3 0 1 id_max);
-      rle_prot 0 1 2 P (λ id_max, forward_prot (Φ id_max) 0 1 2 id_max) false;
-      rle_prot 1 2 3 P (λ id_max, forward_prot (Φ id_max) 1 2 3 id_max) false;
-      rle_prot 2 3 0 P (λ id_max, forward_prot (Φ id_max) 2 3 0 id_max) false].
+  Definition rle_del_prog_prot_pool P Φ : list (iProto Σ) :=
+     [rle_preprot 3 0 1 P (λ id_max, relay_del_prot (Φ id_max) 3 0 1 id_max);
+      rle_prot 0 1 2 P (λ id_max, relay_del_prot (Φ id_max) 0 1 2 id_max) false;
+      rle_prot 1 2 3 P (λ id_max, relay_del_prot (Φ id_max) 1 2 3 id_max) false;
+      rle_prot 2 3 0 P (λ id_max, relay_del_prot (Φ id_max) 2 3 0 id_max) false].
 
-  Lemma prot_pool_consistent P Φ : ⊢ iProto_consistent (prot_pool P Φ).
+  Lemma rle_del_prog_prot_pool_consistent P Φ :
+    ⊢ iProto_consistent (rle_del_prog_prot_pool P Φ).
   Proof.
-    rewrite /prot_pool /rle_preprot.
+    rewrite /rle_del_prog_prot_pool /rle_preprot.
     rewrite !rle_prot_unfold'.
     iProto_consistent_take_steps.
     case_bool_decide; try lia.
@@ -200,12 +284,13 @@ Section ring_leader_election_example.
     iProto_consistent_take_steps.
   Qed.
 
-  Definition prot_pool' : list (iProto Σ) :=
+  Definition rle_del_prog_prot_pool' : list (iProto Σ) :=
      [relay_recv_preprot; relay_send_preprot].
 
-  Lemma prot_pool_consistent' : ⊢ iProto_consistent (prot_pool').
+  Lemma rle_del_prog_prot_pool_consistent' :
+    ⊢ iProto_consistent (rle_del_prog_prot_pool').
   Proof.
-    rewrite /prot_pool'.
+    rewrite /rle_del_prog_prot_pool'.
     iProto_consistent_take_steps.
     iLöb as "IH".
     iEval (rewrite relay_recv_prot_unfold').
@@ -214,14 +299,14 @@ Section ring_leader_election_example.
     done.
   Qed.
 
-  Lemma forward_spec c c' il i ir i_max :
-    {{{ c ↣ forward_prot (c' ↣ relay_send_prot i_max) il i ir i_max ∗
+  Lemma relay_spec c c' il i ir i_max :
+    {{{ c ↣ relay_del_prot (c' ↣ relay_send_prot i_max) il i ir i_max ∗
         if (bool_decide (i = i_max)) then c' ↣ relay_send_preprot else True%I }}}
-      forward c c' #il #i #ir #i_max
+      relay c c' #il #i #ir #i_max
     {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "[Hc Hc'] HΦ". wp_lam.
-    rewrite /forward_prot.
+    rewrite /relay_del_prot.
     wp_pures. case_bool_decide.
     - simplify_eq. wp_pures.
       case_bool_decide; [|simplify_eq;lia].
@@ -232,111 +317,40 @@ Section ring_leader_election_example.
       wp_send with "[//]". wp_send with "[Hc'//]". by iApply "HΦ".
   Qed.
 
-  Lemma program_spec :
-    {{{ True }}} program #() {{{ RET #(); True }}}.
+  Lemma rle_del_prog_spec :
+    {{{ True }}} rle_del_prog #() {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "_ HΦ". wp_lam.
-    wp_new_chan (prot_pool') with (prot_pool_consistent')
+    wp_new_chan rle_del_prog_prot_pool' with rle_del_prog_prot_pool_consistent'
       as (c0' c1') "Hc0'" "Hc1'".
     wp_smart_apply (wp_fork with "[Hc0']").
     { iIntros "!>". wp_recv (i_max) as "_". wp_pures.
       iLöb as "IH". wp_recv as "_". wp_smart_apply wp_assert.
       wp_pures. iModIntro. iSplit; [iPureIntro; f_equiv; by case_bool_decide|].
       iIntros "!>". wp_pures. by iApply "IH". }
-    wp_new_chan (prot_pool (c1' ↣ relay_send_preprot)
+    wp_new_chan (rle_del_prog_prot_pool (c1' ↣ relay_send_preprot)
                            (λ i_max, c1' ↣ relay_send_prot i_max))
-      with prot_pool_consistent as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
+      with rle_del_prog_prot_pool_consistent
+      as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
-      iIntros (i') "Hc1". by wp_smart_apply (forward_spec with "[$Hc1]"). }
+      iIntros (i') "Hc1". by wp_smart_apply (relay_spec with "[$Hc1]"). }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
-      iIntros (i') "Hc2". by wp_smart_apply (forward_spec with "[$Hc2]"). }
+      iIntros (i') "Hc2". by wp_smart_apply (relay_spec with "[$Hc2]"). }
     wp_smart_apply (wp_fork with "[Hc3]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc3").
-      iIntros (i') "Hc3". by wp_smart_apply (forward_spec with "[$Hc3]"). }
+      iIntros (i') "Hc3". by wp_smart_apply (relay_spec with "[$Hc3]"). }
     wp_smart_apply (init_spec with "[$Hc0 $Hc1']").
-    iIntros (i') "Hc0". by wp_smart_apply (forward_spec with "[$Hc0]").
+    iIntros (i') "Hc0". by wp_smart_apply (relay_spec with "[$Hc0]").
   Qed.
 
-End ring_leader_election_example.
+End rle_del_prog_proof.
 
-Lemma program_spec_adequate :
-  adequate NotStuck (program #()) ({|heap := ∅; used_proph_id := ∅|})
+Lemma rle_del_prog_adequate :
+  adequate NotStuck (rle_del_prog #()) ({|heap := ∅; used_proph_id := ∅|})
            (λ _ _, True).
 Proof.
   apply (heap_adequacy #[heapΣ; chanΣ]).
-  iIntros (Σ) "H". by iApply program_spec.
+  iIntros (Σ) "H". by iApply rle_del_prog_spec.
 Qed.
-
-Definition program2 : val :=
-  λ: <>,
-     let: "l" := ref #42 in
-     let: "cs" := new_chan #4 in
-     let: "c0" := get_chan "cs" #0 in
-     let: "c1" := get_chan "cs" #1 in
-     let: "c2" := get_chan "cs" #2 in
-     let: "c3" := get_chan "cs" #3 in
-     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
-           if: "id_max" = #1 then Free "l" else #());;
-     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
-           if: "id_max" = #2 then Free "l" else #());;
-     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
-           if: "id_max" = #3 then Free "l" else #());;
-     let: "id_max" := init "c0" #3 #0 #1 in
-     if: "id_max" = #0 then Free "l" else #().
-
-Section ring_leader_election_example.
-  Context `{!heapGS Σ, chanG Σ}.
-
-  Definition prot_pool'' P : list (iProto Σ) :=
-     [rle_preprot 3 0 1 P (λ id_max, END)%proto;
-      rle_prot 0 1 2 P (λ id_max, END)%proto false;
-      rle_prot 1 2 3 P (λ id_max, END)%proto false;
-      rle_prot 2 3 0 P (λ id_max, END)%proto false].
-
-  Lemma prot_pool_consistent'' P : ⊢ iProto_consistent (prot_pool'' P).
-  Proof.
-    rewrite /prot_pool'' /rle_preprot.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_steps.
-    case_bool_decide; try lia.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_steps.
-    case_bool_decide; try lia.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_steps.
-    case_bool_decide; try lia.
-    rewrite !rle_prot_unfold'.
-    iProto_consistent_take_steps.
-  Qed.
-  
-  Lemma program_spec'' :
-    {{{ True }}} program2 #() {{{ RET #(); True }}}.
-  Proof.
-    iIntros (Φ) "_ HΦ". wp_lam.
-    wp_alloc l as "Hl".
-    wp_new_chan (prot_pool'' (l ↦ #42))
-      with prot_pool_consistent'' as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
-    wp_smart_apply (wp_fork with "[Hc1]").
-    { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
-      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
-      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
-      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
-    wp_smart_apply (wp_fork with "[Hc2]").
-    { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
-      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
-      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
-      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
-    wp_smart_apply (wp_fork with "[Hc3]").
-    { iIntros "!>". wp_smart_apply (process_spec with "Hc3").
-      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
-      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
-      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
-    wp_smart_apply (init_spec with "[$Hc0 $Hl]").
-    iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
-    - case_bool_decide; [|simplify_eq; lia]. wp_free. by iApply "HΦ".
-    - case_bool_decide; [simplify_eq; lia|]. wp_pures. by iApply "HΦ". 
-  Qed.
-
-End ring_leader_election_example.
