@@ -24,7 +24,6 @@ Definition process : val :=
 
 Definition init : val :=
   λ: "c" "idl" "id" "idr",
-    (* Notice missing leader *)
     send "c" "idl" #true;; send "c" "idl" "id";;
     process "c" "idl" "id" "idr" #true.
 
@@ -53,11 +52,11 @@ Definition program : val :=
      let: "c1" := get_chan "cs" #1 in
      let: "c2" := get_chan "cs" #2 in
      let: "c3" := get_chan "cs" #3 in
-     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in 
+     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
            forward "c1" "c1'" #0 #1 #2 "id_max");;
-     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in 
+     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
            forward "c2" "c1'" #1 #2 #3 "id_max");;
-     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in 
+     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
            forward "c3" "c1'" #2 #3 #0 "id_max");;
      let: "id_max" := init "c0" #3 #0 #1 in
      forward "c0" "c1'" #3 #0 #1 "id_max".
@@ -79,15 +78,18 @@ Section ring_leader_election_example.
          then <(Send,il)> MSG #false ; <(Send, il)> MSG #i ; rec false
          else if isp then rec isp
          else <(Send,il)> MSG #true ; <(Send,il)> MSG #i ; rec true)%proto
-        (<(Recv,ir) @ (i':nat)> MSG #i'  {{ if bool_decide (i = i') then P else True%I }};
+        (<(Recv,ir) @ (i':nat)> MSG #i'
+           {{ if bool_decide (i = i') then P else True%I }};
          if (bool_decide (i = i')) then p i
          else <(Send,il)> MSG #false; <(Send,il)> MSG #i'; p i')%proto.
 
-  Instance rle_prot_aux_contractive il i ir P p : Contractive (my_recv_prot il i ir P p).
+  Instance rle_prot_aux_contractive il i ir P p :
+    Contractive (my_recv_prot il i ir P p).
   Proof. rewrite /my_recv_prot. solve_proto_contractive. Qed.
   Definition rle_prot il i ir P p := fixpoint (my_recv_prot il i ir P p).
   Instance rle_prot_unfold il i ir isp P p :
-    ProtoUnfold (rle_prot il i ir P p isp) (my_recv_prot il i ir P p (rle_prot il i ir P p) isp).
+    ProtoUnfold (rle_prot il i ir P p isp)
+                (my_recv_prot il i ir P p (rle_prot il i ir P p) isp).
   Proof. apply proto_unfold_eq, (fixpoint_unfold (my_recv_prot il i ir P p)). Qed.
   Lemma rle_prot_unfold' il i ir isp P p :
     (rle_prot il i ir P p isp) ≡
@@ -107,42 +109,27 @@ Section ring_leader_election_example.
     iLöb as "IH" forall (Φ isp).
     wp_lam. wp_recv (b) as "_".
     destruct b.
-    - wp_pures. wp_recv (i') as "_".
-      wp_pures.
-      case_bool_decide as Hlt.
+    - wp_recv (i') as "_".
+      wp_pures. case_bool_decide as Hlt.
       { case_bool_decide; [|lia].
-        wp_pures. wp_send with "[//]".
-        wp_send with "[//]". wp_pures.
-        iApply ("IH" with "Hc HΦ"). }
+        wp_send with "[//]". wp_send with "[//]".
+        wp_smart_apply ("IH" with "Hc HΦ"). }
       case_bool_decide as Hlt2.
-      { case_bool_decide; [lia|].
-        wp_pures. case_bool_decide; [|simplify_eq;lia].
-        wp_send with "[//]".
-        wp_send with "[//]". wp_pures.
-        iApply ("IH" with "Hc HΦ"). }
+      { case_bool_decide; [lia|]. wp_pures. case_bool_decide; [|simplify_eq;lia].
+        wp_send with "[//]". wp_send with "[//]".
+        wp_smart_apply ("IH" with "Hc HΦ"). }
       case_bool_decide; [lia|].
-      wp_pures.
-      case_bool_decide; [simplify_eq;lia|].
-      wp_pures.
-      destruct isp.
-      { wp_pures. iApply ("IH" with "Hc HΦ"). }
-      wp_pures.
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_pures. iApply ("IH" with "Hc HΦ").
-    - wp_pures.
-      wp_recv (id') as "HP". wp_pures.
+      wp_pures. case_bool_decide; [simplify_eq;lia|]. wp_pures.
+      destruct isp; [by wp_smart_apply ("IH" with "Hc HΦ")|].
+      wp_send with "[//]". wp_send with "[//]".
+      wp_smart_apply ("IH" with "Hc HΦ").
+    - wp_recv (id') as "HP". wp_pures.
       case_bool_decide as Hlt.
       { case_bool_decide; [|simplify_eq;lia].
-        wp_pures. subst. iApply "HΦ".
-        iFrame.
-        case_bool_decide; [|lia].
-        done. }
+        wp_pures. subst. iApply "HΦ". iFrame. by case_bool_decide. }
       case_bool_decide; [simplify_eq;lia|].
       wp_send with "[//]". wp_send with "[//]". wp_pures. iApply "HΦ".
-      iFrame.
-      case_bool_decide; [simplify_eq;lia|].
-      done.
+      iFrame. by case_bool_decide; [simplify_eq;lia|].
   Qed.
 
   Lemma init_spec c il i ir p P :
@@ -151,7 +138,7 @@ Section ring_leader_election_example.
     {{{ i', RET #i'; c ↣ p i' ∗ if (bool_decide (i = i')) then P else True%I }}}.
   Proof.
     iIntros (Φ) "[Hc HP] HΦ". wp_lam. wp_send with "[//]". wp_send with "[HP//]".
-    wp_pures. iApply (process_spec with "Hc HΦ").
+    wp_smart_apply (process_spec with "Hc HΦ").
   Qed.
 
   Definition forward_prot (P:iProp Σ) (il i ir i_max : nat) : iProto Σ :=
@@ -214,8 +201,7 @@ Section ring_leader_election_example.
   Qed.
 
   Definition prot_pool' : list (iProto Σ) :=
-     [relay_recv_preprot;
-      relay_send_preprot].
+     [relay_recv_preprot; relay_send_preprot].
 
   Lemma prot_pool_consistent' : ⊢ iProto_consistent (prot_pool').
   Proof.
@@ -229,7 +215,7 @@ Section ring_leader_election_example.
   Qed.
 
   Lemma forward_spec c c' il i ir i_max :
-    {{{ c ↣ forward_prot (c' ↣ relay_send_prot i_max) il i ir i_max ∗ 
+    {{{ c ↣ forward_prot (c' ↣ relay_send_prot i_max) il i ir i_max ∗
         if (bool_decide (i = i_max)) then c' ↣ relay_send_preprot else True%I }}}
       forward c c' #il #i #ir #i_max
     {{{ RET #(); True }}}.
@@ -239,34 +225,27 @@ Section ring_leader_election_example.
     wp_pures. case_bool_decide.
     - simplify_eq. wp_pures.
       case_bool_decide; [|simplify_eq;lia].
-      wp_send with "[//]".
-      wp_pures. wp_send with "[Hc'//]".
-      wp_recv as "Hc'". by iApply "HΦ".
-    - case_bool_decide; [simplify_eq;lia|].
-      wp_pures. iClear "Hc'".
-      wp_recv as "Hc'".
-      wp_send with "[//]".
-      wp_send with "[Hc'//]". 
+      wp_send with "[//]". wp_send with "[Hc'//]". wp_recv as "Hc'".
       by iApply "HΦ".
+    - case_bool_decide; [simplify_eq;lia|].
+      iClear "Hc'". wp_recv as "Hc'".
+      wp_send with "[//]". wp_send with "[Hc'//]". by iApply "HΦ".
   Qed.
 
   Lemma program_spec :
     {{{ True }}} program #() {{{ RET #(); True }}}.
-  Proof. 
+  Proof.
     iIntros (Φ) "_ HΦ". wp_lam.
     wp_new_chan (prot_pool') with (prot_pool_consistent')
       as (c0' c1') "Hc0'" "Hc1'".
     wp_smart_apply (wp_fork with "[Hc0']").
-    { iIntros "!>".
-      wp_pures.
-      wp_recv (i_max) as "_". wp_pures.
-      iLöb as "IH".
-      wp_recv as "_". wp_pures.
-      wp_smart_apply wp_assert.
+    { iIntros "!>". wp_recv (i_max) as "_". wp_pures.
+      iLöb as "IH". wp_recv as "_". wp_smart_apply wp_assert.
       wp_pures. iModIntro. iSplit; [iPureIntro; f_equiv; by case_bool_decide|].
       iIntros "!>". wp_pures. by iApply "IH". }
-    wp_new_chan (prot_pool (c1' ↣ relay_send_preprot) (λ i_max, c1' ↣ relay_send_prot i_max)) with prot_pool_consistent
-      as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
+    wp_new_chan (prot_pool (c1' ↣ relay_send_preprot)
+                           (λ i_max, c1' ↣ relay_send_prot i_max))
+      with prot_pool_consistent as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
       iIntros (i') "Hc1". by wp_smart_apply (forward_spec with "[$Hc1]"). }
