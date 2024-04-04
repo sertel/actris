@@ -396,11 +396,11 @@ Ltac ltac1_list_iter2 tac l1 l2 :=
 Tactic Notation "wp_new_chan" constr(prot) "as"
        "(" simple_intropattern_list(xs) ")" constr_list(pats) :=
   wp_smart_apply (new_chan_spec prot);
-    [set_solver| |iIntros (_cs) "?"];
+    [set_solver| |iIntros (?) "?"];
     [|ltac1_list_iter2 ltac:(fun x y => wp_get_chan (x) y) xs pats].
 
 Tactic Notation "wp_new_chan" constr(prot) "with" constr(lem) "as"
        "(" simple_intropattern_list(xs) ")" constr_list(pats) :=
   wp_smart_apply (new_chan_spec prot);
-    [set_solver|by iApply lem|iIntros (_cs) "?"];
+    [set_solver|by iApply lem|iIntros (?) "?"];
     ltac1_list_iter2 ltac:(fun x y => wp_get_chan (x) y) xs pats.
