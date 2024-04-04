@@ -65,7 +65,7 @@ Notation iProto_choice a p1 p2 :=
   (<a @ (b : bool)> MSG #b; if b then p1 else p2)%proto.
 
 Section ring_leader_election_example.
-  Context `{!heapGS Σ, chanG Σ, spawnG Σ, mono_natG Σ}.
+  Context `{!heapGS Σ, chanG Σ}.
 
   Definition my_recv_prot (il i ir : nat) (P : iProp Σ) (p : nat → iProto Σ)
              (rec : bool -d> iProto Σ) : bool -d> iProto Σ :=
@@ -268,3 +268,75 @@ Proof.
   apply (heap_adequacy #[heapΣ; chanΣ]).
   iIntros (Σ) "H". by iApply program_spec.
 Qed.
+
+Definition program2 : val :=
+  λ: <>,
+     let: "l" := ref #42 in
+     let: "cs" := new_chan #4 in
+     let: "c0" := get_chan "cs" #0 in
+     let: "c1" := get_chan "cs" #1 in
+     let: "c2" := get_chan "cs" #2 in
+     let: "c3" := get_chan "cs" #3 in
+     Fork (let: "id_max" := process "c1" #0 #1 #2 #false in
+           if: "id_max" = #1 then Free "l" else #());;
+     Fork (let: "id_max" := process "c2" #1 #2 #3 #false in
+           if: "id_max" = #2 then Free "l" else #());;
+     Fork (let: "id_max" := process "c3" #2 #3 #0 #false in
+           if: "id_max" = #3 then Free "l" else #());;
+     let: "id_max" := init "c0" #3 #0 #1 in
+     if: "id_max" = #0 then Free "l" else #().
+
+Section ring_leader_election_example.
+  Context `{!heapGS Σ, chanG Σ}.
+
+  Definition prot_pool'' P : list (iProto Σ) :=
+     [rle_preprot 3 0 1 P (λ id_max, END)%proto;
+      rle_prot 0 1 2 P (λ id_max, END)%proto false;
+      rle_prot 1 2 3 P (λ id_max, END)%proto false;
+      rle_prot 2 3 0 P (λ id_max, END)%proto false].
+
+  Lemma prot_pool_consistent'' P : ⊢ iProto_consistent (prot_pool'' P).
+  Proof.
+    rewrite /prot_pool'' /rle_preprot.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+    case_bool_decide; try lia.
+    rewrite !rle_prot_unfold'.
+    iProto_consistent_take_steps.
+  Qed.
+  
+  Lemma program_spec'' :
+    {{{ True }}} program2 #() {{{ RET #(); True }}}.
+  Proof.
+    iIntros (Φ) "_ HΦ". wp_lam.
+    wp_alloc l as "Hl".
+    wp_new_chan (prot_pool'' (l ↦ #42))
+      with prot_pool_consistent'' as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
+    wp_smart_apply (wp_fork with "[Hc1]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (wp_fork with "[Hc2]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc2").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (wp_fork with "[Hc3]").
+    { iIntros "!>". wp_smart_apply (process_spec with "Hc3").
+      iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+      - case_bool_decide; [|simplify_eq; lia]. by wp_free.
+      - case_bool_decide; [simplify_eq; lia|]. by wp_pures. }
+    wp_smart_apply (init_spec with "[$Hc0 $Hl]").
+    iIntros (i') "[_ Hl]". wp_pures. case_bool_decide.
+    - case_bool_decide; [|simplify_eq; lia]. wp_free. by iApply "HΦ".
+    - case_bool_decide; [simplify_eq; lia|]. wp_pures. by iApply "HΦ". 
+  Qed.
+
+End ring_leader_election_example.
