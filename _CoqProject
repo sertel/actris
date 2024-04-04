@@ -61,4 +61,5 @@ multi_actris/channel/proto.v
 multi_actris/channel/channel.v
 multi_actris/channel/proofmode.v
 multi_actris/examples/basics.v
+multi_actris/examples/two_buyer.v
 multi_actris/examples/leader_election.v
