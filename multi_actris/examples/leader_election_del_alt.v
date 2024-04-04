@@ -154,11 +154,11 @@ Section ring_leader_election_example.
     wp_pures. iApply (process_spec with "Hc HΦ").
   Qed.
 
-  Definition forward_prot (c : val) (p : iProto Σ) (il i ir i_max : nat) : iProto Σ :=
+  Definition forward_prot (P:iProp Σ) (il i ir i_max : nat) : iProto Σ :=
     if bool_decide (i = i_max) then
-      (<(Send,il)> MSG #() {{ c ↣ p }} ; <(Recv,ir)> MSG #() {{ c ↣ p }}; END)%proto
+      (<(Send,il)> MSG #() {{ P }} ; <(Recv,ir)> MSG #() {{ P }}; END)%proto
     else
-      (<(Recv,ir)> MSG #() {{ c ↣ p }} ; <(Send,il)> MSG #() {{ c ↣ p }}; END)%proto.
+      (<(Recv,ir)> MSG #() {{ P }} ; <(Send,il)> MSG #() {{ P }}; END)%proto.
 
   Definition relay_send_aux (id : nat) (rec : iProto Σ) : iProto Σ :=
     (<(Send,0)> MSG #id ; rec)%proto.
@@ -191,13 +191,13 @@ Section ring_leader_election_example.
   Definition relay_recv_preprot : iProto Σ :=
     (<(Recv,1) @ (i_max:nat)> MSG #i_max ; relay_recv_prot i_max)%proto.
 
-  Definition prot_pool c P : list (iProto Σ) :=
-     [rle_preprot 3 0 1 P (λ id_max, forward_prot c (relay_send_prot id_max) 3 0 1 id_max);
-      rle_prot 0 1 2 P (λ id_max, forward_prot c (relay_send_prot id_max) 0 1 2 id_max) false;
-      rle_prot 1 2 3 P (λ id_max, forward_prot c (relay_send_prot id_max) 1 2 3 id_max) false;
-      rle_prot 2 3 0 P (λ id_max, forward_prot c (relay_send_prot id_max) 2 3 0 id_max) false].
+  Definition prot_pool P Φ : list (iProto Σ) :=
+     [rle_preprot 3 0 1 P (λ id_max, forward_prot (Φ id_max) 3 0 1 id_max);
+      rle_prot 0 1 2 P (λ id_max, forward_prot (Φ id_max) 0 1 2 id_max) false;
+      rle_prot 1 2 3 P (λ id_max, forward_prot (Φ id_max) 1 2 3 id_max) false;
+      rle_prot 2 3 0 P (λ id_max, forward_prot (Φ id_max) 2 3 0 id_max) false].
 
-  Lemma prot_pool_consistent c P : ⊢ iProto_consistent (prot_pool c P).
+  Lemma prot_pool_consistent P Φ : ⊢ iProto_consistent (prot_pool P Φ).
   Proof.
     rewrite /prot_pool /rle_preprot.
     rewrite !rle_prot_unfold'.
@@ -229,7 +229,7 @@ Section ring_leader_election_example.
   Qed.
 
   Lemma forward_spec c c' il i ir i_max :
-    {{{ c ↣ forward_prot c' (relay_send_prot i_max) il i ir i_max ∗ 
+    {{{ c ↣ forward_prot (c' ↣ relay_send_prot i_max) il i ir i_max ∗ 
         if (bool_decide (i = i_max)) then c' ↣ relay_send_preprot else True%I }}}
       forward c c' #il #i #ir #i_max
     {{{ RET #(); True }}}.
@@ -265,7 +265,7 @@ Section ring_leader_election_example.
       wp_smart_apply wp_assert.
       wp_pures. iModIntro. iSplit; [iPureIntro; f_equiv; by case_bool_decide|].
       iIntros "!>". wp_pures. by iApply "IH". }
-    wp_new_chan (prot_pool c1' (c1' ↣ relay_send_preprot)) with prot_pool_consistent
+    wp_new_chan (prot_pool (c1' ↣ relay_send_preprot) (λ i_max, c1' ↣ relay_send_prot i_max)) with prot_pool_consistent
       as (c0 c1 c2 c3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc1]").
     { iIntros "!>". wp_smart_apply (process_spec with "Hc1").
