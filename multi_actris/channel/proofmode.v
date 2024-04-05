@@ -338,7 +338,6 @@ Proof.
   iNext. iRewrite -"Hp1". done.
 Qed.
 
-(* TODO: Improve automation *)
 Tactic Notation "iProto_consistent_take_step_step" :=
   let i := fresh in
   let j := fresh in

@@ -12,8 +12,9 @@ recursive domain equation:
 
 Here, the left-hand side of the sum is used for the terminated process, while
 the right-hand side is used for the communication constructors. The type
-[action] is an inductively defined datatype with two constructors [Send] and
-[Recv]. Compared to having an additional sum in [proto], this makes it
+[action] is a pair of a an inductively defined datatype [tag] with two
+constructors [Send] and [Recv], and a synchronosation id of [nat].
+Compared to having an additional sum in [proto], this makes it
 possible to factorize the code in a better way.
 
 The remainder [V → ▶ proto → PROP] is a predicate that ranges over the

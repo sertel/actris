@@ -1,23 +1,20 @@
-(** This file contains the definition of the channels, encoded as a pair of
-lock-protected buffers, and their primitive proof rules. Moreover:
+(** This file contains the definition of the channels,
+and their primitive proof rules. Moreover:
 
 - It defines the connective [c ↣ prot] for ownership of channel endpoints,
   which describes that channel endpoint [c] adheres to protocol [prot].
-- It proves Actris's specifications of [send] and [recv] w.r.t. dependent
-  separation protocols.
-
-An encoding of the usual (binary) choice connectives [prot1 <{Q1}+{Q2}> prot2]
-and [prot1 <{Q1}&{Q2}> prot2], inspired by session types, is also included in
-this file.
+- It proves Actris's specifications of [send] and [recv] w.r.t.
+  multiparty dependent separation protocols.
 
 In this file we define the three message-passing connectives:
 
-- [new_chan] creates references to two empty buffers and a lock, and returns a
-  pair of endpoints, where the order of the two references determines the
-  polarity of the endpoints.
-- [send] takes an endpoint and adds an element to the first buffer.
-- [recv] performs a busy loop until there is something in the second buffer,
-  which it pops and returns, locking during each peek.
+- [new_chan] creates an n*n matrix of references where [i,j] is the singleton
+  buffer from participant i to participant j
+- [send] takes an endpoint, a participant id, and a value, and puts the value in 
+  the reference corresponding to the participant id, and waits until recv takes
+  it out.
+- [recv] takes an endpoint, and a participant id, and waits until a value is put
+  into the corresponding reference.
 
 It is additionaly shown that the channel ownership [c ↣ prot] is closed under
 the subprotocol relation [⊑] *)
@@ -50,7 +47,6 @@ Definition send : val :=
     let: "l" := matrix_get "m" "i" "j" in
     "l" <- SOME "v";; wait "l".
 
-(* TODO: Move recursion further in *)
 Definition recv : val :=
   rec: "go" "c" "j" :=
     let: "m" := Fst "c" in
@@ -185,23 +181,15 @@ Section channel.
                      (λ i j l, ∃ γt,
             inv (nroot.@"p") (chan_inv γ (γEs !!! i) γt i j
                                        l))%I); [done..| |].
-    { iApply (big_sepL_intro).
-      iIntros "!>" (k tt Hin).
-      iApply (big_sepL_intro).
-      iIntros "!>" (k' tt' Hin').
-      iIntros (l) "Hl".
+    { iApply (big_sepL_intro). iIntros "!>" (k tt Hin). iApply (big_sepL_intro).
+      iIntros "!>" (k' tt' Hin'). iIntros (l) "Hl".
       iMod (own_alloc (Excl ())) as (γ') "Hγ'"; [done|].
-      iExists γ'.
-      iApply inv_alloc.
-      iNext.
-      iLeft. iFrame. }
-    iIntros (mat) "Hmat".
-    iApply "HΦ".
+      iExists γ'. iApply inv_alloc. iNext. iLeft. iFrame. }
+    iIntros (mat) "Hmat". iApply "HΦ".
     iExists _, _, _. iFrame "#∗".
     rewrite left_id. iSplit; [done|].
     iApply (big_sepL_impl with "H").
-    iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)".
-    iFrame.
+    iIntros "!>" (i ? HSome') "(Hauth & Hfrag & Hown)". iFrame.
     rewrite (list_lookup_total_alt ps).
     simpl. rewrite right_id_L. rewrite HSome'. iFrame.
   Qed.

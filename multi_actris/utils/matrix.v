@@ -24,7 +24,6 @@ Section with_Σ.
         [∗ list] j ↦ _ ∈ replicate n (),
           P i j (l +ₗ pos n i j).
 
-
   Lemma array_to_matrix_pre l n m v :
     l ↦∗ replicate (n * m) v -∗
     [∗ list] i ↦ _ ∈ replicate n (), (l +ₗ i*m) ↦∗ replicate m v.
@@ -42,7 +41,6 @@ Section with_Σ.
     by iFrame.
   Qed.
 
-  (* TODO: rename *)
   Lemma big_sepL_replicate_type {A B} n (x1 : A) (x2 : B) (P : nat → iProp Σ) :
     ([∗ list] i ↦ _ ∈ replicate n x1, P i) ⊢
     ([∗ list] i ↦ _ ∈ replicate n x2, P i).
@@ -117,7 +115,6 @@ Section with_Σ.
     { iIntros "!>" (k x HIn).
       iApply (big_sepL_lookup_acc _ _ j ()).
       by apply lookup_replicate. }
-    simpl.
     rewrite {1}(big_sepL_lookup_acc _ (replicate m ()) i ());
       [|by apply lookup_replicate].
     iDestruct "Hm" as "[[Hij Hi] Hm]".

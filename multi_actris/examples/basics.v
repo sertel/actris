@@ -37,7 +37,6 @@ Section channel.
     ⊢ iProto_consistent iProto_roundtrip.
   Proof. rewrite /iProto_roundtrip. iProto_consistent_take_steps. Qed.
 
-  (* TODO: Fix nat/Z coercion. *)
   Lemma roundtrip_prog_spec :
     {{{ True }}} roundtrip_prog #() {{{ RET #42 ; True }}}.
   Proof using chanG0 heapGS0 Σ.
@@ -320,7 +319,6 @@ Section forwarder.
      (<(Recv, 1) @ (x:Z)> MSG #x ;
             <(Send, 0)> MSG #x ; END)%proto].
 
-  (* TODO: Anonymous variable in this is unsatisfactory *)
   Lemma iProto_forwarder_consistent :
     ⊢ iProto_consistent iProto_forwarder.
   Proof.

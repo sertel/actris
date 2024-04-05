@@ -179,7 +179,6 @@ Section ring_leader_election_example.
     (relay_recv_aux i (relay_recv_prot i)).
   Proof. apply (fixpoint_unfold (relay_recv_aux i)). Qed.
 
-
   Definition prot_pool : list (iProto Σ) :=
      [rle_preprot 3 0 1 (λ id_max, forward_prot (relay_send_prot id_max) 3 0 1 id_max);
       rle_prot 0 1 2 (λ id_max, forward_prot (relay_send_prot id_max) 0 1 2 id_max) false;
