@@ -170,13 +170,12 @@ Proof.
   rewrite envs_entails_unseal /ProtoNormalize /MsgTele /MaybeIntoLaterN /=.
   rewrite !tforall_forall right_id.
   intros ? Hp Hm HP HΦ. rewrite envs_lookup_sound //; simpl.
-  assert (c ↣ p ⊢ c ↣ <(Recv,n) @.. x>
+  assert (c ↣ p ⊢ c ↣ <(Recv,n) @ x>
     MSG tele_app tv x {{ ▷ tele_app tP' x }}; tele_app tp x) as ->.
   { iIntros "Hc". iApply (iProto_pointsto_le with "Hc"). iIntros "!>".
     iApply iProto_le_trans; [iApply Hp|rewrite Hm].
     iApply iProto_le_texist_elim_l; iIntros (x).
-    iApply iProto_le_trans; [|iApply (iProto_le_texist_intro_r _ _ x)]; simpl.
-    iIntros "H". by iDestruct (HP with "H") as "$". }
+    iExists _. iIntros "H". by iDestruct (HP with "H") as "$". }
   rewrite -wp_bind. eapply bi.wand_apply;
     [by eapply bi.wand_entails, (recv_spec _ n (tele_app tv) (tele_app tP') (tele_app tp))|f_equiv; first done].
   rewrite -bi.later_intro; apply bi.forall_intro=> x.
