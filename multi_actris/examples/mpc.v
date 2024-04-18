@@ -121,8 +121,8 @@ Section mpc_protocols.
     ⊢ iProto_consistent mpc_prot_pool.
   Proof. rewrite /mpc_prot_pool. iProto_consistent_take_steps. Qed.
 
-  (* TODO: Move to proofmode.v? *)
-  Tactic Notation "wp_recv" := wp_recv (?) as "_".
+  (* TODO: Clean up and move to proofmode.v? *)
+  Tactic Notation "wp_recv" := try wp_recv (?) as "_"; try wp_recv as "_".
   Tactic Notation "wp_send" := wp_send with "[//]".
   Tactic Notation "wp_chan_pures" := repeat (repeat wp_send; repeat wp_recv).
 
@@ -139,10 +139,7 @@ Section mpc_protocols.
     { iIntros "!>". by wp_chan_pures. }
     wp_smart_apply (wp_fork with "[Hc2]").
     { iIntros "!>". by wp_chan_pures. }
-    wp_recv (?) as "_".
-    wp_recv as "_".
-    wp_recv as "_".
-    wp_smart_apply wp_assert. wp_pures.
+    wp_chan_pures. wp_smart_apply wp_assert. wp_pures.
     iSplitR; [by case_bool_decide|]. iIntros "!>!>".
     wp_smart_apply wp_assert. wp_pures.
     iSplitR; [by case_bool_decide|]. iIntros "!>!>".
