@@ -7,7 +7,6 @@ Notation B := 1.
 Notation C := 2.
 Notation D := 3.
 
-
 Definition program : val :=
   λ: <>,
      let: "cs" := new_chan #4 in
@@ -20,13 +19,18 @@ Definition program : val :=
            let: "a1" := #10 in
            let: "a2" := #20 in
            let: "a3" := #12 in
+           (* (<(Send,B) @ (a2:Z)> MSG #a2 ; <(Send,C) @ (a3:Z)> MSG #a3 ; *)
            send "ch0" #B "a2";;
            send "ch0" #C "a3";;
+           (* <(Recv,B) @ (b1:Z)> MSG #b1 ; <(Recv,C) @ (c1:Z)> MSG #c1 ; *)
            let: "b1" := recv "ch0" #B in
            let: "c1" := recv "ch0" #C in
+           (* <(Send,B) @ (s1:Z) (a1:Z)> MSG #s1 {{ ⌜(s1 = a1 + b1 + c1)%Z⌝ }} ; *)
            let: "s1" := "a1"+"b1"+"c1" in
            send "ch0" #B "s1";;
+           (* <(Send,C)> MSG #s1 ; *)
            send "ch0" #C "s1";;
+           (* <(Recv,B) @ (s2:Z)> MSG #s2 ; <(Recv,C) @ (s3:Z)> MSG #s3; *)
            let: "s2" := recv "ch0" #B in
            let: "s3" := recv "ch0" #C in
            send "ch0" #D ("s1"+"s2"+"s3"));;
@@ -78,14 +82,6 @@ Definition program : val :=
 Section mpc_protocols.
   Context `{!heapGS Σ, chanG Σ}.
 
-
-(* A :  *)
-(*   ![B] (a2) <a2> . ![C] (a3) <a3> .  *)
-(*   ?[B] (b1) <b1> . ?[C] (c1) <c1> . *)
-(*   ![B] (s1) (a1) <s1> { s1 = a1 + b1 + c1 } . ![C]  <s1> . *)
-(*   ?[B] (s2) <s2> . ? [C] (s3) <s3> . *)
-(*   prot_tail (s1+s2+s3) *)
-
   Definition A_prot (p : Z → iProto Σ) : iProto Σ :=
     (<(Send,B) @ (a2:Z)> MSG #a2 ; <(Send,C) @ (a3:Z)> MSG #a3 ;
      <(Recv,B) @ (b1:Z)> MSG #b1 ; <(Recv,C) @ (c1:Z)> MSG #c1 ;
@@ -93,13 +89,6 @@ Section mpc_protocols.
      <(Send,C)> MSG #s1 ;
      <(Recv,B) @ (s2:Z)> MSG #s2 ; <(Recv,C) @ (s3:Z)> MSG #s3;
      p (s1 + s2 + s3)%Z)%proto.
-
-(* B : *)
-(*   ?[A] (a2) <a2> . ![A] (b1) <b1> . *)
-(*   ![C] (c2) <c2> . ?[C] (b3) <b3> . *)
-(*   ?[A] (s1) <s1> . ![A] (s2) (a2) <s2> { s2 = a2 + b2 + c2 } . *)
-(*   ![C] <s2> . ?[C] (s3) <s3> . *)
-(*   prot_tail (s1+s2+s3) *)
 
   Definition B_prot (p : Z → iProto Σ) : iProto Σ :=
     (<(Recv,A) @ (a2:Z)> MSG #a2 ; <(Send,A) @ (b1:Z)> MSG #b1 ;
@@ -109,13 +98,6 @@ Section mpc_protocols.
      <(Send,C)> MSG #s2 ; <(Recv,C) @ (s3:Z)> MSG #s3 ;
      p (s1 + s2 + s3)%Z)%proto.
 
-(* C : *)
-(*   ?[A] (a3) <a3> . ![A] (c1) <c1> . *)
-(*   ?[B] (b3) <b3> . ![B] (c2) <c2> . *)
-(*   ?[A] (s1) <s1> . ![A] (s3) (a3) <s3> { s3 = a3 + b3 + c3 }  *)
-(*   ?[B] <s2> . ![B] (s3) <s3> . *)
-(*   prot_tail (s1+s2+s3) *)
-
   Definition C_prot (p : Z → iProto Σ) : iProto Σ :=
     (<(Recv,A) @ (a3:Z)> MSG #a3 ; <(Send,A) @ (c1:Z)> MSG #c1 ;
      <(Recv,B) @ (b3:Z)> MSG #b3 ; <(Send,B) @ (c2:Z)> MSG #c2 ;
@@ -124,10 +106,10 @@ Section mpc_protocols.
      <(Recv,B) @ (s2:Z)> MSG #s2 ; <(Send,B)> MSG #s3;
      p (s1 + s2 + s3)%Z)%proto.
 
-  Notation D := 3.
-
   Definition D_prot : iProto Σ :=
-    (<(Recv,A) @ (sum : Z)> MSG #sum ; <(Recv,B)> MSG #sum; <(Recv,C)> MSG #sum; END)%proto.
+    (<(Recv,A) @ (sum : Z)> MSG #sum ;
+     <(Recv,B)> MSG #sum;
+     <(Recv,C)> MSG #sum; END)%proto.
 
   Definition tail_prot (sum : Z) : iProto Σ :=
      (<(Send,D)> MSG #sum ; END)%proto.
@@ -137,15 +119,12 @@ Section mpc_protocols.
 
   Lemma mpc_consistent :
     ⊢ iProto_consistent mpc_prot_pool.
-  Proof.
-    rewrite /mpc_prot_pool.
-    iProto_consistent_take_steps.
-  Qed.
+  Proof. rewrite /mpc_prot_pool. iProto_consistent_take_steps. Qed.
 
-(* End mpc_protocols. *)
-
-(* Section mpc_example. *)
-(*   Context `{!heapGS Σ, chanG Σ}. *)
+  (* TODO: Move to proofmode.v? *)
+  Tactic Notation "wp_recv" := wp_recv (?) as "_".
+  Tactic Notation "wp_send" := wp_send with "[//]".
+  Tactic Notation "wp_chan_pures" := repeat (repeat wp_send; repeat wp_recv).
 
   Lemma mpc_spec :
     {{{ True }}} program #() {{{ RET #(); True }}}.
@@ -155,41 +134,11 @@ Section mpc_protocols.
     wp_new_chan mpc_prot_pool with mpc_consistent
       as (ch0 ch1 ch2 ch3) "Hc0" "Hc1" "Hc2" "Hc3".
     wp_smart_apply (wp_fork with "[Hc0]").
-    { iIntros "!>".
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_recv (b1) as "_".
-      wp_recv (c1) as "_".
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_recv (s2) as "_".
-      wp_recv (s3) as "_".
-      wp_send with "[//]".
-      done. }
+    { iIntros "!>". by wp_chan_pures. }
     wp_smart_apply (wp_fork with "[Hc1]").
-    { iIntros "!>".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_recv (?) as "_".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_send with "[//]".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      done. }
+    { iIntros "!>". by wp_chan_pures. }
     wp_smart_apply (wp_fork with "[Hc2]").
-    { iIntros "!>".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_recv (?) as "_".
-      wp_send with "[//]".
-      wp_send with "[//]".
-      done. }
+    { iIntros "!>". by wp_chan_pures. }
     wp_recv (?) as "_".
     wp_recv as "_".
     wp_recv as "_".
