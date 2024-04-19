@@ -403,3 +403,7 @@ Tactic Notation "wp_new_chan" constr(prot) "with" constr(lem) "as"
   wp_smart_apply (new_chan_spec prot);
     [set_solver|by iApply lem|iIntros (?) "?"];
     ltac1_list_iter2 ltac:(fun x y => wp_get_chan (x) y) xs pats.
+
+Tactic Notation "wp_recv" := try wp_recv (?) as "_"; try wp_recv as "_".
+Tactic Notation "wp_send" := wp_send with "[//]".
+Tactic Notation "wp_chan_pures" := repeat (repeat wp_send; repeat wp_recv).
