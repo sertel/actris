@@ -129,7 +129,7 @@ Section example.
        "v2")
     ).
 
-  Lemma lock_example_spec jcc rcc c (x1 y1 : Z) :
+  Lemma lock_example_spec `{!lockG Σ} jcc rcc c (x1 y1 : Z) :
     {{{ c ↣ pizza_prot ∗ jcc ↦ #x1 ∗ rcc ↦ #y1 }}}
       lock_example #jcc #rcc c
     {{{ (x2 y2 : Z), RET ((#x2, #(x1 - x2)), (#y2, #(y1 - y2)))%V;

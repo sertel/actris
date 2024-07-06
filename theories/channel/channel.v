@@ -68,8 +68,8 @@ Definition recv : val :=
 
 (** * Setup of Iris's cameras *)
 Class chanG Σ := {
-  chanG_lockG :: lockG Σ;
-  chanG_protoG :: protoG Σ val;
+  #[local] chanG_lockG :: lockG Σ;
+  #[local] chanG_protoG :: protoG Σ val;
 }.
 Definition chanΣ : gFunctors := #[ spin_lockΣ; protoΣ val ].
 Global Instance subG_chanΣ {Σ} : subG chanΣ Σ → chanG Σ.
