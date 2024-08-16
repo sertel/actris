@@ -181,7 +181,7 @@ Section session_typing_rules.
     iIntros (Hdom) "!>". iIntros (vs) "$". iApply wp_value.
     iIntros (c) "Hc". wp_lam.
     rewrite -subst_map_singleton.
-    iApply lty_arr_list_spec; [by rewrite fmap_length|].
+    iApply lty_arr_list_spec; [by rewrite length_fmap|].
     iIntros (ws) "H".
     rewrite big_sepL2_fmap_l.
     iDestruct (big_sepL2_length with "H") as %Heq.

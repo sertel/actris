@@ -260,7 +260,7 @@ Section channel.
     iIntros "#Hlbl' [Hctx H] !>".
     wp_smart_apply (release_spec with "[Hl Hr Hctx $Hlk $Hlkd]").
     { iExists (vsl ++ [v]), vsr.
-      rewrite app_length /=.
+      rewrite length_app /=.
       replace (length vsl + 1) with (S (length vsl)) by lia.
       iFrame "#∗". }
     iIntros "_". iApply "HΦ". iExists γl, γr, γlk. eauto 10 with iFrame.
