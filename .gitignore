@@ -19,3 +19,4 @@ Makefile.coq.conf
 .Makefile.coq.d
 *.crashcoqide
 _opam
+result
